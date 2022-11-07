@@ -1,0 +1,18 @@
+#pragma once
+
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <sstream>
+#include <string>
+#include <thread>
+
+#include "math.h"
+#include "types.h"
+
+typedef Vec3 Color;
+
+inline std::ostream& operator<<(std::ostream& out, const Vec3& v)
+{
+    return out << v.x << ' ' << v.y << ' ' << v.z << '\n';
+}
