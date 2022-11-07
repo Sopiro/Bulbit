@@ -8,11 +8,11 @@ public:
     Ray() = default;
     Ray(const Vec3& origin, const Vec3& dir)
         : origin{ origin }
-        , dir{ dir.Normalized() }
+        , dir{ dir }
     {
     }
 
-    Vec3 At(double t)
+    Vec3 At(double t) const
     {
         return origin + dir * t;
     }

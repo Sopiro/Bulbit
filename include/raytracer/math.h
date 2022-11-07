@@ -6,13 +6,32 @@
 #include <float.h>
 #include <limits>
 #include <math.h>
+#include <random>
 #include <stdint.h>
 
 #include "types.h"
 
-#define PI 3.14159265359f
-
 #define precision double
+
+constexpr precision pi = (precision)(3.1415926535897932385);
+constexpr precision infinity = std::numeric_limits<precision>::infinity();
+
+inline precision DegToRad(precision degrees)
+{
+    return (precision)(degrees * pi / 180.0);
+}
+
+inline precision Rand()
+{
+    static std::uniform_real_distribution<precision> distribution(0.0, 1.0);
+    static std::mt19937 generator;
+    return distribution(generator);
+}
+
+inline precision Rand(precision min, precision max)
+{
+    return min + (max - min) * Rand();
+}
 
 struct Vec2
 {
@@ -131,6 +150,11 @@ struct Vec3
     precision x, y, z;
 
     Vec3() = default;
+
+    inline static Vec3 Random(precision min, precision max)
+    {
+        return Vec3{ Rand(min, max), Rand(min, max), Rand(min, max) };
+    }
 
     constexpr Vec3(precision _v)
         : x{ _v }
@@ -318,6 +342,11 @@ inline Vec2 operator*(const Vec2& v, precision s)
     return Vec2{ v.x * s, v.y * s };
 }
 
+inline Vec2 operator*(precision s, const Vec2& v)
+{
+    return operator*(v, s);
+}
+
 inline Vec2 operator/(const Vec2& v, precision s)
 {
     return v * (1.0f / s);
@@ -385,6 +414,11 @@ inline Vec3 operator-(const Vec3& a, const Vec3& b)
 inline Vec3 operator*(const Vec3& v, precision s)
 {
     return Vec3{ v.x * s, v.y * s, v.z * s };
+}
+
+inline Vec3 operator*(precision s, const Vec3& v)
+{
+    return operator*(v, s);
 }
 
 inline Vec3 operator/(const Vec3& v, precision s)
@@ -457,4 +491,47 @@ inline T Slerp(const T& start, const T& end, precision percent)
     rv.Normalize();
 
     return start * Cos(angle) + rv * Sin(angle);
+}
+
+inline Vec3 PolarToCart(precision lat, precision lgt, precision r)
+{
+    precision x = sin(lat) * cos(lgt);
+    precision y = sin(lat) * sin(lgt);
+    precision z = cos(lat);
+
+    return Vec3{ x, y, z } * r;
+}
+
+inline Vec3 RandomUnitVector()
+{
+    precision theta = 2 * pi * Rand();
+    precision phi = pi * Rand();
+    // precision phi = acos(1.0 - 2.0 * Rand());
+
+    precision x = sin(phi) * cos(theta);
+    precision y = sin(phi) * sin(theta);
+    precision z = cos(phi);
+
+    return Vec3{ x, y, z };
+}
+
+inline Vec3 RandomInUnitSphere()
+{
+    precision r = Rand();
+
+    return RandomUnitVector() * r;
+}
+
+inline Vec3 RandomInHemisphere(const Vec3& normal)
+{
+    Vec3 in_unit_sphere = RandomInUnitSphere();
+
+    if (Dot(in_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal
+    {
+        return in_unit_sphere;
+    }
+    else
+    {
+        return -in_unit_sphere;
+    }
 }
