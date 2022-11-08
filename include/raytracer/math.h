@@ -509,6 +509,16 @@ inline T Reflect(const T& v, const T& n)
     return v - 2 * Dot(v, n) * n;
 }
 
+template <typename T>
+T Refract(const T& uv, const T& n, double etai_over_etat)
+{
+    auto cos_theta = fmin(Dot(-uv, n), 1.0);
+    T r_out_perp = etai_over_etat * (uv + cos_theta * n);
+    T r_out_parallel = -sqrt(fabs(1.0 - r_out_perp.Length2())) * n;
+
+    return r_out_perp + r_out_parallel;
+}
+
 inline Vec3 PolarToCart(precision lat, precision lgt, precision r)
 {
     precision x = sin(lat) * cos(lgt);
