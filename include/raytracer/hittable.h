@@ -3,10 +3,13 @@
 #include "common.h"
 #include "ray.h"
 
+class Material;
+
 struct HitRecord
 {
     Vec3 p;
     Vec3 normal;
+    std::shared_ptr<Material> mat;
     double t;
     bool front_face;
 

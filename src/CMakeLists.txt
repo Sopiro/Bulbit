@@ -8,6 +8,7 @@ set(HEADER_FILES
 )
 set(SOURCE_FILES
     main.cpp
+    material.cpp
 )
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "src" FILES ${SOURCE_FILES})

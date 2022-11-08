@@ -347,6 +347,11 @@ inline Vec2 operator*(precision s, const Vec2& v)
     return operator*(v, s);
 }
 
+inline Vec2 operator*(const Vec2& a, const Vec2& b)
+{
+    return Vec2{ a.x * b.x, a.y * b.y };
+}
+
 inline Vec2 operator/(const Vec2& v, precision s)
 {
     return v * (1.0f / s);
@@ -421,6 +426,11 @@ inline Vec3 operator*(precision s, const Vec3& v)
     return operator*(v, s);
 }
 
+inline Vec3 operator*(const Vec3& a, const Vec3& b)
+{
+    return Vec3{ a.x * b.x, a.y * b.y, a.z * b.z };
+}
+
 inline Vec3 operator/(const Vec3& v, precision s)
 {
     return v * (1.0f / s);
@@ -491,6 +501,12 @@ inline T Slerp(const T& start, const T& end, precision percent)
     rv.Normalize();
 
     return start * Cos(angle) + rv * Sin(angle);
+}
+
+template <typename T>
+inline T Reflect(const T& v, const T& n)
+{
+    return v - 2 * Dot(v, n) * n;
 }
 
 inline Vec3 PolarToCart(precision lat, precision lgt, precision r)
