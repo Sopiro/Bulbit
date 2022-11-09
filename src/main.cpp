@@ -60,11 +60,19 @@ int main()
     world.add(std::make_shared<Sphere>(Vec3(-1.0, 0.0, -1.0), -0.45, material_left));
     world.add(std::make_shared<Sphere>(Vec3{ 1.0, 0.0, -1.0 }, 0.5, material_right));
 
-    Camera camera{ Vec3(-2, 2, 1), Vec3(0, 0, -1), Vec3(0, 1, 0), 71, aspect_ratio };
+    Vec3 lookfrom{ 3, 3, 2 };
+    Vec3 lookat{ 0, 0, -1 };
+    Vec3 vup{ 0, 1, 0 };
+    double dist_to_focus = (lookfrom - lookat).Length();
+    double aperture = 2.0;
 
+    Camera camera{ lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus };
+
+    auto t0 = std::chrono::system_clock::now();
     for (int32 y = height - 1; y >= 0; --y)
     {
         std::cout << "\rScanlines remaining: " << y << ' ' << std::flush;
+        // std::printf("\rProcessing... %.2lf%%", double(height - y - 1) / (height - 1) * 100.0);
 
         for (int32 x = 0; x < width; ++x)
         {
@@ -81,12 +89,20 @@ int main()
 
             // Divide the color by the number of samples and gamma-correct for gamma=2.2.
             Vec3 color =
-                Vec3{ pow(samples.x * scale, 1.0 / 2), pow(samples.y * scale, 1.0 / 2), pow(samples.z * scale, 1.0 / 2) };
+                Vec3{ pow(samples.x * scale, 1.0 / 2.2), pow(samples.y * scale, 1.0 / 2.2), pow(samples.z * scale, 1.0 / 2.2) };
             bitmap.Set(x, y, color);
         }
     }
 
-    bitmap.WriteToFile("render.png");
+    auto t1 = std::chrono::system_clock::now();
+    std::time_t tt = std::chrono::system_clock::to_time_t(t1);
+    std::chrono::duration<double> d = t1 - t0;
 
-    return system("render.png");
+    std::cout << "\nDone!: " << d.count() << 's' << std::endl;
+
+    std::string fileName = "render-" + std::to_string(d.count()) + "s.png";
+
+    bitmap.WriteToFile(fileName.c_str());
+
+    return system(fileName.c_str());
 }

@@ -561,3 +561,8 @@ inline Vec3 RandomInHemisphere(const Vec3& normal)
         return -in_unit_sphere;
     }
 }
+
+inline Vec3 RandomInUnitDisk()
+{
+    return Vec3{ Rand(-1.0, 1.0), Rand(-1.0, 1.0), 0.0 };
+}
