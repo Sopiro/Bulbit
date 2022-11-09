@@ -9,6 +9,61 @@
 #include "raytracer/ray.h"
 #include "raytracer/sphere.h"
 
+HittableList RandomScene()
+{
+    HittableList world;
+
+    auto ground_material = std::make_shared<Lambertian>(Color(0.5, 0.5, 0.5));
+    world.add(std::make_shared<Sphere>(Vec3(0, -1000, 0), 1000, ground_material));
+
+    for (int a = -11; a < 11; a++)
+    {
+        for (int b = -11; b < 11; b++)
+        {
+            auto choose_mat = Rand();
+            Vec3 center(a + 0.9 * Rand(), 0.2, b + 0.9 * Rand());
+
+            if ((center - Vec3(4, 0.2, 0)).Length() > 0.9)
+            {
+                std::shared_ptr<Material> sphere_material;
+
+                if (choose_mat < 0.8)
+                {
+                    // diffuse
+                    auto albedo = Color::Random() * Color::Random();
+                    sphere_material = std::make_shared<Lambertian>(albedo);
+                    world.add(std::make_shared<Sphere>(center, 0.2, sphere_material));
+                }
+                else if (choose_mat < 0.95)
+                {
+                    // metal
+                    auto albedo = Color::Random(0.5, 1);
+                    auto fuzz = Rand(0, 0.5);
+                    sphere_material = std::make_shared<Metal>(albedo, fuzz);
+                    world.add(std::make_shared<Sphere>(center, 0.2, sphere_material));
+                }
+                else
+                {
+                    // glass
+                    sphere_material = std::make_shared<Dielectric>(1.5);
+                    world.add(std::make_shared<Sphere>(center, 0.2, sphere_material));
+                }
+            }
+        }
+    }
+
+    auto material1 = std::make_shared<Dielectric>(1.5);
+    world.add(std::make_shared<Sphere>(Vec3(0, 1, 0), 1.0, material1));
+
+    auto material2 = std::make_shared<Lambertian>(Color(0.4, 0.2, 0.1));
+    world.add(std::make_shared<Sphere>(Vec3(-4, 1, 0), 1.0, material2));
+
+    auto material3 = std::make_shared<Metal>(Color(0.7, 0.6, 0.5), 0.0);
+    world.add(std::make_shared<Sphere>(Vec3(4, 1, 0), 1.0, material3));
+
+    return world;
+}
+
 Color TraceRay(const Ray& r, const Hittable& world, int32 depth)
 {
     if (depth <= 0)
@@ -47,32 +102,32 @@ int main()
 
     Bitmap bitmap{ width, height };
 
-    HittableList world;
+    HittableList world = RandomScene();
 
-    auto material_ground = std::make_shared<Lambertian>(Color{ 0.8, 0.8, 0.0 });
-    auto material_center = std::make_shared<Lambertian>(Color{ 0.1, 0.2, 0.5 });
-    auto material_left = std::make_shared<Dielectric>(1.5);
-    auto material_right = std::make_shared<Metal>(Color{ 0.8, 0.6, 0.2 }, 0.0);
+    // auto material_ground = std::make_shared<Lambertian>(Color{ 0.8, 0.8, 0.0 });
+    // auto material_center = std::make_shared<Lambertian>(Color{ 0.1, 0.2, 0.5 });
+    // auto material_left = std::make_shared<Dielectric>(1.5);
+    // auto material_right = std::make_shared<Metal>(Color{ 0.8, 0.6, 0.2 }, 0.0);
 
-    world.add(std::make_shared<Sphere>(Vec3{ 0.0, -100.5, -1.0 }, 100.0, material_ground));
-    world.add(std::make_shared<Sphere>(Vec3{ 0.0, 0.0, -1.0 }, 0.5, material_center));
-    world.add(std::make_shared<Sphere>(Vec3{ -1.0, 0.0, -1.0 }, 0.5, material_left));
-    world.add(std::make_shared<Sphere>(Vec3(-1.0, 0.0, -1.0), -0.45, material_left));
-    world.add(std::make_shared<Sphere>(Vec3{ 1.0, 0.0, -1.0 }, 0.5, material_right));
+    // world.add(std::make_shared<Sphere>(Vec3{ 0.0, -100.5, -1.0 }, 100.0, material_ground));
+    // world.add(std::make_shared<Sphere>(Vec3{ 0.0, 0.0, -1.0 }, 0.5, material_center));
+    // world.add(std::make_shared<Sphere>(Vec3{ -1.0, 0.0, -1.0 }, 0.5, material_left));
+    // world.add(std::make_shared<Sphere>(Vec3(-1.0, 0.0, -1.0), -0.45, material_left));
+    // world.add(std::make_shared<Sphere>(Vec3{ 1.0, 0.0, -1.0 }, 0.5, material_right));
 
-    Vec3 lookfrom{ 3, 3, 2 };
-    Vec3 lookat{ 0, 0, -1 };
-    Vec3 vup{ 0, 1, 0 };
-    double dist_to_focus = (lookfrom - lookat).Length();
-    double aperture = 2.0;
+    Vec3 lookfrom(13, 2, 3);
+    Vec3 lookat(0, 0, 0);
+    Vec3 vup(0, 1, 0);
+    auto dist_to_focus = 10.0;
+    auto aperture = 0.1;
 
     Camera camera{ lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus };
 
     auto t0 = std::chrono::system_clock::now();
     for (int32 y = height - 1; y >= 0; --y)
     {
-        std::cout << "\rScanlines remaining: " << y << ' ' << std::flush;
-        // std::printf("\rProcessing... %.2lf%%", double(height - y - 1) / (height - 1) * 100.0);
+        // std::cout << "\rScanlines remaining: " << y << ' ' << std::flush;
+        std::printf("\rProcessing... %.2lf%%", double(height - y - 1) / (height - 1) * 100.0);
 
         for (int32 x = 0; x < width; ++x)
         {

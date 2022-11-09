@@ -151,6 +151,11 @@ struct Vec3
 
     Vec3() = default;
 
+    inline static Vec3 Random()
+    {
+        return Vec3{ Rand(), Rand(), Rand() };
+    }
+
     inline static Vec3 Random(precision min, precision max)
     {
         return Vec3{ Rand(min, max), Rand(min, max), Rand(min, max) };
