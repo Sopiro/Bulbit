@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "ray.h"
+#include "texture.h"
 
 struct HitRecord;
 
@@ -9,6 +10,10 @@ class Material
 {
 public:
     virtual bool Scatter(const Ray& r_in, const HitRecord& rec, Color& attenuation, Ray& scattered) const = 0;
+    virtual Color Emitted(double u, double v, const Vec3& p) const
+    {
+        return Color(0, 0, 0);
+    }
 };
 
 class Lambertian : public Material
@@ -62,4 +67,30 @@ private:
 
         return r0 + (1.0 - r0) * pow((1 - cosine), 5.0);
     }
+};
+
+class DiffuseLight : public Material
+{
+public:
+    DiffuseLight(std::shared_ptr<Texture> a)
+        : emit(a)
+    {
+    }
+    DiffuseLight(Color c)
+        : emit(std::make_shared<SolidColor>(c))
+    {
+    }
+
+    virtual bool Scatter(const Ray& r_in, const HitRecord& rec, Color& attenuation, Ray& scattered) const override
+    {
+        return false;
+    }
+
+    virtual Color Emitted(double u, double v, const Vec3& p) const override
+    {
+        return emit->value(u, v, p);
+    }
+
+public:
+    std::shared_ptr<Texture> emit;
 };

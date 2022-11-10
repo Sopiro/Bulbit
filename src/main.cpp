@@ -78,19 +78,22 @@ Color TraceRay(const Ray& r, const Hittable& world, int32 depth)
     {
         Ray scattered;
         Color attenuation;
+        Color emitted = rec.mat->Emitted(0, 0, rec.p);
 
-        if (rec.mat->Scatter(r, rec, attenuation, scattered))
+        if (rec.mat->Scatter(r, rec, attenuation, scattered) == false)
         {
-            return attenuation * TraceRay(scattered, world, depth - 1);
+            return emitted;
         }
 
-        return Color{ 0.0 };
+        return emitted + attenuation * TraceRay(scattered, world, depth - 1);
     }
 
-    Vec3 unit_direction = r.dir.Normalized();
-    double t = 0.5 * (unit_direction.y + 1.0);
+    // Vec3 unit_direction = r.dir.Normalized();
+    // double t = 0.5 * (unit_direction.y + 1.0);
 
-    return Lerp(Color{ 1.0, 1.0, 1.0 }, Color{ 0.5, 0.7, 1.0 }, t);
+    // return Lerp(Color{ 1.0, 1.0, 1.0 }, Color{ 0.5, 0.7, 1.0 }, t);
+
+    return Color{ 0.0 };
 }
 
 int main()
@@ -116,10 +119,12 @@ int main()
 
     HittableList world;
 
-    auto material_ground = std::make_shared<Lambertian>(Color{ 0.8, 0.8, 0.0 });
+    auto material_ground = std::make_shared<Lambertian>(Color{ 0.8, 0.8, 0.8 });
     auto material_center = std::make_shared<Lambertian>(Color{ 0.1, 0.2, 0.5 });
     auto material_left = std::make_shared<Dielectric>(1.5);
     auto material_right = std::make_shared<Metal>(Color{ 0.8, 0.6, 0.2 }, 0.0);
+
+    auto light = std::make_shared<DiffuseLight>(Vec3{ 1.0 });
 
     world.add(std::make_shared<Sphere>(Vec3{ 0.0, -100.5, -1.0 }, 100.0, material_ground));
     world.add(std::make_shared<Sphere>(Vec3{ 0.0, 0.0, -1.0 }, 0.5, material_center));
@@ -127,17 +132,22 @@ int main()
     world.add(std::make_shared<Sphere>(Vec3(-1.0, 0.0, -1.0), -0.45, material_left));
     world.add(std::make_shared<Sphere>(Vec3{ 1.0, 0.0, -1.0 }, 0.5, material_right));
 
-    Vec3 lookfrom(3, 3, 2);
+    world.add(std::make_shared<Sphere>(Vec3{ 0.0, 2.0, 0.0 }, 0.5, light));
+    world.add(std::make_shared<Sphere>(Vec3{ 5.0, 2.0, -5.0 }, 0.5, light));
+    world.add(std::make_shared<Sphere>(Vec3{ -5.0, 2.0, -5.0 }, 0.5, light));
+
+    Vec3 lookfrom(0, 1, 1);
     Vec3 lookat(0, 0, -1);
     Vec3 vup(0, 1, 0);
     auto dist_to_focus = (lookfrom - lookat).Length();
-    auto aperture = 0.1;
+    auto aperture = 0.0;
+    double vFov = 71;
 
-    Camera camera(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
+    Camera camera(lookfrom, lookat, vup, vFov, aspect_ratio, aperture, dist_to_focus);
 
     auto t0 = std::chrono::system_clock::now();
 
-    double chunk = height / omp_get_max_threads() - 1;
+    double chunk = height / omp_get_max_threads();
 
 #pragma omp parallel for
     for (int32 y = 0; y < height; ++y)
@@ -145,7 +155,7 @@ int main()
         // std::cout << "\rScanlines remaining: " << y << ' ' << std::flush;
         if (omp_get_thread_num() == 0)
         {
-            std::printf("\rProcessing... %.2lf%%", double(y) / chunk * 100.0);
+            std::printf("\rProcessing... %.2lf%%", double(y) / (chunk - 1) * 100.0);
         }
 
         for (int32 x = 0; x < width; ++x)
