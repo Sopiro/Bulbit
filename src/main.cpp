@@ -9,6 +9,8 @@
 #include "raytracer/ray.h"
 #include "raytracer/sphere.h"
 
+#include <omp.h>
+
 HittableList RandomScene()
 {
     HittableList world;
@@ -102,32 +104,49 @@ int main()
 
     Bitmap bitmap{ width, height };
 
-    HittableList world = RandomScene();
+    // HittableList world = RandomScene();
 
-    // auto material_ground = std::make_shared<Lambertian>(Color{ 0.8, 0.8, 0.0 });
-    // auto material_center = std::make_shared<Lambertian>(Color{ 0.1, 0.2, 0.5 });
-    // auto material_left = std::make_shared<Dielectric>(1.5);
-    // auto material_right = std::make_shared<Metal>(Color{ 0.8, 0.6, 0.2 }, 0.0);
+    // Vec3 lookfrom(13, 2, 3);
+    // Vec3 lookat(0, 0, 0);
+    // Vec3 vup(0, 1, 0);
+    // auto dist_to_focus = 10.0;
+    // auto aperture = 0.1;
 
-    // world.add(std::make_shared<Sphere>(Vec3{ 0.0, -100.5, -1.0 }, 100.0, material_ground));
-    // world.add(std::make_shared<Sphere>(Vec3{ 0.0, 0.0, -1.0 }, 0.5, material_center));
-    // world.add(std::make_shared<Sphere>(Vec3{ -1.0, 0.0, -1.0 }, 0.5, material_left));
-    // world.add(std::make_shared<Sphere>(Vec3(-1.0, 0.0, -1.0), -0.45, material_left));
-    // world.add(std::make_shared<Sphere>(Vec3{ 1.0, 0.0, -1.0 }, 0.5, material_right));
+    // Camera camera{ lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus };
 
-    Vec3 lookfrom(13, 2, 3);
-    Vec3 lookat(0, 0, 0);
+    HittableList world;
+
+    auto material_ground = std::make_shared<Lambertian>(Color{ 0.8, 0.8, 0.0 });
+    auto material_center = std::make_shared<Lambertian>(Color{ 0.1, 0.2, 0.5 });
+    auto material_left = std::make_shared<Dielectric>(1.5);
+    auto material_right = std::make_shared<Metal>(Color{ 0.8, 0.6, 0.2 }, 0.0);
+
+    world.add(std::make_shared<Sphere>(Vec3{ 0.0, -100.5, -1.0 }, 100.0, material_ground));
+    world.add(std::make_shared<Sphere>(Vec3{ 0.0, 0.0, -1.0 }, 0.5, material_center));
+    world.add(std::make_shared<Sphere>(Vec3{ -1.0, 0.0, -1.0 }, 0.5, material_left));
+    world.add(std::make_shared<Sphere>(Vec3(-1.0, 0.0, -1.0), -0.45, material_left));
+    world.add(std::make_shared<Sphere>(Vec3{ 1.0, 0.0, -1.0 }, 0.5, material_right));
+
+    Vec3 lookfrom(3, 3, 2);
+    Vec3 lookat(0, 0, -1);
     Vec3 vup(0, 1, 0);
-    auto dist_to_focus = 10.0;
+    auto dist_to_focus = (lookfrom - lookat).Length();
     auto aperture = 0.1;
 
-    Camera camera{ lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus };
+    Camera camera(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
 
     auto t0 = std::chrono::system_clock::now();
-    for (int32 y = height - 1; y >= 0; --y)
+
+    double chunk = height / omp_get_max_threads() - 1;
+
+#pragma omp parallel for
+    for (int32 y = 0; y < height; ++y)
     {
         // std::cout << "\rScanlines remaining: " << y << ' ' << std::flush;
-        std::printf("\rProcessing... %.2lf%%", double(height - y - 1) / (height - 1) * 100.0);
+        if (omp_get_thread_num() == 0)
+        {
+            std::printf("\rProcessing... %.2lf%%", double(y) / chunk * 100.0);
+        }
 
         for (int32 x = 0; x < width; ++x)
         {
@@ -155,7 +174,9 @@ int main()
 
     std::cout << "\nDone!: " << d.count() << 's' << std::endl;
 
-    std::string fileName = "render-" + std::to_string(d.count()) + "s.png";
+    std::string fileName = "render_" + std::to_string(width) + "x" + std::to_string(height) + "_s" +
+                           std::to_string(samples_per_pixel) + "_d" + std::to_string(max_depth) + "_t" +
+                           std::to_string(d.count()) + "s.png";
 
     bitmap.WriteToFile(fileName.c_str());
 
