@@ -66,57 +66,8 @@ HittableList RandomScene()
     return world;
 }
 
-Color TraceRay(const Ray& r, const Hittable& world, int32 depth)
+HittableList TestScene()
 {
-    if (depth <= 0)
-    {
-        return Vec3{ 0.0f };
-    }
-
-    HitRecord rec;
-    if (world.Hit(r, 0.00001, infinity, rec))
-    {
-        Ray scattered;
-        Color attenuation;
-        Color emitted = rec.mat->Emitted(0, 0, rec.p);
-
-        if (rec.mat->Scatter(r, rec, attenuation, scattered) == false)
-        {
-            return emitted;
-        }
-
-        return emitted + attenuation * TraceRay(scattered, world, depth - 1);
-    }
-
-    // Vec3 unit_direction = r.dir.Normalized();
-    // double t = 0.5 * (unit_direction.y + 1.0);
-
-    // return Lerp(Color{ 1.0, 1.0, 1.0 }, Color{ 0.5, 0.7, 1.0 }, t);
-
-    return Color{ 0.0 };
-}
-
-int main()
-{
-    constexpr double aspect_ratio = 16.0 / 9.0;
-    constexpr int32 width = 640;
-    constexpr int32 height = static_cast<int32>(width / aspect_ratio);
-    constexpr int32 samples_per_pixel = 100;
-    constexpr double scale = 1.0 / samples_per_pixel;
-    const int max_depth = 50;
-
-    Bitmap bitmap{ width, height };
-
-    // HittableList world = RandomScene();
-
-    // Vec3 lookfrom(13, 2, 3);
-    // Vec3 lookat(0, 0, 0);
-    // Vec3 vup(0, 1, 0);
-    // auto dist_to_focus = 10.0;
-    // auto aperture = 0.1;
-
-    // Camera camera{ lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus };
-
     HittableList world;
 
     auto material_ground = std::make_shared<Lambertian>(Color{ 0.8, 0.8, 0.8 });
@@ -136,12 +87,100 @@ int main()
     world.add(std::make_shared<Sphere>(Vec3{ 5.0, 2.0, -5.0 }, 0.5, light));
     world.add(std::make_shared<Sphere>(Vec3{ -5.0, 2.0, -5.0 }, 0.5, light));
 
-    Vec3 lookfrom(0, 1, 1);
-    Vec3 lookat(0, 0, -1);
+    return world;
+}
+
+HittableList CornellBox()
+{
+    HittableList objects;
+
+    auto red = std::make_shared<Lambertian>(Color(.65, .05, .05));
+    auto white = std::make_shared<Lambertian>(Color(.73, .73, .73));
+    auto black = std::make_shared<Lambertian>(Color(0.0));
+    auto green = std::make_shared<Lambertian>(Color(.12, .45, .15));
+    auto glass = std::make_shared<Dielectric>(1.5);
+    auto metal = std::make_shared<Metal>(Color{ 0.6, 0.6, 0.6 }, 0.0);
+    auto light = std::make_shared<DiffuseLight>(Color(1.0));
+
+    double r = 100000;
+    double g = 1;
+    double m = g / 2.0;
+
+    objects.add(std::make_shared<Sphere>(Vec3{ -r, 0, m }, r, green));      // left
+    objects.add(std::make_shared<Sphere>(Vec3{ r + g, 0, m }, r, red));     // right
+    objects.add(std::make_shared<Sphere>(Vec3{ m, m, -r }, r, white));      // front
+    objects.add(std::make_shared<Sphere>(Vec3{ m, m, r + 3.0 }, r, black)); // back
+    objects.add(std::make_shared<Sphere>(Vec3{ m, -r, m }, r, white));      // bottom
+    objects.add(std::make_shared<Sphere>(Vec3{ m, r + g, m }, r, white));   // top
+
+    objects.add(std::make_shared<Sphere>(Vec3{ m, 1.5, m }, 0.52, light)); // light
+
+    objects.add(std::make_shared<Sphere>(Vec3{ 0.8, 0.1, 0.5 }, 0.1, glass));
+    objects.add(std::make_shared<Sphere>(Vec3{ 0.3, 0.18, 0.7 }, 0.18, metal));
+    // objects.add(std::make_shared<Sphere>(Vec3{ 0.3, 0.2, 0.7 }, -0.19, glass));
+
+    return objects;
+}
+
+Color ComputeRayColor(const Ray& r, const Hittable& world, int32 depth)
+{
+    if (depth <= 0)
+    {
+        return Vec3{ 0.0f };
+    }
+
+    HitRecord rec;
+    if (world.Hit(r, 0.00001, infinity, rec))
+    {
+        Ray scattered;
+        Color attenuation;
+        Color emitted = rec.mat->Emitted(0, 0, rec.p);
+
+        if (rec.mat->Scatter(r, rec, attenuation, scattered) == false)
+        {
+            return emitted;
+        }
+
+        return emitted + attenuation * ComputeRayColor(scattered, world, depth - 1);
+    }
+
+    // Vec3 unit_direction = r.dir.Normalized();
+    // double t = 0.5 * (unit_direction.y + 1.0);
+
+    // return Lerp(Color{ 1.0, 1.0, 1.0 }, Color{ 0.5, 0.7, 1.0 }, t);
+
+    return Color{ 0.0 };
+}
+
+int main()
+{
+    constexpr double aspect_ratio = 1.0;
+    constexpr int32 width = 500;
+    constexpr int32 height = static_cast<int32>(width / aspect_ratio);
+    constexpr int32 samples_per_pixel = 1000;
+    constexpr double scale = 1.0 / samples_per_pixel;
+    const int max_depth = 50;
+
+    Bitmap bitmap{ width, height };
+
+    // HittableList world = RandomScene();
+
+    // Vec3 lookfrom(13, 2, 3);
+    // Vec3 lookat(0, 0, 0);
+    // Vec3 vup(0, 1, 0);
+    // auto dist_to_focus = 10.0;
+    // auto aperture = 0.1;
+
+    // Camera camera{ lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus };
+
+    HittableList world = CornellBox();
+
+    Vec3 lookfrom(0.5, 0.5, 2.4);
+    Vec3 lookat(0.5, 0.5, 0.0);
     Vec3 vup(0, 1, 0);
     auto dist_to_focus = (lookfrom - lookat).Length();
     auto aperture = 0.0;
-    double vFov = 71;
+    double vFov = 40;
 
     Camera camera(lookfrom, lookat, vup, vFov, aspect_ratio, aperture, dist_to_focus);
 
@@ -168,7 +207,7 @@ int main()
                 double v = (y + Rand()) / (height - 1);
 
                 Ray r = camera.GetRay(u, v);
-                samples += TraceRay(r, world, max_depth);
+                samples += ComputeRayColor(r, world, max_depth);
             }
 
             // Divide the color by the number of samples and gamma-correct for gamma=2.2.

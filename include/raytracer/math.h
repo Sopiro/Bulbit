@@ -463,8 +463,6 @@ inline precision Dist2(const Vec3& a, const Vec3& b)
 
 // Vec3 functions end
 
-// Vec4 functions begin
-
 inline precision Dot(const Vec4& a, const Vec4& b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
@@ -488,6 +486,50 @@ inline bool operator==(const Vec4& a, const Vec4& b)
 inline bool operator!=(const Vec4& a, const Vec4& b)
 {
     return a.x != b.x || a.y != b.y || a.z != b.z || a.w != b.w;
+}
+
+template <typename T>
+inline T Abs(T a)
+{
+    return a > T(0) ? a : -a;
+}
+
+inline Vec2 Abs(const Vec2& a)
+{
+    return Vec2(Abs(a.x), Abs(a.y));
+}
+
+template <typename T>
+inline T Min(T a, T b)
+{
+    return a < b ? a : b;
+}
+
+inline Vec2 Min(const Vec2& a, const Vec2& b)
+{
+    return Vec2(Min(a.x, b.x), Min(a.y, b.y));
+}
+
+template <typename T>
+inline T Max(T a, T b)
+{
+    return a > b ? a : b;
+}
+
+inline Vec2 Max(const Vec2& a, const Vec2& b)
+{
+    return Vec2(Max(a.x, b.x), Max(a.y, b.y));
+}
+
+template <typename T>
+inline T Clamp(T v, T _min, T _max)
+{
+    return Max(_min, Min(v, _max));
+}
+
+inline Vec2 Clamp(const Vec2& a, const Vec2& _min, const Vec2& _max)
+{
+    return Max(_min, Min(a, _max));
 }
 
 template <typename T>

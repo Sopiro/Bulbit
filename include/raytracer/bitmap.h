@@ -17,9 +17,9 @@ public:
 
     void Set(int32 x, int32 y, const Color& color)
     {
-        pixels[(x + (height - y - 1) * width) * COLOR_CHANNEL + 0] = static_cast<int32>(color.x * (255.99));
-        pixels[(x + (height - y - 1) * width) * COLOR_CHANNEL + 1] = static_cast<int32>(color.y * (255.99));
-        pixels[(x + (height - y - 1) * width) * COLOR_CHANNEL + 2] = static_cast<int32>(color.z * (255.99));
+        pixels[(x + (height - y - 1) * width) * COLOR_CHANNEL + 0] = static_cast<int32>(Clamp(color.x, 0.0, 0.999) * 256.0);
+        pixels[(x + (height - y - 1) * width) * COLOR_CHANNEL + 1] = static_cast<int32>(Clamp(color.y, 0.0, 0.999) * 256.0);
+        pixels[(x + (height - y - 1) * width) * COLOR_CHANNEL + 2] = static_cast<int32>(Clamp(color.z, 0.0, 0.999) * 256.0);
     }
 
     void WriteToFile(char const* filename)
