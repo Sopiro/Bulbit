@@ -75,7 +75,7 @@ HittableList TestScene()
     auto material_left = std::make_shared<Dielectric>(1.5);
     auto material_right = std::make_shared<Metal>(Color{ 0.8, 0.6, 0.2 }, 0.0);
 
-    auto light = std::make_shared<DiffuseLight>(Vec3{ 1.0 });
+    auto light = std::make_shared<DiffuseLight>(Vec3{ 3.0 });
 
     world.add(std::make_shared<Sphere>(Vec3{ 0.0, -100.5, -1.0 }, 100.0, material_ground));
     world.add(std::make_shared<Sphere>(Vec3{ 0.0, 0.0, -1.0 }, 0.5, material_center));
@@ -100,23 +100,24 @@ HittableList CornellBox()
     auto green = std::make_shared<Lambertian>(Color(.12, .45, .15));
     auto glass = std::make_shared<Dielectric>(1.5);
     auto metal = std::make_shared<Metal>(Color{ 0.6, 0.6, 0.6 }, 0.0);
-    auto light = std::make_shared<DiffuseLight>(Color(1.0));
+    auto light = std::make_shared<DiffuseLight>(Color(12.0));
+    auto absorb = std::make_shared<DiffuseLight>(Color(0.0));
 
-    double r = 100000;
+    double r = 1.0e5;
     double g = 1;
     double m = g / 2.0;
 
-    objects.add(std::make_shared<Sphere>(Vec3{ -r, 0, m }, r, green));      // left
-    objects.add(std::make_shared<Sphere>(Vec3{ r + g, 0, m }, r, red));     // right
-    objects.add(std::make_shared<Sphere>(Vec3{ m, m, -r }, r, white));      // front
-    objects.add(std::make_shared<Sphere>(Vec3{ m, m, r + 3.0 }, r, black)); // back
-    objects.add(std::make_shared<Sphere>(Vec3{ m, -r, m }, r, white));      // bottom
-    objects.add(std::make_shared<Sphere>(Vec3{ m, r + g, m }, r, white));   // top
+    objects.add(std::make_shared<Sphere>(Vec3{ -r, m, m }, r, green));        // left
+    objects.add(std::make_shared<Sphere>(Vec3{ r + g, m, m }, r, red));       // right
+    objects.add(std::make_shared<Sphere>(Vec3{ m, m, -r }, r, white));        // front
+    objects.add(std::make_shared<Sphere>(Vec3{ m, m, r + 2.41 }, r, absorb)); // back
+    objects.add(std::make_shared<Sphere>(Vec3{ m, -r, m }, r, white));        // bottom
+    objects.add(std::make_shared<Sphere>(Vec3{ m, r + g, m }, r, white));     // top
 
-    objects.add(std::make_shared<Sphere>(Vec3{ m, 1.5, m }, 0.52, light)); // light
+    objects.add(std::make_shared<Sphere>(Vec3{ m, 10.0, m }, 9.003, light)); // light
 
-    objects.add(std::make_shared<Sphere>(Vec3{ 0.8, 0.1, 0.5 }, 0.1, glass));
-    objects.add(std::make_shared<Sphere>(Vec3{ 0.3, 0.18, 0.7 }, 0.18, metal));
+    objects.add(std::make_shared<Sphere>(Vec3{ 0.8, 0.13, 0.5 }, 0.13, glass));
+    objects.add(std::make_shared<Sphere>(Vec3{ 0.3, 0.18, 0.8 }, 0.18, metal));
     // objects.add(std::make_shared<Sphere>(Vec3{ 0.3, 0.2, 0.7 }, -0.19, glass));
 
     return objects;
@@ -157,21 +158,22 @@ int main()
     constexpr double aspect_ratio = 1.0;
     constexpr int32 width = 500;
     constexpr int32 height = static_cast<int32>(width / aspect_ratio);
-    constexpr int32 samples_per_pixel = 1000;
+    constexpr int32 samples_per_pixel = 100;
     constexpr double scale = 1.0 / samples_per_pixel;
     const int max_depth = 50;
 
     Bitmap bitmap{ width, height };
 
-    // HittableList world = RandomScene();
+    // HittableList world = TestScene();
 
-    // Vec3 lookfrom(13, 2, 3);
-    // Vec3 lookat(0, 0, 0);
+    // Vec3 lookfrom(0, 1, 1);
+    // Vec3 lookat(0, 0.5, 0);
     // Vec3 vup(0, 1, 0);
-    // auto dist_to_focus = 10.0;
-    // auto aperture = 0.1;
+    // auto dist_to_focus = (lookfrom - lookat).Length();
+    // auto aperture = 0.0;
+    // double vFov = 71;
 
-    // Camera camera{ lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus };
+    // Camera camera{ lookfrom, lookat, vup, vFov, aspect_ratio, aperture, dist_to_focus };
 
     HittableList world = CornellBox();
 
