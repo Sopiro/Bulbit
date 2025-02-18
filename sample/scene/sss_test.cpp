@@ -36,8 +36,8 @@ std::unique_ptr<Camera> SSSTest(Scene& scene)
         SetLoaderFallbackMaterial(mat);
         // SetLoaderFallbackMediumInterface(mi);
 
-        auto tf = Transform{ Vec3(0.2, .78, .3) * 0.5, Quat::FromEuler({ 0, -(3 * pi / 4), 0 }), Vec3(0.01) };
-        LoadModel(scene, "res/xyzrgb_dragon.ply", tf);
+        auto tf = Transform{ Vec3(0.2, .78, .3) * 0.5, Quat::FromEuler({ 0, (pi / 4), 0 }), Vec3(0.01) };
+        LoadModel(scene, "res/xyzdragon.obj", tf);
         // auto tf = Transform{ Vec3(0), Quat::FromEuler(0, 0, 0), Vec3(1) };
         // LoadModel(scene, "res/stanford/bunny.obj", tf);
     }
@@ -75,7 +75,7 @@ std::unique_ptr<Camera> SSSTest(Scene& scene)
     // Float aspect_ratio = 3.f / 2.f;
     // Float aspect_ratio = 4.f / 3.f;
     // Float aspect_ratio = 1.f;
-    int32 width = 960;
+    int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
     Point3 lookfrom{ 0, 1.0, 3 };
