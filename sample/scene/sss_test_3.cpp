@@ -42,6 +42,7 @@ std::unique_ptr<Camera> SSSTest3(Scene& scene)
         auto tf = Transform{ Vec3(0, -0.2f, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
         auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
         SetLoaderFallbackMaterial(floor);
+        SetLoaderFallbackMediumInterface(MediumInterface{});
         LoadModel(scene, "res/background.obj", tf);
     }
 

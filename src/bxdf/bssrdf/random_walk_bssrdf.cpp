@@ -31,7 +31,10 @@ bool RandomWalkBSSRDF::Sample_S(
 
     Float weight = 1;
     int32 bounce = 0;
+
+    const int32 min_bounces = 2;
     const int32 max_bounces = 256;
+    const Float rr = 0.995f;
 
     while (bounce++ < max_bounces)
     {
@@ -47,12 +50,14 @@ bool RandomWalkBSSRDF::Sample_S(
         }
 
         // Stochastically terminate path with russian roulette
-        const Float rr = 0.995f;
-        if (rng.NextFloat() > rr)
+        if (bounce > min_bounces)
         {
-            return false;
+            if (rng.NextFloat() > rr)
+            {
+                return false;
+            }
+            weight /= rr;
         }
-        weight /= rr;
 
         // Random walk forward
         ray.o += l * ray.d;
