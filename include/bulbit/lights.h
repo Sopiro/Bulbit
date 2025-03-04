@@ -19,6 +19,9 @@ public:
     LightSampleLi Sample_Li(const Intersection& ref, const Point2& u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
+    LightSampleLe Sample_Le(const Point2& u0, const Point2& u1) const;
+    void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
+
 private:
     Point3 position;
     Spectrum intensity; // radiance
@@ -32,6 +35,9 @@ public:
 
     LightSampleLi Sample_Li(const Intersection& ref, const Point2& u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
+
+    LightSampleLe Sample_Le(const Point2& u0, const Point2& u1) const;
+    void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
 
 private:
     Vec3 dir;
@@ -49,6 +55,9 @@ public:
 
     LightSampleLi Sample_Li(const Intersection& ref, const Point2& u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
+
+    LightSampleLe Sample_Le(const Point2& u0, const Point2& u1) const;
+    void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
 
     const Primitive* GetPrimitive() const
     {
@@ -70,6 +79,9 @@ public:
     LightSampleLi Sample_Li(const Intersection& ref, const Point2& u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
+    LightSampleLe Sample_Le(const Point2& u0, const Point2& u1) const;
+    void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
+
 private:
     const SpectrumImageTexture* l_map; // Environment(Radiance) map
     Float l_scale;
@@ -90,6 +102,9 @@ public:
     LightSampleLi Sample_Li(const Intersection& ref, const Point2& u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
+    LightSampleLe Sample_Le(const Point2& u0, const Point2& u1) const;
+    void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
+
 private:
     Spectrum l;
     Float scale;
@@ -98,6 +113,11 @@ private:
 inline Light::~Light()
 {
     Dispatch([&](auto light) { light->Destroy(); });
+}
+
+inline Spectrum Light::Le(const Ray& ray) const
+{
+    return Dispatch([&](auto light) { return light->Le(ray); });
 }
 
 inline LightSampleLi Light::Sample_Li(const Intersection& ref, const Point2& u) const
@@ -110,9 +130,14 @@ inline Float Light::EvaluatePDF_Li(const Ray& ray) const
     return Dispatch([&](auto light) { return light->EvaluatePDF_Li(ray); });
 }
 
-inline Spectrum Light::Le(const Ray& ray) const
+inline LightSampleLe Light::Sample_Le(const Point2& u0, const Point2& u1) const
 {
-    return Dispatch([&](auto light) { return light->Le(ray); });
+    return Dispatch([&](auto light) { return light->Sample_Le(u0, u1); });
+}
+
+inline void Light::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const
+{
+    Dispatch([&](auto light) { return light->EvaluatePDF_Le(pdf_p, pdf_w, ray); });
 }
 
 inline bool Light::IsDeltaLight() const

@@ -95,4 +95,18 @@ Float ImageInfiniteLight::EvaluatePDF_Li(const Ray& ray) const
     return distribution->Pdf(uv) / (2 * pi * pi * sin_theta);
 }
 
+LightSampleLe ImageInfiniteLight::Sample_Le(const Point2& u0, const Point2& u1) const
+{
+    BulbitNotUsed(u0);
+    BulbitNotUsed(u1);
+    return {};
+}
+
+void ImageInfiniteLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const
+{
+    BulbitNotUsed(pdf_p);
+    BulbitNotUsed(pdf_w);
+    BulbitNotUsed(ray);
+}
+
 } // namespace bulbit

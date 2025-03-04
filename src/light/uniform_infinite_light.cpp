@@ -35,4 +35,18 @@ Float UniformInfiniteLight::EvaluatePDF_Li(const Ray& ray) const
     return UniformSpherePDF();
 }
 
+LightSampleLe UniformInfiniteLight::Sample_Le(const Point2& u0, const Point2& u1) const
+{
+    BulbitNotUsed(u0);
+    BulbitNotUsed(u1);
+    return {};
+}
+
+void UniformInfiniteLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const
+{
+    BulbitNotUsed(pdf_p);
+    BulbitNotUsed(pdf_w);
+    BulbitNotUsed(ray);
+}
+
 } // namespace bulbit
