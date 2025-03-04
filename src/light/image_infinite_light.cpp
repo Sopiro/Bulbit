@@ -81,7 +81,7 @@ LightSample ImageInfiniteLight::Sample_Li(const Intersection& ref, const Point2&
     return light_sample;
 }
 
-Float ImageInfiniteLight::EvaluatePDF(const Ray& ray) const
+Float ImageInfiniteLight::EvaluatePDF_Li(const Ray& ray) const
 {
     Vec3 w = MulT(transform, Normalize(ray.d));
     Float theta = SphericalTheta(w), phi = SphericalPhi(w);

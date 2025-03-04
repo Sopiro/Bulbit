@@ -47,7 +47,7 @@ public:
     Spectrum Le(const Ray& ray) const;
 
     LightSample Sample_Li(const Intersection& ref, const Point2& u) const;
-    Float EvaluatePDF(const Ray& ray) const;
+    Float EvaluatePDF_Li(const Ray& ray) const;
 
     bool IsDeltaLight() const;
 };

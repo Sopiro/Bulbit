@@ -65,7 +65,7 @@ Spectrum PathIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium
                 // Evaluate BSDF sample MIS for infinite light
                 for (Light* light : infinite_lights)
                 {
-                    Float light_pdf = light->EvaluatePDF(ray) * light_sampler.EvaluatePMF(light);
+                    Float light_pdf = light->EvaluatePDF_Li(ray) * light_sampler.EvaluatePMF(light);
                     Float mis_weight = PowerHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
 
                     L += beta * mis_weight * light->Le(ray);

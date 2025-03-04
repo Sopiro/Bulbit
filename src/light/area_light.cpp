@@ -41,7 +41,7 @@ LightSample AreaLight::Sample_Li(const Intersection& ref, const Point2& u) const
     return light_sample;
 }
 
-Float AreaLight::EvaluatePDF(const Ray& ray) const
+Float AreaLight::EvaluatePDF_Li(const Ray& ray) const
 {
     return primitive->GetShape()->EvaluatePDF(ray);
 }

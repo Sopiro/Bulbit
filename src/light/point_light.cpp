@@ -26,7 +26,7 @@ LightSample PointLight::Sample_Li(const Intersection& ref, const Point2& u) cons
     return light_sample;
 }
 
-Float PointLight::EvaluatePDF(const Ray& ray) const
+Float PointLight::EvaluatePDF_Li(const Ray& ray) const
 {
     BulbitAssert(false);
     BulbitNotUsed(ray);

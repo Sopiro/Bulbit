@@ -25,7 +25,7 @@ LightSample DirectionalLight::Sample_Li(const Intersection& ref, const Point2& u
     return light_sample;
 }
 
-Float DirectionalLight::EvaluatePDF(const Ray& ray) const
+Float DirectionalLight::EvaluatePDF_Li(const Ray& ray) const
 {
     BulbitAssert(false);
     BulbitNotUsed(ray);

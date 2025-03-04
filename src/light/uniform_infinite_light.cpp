@@ -29,7 +29,7 @@ LightSample UniformInfiniteLight::Sample_Li(const Intersection& ref, const Point
     return light_sample;
 }
 
-Float UniformInfiniteLight::EvaluatePDF(const Ray& ray) const
+Float UniformInfiniteLight::EvaluatePDF_Li(const Ray& ray) const
 {
     BulbitNotUsed(ray);
     return UniformSpherePDF();

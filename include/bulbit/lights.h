@@ -17,7 +17,7 @@ public:
     void Destroy() {}
 
     LightSample Sample_Li(const Intersection& ref, const Point2& u) const;
-    Float EvaluatePDF(const Ray& ray) const;
+    Float EvaluatePDF_Li(const Ray& ray) const;
 
 private:
     Point3 position;
@@ -31,7 +31,7 @@ public:
     void Destroy() {}
 
     LightSample Sample_Li(const Intersection& ref, const Point2& u) const;
-    Float EvaluatePDF(const Ray& ray) const;
+    Float EvaluatePDF_Li(const Ray& ray) const;
 
 private:
     Vec3 dir;
@@ -48,7 +48,7 @@ public:
     Spectrum Le(const Ray& ray) const;
 
     LightSample Sample_Li(const Intersection& ref, const Point2& u) const;
-    Float EvaluatePDF(const Ray& ray) const;
+    Float EvaluatePDF_Li(const Ray& ray) const;
 
     const Primitive* GetPrimitive() const
     {
@@ -68,7 +68,7 @@ public:
     Spectrum Le(const Ray& ray) const;
 
     LightSample Sample_Li(const Intersection& ref, const Point2& u) const;
-    Float EvaluatePDF(const Ray& ray) const;
+    Float EvaluatePDF_Li(const Ray& ray) const;
 
 private:
     const SpectrumImageTexture* l_map; // Environment(Radiance) map
@@ -88,7 +88,7 @@ public:
     Spectrum Le(const Ray& ray) const;
 
     LightSample Sample_Li(const Intersection& ref, const Point2& u) const;
-    Float EvaluatePDF(const Ray& ray) const;
+    Float EvaluatePDF_Li(const Ray& ray) const;
 
 private:
     Spectrum l;
@@ -105,9 +105,9 @@ inline LightSample Light::Sample_Li(const Intersection& ref, const Point2& u) co
     return Dispatch([&](auto light) { return light->Sample_Li(ref, u); });
 }
 
-inline Float Light::EvaluatePDF(const Ray& ray) const
+inline Float Light::EvaluatePDF_Li(const Ray& ray) const
 {
-    return Dispatch([&](auto light) { return light->EvaluatePDF(ray); });
+    return Dispatch([&](auto light) { return light->EvaluatePDF_Li(ray); });
 }
 
 inline Spectrum Light::Le(const Ray& ray) const
