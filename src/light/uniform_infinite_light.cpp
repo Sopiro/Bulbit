@@ -49,4 +49,14 @@ void UniformInfiniteLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray&
     BulbitNotUsed(ray);
 }
 
+void UniformInfiniteLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const
+{
+    // This functions should be called by AreaLight only
+    BulbitNotUsed(pdf_p);
+    BulbitNotUsed(pdf_w);
+    BulbitNotUsed(isect);
+    BulbitNotUsed(w);
+    BulbitAssert(false);
+}
+
 } // namespace bulbit

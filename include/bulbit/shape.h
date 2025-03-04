@@ -23,6 +23,7 @@ public:
     // Returns random point relative to the reference point
     virtual ShapeSample Sample(const Point3& ref, const Point2& u) const = 0;
 
+    virtual Float PDF(const Intersection& hit_is) const = 0;
     virtual Float EvaluatePDF(const Ray& ray) const = 0;
     virtual Float PDF(const Intersection& hit_is, const Ray& hit_ray) const = 0;
 

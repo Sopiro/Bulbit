@@ -23,6 +23,7 @@ public:
 
     LightSampleLe Sample_Le(const Point2& u0, const Point2& u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
+    void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
 private:
     Point3 position;
@@ -42,6 +43,7 @@ public:
 
     LightSampleLe Sample_Le(const Point2& u0, const Point2& u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
+    void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
 private:
     Vec3 dir;
@@ -52,7 +54,7 @@ private:
 class AreaLight : public Light
 {
 public:
-    AreaLight(const Primitive* primitive);
+    AreaLight(const Primitive* primitive, bool two_sided);
     void Destroy() {}
 
     Spectrum Le(const Ray& ray) const;
@@ -62,6 +64,7 @@ public:
 
     LightSampleLe Sample_Le(const Point2& u0, const Point2& u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
+    void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
     const Primitive* GetPrimitive() const
     {
@@ -70,6 +73,7 @@ public:
 
 private:
     const Primitive* primitive;
+    bool two_sided;
 };
 
 class ImageInfiniteLight : public Light
@@ -85,6 +89,7 @@ public:
 
     LightSampleLe Sample_Le(const Point2& u0, const Point2& u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
+    void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
 private:
     const SpectrumImageTexture* l_map; // Environment(Radiance) map
@@ -108,6 +113,7 @@ public:
 
     LightSampleLe Sample_Le(const Point2& u0, const Point2& u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
+    void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
 private:
     Spectrum l;
@@ -142,6 +148,11 @@ inline LightSampleLe Light::Sample_Le(const Point2& u0, const Point2& u1) const
 inline void Light::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const
 {
     Dispatch([&](auto light) { light->EvaluatePDF_Le(pdf_p, pdf_w, ray); });
+}
+
+inline void Light::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const
+{
+    Dispatch([&](auto light) { light->PDF_Le(pdf_p, pdf_w, isect, w); });
 }
 
 } // namespace bulbit

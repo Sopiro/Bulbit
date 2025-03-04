@@ -20,6 +20,7 @@ public:
     virtual ShapeSample Sample(const Point2& u) const override;
     virtual ShapeSample Sample(const Point3& ref, const Point2& u) const override;
 
+    virtual Float PDF(const Intersection& isect) const override;
     virtual Float EvaluatePDF(const Ray& ray) const override;
     virtual Float PDF(const Intersection& hit_is, const Ray& hit_ray) const override;
 
@@ -58,6 +59,13 @@ inline Float Sphere::EvaluatePDF(const Ray& ray) const
     return PDF(isect, ray);
 }
 
+inline Float Sphere::PDF(const Intersection& hit_is) const
+{
+    BulbitNotUsed(hit_is);
+
+    return 1 / (four_pi * radius * radius);
+}
+
 inline Float Sphere::PDF(const Intersection& hit_is, const Ray& hit_ray) const
 {
     BulbitNotUsed(hit_is);
@@ -90,6 +98,7 @@ public:
     virtual ShapeSample Sample(const Point2& u) const override;
     virtual ShapeSample Sample(const Point3& ref, const Point2& u) const override;
 
+    virtual Float PDF(const Intersection& hit_is) const override;
     virtual Float EvaluatePDF(const Ray& ray) const override;
     virtual Float PDF(const Intersection& hit_is, const Ray& hit_ray) const override;
 
@@ -122,6 +131,19 @@ inline AABB Triangle::GetAABB() const
     Vec3 max = Max(Max(p0, p1), p2) + aabb_offset;
 
     return AABB(min, max);
+}
+
+inline Float Triangle::PDF(const Intersection&) const
+{
+    const Point3& p0 = mesh->positions[v[0]];
+    const Point3& p1 = mesh->positions[v[1]];
+    const Point3& p2 = mesh->positions[v[2]];
+
+    Vec3 e1 = p1 - p0;
+    Vec3 e2 = p2 - p0;
+
+    Float area = 0.5f * Length(Cross(e1, e2));
+    return 1 / area;
 }
 
 inline Float Triangle::EvaluatePDF(const Ray& ray) const

@@ -43,15 +43,33 @@ Float PointLight::EvaluatePDF_Li(const Ray& ray) const
 LightSampleLe PointLight::Sample_Le(const Point2& u0, const Point2& u1) const
 {
     BulbitNotUsed(u0);
-    BulbitNotUsed(u1);
-    return {};
+
+    LightSampleLe sample;
+    Vec3 w = SampleUniformSphere(u1);
+
+    sample.ray = Ray(position, w);
+    sample.normal = w;
+    sample.pdf_p = 1;
+    sample.pdf_w = UniformSpherePDF();
+
+    return sample;
 }
 
 void PointLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const
 {
+    BulbitNotUsed(ray);
+    *pdf_p = 0;
+    *pdf_w = UniformSpherePDF();
+}
+
+void PointLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const
+{
+    // This functions should be called by AreaLight only
     BulbitNotUsed(pdf_p);
     BulbitNotUsed(pdf_w);
-    BulbitNotUsed(ray);
+    BulbitNotUsed(isect);
+    BulbitNotUsed(w);
+    BulbitAssert(false);
 }
 
 } // namespace bulbit
