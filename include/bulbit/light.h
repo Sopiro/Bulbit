@@ -62,7 +62,10 @@ public:
     LightSampleLe Sample_Le(const Point2& u0, const Point2& u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
 
-    bool IsDeltaLight() const;
+    bool IsDeltaLight() const
+    {
+        return Is<PointLight>() || Is<DirectionalLight>();
+    }
 };
 
 } // namespace bulbit

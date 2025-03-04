@@ -10,6 +10,13 @@ PointLight::PointLight(const Point3& position, const Spectrum& intensity)
 {
 }
 
+Spectrum PointLight::Le(const Ray& ray) const
+{
+    BulbitAssert(false);
+    BulbitNotUsed(ray);
+    return Spectrum::black;
+}
+
 LightSampleLi PointLight::Sample_Li(const Intersection& ref, const Point2& u) const
 {
     BulbitNotUsed(u);

@@ -12,6 +12,13 @@ DirectionalLight::DirectionalLight(const Vec3& direction, const Spectrum& intens
 {
 }
 
+Spectrum DirectionalLight::Le(const Ray& ray) const
+{
+    BulbitAssert(false);
+    BulbitNotUsed(ray);
+    return Spectrum::black;
+}
+
 LightSampleLi DirectionalLight::Sample_Li(const Intersection& ref, const Point2& u) const
 {
     BulbitNotUsed(ref);
