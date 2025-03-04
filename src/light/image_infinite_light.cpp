@@ -36,6 +36,15 @@ void ImageInfiniteLight::Destroy()
     distribution.reset();
 }
 
+Spectrum ImageInfiniteLight::Le(const Ray& ray) const
+{
+    Vec3 w = MulT(transform, Normalize(ray.d));
+    Float theta = SphericalTheta(w), phi = SphericalPhi(w);
+    Point2 uv(phi * inv_two_pi, 1 - theta * inv_pi);
+
+    return l_scale * l_map->Evaluate(uv);
+}
+
 LightSample ImageInfiniteLight::Sample_Li(const Intersection& ref, const Point2& u) const
 {
     BulbitNotUsed(ref);
@@ -84,15 +93,6 @@ Float ImageInfiniteLight::EvaluatePDF(const Ray& ray) const
 
     Point2 uv(phi * inv_two_pi, 1 - theta * inv_pi);
     return distribution->Pdf(uv) / (2 * pi * pi * sin_theta);
-}
-
-Spectrum ImageInfiniteLight::Le(const Ray& ray) const
-{
-    Vec3 w = MulT(transform, Normalize(ray.d));
-    Float theta = SphericalTheta(w), phi = SphericalPhi(w);
-    Point2 uv(phi * inv_two_pi, 1 - theta * inv_pi);
-
-    return l_scale * l_map->Evaluate(uv);
 }
 
 } // namespace bulbit

@@ -45,10 +45,10 @@ public:
     AreaLight(const Primitive* primitive);
     void Destroy() {}
 
+    Spectrum Le(const Ray& ray) const;
+
     LightSample Sample_Li(const Intersection& ref, const Point2& u) const;
     Float EvaluatePDF(const Ray& ray) const;
-
-    Spectrum Le(const Ray& ray) const;
 
     const Primitive* GetPrimitive() const
     {
@@ -65,10 +65,10 @@ public:
     ImageInfiniteLight(const SpectrumImageTexture* l_map, const Transform& transform = identity, Float l_scale = 1);
     void Destroy();
 
+    Spectrum Le(const Ray& ray) const;
+
     LightSample Sample_Li(const Intersection& ref, const Point2& u) const;
     Float EvaluatePDF(const Ray& ray) const;
-
-    Spectrum Le(const Ray& ray) const;
 
 private:
     const SpectrumImageTexture* l_map; // Environment(Radiance) map
@@ -85,10 +85,10 @@ public:
     UniformInfiniteLight(const Spectrum& l, Float scale = 1);
     void Destroy() {}
 
+    Spectrum Le(const Ray& ray) const;
+
     LightSample Sample_Li(const Intersection& ref, const Point2& u) const;
     Float EvaluatePDF(const Ray& ray) const;
-
-    Spectrum Le(const Ray& ray) const;
 
 private:
     Spectrum l;

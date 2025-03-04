@@ -10,6 +10,12 @@ UniformInfiniteLight::UniformInfiniteLight(const Spectrum& l, Float scale)
 {
 }
 
+Spectrum UniformInfiniteLight::Le(const Ray& ray) const
+{
+    BulbitNotUsed(ray);
+    return scale * l;
+}
+
 LightSample UniformInfiniteLight::Sample_Li(const Intersection& ref, const Point2& u) const
 {
     BulbitNotUsed(ref);
@@ -27,12 +33,6 @@ Float UniformInfiniteLight::EvaluatePDF(const Ray& ray) const
 {
     BulbitNotUsed(ray);
     return UniformSpherePDF();
-}
-
-Spectrum UniformInfiniteLight::Le(const Ray& ray) const
-{
-    BulbitNotUsed(ray);
-    return scale * l;
 }
 
 } // namespace bulbit

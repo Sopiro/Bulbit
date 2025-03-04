@@ -10,6 +10,19 @@ AreaLight::AreaLight(const Primitive* primitive)
 {
 }
 
+Spectrum AreaLight::Le(const Ray& ray) const
+{
+    BulbitAssert(false);
+
+    Intersection isect;
+    if (!primitive->Intersect(&isect, ray, epsilon, infinity))
+    {
+        return Spectrum::black;
+    }
+
+    return primitive->GetMaterial()->Le(isect, -ray.d);
+}
+
 LightSample AreaLight::Sample_Li(const Intersection& ref, const Point2& u) const
 {
     ShapeSample shape_sample = primitive->GetShape()->Sample(ref.point, u);
@@ -31,19 +44,6 @@ LightSample AreaLight::Sample_Li(const Intersection& ref, const Point2& u) const
 Float AreaLight::EvaluatePDF(const Ray& ray) const
 {
     return primitive->GetShape()->EvaluatePDF(ray);
-}
-
-Spectrum AreaLight::Le(const Ray& ray) const
-{
-    BulbitAssert(false);
-
-    Intersection isect;
-    if (!primitive->Intersect(&isect, ray, epsilon, infinity))
-    {
-        return Spectrum::black;
-    }
-
-    return primitive->GetMaterial()->Le(isect, -ray.d);
 }
 
 } // namespace bulbit
