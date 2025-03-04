@@ -18,11 +18,11 @@ public:
     virtual bool IntersectAny(const Ray& ray, Float t_min, Float t_max) const override;
 
     virtual ShapeSample Sample(const Point2& u) const override;
-    virtual ShapeSample Sample(const Point3& ref, const Point2& u) const override;
-
     virtual Float PDF(const Intersection& isect) const override;
+
+    virtual ShapeSample Sample(const Point3& ref, const Point2& u) const override;
     virtual Float EvaluatePDF(const Ray& ray) const override;
-    virtual Float PDF(const Intersection& hit_is, const Ray& hit_ray) const override;
+    virtual Float PDF(const Intersection& isect, const Ray& isect_ray) const override;
 
     Transform transform;
     Float radius;
@@ -48,6 +48,13 @@ inline AABB Sphere::GetAABB() const
     return AABB(transform.p - Vec3(radius), transform.p + Vec3(radius));
 }
 
+inline Float Sphere::PDF(const Intersection& isect) const
+{
+    BulbitNotUsed(isect);
+
+    return 1 / (four_pi * radius * radius);
+}
+
 inline Float Sphere::EvaluatePDF(const Ray& ray) const
 {
     Intersection isect;
@@ -59,18 +66,11 @@ inline Float Sphere::EvaluatePDF(const Ray& ray) const
     return PDF(isect, ray);
 }
 
-inline Float Sphere::PDF(const Intersection& hit_is) const
+inline Float Sphere::PDF(const Intersection& isect, const Ray& isect_ray) const
 {
-    BulbitNotUsed(hit_is);
+    BulbitNotUsed(isect);
 
-    return 1 / (four_pi * radius * radius);
-}
-
-inline Float Sphere::PDF(const Intersection& hit_is, const Ray& hit_ray) const
-{
-    BulbitNotUsed(hit_is);
-
-    Float distance_squared = Length2(transform.p - hit_ray.o);
+    Float distance_squared = Length2(transform.p - isect_ray.o);
     Float cos_theta_max = std::sqrt(1 - radius * radius / distance_squared);
     Float solid_angle = two_pi * (1 - cos_theta_max);
 
@@ -96,11 +96,11 @@ public:
     virtual bool IntersectAny(const Ray& ray, Float t_min, Float t_max) const override;
 
     virtual ShapeSample Sample(const Point2& u) const override;
-    virtual ShapeSample Sample(const Point3& ref, const Point2& u) const override;
+    virtual Float PDF(const Intersection& isect) const override;
 
-    virtual Float PDF(const Intersection& hit_is) const override;
+    virtual ShapeSample Sample(const Point3& ref, const Point2& u) const override;
     virtual Float EvaluatePDF(const Ray& ray) const override;
-    virtual Float PDF(const Intersection& hit_is, const Ray& hit_ray) const override;
+    virtual Float PDF(const Intersection& isect, const Ray& isect_ray) const override;
 
 private:
     friend class Scene;
@@ -133,8 +133,10 @@ inline AABB Triangle::GetAABB() const
     return AABB(min, max);
 }
 
-inline Float Triangle::PDF(const Intersection&) const
+inline Float Triangle::PDF(const Intersection& isect) const
 {
+    BulbitNotUsed(isect);
+
     const Point3& p0 = mesh->positions[v[0]];
     const Point3& p1 = mesh->positions[v[1]];
     const Point3& p2 = mesh->positions[v[2]];
@@ -157,10 +159,10 @@ inline Float Triangle::EvaluatePDF(const Ray& ray) const
     return PDF(isect, ray);
 }
 
-inline Float Triangle::PDF(const Intersection& hit_is, const Ray& hit_ray) const
+inline Float Triangle::PDF(const Intersection& isect, const Ray& isect_ray) const
 {
-    Float distance_squared = hit_is.t * hit_is.t * Length2(hit_ray.d);
-    Float cosine = std::fabs(Dot(hit_ray.d, hit_is.normal) / Length(hit_ray.d));
+    Float distance_squared = isect.t * isect.t * Length2(isect_ray.d);
+    Float cosine = std::fabs(Dot(isect_ray.d, isect.normal) / Length(isect_ray.d));
 
     const Point3& p0 = mesh->positions[v[0]];
     const Point3& p1 = mesh->positions[v[1]];

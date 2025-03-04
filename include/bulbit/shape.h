@@ -17,15 +17,14 @@ struct ShapeSample
 class Shape : public Intersectable
 {
 public:
-    // Returns random point on the surface
+    // Sample random point on surface
     virtual ShapeSample Sample(const Point2& u) const = 0;
+    virtual Float PDF(const Intersection& isect) const = 0;
 
-    // Returns random point relative to the reference point
+    // Sample random point relative to reference point
     virtual ShapeSample Sample(const Point3& ref, const Point2& u) const = 0;
-
-    virtual Float PDF(const Intersection& hit_is) const = 0;
     virtual Float EvaluatePDF(const Ray& ray) const = 0;
-    virtual Float PDF(const Intersection& hit_is, const Ray& hit_ray) const = 0;
+    virtual Float PDF(const Intersection& isect, const Ray& isect_ray) const = 0;
 
 protected:
     static void SetFaceNormal(
