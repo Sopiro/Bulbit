@@ -16,11 +16,11 @@ Spectrum UniformInfiniteLight::Le(const Ray& ray) const
     return scale * l;
 }
 
-LightSample UniformInfiniteLight::Sample_Li(const Intersection& ref, const Point2& u) const
+LightSampleLi UniformInfiniteLight::Sample_Li(const Intersection& ref, const Point2& u) const
 {
     BulbitNotUsed(ref);
 
-    LightSample light_sample;
+    LightSampleLi light_sample;
     light_sample.wi = SampleUniformSphere(u);
     light_sample.pdf = UniformSpherePDF();
     light_sample.visibility = infinity;

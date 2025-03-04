@@ -10,14 +10,14 @@ PointLight::PointLight(const Point3& position, const Spectrum& intensity)
 {
 }
 
-LightSample PointLight::Sample_Li(const Intersection& ref, const Point2& u) const
+LightSampleLi PointLight::Sample_Li(const Intersection& ref, const Point2& u) const
 {
     BulbitNotUsed(u);
 
     Vec3 d = position - ref.point;
     Float distance = d.Normalize();
 
-    LightSample light_sample;
+    LightSampleLi light_sample;
     light_sample.wi = d;
     light_sample.visibility = distance;
     light_sample.pdf = 1;

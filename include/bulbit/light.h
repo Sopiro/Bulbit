@@ -9,16 +9,16 @@ namespace bulbit
 
 struct Intersection;
 
-struct LightSample
+struct LightSampleLi
 {
-    LightSample() = default;
+    LightSampleLi() = default;
 
-    LightSample(Vec3 wi, Float pdf, Float visibility, Spectrum li)
+    LightSampleLi(Vec3 wi, Float pdf, Float visibility, Spectrum Li)
         : wi{ wi }
         , pdf{ pdf }
         , visibility{ visibility }
+        , Li{ Li }
     {
-        BulbitNotUsed(li);
     }
 
     Vec3 wi;
@@ -46,7 +46,7 @@ public:
 
     Spectrum Le(const Ray& ray) const;
 
-    LightSample Sample_Li(const Intersection& ref, const Point2& u) const;
+    LightSampleLi Sample_Li(const Intersection& ref, const Point2& u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
     bool IsDeltaLight() const;

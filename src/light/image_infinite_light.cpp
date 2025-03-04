@@ -45,7 +45,7 @@ Spectrum ImageInfiniteLight::Le(const Ray& ray) const
     return l_scale * l_map->Evaluate(uv);
 }
 
-LightSample ImageInfiniteLight::Sample_Li(const Intersection& ref, const Point2& u) const
+LightSampleLi ImageInfiniteLight::Sample_Li(const Intersection& ref, const Point2& u) const
 {
     BulbitNotUsed(ref);
 
@@ -54,7 +54,7 @@ LightSample ImageInfiniteLight::Sample_Li(const Intersection& ref, const Point2&
 
     if (map_pdf == 0)
     {
-        return LightSample{ Vec3::zero, 0, 0, Spectrum::black };
+        return LightSampleLi{ Vec3::zero, 0, 0, Spectrum::black };
     }
 
     Float theta = (1 - uv[1]) * pi;
@@ -63,7 +63,7 @@ LightSample ImageInfiniteLight::Sample_Li(const Intersection& ref, const Point2&
     Float cos_theta = std::cos(theta), sin_theta = std::sin(theta);
     Float sin_phi = std::sin(phi), cos_phi = std::cos(phi);
 
-    LightSample light_sample;
+    LightSampleLi light_sample;
     light_sample.wi = Mul(transform, SphericalDirection(sin_theta, cos_theta, sin_phi, cos_phi));
 
     if (sin_theta == 0)

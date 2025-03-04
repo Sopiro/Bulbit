@@ -12,11 +12,11 @@ DirectionalLight::DirectionalLight(const Vec3& direction, const Spectrum& intens
 {
 }
 
-LightSample DirectionalLight::Sample_Li(const Intersection& ref, const Point2& u) const
+LightSampleLi DirectionalLight::Sample_Li(const Intersection& ref, const Point2& u) const
 {
     BulbitNotUsed(ref);
 
-    LightSample light_sample;
+    LightSampleLi light_sample;
     light_sample.wi = -dir + SampleInsideUnitSphere(u) * radius;
     light_sample.pdf = 1;
     light_sample.visibility = infinity;

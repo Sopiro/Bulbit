@@ -16,7 +16,7 @@ public:
     PointLight(const Point3& position, const Spectrum& intensity);
     void Destroy() {}
 
-    LightSample Sample_Li(const Intersection& ref, const Point2& u) const;
+    LightSampleLi Sample_Li(const Intersection& ref, const Point2& u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
 private:
@@ -30,7 +30,7 @@ public:
     DirectionalLight(const Vec3& direction, const Spectrum& intensity, Float visible_radius);
     void Destroy() {}
 
-    LightSample Sample_Li(const Intersection& ref, const Point2& u) const;
+    LightSampleLi Sample_Li(const Intersection& ref, const Point2& u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
 private:
@@ -47,7 +47,7 @@ public:
 
     Spectrum Le(const Ray& ray) const;
 
-    LightSample Sample_Li(const Intersection& ref, const Point2& u) const;
+    LightSampleLi Sample_Li(const Intersection& ref, const Point2& u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
     const Primitive* GetPrimitive() const
@@ -67,7 +67,7 @@ public:
 
     Spectrum Le(const Ray& ray) const;
 
-    LightSample Sample_Li(const Intersection& ref, const Point2& u) const;
+    LightSampleLi Sample_Li(const Intersection& ref, const Point2& u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
 private:
@@ -87,7 +87,7 @@ public:
 
     Spectrum Le(const Ray& ray) const;
 
-    LightSample Sample_Li(const Intersection& ref, const Point2& u) const;
+    LightSampleLi Sample_Li(const Intersection& ref, const Point2& u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
 private:
@@ -100,7 +100,7 @@ inline Light::~Light()
     Dispatch([&](auto light) { light->Destroy(); });
 }
 
-inline LightSample Light::Sample_Li(const Intersection& ref, const Point2& u) const
+inline LightSampleLi Light::Sample_Li(const Intersection& ref, const Point2& u) const
 {
     return Dispatch([&](auto light) { return light->Sample_Li(ref, u); });
 }

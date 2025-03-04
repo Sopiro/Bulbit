@@ -171,7 +171,7 @@ Spectrum PathIntegrator::SampleDirectLight(
         return Spectrum::black;
     }
 
-    LightSample light_sample = sampled_light.light->Sample_Li(isect, u12);
+    LightSampleLi light_sample = sampled_light.light->Sample_Li(isect, u12);
     Float bsdf_pdf = bsdf->PDF(wo, light_sample.wi);
     if (light_sample.Li.IsBlack() || bsdf_pdf == 0)
     {

@@ -23,12 +23,12 @@ Spectrum AreaLight::Le(const Ray& ray) const
     return primitive->GetMaterial()->Le(isect, -ray.d);
 }
 
-LightSample AreaLight::Sample_Li(const Intersection& ref, const Point2& u) const
+LightSampleLi AreaLight::Sample_Li(const Intersection& ref, const Point2& u) const
 {
     ShapeSample shape_sample = primitive->GetShape()->Sample(ref.point, u);
     Vec3 ref2p = shape_sample.point - ref.point;
 
-    LightSample light_sample;
+    LightSampleLi light_sample;
     light_sample.visibility = ref2p.Normalize() - Ray::epsilon;
     light_sample.wi = ref2p;
     light_sample.pdf = shape_sample.pdf;

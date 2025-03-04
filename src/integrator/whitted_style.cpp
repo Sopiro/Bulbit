@@ -55,7 +55,7 @@ Spectrum WhittedStyle::Li(const Ray& ray, Sampler& sampler, int32 depth) const
     // Evaluate direct light
     for (const Light* light : all_lights)
     {
-        LightSample light_sample = light->Sample_Li(isect, sampler.Next2D());
+        LightSampleLi light_sample = light->Sample_Li(isect, sampler.Next2D());
         if (light_sample.Li.IsBlack() == false && light_sample.pdf > 0)
         {
             Ray shadow_ray{ isect.point, light_sample.wi };
