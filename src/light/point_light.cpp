@@ -17,7 +17,7 @@ Spectrum PointLight::Le(const Ray& ray) const
     return Spectrum::black;
 }
 
-LightSampleLi PointLight::Sample_Li(const Intersection& ref, const Point2& u) const
+LightSampleLi PointLight::Sample_Li(const Intersection& ref, Point2 u) const
 {
     BulbitNotUsed(u);
 
@@ -40,7 +40,7 @@ Float PointLight::EvaluatePDF_Li(const Ray& ray) const
     return 0;
 }
 
-LightSampleLe PointLight::Sample_Le(const Point2& u0, const Point2& u1) const
+LightSampleLe PointLight::Sample_Le(Point2 u0, Point2 u1) const
 {
     BulbitNotUsed(u0);
 

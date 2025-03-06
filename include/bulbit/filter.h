@@ -12,7 +12,7 @@ public:
     Filter() = default;
     virtual ~Filter() = default;
 
-    virtual Point2 Sample(const Point2& u) const = 0;
+    virtual Point2 Sample(Point2 u) const = 0;
 };
 
 } // namespace bulbit

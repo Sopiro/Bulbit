@@ -79,7 +79,7 @@ bool Sphere::IntersectAny(const Ray& ray, Float t_min, Float t_max) const
     return true;
 }
 
-ShapeSample Sphere::Sample(const Point2& u) const
+ShapeSample Sphere::Sample(Point2 u) const
 {
     ShapeSample sample;
     sample.normal = SampleUniformSphere(u);
@@ -92,7 +92,7 @@ ShapeSample Sphere::Sample(const Point2& u) const
     return sample;
 }
 
-ShapeSample Sphere::Sample(const Point3& ref, const Point2& u) const
+ShapeSample Sphere::Sample(const Point3& ref, Point2 u) const
 {
     Vec3 direction = transform.p - ref;
     Float distance = direction.Normalize();

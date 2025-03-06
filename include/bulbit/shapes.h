@@ -17,10 +17,10 @@ public:
     virtual bool Intersect(Intersection* out_isect, const Ray& ray, Float t_min, Float t_max) const override;
     virtual bool IntersectAny(const Ray& ray, Float t_min, Float t_max) const override;
 
-    virtual ShapeSample Sample(const Point2& u) const override;
+    virtual ShapeSample Sample(Point2 u) const override;
     virtual Float PDF(const Intersection& isect) const override;
 
-    virtual ShapeSample Sample(const Point3& ref, const Point2& u) const override;
+    virtual ShapeSample Sample(const Point3& ref, Point2 u) const override;
     virtual Float EvaluatePDF(const Ray& ray) const override;
     virtual Float PDF(const Intersection& isect, const Ray& isect_ray) const override;
 
@@ -95,10 +95,10 @@ public:
     virtual bool Intersect(Intersection* out_isect, const Ray& ray, Float t_min, Float t_max) const override;
     virtual bool IntersectAny(const Ray& ray, Float t_min, Float t_max) const override;
 
-    virtual ShapeSample Sample(const Point2& u) const override;
+    virtual ShapeSample Sample(Point2 u) const override;
     virtual Float PDF(const Intersection& isect) const override;
 
-    virtual ShapeSample Sample(const Point3& ref, const Point2& u) const override;
+    virtual ShapeSample Sample(const Point3& ref, Point2 u) const override;
     virtual Float EvaluatePDF(const Ray& ray) const override;
     virtual Float PDF(const Intersection& isect, const Ray& isect_ray) const override;
 
@@ -196,9 +196,9 @@ inline Vec3 Triangle::GetTangent(Float tu, Float tv, Float tw) const
 
 inline Point2 Triangle::GetTexCoord(Float tu, Float tv, Float tw) const
 {
-    const Point2& u0 = mesh->texCoords[v[0]];
-    const Point2& u1 = mesh->texCoords[v[1]];
-    const Point2& u2 = mesh->texCoords[v[2]];
+    Point2 u0 = mesh->texCoords[v[0]];
+    Point2 u1 = mesh->texCoords[v[1]];
+    Point2 u2 = mesh->texCoords[v[2]];
 
     return tw * u0 + tu * u1 + tv * u2;
 }

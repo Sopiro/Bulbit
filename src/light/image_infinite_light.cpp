@@ -45,7 +45,7 @@ Spectrum ImageInfiniteLight::Le(const Ray& ray) const
     return l_scale * l_map->Evaluate(uv);
 }
 
-LightSampleLi ImageInfiniteLight::Sample_Li(const Intersection& ref, const Point2& u) const
+LightSampleLi ImageInfiniteLight::Sample_Li(const Intersection& ref, Point2 u) const
 {
     BulbitNotUsed(ref);
 
@@ -95,7 +95,7 @@ Float ImageInfiniteLight::EvaluatePDF_Li(const Ray& ray) const
     return distribution->Pdf(uv) / (2 * pi * pi * sin_theta);
 }
 
-LightSampleLe ImageInfiniteLight::Sample_Le(const Point2& u0, const Point2& u1) const
+LightSampleLe ImageInfiniteLight::Sample_Le(Point2 u0, Point2 u1) const
 {
     BulbitNotUsed(u0);
     BulbitNotUsed(u1);

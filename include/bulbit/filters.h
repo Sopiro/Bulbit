@@ -13,7 +13,7 @@ public:
     {
     }
 
-    virtual Point2 Sample(const Point2& u) const override
+    virtual Point2 Sample(Point2 u) const override
     {
         // Remap [0, 1]^2 to [-extent/2, extent/2]^2
         return (2 * u - 1) * (extent / 2);
@@ -31,7 +31,7 @@ public:
     {
     }
 
-    virtual Point2 Sample(const Point2& u) const override
+    virtual Point2 Sample(Point2 u) const override
     {
         Float h = extent / 2;
 
@@ -53,7 +53,7 @@ public:
     {
     }
 
-    virtual Point2 Sample(const Point2& u) const override
+    virtual Point2 Sample(Point2 u) const override
     {
         // Box Muller transform
         Float r = sigma * std::sqrt(-2 * std::log(std::max<Float>(u[0], Float(1e-8))));

@@ -31,9 +31,7 @@ public:
     }
 
     virtual Spectrum S(const Intersection& pi, const Vec3& wi) const = 0;
-    virtual bool Sample_S(
-        BSSRDFSample* bssrdf_sample, const Intersectable* accel, int32 wavelength, Float u0, const Point2& u12
-    ) = 0;
+    virtual bool Sample_S(BSSRDFSample* bssrdf_sample, const Intersectable* accel, int32 wavelength, Float u0, Point2 u12) = 0;
 
 protected:
     const Intersection& po;
@@ -54,7 +52,7 @@ public:
     Spectrum Sw(const Intersection& pi, const Vec3& wi) const;
     Spectrum Sp(const Intersection& pi) const;
 
-    virtual bool Sample_S(BSSRDFSample* bssrdf_sample, const Intersectable* accel, int32 wavelength, Float u0, const Point2& u12)
+    virtual bool Sample_S(BSSRDFSample* bssrdf_sample, const Intersectable* accel, int32 wavelength, Float u0, Point2 u12)
         override;
 
     Spectrum PDF_Sp(const Intersection& pi) const;
@@ -92,7 +90,7 @@ public:
     }
 
     virtual Spectrum S(const Intersection& pi, const Vec3& wi) const override;
-    virtual bool Sample_S(BSSRDFSample* bssrdf_sample, const Intersectable* accel, int32 wavelength, Float u0, const Point2& u12)
+    virtual bool Sample_S(BSSRDFSample* bssrdf_sample, const Intersectable* accel, int32 wavelength, Float u0, Point2 u12)
         override;
 
 private:

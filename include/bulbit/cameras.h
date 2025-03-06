@@ -18,7 +18,7 @@ public:
         const Filter* pixel_filter = Camera::default_filter.get()
     );
 
-    virtual Float SampleRay(Ray* out_ray, const Point2i& pixel, const Point2& u0, const Point2& u1) const override;
+    virtual Float SampleRay(Ray* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const override;
 
 private:
     Point3 origin;
@@ -44,7 +44,7 @@ public:
         const Filter* pixel_filter = Camera::default_filter.get()
     );
 
-    virtual Float SampleRay(Ray* out_ray, const Point2i& pixel, const Point2& u0, const Point2& u1) const override;
+    virtual Float SampleRay(Ray* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const override;
 
 private:
     Point3 origin;
@@ -67,7 +67,7 @@ public:
         const Filter* pixel_filter = Camera::default_filter.get()
     );
 
-    virtual Float SampleRay(Ray* out_ray, const Point2i& pixel, const Point2& u0, const Point2& u1) const override;
+    virtual Float SampleRay(Ray* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const override;
 
 private:
     Point3 origin;

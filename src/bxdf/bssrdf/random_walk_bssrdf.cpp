@@ -14,9 +14,7 @@ Spectrum RandomWalkBSSRDF::S(const Intersection& pi, const Vec3& wi) const
     return Spectrum::black;
 }
 
-bool RandomWalkBSSRDF::Sample_S(
-    BSSRDFSample* bssrdf_sample, const Intersectable* accel, int32 wavelength, Float u0, const Point2& u12
-)
+bool RandomWalkBSSRDF::Sample_S(BSSRDFSample* bssrdf_sample, const Intersectable* accel, int32 wavelength, Float u0, Point2 u12)
 {
     RNG rng(Hash(po, u0, u12));
 

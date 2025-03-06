@@ -24,7 +24,7 @@ Spectrum AreaLight::Le(const Ray& ray) const
     return primitive->GetMaterial()->Le(isect, -ray.d);
 }
 
-LightSampleLi AreaLight::Sample_Li(const Intersection& ref, const Point2& u) const
+LightSampleLi AreaLight::Sample_Li(const Intersection& ref, Point2 u) const
 {
     ShapeSample shape_sample = primitive->GetShape()->Sample(ref.point, u);
     Vec3 ref2p = shape_sample.point - ref.point;
@@ -47,7 +47,7 @@ Float AreaLight::EvaluatePDF_Li(const Ray& ray) const
     return primitive->GetShape()->EvaluatePDF(ray);
 }
 
-LightSampleLe AreaLight::Sample_Le(const Point2& u0, const Point2& u1) const
+LightSampleLe AreaLight::Sample_Le(Point2 u0, Point2 u1) const
 {
     LightSampleLe light_sample;
 

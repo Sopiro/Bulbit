@@ -12,7 +12,7 @@ SphericalCamera::SphericalCamera(
 {
 }
 
-Float SphericalCamera::SampleRay(Ray* ray, const Point2i& pixel, const Point2& u0, const Point2& u1) const
+Float SphericalCamera::SampleRay(Ray* ray, const Point2i& pixel, Point2 u0, Point2 u1) const
 {
     BulbitNotUsed(pixel);
     BulbitNotUsed(u1);

@@ -108,7 +108,7 @@ bool Triangle::IntersectAny(const Ray& ray, Float t_min, Float t_max) const
     return true;
 }
 
-ShapeSample Triangle::Sample(const Point2& u0) const
+ShapeSample Triangle::Sample(Point2 u0) const
 {
     const Point3& p0 = mesh->positions[v[0]];
     const Point3& p1 = mesh->positions[v[1]];
@@ -158,7 +158,7 @@ ShapeSample Triangle::Sample(const Point2& u0) const
 #endif
 }
 
-ShapeSample Triangle::Sample(const Point3& ref, const Point2& u) const
+ShapeSample Triangle::Sample(const Point3& ref, Point2 u) const
 {
     ShapeSample sample = Sample(u);
 

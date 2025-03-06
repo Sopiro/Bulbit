@@ -18,11 +18,11 @@ class Shape : public Intersectable
 {
 public:
     // Sample random point on surface
-    virtual ShapeSample Sample(const Point2& u) const = 0;
+    virtual ShapeSample Sample(Point2 u) const = 0;
     virtual Float PDF(const Intersection& isect) const = 0;
 
     // Sample random point relative to reference point
-    virtual ShapeSample Sample(const Point3& ref, const Point2& u) const = 0;
+    virtual ShapeSample Sample(const Point3& ref, Point2 u) const = 0;
     virtual Float EvaluatePDF(const Ray& ray) const = 0;
     virtual Float PDF(const Intersection& isect, const Ray& isect_ray) const = 0;
 

@@ -19,7 +19,7 @@ Spectrum DirectionalLight::Le(const Ray& ray) const
     return Spectrum::black;
 }
 
-LightSampleLi DirectionalLight::Sample_Li(const Intersection& ref, const Point2& u) const
+LightSampleLi DirectionalLight::Sample_Li(const Intersection& ref, Point2 u) const
 {
     BulbitNotUsed(ref);
 
@@ -39,7 +39,7 @@ Float DirectionalLight::EvaluatePDF_Li(const Ray& ray) const
     return 0;
 }
 
-LightSampleLe DirectionalLight::Sample_Le(const Point2& u0, const Point2& u1) const
+LightSampleLe DirectionalLight::Sample_Le(Point2 u0, Point2 u1) const
 {
     BulbitNotUsed(u0);
     BulbitNotUsed(u1);

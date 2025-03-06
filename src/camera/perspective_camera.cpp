@@ -36,7 +36,7 @@ PerspectiveCamera::PerspectiveCamera(
     lens_radius = aperture / 2;
 }
 
-Float PerspectiveCamera::SampleRay(Ray* ray, const Point2i& pixel, const Point2& u0, const Point2& u1) const
+Float PerspectiveCamera::SampleRay(Ray* ray, const Point2i& pixel, Point2 u0, Point2 u1) const
 {
     Point2 pixel_offset = filter->Sample(u0) + Point2(Float(0.5), Float(0.5));
     Point3 pixel_center = lower_left + horizontal * (pixel.x + pixel_offset.x) / resolution.x +

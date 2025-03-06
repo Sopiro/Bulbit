@@ -26,7 +26,7 @@ OrthographicCamera::OrthographicCamera(
     lower_left = origin - horizontal / 2 - vertical / 2;
 }
 
-Float OrthographicCamera::SampleRay(Ray* ray, const Point2i& pixel, const Point2& u0, const Point2& u1) const
+Float OrthographicCamera::SampleRay(Ray* ray, const Point2i& pixel, Point2 u0, Point2 u1) const
 {
     BulbitNotUsed(u1);
 

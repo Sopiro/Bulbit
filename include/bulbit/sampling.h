@@ -34,7 +34,7 @@ inline Float PowerHeuristic(int32 nf, Float pdf_f, int32 ng, Float pdf_g)
     return (f * f) / (f * f + g * g);
 }
 
-inline Vec3 SampleUniformHemisphere(const Point2& u)
+inline Vec3 SampleUniformHemisphere(Point2 u)
 {
     Float z = u[0];
     Float r = std::sqrt(std::fmax(0.0f, 1 - z * z));
@@ -48,7 +48,7 @@ inline Float UniformHemispherePDF()
     return inv_two_pi;
 }
 
-inline Vec3 SampleUniformSphere(const Point2& u)
+inline Vec3 SampleUniformSphere(Point2 u)
 {
     Float z = 1 - 2 * u[0];
     Float r = std::sqrt(std::fmax(0.0f, 1 - z * z));
@@ -65,7 +65,7 @@ inline Float UniformSpherePDF()
     return inv_four_pi;
 }
 
-inline Vec3 SampleInsideUnitSphere(const Point2& u)
+inline Vec3 SampleInsideUnitSphere(Point2 u)
 {
 #if 1
     Float theta = two_pi * u[0];
@@ -90,7 +90,7 @@ inline Vec3 SampleInsideUnitSphere(const Point2& u)
 #endif
 }
 
-inline Point2 SampleUniformUnitDisk(const Point2& u)
+inline Point2 SampleUniformUnitDisk(Point2 u)
 {
     Float r = std::sqrt(u.x);
     Float theta = two_pi * u.y;
@@ -98,7 +98,7 @@ inline Point2 SampleUniformUnitDisk(const Point2& u)
 }
 
 // https://pbr-book.org/4ed/Sampling_Algorithms/Sampling_Multidimensional_Functions#SampleUniformDiskConcentric
-inline Point2 SampleUniformUnitDiskConcentric(const Point2& u)
+inline Point2 SampleUniformUnitDiskConcentric(Point2 u)
 {
     Point2 uo = 2 * u - Vec2(1, 1);
     if (uo.x == 0 && uo.y == 0)
@@ -414,7 +414,7 @@ public:
         marginal.reset(new Distribution1D(&marginal_func[0], nv));
     }
 
-    Point2 SampleContinuous(Float* pdf, const Point2& u) const
+    Point2 SampleContinuous(Float* pdf, Point2 u) const
     {
         Float pdfs[2];
         int32 v;
