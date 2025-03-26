@@ -75,15 +75,15 @@ struct Quat
     }
 
     // Axis must be normalized
-    Quat(Float angle, const Vec3& unitAxis)
+    Quat(Float angle, const Vec3& unit_axis)
     {
-        Float halg_angle = angle * 0.5f;
+        Float half_angle = angle * 0.5f;
 
-        Float s = std::sin(halg_angle);
-        x = unitAxis.x * s;
-        y = unitAxis.y * s;
-        z = unitAxis.z * s;
-        w = std::cos(halg_angle);
+        Float s = std::sin(half_angle);
+        x = unit_axis.x * s;
+        y = unit_axis.y * s;
+        z = unit_axis.z * s;
+        w = std::cos(half_angle);
     }
 
     constexpr Quat operator-() const
