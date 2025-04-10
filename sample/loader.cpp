@@ -547,6 +547,11 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
                     normal.x = attrib.normals[3 * size_t(idx.normal_index) + 0];
                     normal.y = attrib.normals[3 * size_t(idx.normal_index) + 1];
                     normal.z = attrib.normals[3 * size_t(idx.normal_index) + 2];
+
+                    if (g_flip_normal)
+                    {
+                        normal.Negate();
+                    }
                 }
 
                 // Retrieve texture coordinates if available.
@@ -555,6 +560,11 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
                 {
                     texcoord.x = attrib.texcoords[2 * size_t(idx.texcoord_index) + 0];
                     texcoord.y = attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
+
+                    if (g_flip_texcoord)
+                    {
+                        texcoord.y = 1 - texcoord.y;
+                    }
                 }
 
                 // Calculate tangent from the normal (since OBJ usually doesn't provide tangents).
