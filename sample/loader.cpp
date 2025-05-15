@@ -130,7 +130,7 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
             }
         }
 
-        g_materials.push_back(scene.CreateMaterial<UnrealMaterial>(
+        g_materials.push_back(scene.CreateMaterial<PrincipledMaterial>(
             basecolor_texture, metallic_texture, roughness_texture, roughness_texture, emission_texture, normal_texture,
             alpha_texture
         ));
@@ -456,7 +456,7 @@ const Material* CreateOBJMaterial(Scene& scene, const tinyobj::material_t& mat, 
         emission_texture = CreateSpectrumConstantTexture(scene, emission_factor);
     }
 
-    return scene.CreateMaterial<UnrealMaterial>(
+    return scene.CreateMaterial<PrincipledMaterial>(
         basecolor_texture, metallic_texture, roughness_texture, roughness_texture, emission_texture, normal_texture, alpha_texture
     );
 }

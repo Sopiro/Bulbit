@@ -5,7 +5,7 @@ std::unique_ptr<Camera> VolumeTest(Scene& scene)
     // Bunny
     {
         Srand(123123);
-        // auto mat = CreateRandomUnrealMaterial(scene);
+        // auto mat = CreateRandomPrincipledMaterial(scene);
         // auto mat = CreateMirrorMaterial(scene, Spectrum(0.7f));
         // auto mat = CreateDielectricMaterial(scene, 1.5f, CreateFloatConstantTexture(scene, 0.02f));
         auto mat = scene.CreateMaterial<ThinDielectricMaterial>(1.5f);

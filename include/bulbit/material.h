@@ -17,7 +17,7 @@ using Materials = TypePack<
     class DielectricMaterial,
     class ThinDielectricMaterial,
     class ConductorMaterial,
-    class UnrealMaterial,
+    class PrincipledMaterial,
     class DiffuseLightMaterial,
     class MixtureMaterial,
     class SubsurfaceDiffusionMaterial,

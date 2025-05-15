@@ -3,7 +3,7 @@
 std::unique_ptr<Camera> StatueScene(Scene& scene)
 {
     {
-        auto mat = CreateUnrealMaterial(scene, Spectrum{ 1.0 }, 1.0f, 0.1f);
+        auto mat = CreatePrincipledMaterial(scene, Spectrum{ 1.0 }, 1.0f, 0.1f);
         // auto mat = scene.CreateMaterial<Dielectric>(1.5f);
 
         auto tf = Transform{ Point3(0.0f, -2.0f, 0.0f), Quat(DegToRad(45.0f), y_axis), Vec3(20.0f) };
@@ -58,7 +58,7 @@ std::unique_ptr<Camera> StatueScene(Scene& scene)
 
     // Floor
     {
-        auto mat = CreateUnrealMaterial(scene, Spectrum{ 1.0f }, 0.0f, 0.01f);
+        auto mat = CreatePrincipledMaterial(scene, Spectrum{ 1.0f }, 0.0f, 0.01f);
         auto tf = Transform{ Point3(0.0f, -2.0f, 0.0f), identity, Vec3(8.0f, 1.0f, 8.0f) };
         CreateRectXZ(scene, tf, mat);
 

@@ -122,10 +122,10 @@ private:
     const FloatTexture* alpha;
 };
 
-class UnrealMaterial : public Material
+class PrincipledMaterial : public Material
 {
 public:
-    UnrealMaterial(
+    PrincipledMaterial(
         const SpectrumTexture* basecolor,
         const FloatTexture* metallic,
         const FloatTexture* u_roughness,

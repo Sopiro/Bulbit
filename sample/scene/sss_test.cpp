@@ -31,7 +31,7 @@ std::unique_ptr<Camera> SSSTest(Scene& scene)
         // auto mat = CreateMirrorMaterial(scene, Spectrum(0.7f), normalmap);
 
         // Srand(1213212);
-        // auto mat = CreateRandomUnrealMaterial(scene);
+        // auto mat = CreateRandomPrincipledMaterial(scene);
 
         SetLoaderFallbackMaterial(mat);
         // SetLoaderFallbackMediumInterface(mi);

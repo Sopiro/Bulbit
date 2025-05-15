@@ -49,7 +49,7 @@ ConductorMaterial* CreateConductorMaterial(
     Float alpha = 1
 );
 
-UnrealMaterial* CreateUnrealMaterial(
+PrincipledMaterial* CreatePrincipledMaterial(
     Scene& scene,
     const Spectrum& basecolor,
     Float metallic,
@@ -58,7 +58,7 @@ UnrealMaterial* CreateUnrealMaterial(
     const SpectrumTexture* normalmap = nullptr,
     const FloatTexture* alpha = nullptr
 );
-UnrealMaterial* CreateUnrealMaterial(
+PrincipledMaterial* CreatePrincipledMaterial(
     Scene& scene,
     const Spectrum& basecolor,
     Float metallic,
@@ -115,6 +115,6 @@ MirrorMaterial* CreateMirrorMaterial(
 DiffuseLightMaterial* CreateDiffuseLightMaterial(Scene& scene, Float emission, bool two_sided = false, Float alpha = 1);
 DiffuseLightMaterial* CreateDiffuseLightMaterial(Scene& scene, const Spectrum& emission, bool two_sided = false, Float alpha = 1);
 
-const Material* CreateRandomUnrealMaterial(Scene& scene);
+const Material* CreateRandomPrincipledMaterial(Scene& scene);
 
 } // namespace bulbit

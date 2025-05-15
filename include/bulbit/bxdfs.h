@@ -23,8 +23,9 @@ public:
     virtual Spectrum f(const Vec3& wo, const Vec3& wi) const override;
     virtual Float PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All) const override;
 
-    virtual bool Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All)
-        const override;
+    virtual bool Sample_f(
+        BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
 
 private:
     // Reflectance [0, 1]
@@ -47,8 +48,9 @@ public:
     virtual Spectrum f(const Vec3& wo, const Vec3& wi) const override;
     virtual Float PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All) const override;
 
-    virtual bool Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All)
-        const override;
+    virtual bool Sample_f(
+        BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
 
 private:
     // Reflectance [0, 1]
@@ -73,8 +75,9 @@ public:
     virtual Spectrum f(const Vec3& wo, const Vec3& wi) const override;
     virtual Float PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All) const override;
 
-    virtual bool Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All)
-        const override;
+    virtual bool Sample_f(
+        BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
 
     virtual void Regularize() override;
 
@@ -101,8 +104,9 @@ public:
     virtual Spectrum f(const Vec3& wo, const Vec3& wi) const override;
     virtual Float PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All) const override;
 
-    virtual bool Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All)
-        const override;
+    virtual bool Sample_f(
+        BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
 
     virtual void Regularize() override;
 
@@ -127,17 +131,18 @@ public:
     virtual Spectrum f(const Vec3& wo, const Vec3& wi) const override;
     virtual Float PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All) const override;
 
-    virtual bool Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All)
-        const override;
+    virtual bool Sample_f(
+        BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
 
 private:
     Float eta;
 };
 
-class UnrealBxDF : public BxDF
+class PrincipledBxDF : public BxDF
 {
 public:
-    UnrealBxDF(Spectrum basecolor, Float metallic, TrowbridgeReitzDistribution mf, Float t)
+    PrincipledBxDF(Spectrum basecolor, Float metallic, TrowbridgeReitzDistribution mf, Float t)
         : basecolor{ basecolor }
         , metallic{ metallic }
         , mf{ mf }
@@ -153,8 +158,9 @@ public:
     virtual Spectrum f(const Vec3& wo, const Vec3& wi) const override;
     virtual Float PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All) const override;
 
-    virtual bool Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All)
-        const override;
+    virtual bool Sample_f(
+        BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
 
     virtual void Regularize() override;
 
@@ -202,8 +208,9 @@ public:
     virtual Spectrum f(const Vec3& wo, const Vec3& wi) const override;
     virtual Float PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All) const override;
 
-    virtual bool Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All)
-        const override;
+    virtual bool Sample_f(
+        BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
 
     virtual void Regularize() override;
 
@@ -211,8 +218,9 @@ private:
     Float eta;
 };
 
-constexpr size_t max_bxdf_size =
-    std::max({ sizeof(LambertianBxDF), sizeof(SpecularReflectionBxDF), sizeof(DielectricBxDF), sizeof(ConductorBxDF),
-               sizeof(ThinDielectricBxDF), sizeof(UnrealBxDF), sizeof(NormalizedFresnelBxDF) });
+constexpr size_t max_bxdf_size = std::max(
+    { sizeof(LambertianBxDF), sizeof(SpecularReflectionBxDF), sizeof(DielectricBxDF), sizeof(ConductorBxDF),
+      sizeof(ThinDielectricBxDF), sizeof(PrincipledBxDF), sizeof(NormalizedFresnelBxDF) }
+);
 
 } // namespace bulbit

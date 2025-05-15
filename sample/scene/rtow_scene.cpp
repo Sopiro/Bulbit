@@ -31,7 +31,7 @@ std::unique_ptr<Camera> RaytracigInOneWeekend(Scene& scene)
             {
                 if (choose_mat < 0.9f)
                 {
-                    auto mat = CreateRandomUnrealMaterial(scene);
+                    auto mat = CreateRandomPrincipledMaterial(scene);
                     CreateSphere(
                         scene, Transform(center, Quat(DegToRad(Rand(0, 180)), SampleUniformSphere(RandVec2()))), 0.2f, mat,
                         mi_outside

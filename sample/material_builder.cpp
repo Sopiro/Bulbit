@@ -79,7 +79,7 @@ ConductorMaterial* CreateConductorMaterial(
     );
 }
 
-UnrealMaterial* CreateUnrealMaterial(
+PrincipledMaterial* CreatePrincipledMaterial(
     Scene& scene,
     const Spectrum& basecolor,
     Float metallic,
@@ -89,14 +89,14 @@ UnrealMaterial* CreateUnrealMaterial(
     const FloatTexture* alpha
 )
 {
-    return scene.CreateMaterial<UnrealMaterial>(
+    return scene.CreateMaterial<PrincipledMaterial>(
         CreateSpectrumConstantTexture(scene, basecolor), CreateFloatConstantTexture(scene, metallic),
         CreateFloatConstantTexture(scene, roughness), CreateFloatConstantTexture(scene, roughness),
         CreateSpectrumConstantTexture(scene, emission), normalmap, alpha
     );
 }
 
-UnrealMaterial* CreateUnrealMaterial(
+PrincipledMaterial* CreatePrincipledMaterial(
     Scene& scene,
     const Spectrum& basecolor,
     Float metallic,
@@ -107,7 +107,7 @@ UnrealMaterial* CreateUnrealMaterial(
     const FloatTexture* alpha
 )
 {
-    return scene.CreateMaterial<UnrealMaterial>(
+    return scene.CreateMaterial<PrincipledMaterial>(
         CreateSpectrumConstantTexture(scene, basecolor), CreateFloatConstantTexture(scene, metallic),
         CreateFloatConstantTexture(scene, u_roughness), CreateFloatConstantTexture(scene, v_roughness),
         CreateSpectrumConstantTexture(scene, emission), normalmap, alpha
@@ -197,11 +197,11 @@ DiffuseLightMaterial* CreateDiffuseLightMaterial(Scene& scene, const Spectrum& e
     );
 }
 
-const Material* CreateRandomUnrealMaterial(Scene& scene)
+const Material* CreateRandomPrincipledMaterial(Scene& scene)
 {
     // clang-format off
     Spectrum basecolor = Spectrum(Rand(0.0f, 1.0f), Rand(0.0f, 1.0f), Rand(0.0f, 1.0f)) * 0.7f;
-    return CreateUnrealMaterial(scene, 
+    return CreatePrincipledMaterial(scene, 
         basecolor,
         Rand() > 0.5f ? 1.0f : 0.0f,
         (Float)std::sqrt(Rand(0.1f, 1.0f)),

@@ -41,7 +41,7 @@ std::unique_ptr<Camera> BRDFSamplingTest(Scene& scene)
 
     // Center sphere
     {
-        auto mat = CreateUnrealMaterial(scene, Spectrum(1.0f), 1.0f, 0.2f);
+        auto mat = CreatePrincipledMaterial(scene, Spectrum(1.0f), 1.0f, 0.2f);
 
         Float r = 0.25;
         CreateSphere(scene, Vec3(0.5f, r, -0.5f), r, mat);

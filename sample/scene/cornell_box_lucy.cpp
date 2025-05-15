@@ -42,7 +42,7 @@ std::unique_ptr<Camera> CornellBoxLucy(Scene& scene)
     {
         // Lucy
         Transform transform{ Point3(0.5f, 0.0f, -0.5f), identity, Vec3(0.7f) };
-        // auto mat = CreateUnrealMaterial(scene, 1.0f, 1.0f, 0.2f);
+        // auto mat = CreatePrincipledMaterial(scene, 1.0f, 1.0f, 0.2f);
 
         Spectrum sigma_a(0);
         Spectrum sigma_s(20, 100, 200);

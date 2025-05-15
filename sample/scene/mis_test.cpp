@@ -10,10 +10,10 @@ std::unique_ptr<Camera> MISTest(Scene& scene)
 
     // plates
     {
-        auto m1 = CreateUnrealMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.005f));
-        auto m2 = CreateUnrealMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.02f));
-        auto m3 = CreateUnrealMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.05f));
-        auto m4 = CreateUnrealMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.1f));
+        auto m1 = CreatePrincipledMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.005f));
+        auto m2 = CreatePrincipledMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.02f));
+        auto m3 = CreatePrincipledMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.05f));
+        auto m4 = CreatePrincipledMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.1f));
 
         SetLoaderFallbackMaterial(m1);
         LoadModel(scene, "res/veach_mi/plate1.obj", Transform{ identity });
@@ -73,10 +73,10 @@ std::unique_ptr<Camera> MISTestWak(Scene& scene)
 
     // plates
     {
-        auto m1 = CreateUnrealMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.005f));
-        auto m2 = CreateUnrealMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.02f));
-        auto m3 = CreateUnrealMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.05f));
-        auto m4 = CreateUnrealMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.1f));
+        auto m1 = CreatePrincipledMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.005f));
+        auto m2 = CreatePrincipledMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.02f));
+        auto m3 = CreatePrincipledMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.05f));
+        auto m4 = CreatePrincipledMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.1f));
 
         SetLoaderFallbackMaterial(m1);
         LoadModel(scene, "res/veach_mi/plate1.obj", Transform{ identity });

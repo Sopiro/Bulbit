@@ -4,7 +4,7 @@ std::unique_ptr<Camera> StanfordScene(Scene& scene)
 {
     // Floor
     {
-        auto mat = scene.CreateMaterial<UnrealMaterial>(
+        auto mat = scene.CreateMaterial<PrincipledMaterial>(
             CreateSpectrumImageTexture(scene, "res/dark_wooden_planks_4k/textures/dark_wooden_planks_diff_4k.jpg"),
             CreateFloatImageTexture(
                 scene, "res/dark_wooden_planks_4k/textures/dark_wooden_planks_arm_4k.jpg", metallic_channel, true
@@ -29,7 +29,7 @@ std::unique_ptr<Camera> StanfordScene(Scene& scene)
     // Bunny
     {
         auto tf = Transform{ Vec3(gap * 3.0f, 0.0f, 0.0f), Quat(0.0f, y_axis), Vec3(scale) };
-        auto mat = CreateRandomUnrealMaterial(scene);
+        auto mat = CreateRandomPrincipledMaterial(scene);
 
         SetLoaderFallbackMaterial(mat);
         LoadModel(scene, "res/stanford/bunny.obj", tf);
@@ -38,7 +38,7 @@ std::unique_ptr<Camera> StanfordScene(Scene& scene)
     // Lucy
     {
         auto tf = Transform{ Vec3(gap, 0.0f, 0.0f), Quat(0.0f, y_axis), Vec3(scale) };
-        auto mat = CreateRandomUnrealMaterial(scene);
+        auto mat = CreateRandomPrincipledMaterial(scene);
 
         SetLoaderFallbackMaterial(mat);
         LoadModel(scene, "res/stanford/lucy.obj", tf);
@@ -47,7 +47,7 @@ std::unique_ptr<Camera> StanfordScene(Scene& scene)
     // Tyrannosaurus
     {
         auto tf = Transform{ Vec3(-gap, 0.0f, 0.0f), Quat(DegToRad(45.0f), y_axis), Vec3(scale) };
-        auto mat = CreateRandomUnrealMaterial(scene);
+        auto mat = CreateRandomPrincipledMaterial(scene);
 
         SetLoaderFallbackMaterial(mat);
         SetLoaderFlipNormal(true);
@@ -58,8 +58,9 @@ std::unique_ptr<Camera> StanfordScene(Scene& scene)
     // Armadillo
     {
         auto tf = Transform{ Vec3(-gap * 3.0f, 0.0f, 0.0f), Quat(0.0f, y_axis), Vec3(scale) };
-        auto mat =
-            CreateUnrealMaterial(scene, (Spectrum(Rand(0.0f, 1.0f), Rand(0.0f, 1.0f), Rand(0.0f, 1.0f)) * 0.7f), (1.0f), (0.2f));
+        auto mat = CreatePrincipledMaterial(
+            scene, (Spectrum(Rand(0.0f, 1.0f), Rand(0.0f, 1.0f), Rand(0.0f, 1.0f)) * 0.7f), (1.0f), (0.2f)
+        );
 
         SetLoaderFallbackMaterial(mat);
         LoadModel(scene, "res/stanford/arma.obj", tf);
@@ -82,7 +83,7 @@ std::unique_ptr<Camera> StanfordScene(Scene& scene)
             pos.x = x * xstep - ((cx - 1) * xstep / 2.0f);
             pos.z = 0.0f;
 
-            auto mat = CreateRandomUnrealMaterial(scene);
+            auto mat = CreateRandomPrincipledMaterial(scene);
 
             auto tf = Transform{ pos, Quat(pi, x_axis), Vec3(w, w, h) };
             CreateRectXZ(scene, tf, light);

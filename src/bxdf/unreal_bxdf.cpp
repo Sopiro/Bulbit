@@ -5,7 +5,7 @@
 namespace bulbit
 {
 
-Spectrum UnrealBxDF::f(const Vec3& wo, const Vec3& wi) const
+Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
 {
     if (!SameHemisphere(wo, wi))
     {
@@ -35,7 +35,7 @@ Spectrum UnrealBxDF::f(const Vec3& wo, const Vec3& wi) const
     return f_d + f_s;
 }
 
-Float UnrealBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
+Float PrincipledBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
 {
     if (!(flags & BxDF_SamplingFlags::Reflection))
     {
@@ -65,7 +65,7 @@ Float UnrealBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
     return t * p_s + (1 - t) * p_d;
 }
 
-bool UnrealBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
+bool PrincipledBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
 {
     if (!(flags & BxDF_SamplingFlags::Reflection))
     {
@@ -137,7 +137,7 @@ bool UnrealBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxD
     return true;
 }
 
-void UnrealBxDF::Regularize()
+void PrincipledBxDF::Regularize()
 {
     mf.Regularize();
 }
