@@ -164,20 +164,19 @@ public:
 
     virtual void Regularize() override;
 
-    // Functions for microfacet BRDF
-
-    // Default reflectance of dielectrics
-    static const inline Vec3 default_reflectance = Vec3(0.04f);
+    static const inline Spectrum default_dielectric_f0 = Spectrum(0.04f);
     static const inline Float min_alpha = 0.003f;
 
-    static Float RoughnessToAlpha(Float roughness)
+    // Functions for microfacet BRDF
+    static Spectrum F0(Float ior, Spectrum basecolor, Float metallic)
     {
-        return std::fmax(roughness * roughness, min_alpha);
+        Spectrum f0(Sqr((ior - 1) / (ior + 1)));
+        return Lerp(f0, basecolor, metallic);
     }
 
     static Spectrum F0(Spectrum basecolor, Float metallic)
     {
-        return Lerp(default_reflectance, basecolor, metallic);
+        return Lerp(default_dielectric_f0, basecolor, metallic);
     }
 
     static Spectrum F_Schlick(Spectrum f0, Float cosine_theta)

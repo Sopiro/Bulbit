@@ -226,7 +226,7 @@ inline RGBSpectrum operator/=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
 template <typename T>
 inline RGBSpectrum Lerp(const RGBSpectrum& sp1, const RGBSpectrum& sp2, T t)
 {
-    return (1 - t) * sp1 + t * sp2;
+    return (T(1) - t) * sp1 + t * sp2;
 }
 
 inline RGBSpectrum Sqrt(const RGBSpectrum& sp)

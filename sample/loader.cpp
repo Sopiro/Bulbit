@@ -49,6 +49,11 @@ void SetLoaderFallbackMediumInterface(const MediumInterface& fallback_medium_int
     g_fallback_medium_interface = fallback_medium_interface;
 }
 
+bool HasExtension(const tinygltf::Material& material, const char* extension_name)
+{
+    return material.extensions.contains(extension_name);
+}
+
 static void LoadMaterials(Scene& scene, tinygltf::Model& model)
 {
     for (int32 i = 0; i < int32(model.materials.size()); i++)

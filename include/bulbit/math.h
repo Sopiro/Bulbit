@@ -72,8 +72,8 @@ constexpr inline V<T> NormalizeSafe(const V<T>& v)
     return v * inv_length;
 }
 
-template <typename T>
-constexpr inline T Lerp(const T& start, const T& end, Float t)
+template <typename V, typename T>
+constexpr inline V Lerp(const V& start, const V& end, T t)
 {
     return start * (T(1) - t) + end * t;
 }

@@ -90,7 +90,7 @@ public:
 
     static Float RoughnessToAlpha(Float roughness)
     {
-        return std::sqrt(roughness);
+        return Sqr(roughness);
     }
 
     void Regularize()
