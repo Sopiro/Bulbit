@@ -59,8 +59,8 @@ bool PrincipledMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Ve
 
     Spectrum b = basecolor->Evaluate(isect.uv);
     Float m = metallic->Evaluate(isect.uv);
-    Float alpha_x = TrowbridgeReitzDistribution::RoughnessToAlpha(u_roughness->Evaluate(isect.uv));
-    Float alpha_y = TrowbridgeReitzDistribution::RoughnessToAlpha(v_roughness->Evaluate(isect.uv));
+    Float alpha_x = PrincipledBxDF::RoughnessToAlpha(u_roughness->Evaluate(isect.uv));
+    Float alpha_y = PrincipledBxDF::RoughnessToAlpha(v_roughness->Evaluate(isect.uv));
 
     Spectrum f0 = PrincipledBxDF::F0(b, m);
     Spectrum F = PrincipledBxDF::F_Schlick(f0, Dot(wo, n));

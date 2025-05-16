@@ -165,9 +165,13 @@ public:
     virtual void Regularize() override;
 
     static const inline Spectrum default_dielectric_f0 = Spectrum(0.04f);
-    static const inline Float min_alpha = 0.003f;
+    static const inline Float min_alpha = 1e-3f;
 
-    // Functions for microfacet BRDF
+    static Float RoughnessToAlpha(Float roughness)
+    {
+        return std::fmax(TrowbridgeReitzDistribution::RoughnessToAlpha(roughness), min_alpha);
+    }
+
     static Spectrum F0(Float ior, Spectrum basecolor, Float metallic)
     {
         Spectrum f0(Sqr((ior - 1) / (ior + 1)));

@@ -72,20 +72,7 @@ bool PrincipledBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12,
         return false;
     }
 
-    if (mf.EffectivelySmooth())
-    {
-        // Sample perfect specular conductor BRDF
-        Vec3 wi(-wo.x, -wo.y, wo.z);
-
-        Spectrum f0 = F0(basecolor, metallic);
-        Spectrum F = F_Schlick(f0, AbsCosTheta(wi));
-
-        Spectrum f_s = F / AbsCosTheta(wi);
-        Spectrum f_d = (Spectrum(1) - F) * (1 - metallic) * (basecolor * inv_pi);
-
-        *sample = BSDFSample(f_s + f_d, wi, 1, BxDF_Flags::SpecularReflection);
-        return true;
-    }
+    BulbitAssert(!mf.EffectivelySmooth());
 
     if (wo.z == 0)
     {
