@@ -1,0 +1,212 @@
+#include "bulbit/bxdfs.h"
+#include "bulbit/frame.h"
+#include "bulbit/sampling.h"
+#include "bulbit/scattering.h"
+
+namespace bulbit
+{
+
+Spectrum PrincipledBxDF2::f(const Vec3& wo, const Vec3& wi) const
+{
+    Float cos_theta_o = CosTheta(wo);
+    Float cos_theta_i = CosTheta(wi);
+
+    Float eta_p = 1;
+    bool reflect = cos_theta_i * cos_theta_o > 0;
+    if (!reflect)
+    {
+        // Flip interface
+        eta_p = cos_theta_o > 0 ? eta : (1 / eta);
+    }
+
+    // Microfacet normal
+    Vec3 wm = wi * eta_p + wo;
+    if (cos_theta_i == 0 || cos_theta_o == 0 || Length2(wm) == 0)
+    {
+        return Spectrum::black;
+    }
+
+    wm.Normalize();
+    if (Dot(wm, z_axis) < 0)
+    {
+        wm.Negate();
+    }
+
+    // Discard backfacing microfacets
+    if (Dot(wm, wi) * cos_theta_i < 0 || Dot(wm, wo) * cos_theta_o < 0)
+    {
+        return Spectrum::black;
+    }
+
+    Spectrum F = Lerp(Spectrum(FresnelDielectric(Dot(wo, wm), eta)), F_Schlick(basecolor, Dot(wi, wm)), metallic);
+    Spectrum T = Spectrum(1) - F;
+
+    if (reflect)
+    {
+        // Add dielectric reflection and metal reflection
+        Spectrum f = F * mf.D(wm) * mf.G(wo, wi) / std::abs(4 * cos_theta_i * cos_theta_o);
+
+        // Add diffuse reflection
+        f += (1 - transmission) * (1 - metallic) * T * (basecolor * inv_pi);
+
+        return f;
+    }
+    else
+    {
+        // Add dielectric transmission
+        Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p) * cos_theta_i * cos_theta_o;
+        Spectrum f = T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / denom);
+
+        // Handle solid angle squeezing
+        f /= Sqr(eta_p);
+
+        return transmission * f;
+    }
+}
+
+Float PrincipledBxDF2::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
+{
+    Float cos_theta_o = CosTheta(wo);
+    Float cos_theta_i = CosTheta(wi);
+
+    Float eta_p = 1;
+    bool reflect = cos_theta_i * cos_theta_o > 0;
+    if (!reflect)
+    {
+        // Flip interface
+        eta_p = cos_theta_o > 0 ? eta : (1 / eta);
+    }
+
+    // Microfacet normal
+    Vec3 wm = wi * eta_p + wo;
+    if (cos_theta_i == 0 || cos_theta_o == 0 || Length2(wm) == 0)
+    {
+        return 0;
+    }
+
+    wm.Normalize();
+    if (Dot(wm, z_axis) < 0)
+    {
+        wm.Negate();
+    }
+
+    // Discard backfacing microfacets
+    if (Dot(wm, wi) * cos_theta_i < 0 || Dot(wm, wo) * cos_theta_o < 0)
+    {
+        return 0;
+    }
+
+    // Determine Fresnel F of rough dielectric boundary
+    Float R = FresnelDielectric(Dot(wo, wm), eta);
+    Float T = 1 - R;
+
+    // Compute sampling probabilities for reflection and transmission
+    Float pr = R;
+    Float pt = T * (1 - metallic);
+    if (!(flags & BxDF_SamplingFlags::Reflection)) pr = 0;
+    if (!(flags & BxDF_SamplingFlags::Transmission)) pt = 0;
+    if (pr == 0 && pt == 0)
+    {
+        return 0;
+    }
+
+    if (reflect)
+    {
+        // Add dielectric BRDF and metal BRDF
+        Float pdf = pr / (pr + pt) * mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
+
+        // Add diffuse BRDF
+        pdf += pt / (pr + pt) * AbsCosTheta(wi) * inv_pi * (1 - transmission) * (1 - metallic);
+
+        return pdf;
+    }
+    else
+    {
+        // Add dielectric BTDF
+        Float dwm_dwi = AbsDot(wi, wm) / Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p);
+        Float pdf = pt / (pr + pt) * mf.PDF(wo, wm) * dwm_dwi * transmission * (1 - metallic);
+
+        return pdf;
+    }
+}
+
+bool PrincipledBxDF2::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
+{
+    BxDF_Flags flag;
+    Vec3 wi;
+    Float eta_p = 1;
+
+    if (u0 < metallic)
+    {
+        Vec3 wm = mf.Sample_Wm(wo, u12);
+        wi = Reflect(wo, wm);
+        flag = BxDF_Flags::GlossyReflection;
+    }
+    else
+    {
+        Vec3 wm = mf.Sample_Wm(wo, u12);
+
+        Float R = FresnelDielectric(Dot(wo, wm), eta);
+        Float T = 1 - R;
+
+        // Compute sampling probabilities for reflection and transmission
+        Float pr = R;
+        Float pt = T;
+        if (!(flags & BxDF_SamplingFlags::Reflection)) pr = 0;
+        if (!(flags & BxDF_SamplingFlags::Transmission)) pt = 0;
+        if (pr == 0 && pt == 0)
+        {
+            return false;
+        }
+
+        // Renormalize
+        u0 = (u0 - metallic) / (1 - metallic);
+
+        if (u0 < pr / (pr + pt))
+        {
+            // Sample glossy reflection
+            wi = Reflect(wo, wm);
+            if (!SameHemisphere(wo, wi))
+            {
+                return false;
+            }
+
+            flag = BxDF_Flags::GlossyReflection;
+        }
+        else
+        {
+            // Renormalize
+            u0 = (u0 - pr / (pr + pt)) / (pt / (pr + pt));
+
+            if (u0 < transmission)
+            {
+                // Sample glossy transmission
+
+                // Total internal reflection
+                bool tir = !Refract(&wi, wo, wm, eta, &eta_p);
+                if (SameHemisphere(wo, wi) || wi.z == 0 || tir)
+                {
+                    return false;
+                }
+
+                flag = BxDF_Flags::GlossyTransmission;
+            }
+            else
+            {
+                // Sample diffuse reflection
+                wi = SampleCosineHemisphere(u12);
+                flag = BxDF_Flags::DiffuseReflection;
+            }
+        }
+    }
+
+    *sample = BSDFSample(f(wo, wi), wi, PDF(wo, wi), flag, eta_p);
+    return true;
+}
+
+void PrincipledBxDF2::Regularize()
+{
+    mf.Regularize();
+}
+
+} // namespace bulbit

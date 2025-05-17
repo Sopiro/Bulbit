@@ -195,6 +195,64 @@ private:
     Float t;
 };
 
+class PrincipledBxDF2 : public BxDF
+{
+public:
+    PrincipledBxDF2(Spectrum basecolor, Float metallic, TrowbridgeReitzDistribution mf, Float eta, Float transmission)
+        : basecolor{ basecolor }
+        , metallic{ metallic }
+        , mf{ mf }
+        , eta{ eta }
+        , transmission{ transmission }
+    {
+    }
+
+    virtual BxDF_Flags Flags() const override
+    {
+        return BxDF_Flags::Diffuse | BxDF_Flags::Glossy | BxDF_Flags::Reflection | BxDF_Flags::Transmission;
+    }
+
+    virtual Spectrum f(const Vec3& wo, const Vec3& wi) const override;
+    virtual Float PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All) const override;
+
+    virtual bool Sample_f(
+        BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
+
+    virtual void Regularize() override;
+
+    static const inline Spectrum default_dielectric_f0 = Spectrum(0.04f);
+    static const inline Float min_alpha = 1e-3f;
+
+    static Float RoughnessToAlpha(Float roughness)
+    {
+        return std::fmax(TrowbridgeReitzDistribution::RoughnessToAlpha(roughness), min_alpha);
+    }
+
+    static Spectrum F0(Float ior, Spectrum basecolor, Float metallic)
+    {
+        Spectrum f0(Sqr((ior - 1) / (ior + 1)));
+        return Lerp(f0, basecolor, metallic);
+    }
+
+    static Spectrum F0(Spectrum basecolor, Float metallic)
+    {
+        return Lerp(default_dielectric_f0, basecolor, metallic);
+    }
+
+    static Spectrum F_Schlick(Spectrum f0, Float cosine_theta)
+    {
+        return f0 + (/*f90*/ Spectrum(1) - f0) * std::pow(1 - cosine_theta, 5.0f);
+    }
+
+private:
+    Spectrum basecolor;
+    Float metallic;
+    TrowbridgeReitzDistribution mf;
+    Float eta;
+    Float transmission;
+};
+
 class NormalizedFresnelBxDF : public BxDF
 {
 public:
@@ -223,7 +281,7 @@ private:
 
 constexpr size_t max_bxdf_size = std::max(
     { sizeof(LambertianBxDF), sizeof(SpecularReflectionBxDF), sizeof(DielectricBxDF), sizeof(ConductorBxDF),
-      sizeof(ThinDielectricBxDF), sizeof(PrincipledBxDF), sizeof(NormalizedFresnelBxDF) }
+      sizeof(ThinDielectricBxDF), sizeof(PrincipledBxDF), sizeof(PrincipledBxDF2), sizeof(NormalizedFresnelBxDF) }
 );
 
 } // namespace bulbit

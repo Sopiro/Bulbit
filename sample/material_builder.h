@@ -69,6 +69,19 @@ PrincipledMaterial* CreatePrincipledMaterial(
     const FloatTexture* alpha = nullptr
 );
 
+PrincipledMaterial2* CreatePrincipledMaterial2(
+    Scene& scene,
+    const Spectrum& basecolor,
+    Float metallic,
+    Float roughness,
+    Float anisotropic,
+    Float ior,
+    Float transmission,
+    const Spectrum& emission = Spectrum::black,
+    const SpectrumTexture* normalmap = nullptr,
+    const FloatTexture* alpha = nullptr
+);
+
 SubsurfaceDiffusionMaterial* CreateSubsurfaceDiffusionMaterial(
     Scene& scene,
     const Spectrum& reflectance,

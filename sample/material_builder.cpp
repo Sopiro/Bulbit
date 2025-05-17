@@ -114,6 +114,26 @@ PrincipledMaterial* CreatePrincipledMaterial(
     );
 }
 
+PrincipledMaterial2* CreatePrincipledMaterial2(
+    Scene& scene,
+    const Spectrum& basecolor,
+    Float metallic,
+    Float roughness,
+    Float anisotropic,
+    Float ior,
+    Float transmission,
+    const Spectrum& emission,
+    const SpectrumTexture* normalmap,
+    const FloatTexture* alpha
+)
+{
+    return scene.CreateMaterial<PrincipledMaterial2>(
+        CreateSpectrumConstantTexture(scene, basecolor), CreateFloatConstantTexture(scene, metallic),
+        CreateFloatConstantTexture(scene, roughness), CreateFloatConstantTexture(scene, anisotropic), ior, transmission,
+        CreateSpectrumConstantTexture(scene, emission), normalmap, alpha
+    );
+}
+
 SubsurfaceDiffusionMaterial* CreateSubsurfaceDiffusionMaterial(
     Scene& scene, const Spectrum& reflectance, const Spectrum& mfp, Float eta, Float roughness, const SpectrumTexture* normalmap
 )

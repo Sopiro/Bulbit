@@ -153,6 +153,41 @@ private:
     const FloatTexture* alpha;
 };
 
+class PrincipledMaterial2 : public Material
+{
+public:
+    PrincipledMaterial2(
+        const SpectrumTexture* basecolor,
+        const FloatTexture* metallic,
+        const FloatTexture* u_roughness,
+        const FloatTexture* anisotropy,
+        Float ior,
+        Float transmission,
+        const SpectrumTexture* emissive = nullptr,
+        const SpectrumTexture* normalmap = nullptr,
+        const FloatTexture* alpha = nullptr
+    );
+
+    Float GetAlpha(const Intersection& isect) const;
+    const SpectrumTexture* GetNormalMap() const;
+
+    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+
+private:
+    const SpectrumTexture* basecolor;
+    const FloatTexture* metallic;
+    const FloatTexture* roughness;
+    const FloatTexture* anisotropy;
+    const SpectrumTexture* emissive;
+    Float ior;
+    Float transmission;
+
+    const SpectrumTexture* normalmap;
+    const FloatTexture* alpha;
+};
+
 class DiffuseLightMaterial : public Material
 {
 public:
