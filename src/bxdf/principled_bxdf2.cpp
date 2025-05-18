@@ -38,16 +38,20 @@ Spectrum PrincipledBxDF2::f(const Vec3& wo, const Vec3& wi) const
         return Spectrum::black;
     }
 
-    Spectrum F = Lerp(Spectrum(FresnelDielectric(Dot(wo, wm), eta)), F_Schlick(basecolor, Dot(wi, wm)), metallic);
+    Spectrum F_d = Spectrum(FresnelDielectric(Dot(wo, wm), eta));
+    Spectrum F_c = F_Schlick(basecolor, Dot(wi, wm));
+
+    Spectrum F = Lerp(F_d, F_c, metallic);
     Spectrum T = Spectrum(1) - F;
 
     if (reflect)
     {
         // Add dielectric reflection and metal reflection
-        Spectrum f = F * mf.D(wm) * mf.G(wo, wi) / std::abs(4 * cos_theta_i * cos_theta_o);
+        Float denom = std::abs(4 * cos_theta_i * cos_theta_o);
+        Spectrum f = basecolor * F * mf.D(wm) * mf.G(wo, wi) / denom;
 
         // Add diffuse reflection
-        f += (1 - transmission) * (1 - metallic) * T * (basecolor * inv_pi);
+        f += (1 - transmission) * (1 - metallic) * T * basecolor * inv_pi;
 
         return f;
     }
@@ -55,12 +59,12 @@ Spectrum PrincipledBxDF2::f(const Vec3& wo, const Vec3& wi) const
     {
         // Add dielectric transmission
         Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p) * cos_theta_i * cos_theta_o;
-        Spectrum f = T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / denom);
+        Spectrum f = transmission * Sqrt(basecolor) * T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / denom);
 
         // Handle solid angle squeezing
         f /= Sqr(eta_p);
 
-        return transmission * f;
+        return f;
     }
 }
 
@@ -110,13 +114,17 @@ Float PrincipledBxDF2::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
         return 0;
     }
 
+    Float p_sum = pr + pt;
+    pr /= p_sum;
+    pt /= p_sum;
+
     if (reflect)
     {
         // Add dielectric BRDF and metal BRDF
-        Float pdf = pr / (pr + pt) * mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
+        Float pdf = pr * mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
 
         // Add diffuse BRDF
-        pdf += pt / (pr + pt) * AbsCosTheta(wi) * inv_pi * (1 - transmission) * (1 - metallic);
+        pdf += pt * (1 - metallic) * (1 - transmission) * AbsCosTheta(wi) * inv_pi;
 
         return pdf;
     }
@@ -124,7 +132,7 @@ Float PrincipledBxDF2::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
     {
         // Add dielectric BTDF
         Float dwm_dwi = AbsDot(wi, wm) / Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p);
-        Float pdf = pt / (pr + pt) * mf.PDF(wo, wm) * dwm_dwi * transmission * (1 - metallic);
+        Float pdf = pt * (1 - metallic) * transmission * mf.PDF(wo, wm) * dwm_dwi;
 
         return pdf;
     }
@@ -159,10 +167,14 @@ bool PrincipledBxDF2::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12
             return false;
         }
 
+        Float p_sum = pr + pt;
+        pr /= p_sum;
+        pt /= p_sum;
+
         // Renormalize
         u0 = (u0 - metallic) / (1 - metallic);
 
-        if (u0 < pr / (pr + pt))
+        if (u0 < pr)
         {
             // Sample glossy reflection
             wi = Reflect(wo, wm);
@@ -176,7 +188,7 @@ bool PrincipledBxDF2::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12
         else
         {
             // Renormalize
-            u0 = (u0 - pr / (pr + pt)) / (pt / (pr + pt));
+            u0 = (u0 - pr) / (pt);
 
             if (u0 < transmission)
             {

@@ -538,17 +538,20 @@ std::unique_ptr<Camera> MaterialTest6(Scene& scene)
     // outers[2] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.75f);
     // outers[4] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 1.0f);
 
-    outers[3] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0.0f, 0.0f, 0.0f, 1.5f, 0.0f);
-    outers[1] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0.0f, 0.25f, 0.25f, 1.5f, 0.0f);
-    outers[0] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0.0f, 0.5f, 0.5f, 1.5f, 0.0f);
-    outers[2] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0.0f, 0.75f, 0.75f, 1.5f, 0.0f);
-    outers[4] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0.0f, 0.1f, 1.0f, 1.5f, 0.0f);
+    Spectrum c0 = Spectrum(1);
+    Spectrum c1 = Spectrum{ 1.0f, 0.5f, 0.8f };
 
-    // outers[3] = CreateDielectricMaterial(scene, 1.5f, 0.1f);
-    // outers[1] = CreateDielectricMaterial(scene, 1.5f, 0.3f);
-    // outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.5f);
-    // outers[2] = CreateDielectricMaterial(scene, 1.5f, 0.7f);
-    // outers[4] = CreateDielectricMaterial(scene, 1.5f, 0.9f);
+    outers[3] = CreatePrincipledMaterial2(scene, Lerp(c0, c1, 0.0f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f);
+    outers[1] = CreatePrincipledMaterial2(scene, Lerp(c0, c1, 0.25f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f);
+    outers[0] = CreatePrincipledMaterial2(scene, Lerp(c0, c1, 0.5f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f);
+    outers[2] = CreatePrincipledMaterial2(scene, Lerp(c0, c1, 0.75f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f);
+    outers[4] = CreatePrincipledMaterial2(scene, Lerp(c0, c1, 1.0f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f);
+
+    // outers[3] = CreateDielectricMaterial(scene, 1.0f, 0.1f);
+    // outers[1] = CreateDielectricMaterial(scene, 1.25f, 0.1f);
+    // outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.1f);
+    // outers[2] = CreateDielectricMaterial(scene, 1.75f, 0.1f);
+    // outers[4] = CreateDielectricMaterial(scene, 2.0f, 0.1f);
 
     const Material* inners[count];
     inners[0] = outers[0];
@@ -573,7 +576,7 @@ std::unique_ptr<Camera> MaterialTest6(Scene& scene)
             SetLoaderFallbackMaterial(outers[std::min(i + j * w, count)]);
             LoadModel(scene, "res/mori_knob/base.obj", tf);
 
-            tf = Transform{ p, Quat::FromEuler({ 0, pi, 0 }), Vec3(scale) };
+            tf = Transform{ p, Quat::FromEuler({ 0, 0, 0 }), Vec3(scale) };
             LoadModel(scene, "res/mori_knob/outer.obj", tf);
 
             // SetLoaderFallbackMaterial(inners[std::min(i + j * w, count)]);
@@ -589,8 +592,8 @@ std::unique_ptr<Camera> MaterialTest6(Scene& scene)
     // CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/scythian_tombs_2_4k.hdr", Transform(Quat(pi, y_axis)));
-    CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(0, y_axis)));
+    // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(0, y_axis)));
+    CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr", Transform(Quat(0, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/solitude_night_1k.hdr");
     // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
