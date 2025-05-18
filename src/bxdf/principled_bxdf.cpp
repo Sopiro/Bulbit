@@ -48,7 +48,7 @@ Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
     {
         // Add dielectric reflection and metal reflection
         Float denom = std::abs(4 * cos_theta_i * cos_theta_o);
-        Spectrum f = basecolor * F * mf.D(wm) * mf.G(wo, wi) / denom;
+        Spectrum f = F * mf.D(wm) * mf.G(wo, wi) / denom;
 
         // Add diffuse reflection
         f += (1 - transmission) * (1 - metallic) * T * basecolor * inv_pi;

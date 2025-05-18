@@ -62,8 +62,10 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
         tinygltf::PbrMetallicRoughness& pbr = gltf_material.pbrMetallicRoughness;
 
         SpectrumTexture *basecolor_texture, *normal_texture, *emission_texture;
-        FloatTexture *metallic_texture, *roughness_texture, *alpha_texture;
+        FloatTexture *metallic_texture, *roughness_texture, *anisotropy_texture, *alpha_texture;
 
+        Float ior_factor = 1.5f;
+        Float anisotropy_factor = 0.0f;
         Spectrum basecolor_factor = { Float(pbr.baseColorFactor[0]), Float(pbr.baseColorFactor[1]),
                                       Float(pbr.baseColorFactor[2]) };
         Float metallic_factor = Float(pbr.metallicFactor);
@@ -78,7 +80,7 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                 tinygltf::Texture& texture = model.textures[pbr.baseColorTexture.index];
                 tinygltf::Image& image = model.images[texture.source];
 
-                basecolor_texture = CreateSpectrumImageTexture(scene, g_folder + image.uri);
+                basecolor_texture = CreateSpectrumImageTexture(scene, g_folder + image.uri, false);
                 alpha_texture = CreateFloatImageTexture(scene, g_folder + image.uri, alpha_channel, true);
             }
             else
@@ -95,8 +97,9 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                 tinygltf::Texture& texture = model.textures[pbr.metallicRoughnessTexture.index];
                 tinygltf::Image& image = model.images[texture.source];
 
-                metallic_texture = CreateFloatImageTexture(scene, g_folder + image.uri, metallic_channel, true);
-                roughness_texture = CreateFloatImageTexture(scene, g_folder + image.uri, roughness_channel, true);
+                metallic_texture = CreateFloatImageTexture(scene, g_folder + image.uri, metallic_channel, true, metallic_factor);
+                roughness_texture =
+                    CreateFloatImageTexture(scene, g_folder + image.uri, roughness_channel, true, roughness_factor);
             }
             else
             {
@@ -127,7 +130,7 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                 tinygltf::Texture& texture = model.textures[gltf_material.emissiveTexture.index];
                 tinygltf::Image& image = model.images[texture.source];
 
-                emission_texture = CreateSpectrumImageTexture(scene, g_folder + image.uri);
+                emission_texture = CreateSpectrumImageTexture(scene, g_folder + image.uri, false, emission_factor);
             }
             else
             {
@@ -135,9 +138,66 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
             }
         }
 
-        g_materials.push_back(scene.CreateMaterial<MetallicRoughnessMaterial>(
-            basecolor_texture, metallic_texture, roughness_texture, roughness_texture, emission_texture, normal_texture,
-            alpha_texture
+        // ior
+        {
+            // https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_ior/README.md
+            if (HasExtension(gltf_material, "KHR_materials_ior"))
+            {
+                const tinygltf::Value& ext = gltf_material.extensions.at("KHR_materials_ior");
+                if (ext.Has("ior"))
+                {
+                    ior_factor = Float(ext.Get("ior").Get<double>());
+                }
+            }
+        }
+
+        // anisotropy
+        {
+            // https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_anisotropy/README.md
+            if (HasExtension(gltf_material, "KHR_materials_anisotropy"))
+            {
+                const tinygltf::Value& ext = gltf_material.extensions.at("KHR_materials_anisotropy");
+
+                if (ext.Has("anisotropyStrength"))
+                {
+                    anisotropy_factor = Float(ext.Get("anisotropyStrength").Get<double>());
+                }
+
+                if (ext.Has("anisotropyTexture"))
+                {
+                    const tinygltf::Value& tex = ext.Get("anisotropyTexture");
+                    int32 tex_index = -1;
+                    if (tex.Has("index"))
+                    {
+                        tex_index = tex.Get("index").Get<int>();
+                    }
+
+                    if (tex_index > 0)
+                    {
+                        tinygltf::Texture& texture = model.textures[tex_index];
+                        tinygltf::Image& image = model.images[texture.source];
+                        anisotropy_texture = CreateFloatImageTexture(
+                            scene, g_folder + image.uri, anisotropy_strength_channel, true, anisotropy_factor
+                        );
+                    }
+                    else
+                    {
+                        anisotropy_texture = CreateFloatConstantTexture(scene, anisotropy_factor);
+                    }
+                }
+
+                // Todo: support this
+                // if (ext.Has("anisotropyRotation")) {}
+            }
+            else
+            {
+                anisotropy_texture = CreateFloatConstantTexture(scene, 0);
+            }
+        }
+
+        g_materials.push_back(scene.CreateMaterial<PrincipledMaterial>(
+            basecolor_texture, metallic_texture, roughness_texture, anisotropy_texture, CreateFloatConstantTexture(scene, 0),
+            ior_factor, emission_texture, normal_texture, alpha_texture
         ));
     }
 }
@@ -370,7 +430,7 @@ static void LoadScene(Scene& my_scene, tinygltf::Model& model, const Transform& 
 
 void LoadGLTF(Scene& scene, std::filesystem::path filename, const Transform& transform)
 {
-    std::cout << "Loading.. " << filename.string() << std::endl;
+    std::cout << "Loading GLTF: " << filename.string() << std::endl;
 
     tinygltf::TinyGLTF gltf;
     gltf.SetImageLoader(

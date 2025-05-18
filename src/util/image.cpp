@@ -12,7 +12,7 @@
 namespace bulbit
 {
 
-Image1 ReadImage1(const std::filesystem::path& filename, int32 channel, bool non_color)
+Image1 ReadImage1(const std::filesystem::path& filename, int32 channel, bool non_color, Image1::Type multiplier)
 {
     stbi_set_flip_vertically_on_load(true);
     stbi_ldr_to_hdr_gamma(non_color ? 1.0f : 2.2f);
@@ -37,13 +37,15 @@ Image1 ReadImage1(const std::filesystem::path& filename, int32 channel, bool non
     {
         if (width * height > 64 * 1024)
         {
-            ParallelFor(0, width * height, [&](int32 i) { image[i] = Float(std::fmax(0, data[STBI_rgb_alpha * i + channel])); });
+            ParallelFor(0, width * height, [&](int32 i) {
+                image[i] = Float(std::fmax(0, multiplier * data[STBI_rgb_alpha * i + channel]));
+            });
         }
         else
         {
             for (int32 i = 0; i < width * height; ++i)
             {
-                image[i] = Float(std::fmax(0, data[STBI_rgb_alpha * i + channel]));
+                image[i] = Float(std::fmax(0, multiplier * data[STBI_rgb_alpha * i + channel]));
             }
         }
     }
@@ -51,7 +53,7 @@ Image1 ReadImage1(const std::filesystem::path& filename, int32 channel, bool non
     {
         for (int32 i = 0; i < width * height; ++i)
         {
-            image[i] = Float(std::fmax(0, data[STBI_rgb_alpha * i + channel]));
+            image[i] = Float(std::fmax(0, multiplier * data[STBI_rgb_alpha * i + channel]));
         }
     }
 
@@ -59,7 +61,7 @@ Image1 ReadImage1(const std::filesystem::path& filename, int32 channel, bool non
     return image;
 }
 
-Image3 ReadImage3(const std::filesystem::path& filename, bool non_color)
+Image3 ReadImage3(const std::filesystem::path& filename, bool non_color, Image3::Type multiplier)
 {
     stbi_set_flip_vertically_on_load(true);
     stbi_ldr_to_hdr_gamma(non_color ? 1.0f : 2.2f);
@@ -78,18 +80,18 @@ Image3 ReadImage3(const std::filesystem::path& filename, bool non_color)
     if (width * height > 64 * 1024)
     {
         ParallelFor(0, width * height, [&](int32 i) {
-            image[i][0] = Float(std::fmax(0, data[STBI_rgb * i + 0]));
-            image[i][1] = Float(std::fmax(0, data[STBI_rgb * i + 1]));
-            image[i][2] = Float(std::fmax(0, data[STBI_rgb * i + 2]));
+            image[i][0] = Float(std::fmax(0, multiplier[0] * data[STBI_rgb * i + 0]));
+            image[i][1] = Float(std::fmax(0, multiplier[1] * data[STBI_rgb * i + 1]));
+            image[i][2] = Float(std::fmax(0, multiplier[2] * data[STBI_rgb * i + 2]));
         });
     }
     else
     {
         for (int32 i = 0; i < width * height; ++i)
         {
-            image[i][0] = Float(std::fmax(0, data[STBI_rgb * i + 0]));
-            image[i][1] = Float(std::fmax(0, data[STBI_rgb * i + 1]));
-            image[i][2] = Float(std::fmax(0, data[STBI_rgb * i + 2]));
+            image[i][0] = Float(std::fmax(0, multiplier[0] * data[STBI_rgb * i + 0]));
+            image[i][1] = Float(std::fmax(0, multiplier[1] * data[STBI_rgb * i + 1]));
+            image[i][2] = Float(std::fmax(0, multiplier[2] * data[STBI_rgb * i + 2]));
         }
     }
 
@@ -97,7 +99,7 @@ Image3 ReadImage3(const std::filesystem::path& filename, bool non_color)
     return image;
 }
 
-Image4 ReadImage4(const std::filesystem::path& filename, bool non_color)
+Image4 ReadImage4(const std::filesystem::path& filename, bool non_color, Image4::Type multiplier)
 {
     stbi_set_flip_vertically_on_load(true);
     stbi_ldr_to_hdr_gamma(non_color ? 1.0f : 2.2f);
@@ -116,26 +118,28 @@ Image4 ReadImage4(const std::filesystem::path& filename, bool non_color)
     if (width * height > 64 * 1024)
     {
         ParallelFor(0, width * height, [&](int32 i) {
-            image[i][0] = Float(std::fmax(0, data[STBI_rgb_alpha * i + 0]));
-            image[i][1] = Float(std::fmax(0, data[STBI_rgb_alpha * i + 1]));
-            image[i][2] = Float(std::fmax(0, data[STBI_rgb_alpha * i + 2]));
+            image[i][0] = Float(std::fmax(0, multiplier[0] * data[STBI_rgb_alpha * i + 0]));
+            image[i][1] = Float(std::fmax(0, multiplier[1] * data[STBI_rgb_alpha * i + 1]));
+            image[i][2] = Float(std::fmax(0, multiplier[2] * data[STBI_rgb_alpha * i + 2]));
+
+            if (components_per_pixel == STBI_rgb_alpha)
+            {
+                image[i][3] = Float(std::fmax(0, multiplier[3] * data[STBI_rgb_alpha * i + 3]));
+            }
         });
     }
     else
     {
         for (int32 i = 0; i < width * height; ++i)
         {
-            image[i][0] = Float(std::fmax(0, data[STBI_rgb_alpha * i + 0]));
-            image[i][1] = Float(std::fmax(0, data[STBI_rgb_alpha * i + 1]));
-            image[i][2] = Float(std::fmax(0, data[STBI_rgb_alpha * i + 2]));
-        }
-    }
+            image[i][0] = Float(std::fmax(0, multiplier[0] * data[STBI_rgb_alpha * i + 0]));
+            image[i][1] = Float(std::fmax(0, multiplier[1] * data[STBI_rgb_alpha * i + 1]));
+            image[i][2] = Float(std::fmax(0, multiplier[2] * data[STBI_rgb_alpha * i + 2]));
 
-    if (components_per_pixel == STBI_rgb_alpha)
-    {
-        for (int32 i = 0; i < width * height; ++i)
-        {
-            image[i][3] = Float(std::fmax(0, data[STBI_rgb_alpha * i + 3]));
+            if (components_per_pixel == STBI_rgb_alpha)
+            {
+                image[i][3] = Float(std::fmax(0, multiplier[3] * data[STBI_rgb_alpha * i + 3]));
+            }
         }
     }
 
