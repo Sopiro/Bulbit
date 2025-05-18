@@ -142,11 +142,10 @@ private:
 class MetallicRoughnessBxDF : public BxDF
 {
 public:
-    MetallicRoughnessBxDF(Spectrum color, Float metallic, TrowbridgeReitzDistribution mf, Float t)
+    MetallicRoughnessBxDF(Spectrum color, Float metallic, TrowbridgeReitzDistribution mf)
         : color{ color }
         , metallic{ metallic }
         , mf{ mf }
-        , t{ t }
     {
     }
 
@@ -192,7 +191,6 @@ private:
     Spectrum color;
     Float metallic;
     TrowbridgeReitzDistribution mf;
-    Float t;
 };
 
 class PrincipledBxDF : public BxDF

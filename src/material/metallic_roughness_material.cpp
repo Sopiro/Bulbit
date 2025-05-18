@@ -62,15 +62,8 @@ bool MetallicRoughnessMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, c
     Float alpha_x = MetallicRoughnessBxDF::RoughnessToAlpha(u_roughness->Evaluate(isect.uv));
     Float alpha_y = MetallicRoughnessBxDF::RoughnessToAlpha(v_roughness->Evaluate(isect.uv));
 
-    Spectrum f0 = MetallicRoughnessBxDF::F0(b, m);
-    Spectrum F = MetallicRoughnessBxDF::F_Schlick(f0, Dot(wo, n));
-    Float diff_weight = (1 - m);
-    Float spec_weight = F.Luminance();
-    // Float spec_weight = std::fmax(F.x, std::fmax(F.y, F.z));
-    Float t = Clamp(spec_weight / (diff_weight + spec_weight), 0.15f, 0.9f);
-
     *bsdf = BSDF(
-        n, isect.shading.tangent, alloc.new_object<MetallicRoughnessBxDF>(b, m, TrowbridgeReitzDistribution(alpha_x, alpha_y), t)
+        n, isect.shading.tangent, alloc.new_object<MetallicRoughnessBxDF>(b, m, TrowbridgeReitzDistribution(alpha_x, alpha_y))
     );
     return true;
 }

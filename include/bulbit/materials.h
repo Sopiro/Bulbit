@@ -147,8 +147,8 @@ private:
     const FloatTexture* metallic;
     const FloatTexture* u_roughness;
     const FloatTexture* v_roughness;
-    const SpectrumTexture* emissive;
 
+    const SpectrumTexture* emissive;
     const SpectrumTexture* normalmap;
     const FloatTexture* alpha;
 };
