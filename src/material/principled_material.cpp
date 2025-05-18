@@ -63,15 +63,17 @@ bool PrincipledMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Ve
 
     Float eta = isect.front_face ? ior : 1 / ior;
 
-    Spectrum b = basecolor->Evaluate(isect.uv);
-    Float m = metallic->Evaluate(isect.uv);
-    Float ratio = std::sqrt(1 - 0.9f * anisotropy->Evaluate(isect.uv));
-    Float alpha = PrincipledBxDF::RoughnessToAlpha(roughness->Evaluate(isect.uv));
-    Float tr = transmission->Evaluate(isect.uv);
+    Spectrum color = basecolor->Evaluate(isect.uv);
+    Float metal = metallic->Evaluate(isect.uv);
+    Float rough = roughness->Evaluate(isect.uv);
+    Float aniso = anisotropy->Evaluate(isect.uv);
+    Float trans = transmission->Evaluate(isect.uv);
+
+    Point2 alpha = PrincipledBxDF::RoughnessToAlpha(rough, aniso);
 
     *bsdf = BSDF(
         n, isect.shading.tangent,
-        alloc.new_object<PrincipledBxDF>(b, m, TrowbridgeReitzDistribution(alpha / ratio, alpha * ratio), eta, tr)
+        alloc.new_object<PrincipledBxDF>(color, metal, TrowbridgeReitzDistribution(alpha.x, alpha.y), eta, trans)
     );
     return true;
 }

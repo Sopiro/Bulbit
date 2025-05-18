@@ -26,11 +26,11 @@ Spectrum MetallicRoughnessBxDF::f(const Vec3& wo, const Vec3& wi) const
     }
     wm.Normalize();
 
-    Spectrum f0 = F0(basecolor, metallic);
+    Spectrum f0 = F0(color, metallic);
     Spectrum F = F_Schlick(f0, Dot(wi, wm));
 
     Spectrum f_s = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
-    Spectrum f_d = (Spectrum(1) - F) * (1 - metallic) * (basecolor * inv_pi);
+    Spectrum f_d = (Spectrum(1) - F) * (1 - metallic) * (color * inv_pi);
 
     return f_d + f_s;
 }
@@ -110,11 +110,11 @@ bool MetallicRoughnessBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Poin
         return false;
     }
 
-    Spectrum f0 = F0(basecolor, metallic);
+    Spectrum f0 = F0(color, metallic);
     Spectrum F = F_Schlick(f0, Dot(wi, wm));
 
     Spectrum f_s = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
-    Spectrum f_d = (Spectrum(1) - F) * (1 - metallic) * (basecolor * inv_pi);
+    Spectrum f_d = (Spectrum(1) - F) * (1 - metallic) * (color * inv_pi);
 
     Float p_s = mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
     Float p_d = cos_theta_i * inv_pi;

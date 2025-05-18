@@ -142,8 +142,8 @@ private:
 class MetallicRoughnessBxDF : public BxDF
 {
 public:
-    MetallicRoughnessBxDF(Spectrum basecolor, Float metallic, TrowbridgeReitzDistribution mf, Float t)
-        : basecolor{ basecolor }
+    MetallicRoughnessBxDF(Spectrum color, Float metallic, TrowbridgeReitzDistribution mf, Float t)
+        : color{ color }
         , metallic{ metallic }
         , mf{ mf }
         , t{ t }
@@ -172,15 +172,15 @@ public:
         return std::fmax(TrowbridgeReitzDistribution::RoughnessToAlpha(roughness), min_alpha);
     }
 
-    static Spectrum F0(Float ior, Spectrum basecolor, Float metallic)
+    static Spectrum F0(Float ior, Spectrum color, Float metallic)
     {
         Spectrum f0(Sqr((ior - 1) / (ior + 1)));
-        return Lerp(f0, basecolor, metallic);
+        return Lerp(f0, color, metallic);
     }
 
-    static Spectrum F0(Spectrum basecolor, Float metallic)
+    static Spectrum F0(Spectrum color, Float metallic)
     {
-        return Lerp(default_dielectric_f0, basecolor, metallic);
+        return Lerp(default_dielectric_f0, color, metallic);
     }
 
     static Spectrum F_Schlick(Spectrum f0, Float cosine_theta)
@@ -189,7 +189,7 @@ public:
     }
 
 private:
-    Spectrum basecolor;
+    Spectrum color;
     Float metallic;
     TrowbridgeReitzDistribution mf;
     Float t;
@@ -198,8 +198,8 @@ private:
 class PrincipledBxDF : public BxDF
 {
 public:
-    PrincipledBxDF(Spectrum basecolor, Float metallic, TrowbridgeReitzDistribution mf, Float eta, Float transmission)
-        : basecolor{ basecolor }
+    PrincipledBxDF(Spectrum color, Float metallic, TrowbridgeReitzDistribution mf, Float eta, Float transmission)
+        : color{ color }
         , metallic{ metallic }
         , mf{ mf }
         , eta{ eta }
@@ -229,15 +229,26 @@ public:
         return std::fmax(TrowbridgeReitzDistribution::RoughnessToAlpha(roughness), min_alpha);
     }
 
-    static Spectrum F0(Float ior, Spectrum basecolor, Float metallic)
+    static Point2 RoughnessToAlpha(Float roughness, Float anisotropy)
     {
-        Spectrum f0(Sqr((ior - 1) / (ior + 1)));
-        return Lerp(f0, basecolor, metallic);
+        Float alpha = RoughnessToAlpha(roughness);
+        Float ratio = std::sqrt(1 - 0.9f * anisotropy);
+
+        Float alpha_x = alpha / ratio;
+        Float alpha_y = alpha * ratio;
+
+        return { alpha_x, alpha_y };
     }
 
-    static Spectrum F0(Spectrum basecolor, Float metallic)
+    static Spectrum F0(Float ior, Spectrum color, Float metallic)
     {
-        return Lerp(default_dielectric_f0, basecolor, metallic);
+        Spectrum f0(Sqr((ior - 1) / (ior + 1)));
+        return Lerp(f0, color, metallic);
+    }
+
+    static Spectrum F0(Spectrum color, Float metallic)
+    {
+        return Lerp(default_dielectric_f0, color, metallic);
     }
 
     static Spectrum F_Schlick(Spectrum f0, Float cosine_theta)
@@ -246,7 +257,7 @@ public:
     }
 
 private:
-    Spectrum basecolor;
+    Spectrum color;
     Float metallic;
     TrowbridgeReitzDistribution mf;
     Float eta;

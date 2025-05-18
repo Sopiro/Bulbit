@@ -39,7 +39,7 @@ Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
     }
 
     Spectrum F_d = Spectrum(FresnelDielectric(Dot(wo, wm), eta));
-    Spectrum F_c = F_Schlick(basecolor, Dot(wi, wm));
+    Spectrum F_c = F_Schlick(color, Dot(wi, wm));
 
     Spectrum F = Lerp(F_d, F_c, metallic);
     Spectrum T = Spectrum(1) - F;
@@ -51,7 +51,7 @@ Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
         Spectrum f = F * mf.D(wm) * mf.G(wo, wi) / denom;
 
         // Add diffuse reflection
-        f += (1 - transmission) * (1 - metallic) * T * basecolor * inv_pi;
+        f += (1 - transmission) * (1 - metallic) * T * color * inv_pi;
 
         return f;
     }
@@ -59,7 +59,7 @@ Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
     {
         // Add dielectric transmission
         Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p) * cos_theta_i * cos_theta_o;
-        Spectrum f = transmission * Sqrt(basecolor) * T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / denom);
+        Spectrum f = transmission * Sqrt(color) * T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / denom);
 
         // Handle solid angle squeezing
         f /= Sqr(eta_p);
