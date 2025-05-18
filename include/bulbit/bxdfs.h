@@ -163,6 +163,7 @@ public:
 
     virtual void Regularize() override;
 
+    static const inline Float detault_ior = 1.5f;
     static const inline Spectrum default_dielectric_f0 = Spectrum(0.04f);
     static const inline Float min_alpha = 1e-3f;
 

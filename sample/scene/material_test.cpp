@@ -576,7 +576,7 @@ std::unique_ptr<Camera> MaterialTest6(Scene& scene)
             SetLoaderFallbackMaterial(outers[std::min(i + j * w, count)]);
             LoadModel(scene, "res/mori_knob/base.obj", tf);
 
-            tf = Transform{ p, Quat::FromEuler({ 0, 0, 0 }), Vec3(scale) };
+            tf = Transform{ p, Quat::FromEuler({ 0, pi, 0 }), Vec3(scale) };
             LoadModel(scene, "res/mori_knob/outer.obj", tf);
 
             // SetLoaderFallbackMaterial(inners[std::min(i + j * w, count)]);
@@ -589,11 +589,11 @@ std::unique_ptr<Camera> MaterialTest6(Scene& scene)
     //     "res/material_test_ball/envmap.hdr", Transform(Quat::FromEuler(0, DegToRad(-67.26139831542969), 0))
     // );
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
+    CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/scythian_tombs_2_4k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(0, y_axis)));
-    CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
+    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr", Transform(Quat(0, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/solitude_night_1k.hdr");
     // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");

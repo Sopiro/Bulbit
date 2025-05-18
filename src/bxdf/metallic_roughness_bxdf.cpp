@@ -30,7 +30,7 @@ Spectrum MetallicRoughnessBxDF::f(const Vec3& wo, const Vec3& wi) const
     Spectrum F = F_Schlick(f0, Dot(wi, wm));
 
     Spectrum f_s = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
-    Spectrum f_d = (Spectrum(1) - F) * (1 - metallic) * (color * inv_pi);
+    Spectrum f_d = (1 - metallic) * (Spectrum(1) - F) * (color * inv_pi);
 
     return f_d + f_s;
 }
@@ -59,19 +59,24 @@ Float MetallicRoughnessBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) con
         wm.Negate();
     }
 
-    Spectrum f0 = MetallicRoughnessBxDF::F0(color, metallic);
-    Spectrum Fr = MetallicRoughnessBxDF::F_Schlick(f0, AbsCosTheta(wo));
-    Float pr = Fr.Luminance();
-    Float pd = (1 - metallic);
+    Float R = FresnelDielectric(Dot(wo, wm), detault_ior);
+    Float T = 1 - R;
 
-    Float p_sum = pr + pd;
+    Float pr = R;
+    Float pt = T * (1 - metallic);
+    if (pr == 0 && pt == 0)
+    {
+        return 0;
+    }
+
+    Float p_sum = pr + pt;
     pr /= p_sum;
-    pd /= p_sum;
+    pt /= p_sum;
 
     Float pdf_r = mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
     Float pdf_d = AbsCosTheta(wi) * inv_pi;
 
-    return pr * pdf_r + pd * pdf_d;
+    return pr * pdf_r + pt * pdf_d;
 }
 
 bool MetallicRoughnessBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
@@ -88,23 +93,28 @@ bool MetallicRoughnessBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Poin
         return false;
     }
 
-    Spectrum f0 = MetallicRoughnessBxDF::F0(color, metallic);
-    Spectrum Fr = MetallicRoughnessBxDF::F_Schlick(f0, AbsCosTheta(wo));
-    Float pr = Fr.Luminance();
-    Float pd = (1 - metallic);
+    // Sample half vector
+    Vec3 wm = mf.Sample_Wm(wo, u12);
+    Vec3 wi = Reflect(wo, wm);
 
-    Float p_sum = pr + pd;
+    Float R = FresnelDielectric(Dot(wo, wm), detault_ior);
+    Float T = 1 - R;
+
+    Float pr = R;
+    Float pt = T * (1 - metallic);
+    if (pr == 0 && pt == 0)
+    {
+        return false;
+    }
+
+    Float p_sum = pr + pt;
     pr /= p_sum;
-    pd /= p_sum;
+    pt /= p_sum;
 
     BxDF_Flags flag;
-    Vec3 wm, wi;
     if (u0 < pr)
     {
-        // Sample glossy
-        wm = mf.Sample_Wm(wo, u12);
-        wi = Reflect(wo, wm);
-
+        // Sample glossy reflection
         if (!SameHemisphere(wo, wi))
         {
             return false;
@@ -114,7 +124,7 @@ bool MetallicRoughnessBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Poin
     }
     else
     {
-        // Sample diffuse
+        // Sample diffuse reflection
         wi = SampleCosineHemisphere(u12);
         wm = Normalize(wi + wo);
 
@@ -128,15 +138,16 @@ bool MetallicRoughnessBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Poin
         return false;
     }
 
+    Spectrum f0 = MetallicRoughnessBxDF::F0(color, metallic);
     Spectrum F = F_Schlick(f0, Dot(wi, wm));
 
     Spectrum f_r = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
-    Spectrum f_d = (Spectrum(1) - F) * (1 - metallic) * (color * inv_pi);
+    Spectrum f_d = (1 - metallic) * (Spectrum(1) - F) * (color * inv_pi);
 
     Float pdf_r = mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
     Float pdf_d = cos_theta_i * inv_pi;
 
-    *sample = BSDFSample(f_r + f_d, wi, pr * pdf_r + pd * pdf_d, flag);
+    *sample = BSDFSample(f_r + f_d, wi, pr * pdf_r + pt * pdf_d, flag);
 
     return true;
 }

@@ -106,7 +106,7 @@ Float PrincipledBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
 
     // Compute sampling probabilities for reflection and transmission
     Float pr = R;
-    Float pt = T * (1 - metallic);
+    Float pt = T;
     if (!(flags & BxDF_SamplingFlags::Reflection)) pr = 0;
     if (!(flags & BxDF_SamplingFlags::Transmission)) pt = 0;
     if (pr == 0 && pt == 0)
@@ -121,10 +121,10 @@ Float PrincipledBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
     if (reflect)
     {
         // Add dielectric BRDF and metal BRDF
-        Float pdf = pr * mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
+        Float pdf = (metallic + (1 - metallic) * pr) * mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
 
         // Add diffuse BRDF
-        pdf += pt * (1 - metallic) * (1 - transmission) * AbsCosTheta(wi) * inv_pi;
+        pdf += (1 - metallic) * pt * (1 - transmission) * AbsCosTheta(wi) * inv_pi;
 
         return pdf;
     }
@@ -132,7 +132,7 @@ Float PrincipledBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
     {
         // Add dielectric BTDF
         Float dwm_dwi = AbsDot(wi, wm) / Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p);
-        Float pdf = pt * (1 - metallic) * transmission * mf.PDF(wo, wm) * dwm_dwi;
+        Float pdf = (1 - metallic) * pt * transmission * mf.PDF(wo, wm) * dwm_dwi;
 
         return pdf;
     }
@@ -146,12 +146,20 @@ bool PrincipledBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12,
 
     if (u0 < metallic)
     {
+        // Sample metal
         Vec3 wm = mf.Sample_Wm(wo, u12);
         wi = Reflect(wo, wm);
+
+        if (!SameHemisphere(wo, wi))
+        {
+            return false;
+        }
+
         flag = BxDF_Flags::GlossyReflection;
     }
     else
     {
+        // Sample dielectric
         Vec3 wm = mf.Sample_Wm(wo, u12);
 
         Float R = FresnelDielectric(Dot(wo, wm), eta);

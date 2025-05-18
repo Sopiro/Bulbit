@@ -70,21 +70,21 @@ Float DielectricBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
     {
         return 0;
     }
-    // Evaluate sampling PDF of rough dielectric BSDF
-    // Compute generalized half vector _wm_
 
-    Float cosTheta_o = CosTheta(wo);
-    Float cosTheta_i = CosTheta(wi);
+    // Evaluate sampling PDF of rough dielectric BSDF
+    // Compute generalized half vector wm
+    Float cos_theta_o = CosTheta(wo);
+    Float cos_theta_i = CosTheta(wi);
 
     Float eta_p = 1;
-    bool reflect = cosTheta_i * cosTheta_o > 0;
+    bool reflect = cos_theta_i * cos_theta_o > 0;
     if (!reflect)
     {
-        eta_p = cosTheta_o > 0 ? eta : (1 / eta);
+        eta_p = cos_theta_o > 0 ? eta : (1 / eta);
     }
 
     Vec3 wm = wi * eta_p + wo;
-    if (cosTheta_i == 0 || cosTheta_o == 0 || Length2(wm) == 0)
+    if (cos_theta_i == 0 || cos_theta_o == 0 || Length2(wm) == 0)
     {
         return 0;
     }
@@ -96,7 +96,7 @@ Float DielectricBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
     }
 
     // Discard backfacing microfacets
-    if (Dot(wm, wi) * cosTheta_i < 0 || Dot(wm, wo) * cosTheta_o < 0)
+    if (Dot(wm, wi) * cos_theta_i < 0 || Dot(wm, wo) * cos_theta_o < 0)
     {
         return 0;
     }

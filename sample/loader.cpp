@@ -195,10 +195,17 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
             }
         }
 
+#if 0
+        g_materials.push_back(scene.CreateMaterial<MetallicRoughnessMaterial>(
+            basecolor_texture, metallic_texture, roughness_texture, roughness_texture, emission_texture, normal_texture,
+            alpha_texture
+        ));
+#else
         g_materials.push_back(scene.CreateMaterial<PrincipledMaterial>(
             basecolor_texture, metallic_texture, roughness_texture, anisotropy_texture, CreateFloatConstantTexture(scene, 0),
             ior_factor, emission_texture, normal_texture, alpha_texture
         ));
+#endif
     }
 }
 
