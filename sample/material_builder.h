@@ -49,7 +49,7 @@ ConductorMaterial* CreateConductorMaterial(
     Float alpha = 1
 );
 
-PrincipledMaterial* CreatePrincipledMaterial(
+MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
     Scene& scene,
     const Spectrum& basecolor,
     Float metallic,
@@ -58,7 +58,7 @@ PrincipledMaterial* CreatePrincipledMaterial(
     const SpectrumTexture* normalmap = nullptr,
     const FloatTexture* alpha = nullptr
 );
-PrincipledMaterial* CreatePrincipledMaterial(
+MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
     Scene& scene,
     const Spectrum& basecolor,
     Float metallic,
@@ -69,12 +69,12 @@ PrincipledMaterial* CreatePrincipledMaterial(
     const FloatTexture* alpha = nullptr
 );
 
-PrincipledMaterial2* CreatePrincipledMaterial2(
+PrincipledMaterial* CreatePrincipledMaterial(
     Scene& scene,
     const Spectrum& basecolor,
     Float metallic,
     Float roughness,
-    Float anisotropic,
+    Float anisotropy,
     Float ior,
     Float transmission,
     const Spectrum& emission = Spectrum::black,

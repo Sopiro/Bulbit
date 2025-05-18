@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
 
     std::cout << "Loading scene.." << std::endl;
     Timer timer;
-    if (!Sample::Get("cornell-box", &scene, &camera))
+    if (!Sample::Get("material6", &scene, &camera))
     {
         std::cout << "sample not found!" << std::endl;
         return 0;
@@ -44,8 +44,8 @@ int main(int argc, char* argv[])
     // IndependentSampler sampler(samples_per_pixel);
     StratifiedSampler sampler(std::sqrt(samples_per_pixel), std::sqrt(samples_per_pixel), true);
 
-    VolPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
-    // PathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
+    // VolPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
+    PathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
     // DebugIntegrator renderer(&accel, scene.GetLights(), &sampler);
     // AmbientOcclusion renderer(&accel, scene.GetLights(), &sampler, 0.5f);
     // AlbedoIntegrator renderer(&accel, scene.GetLights(), &sampler);

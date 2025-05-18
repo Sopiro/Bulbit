@@ -34,7 +34,7 @@ std::unique_ptr<Camera> ShipScene(Scene& scene)
 
     // Floor
     {
-        auto mat = CreatePrincipledMaterial(scene, Spectrum{ 1.0 }, (0.0f), (0.1f));
+        auto mat = CreateMetallicRoughnessMaterial(scene, Spectrum{ 1.0 }, (0.0f), (0.1f));
         Float size = 9.0f;
         Float y = 2.1f;
 

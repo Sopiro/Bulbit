@@ -4,7 +4,7 @@
 namespace bulbit
 {
 
-PrincipledMaterial::PrincipledMaterial(
+MetallicRoughnessMaterial::MetallicRoughnessMaterial(
     const SpectrumTexture* basecolor,
     const FloatTexture* metallic,
     const FloatTexture* u_roughness,
@@ -14,7 +14,7 @@ PrincipledMaterial::PrincipledMaterial(
     const FloatTexture* alpha
 
 )
-    : Material{ TypeIndexOf<PrincipledMaterial>() }
+    : Material{ TypeIndexOf<MetallicRoughnessMaterial>() }
     , basecolor{ basecolor }
     , metallic{ metallic }
     , u_roughness{ u_roughness }
@@ -25,7 +25,7 @@ PrincipledMaterial::PrincipledMaterial(
 {
 }
 
-Float PrincipledMaterial::GetAlpha(const Intersection& isect) const
+Float MetallicRoughnessMaterial::GetAlpha(const Intersection& isect) const
 {
     if (alpha)
     {
@@ -37,18 +37,18 @@ Float PrincipledMaterial::GetAlpha(const Intersection& isect) const
     }
 }
 
-const SpectrumTexture* PrincipledMaterial::GetNormalMap() const
+const SpectrumTexture* MetallicRoughnessMaterial::GetNormalMap() const
 {
     return normalmap;
 }
 
-Spectrum PrincipledMaterial::Le(const Intersection& isect, const Vec3& wo) const
+Spectrum MetallicRoughnessMaterial::Le(const Intersection& isect, const Vec3& wo) const
 {
     BulbitNotUsed(wo);
     return emissive ? emissive->Evaluate(isect.uv) : Spectrum::black;
 }
 
-bool PrincipledMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool MetallicRoughnessMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
 {
     Vec3 n = isect.shading.normal;
     if (Dot(n, wo) < 0)
@@ -59,22 +59,23 @@ bool PrincipledMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Ve
 
     Spectrum b = basecolor->Evaluate(isect.uv);
     Float m = metallic->Evaluate(isect.uv);
-    Float alpha_x = PrincipledBxDF::RoughnessToAlpha(u_roughness->Evaluate(isect.uv));
-    Float alpha_y = PrincipledBxDF::RoughnessToAlpha(v_roughness->Evaluate(isect.uv));
+    Float alpha_x = MetallicRoughnessBxDF::RoughnessToAlpha(u_roughness->Evaluate(isect.uv));
+    Float alpha_y = MetallicRoughnessBxDF::RoughnessToAlpha(v_roughness->Evaluate(isect.uv));
 
-    Spectrum f0 = PrincipledBxDF::F0(b, m);
-    Spectrum F = PrincipledBxDF::F_Schlick(f0, Dot(wo, n));
+    Spectrum f0 = MetallicRoughnessBxDF::F0(b, m);
+    Spectrum F = MetallicRoughnessBxDF::F_Schlick(f0, Dot(wo, n));
     Float diff_weight = (1 - m);
     Float spec_weight = F.Luminance();
     // Float spec_weight = std::fmax(F.x, std::fmax(F.y, F.z));
     Float t = Clamp(spec_weight / (diff_weight + spec_weight), 0.15f, 0.9f);
 
-    *bsdf =
-        BSDF(n, isect.shading.tangent, alloc.new_object<PrincipledBxDF>(b, m, TrowbridgeReitzDistribution(alpha_x, alpha_y), t));
+    *bsdf = BSDF(
+        n, isect.shading.tangent, alloc.new_object<MetallicRoughnessBxDF>(b, m, TrowbridgeReitzDistribution(alpha_x, alpha_y), t)
+    );
     return true;
 }
 
-bool PrincipledMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool MetallicRoughnessMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);

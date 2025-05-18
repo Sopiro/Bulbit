@@ -122,10 +122,10 @@ private:
     const FloatTexture* alpha;
 };
 
-class PrincipledMaterial : public Material
+class MetallicRoughnessMaterial : public Material
 {
 public:
-    PrincipledMaterial(
+    MetallicRoughnessMaterial(
         const SpectrumTexture* basecolor,
         const FloatTexture* metallic,
         const FloatTexture* u_roughness,
@@ -153,10 +153,10 @@ private:
     const FloatTexture* alpha;
 };
 
-class PrincipledMaterial2 : public Material
+class PrincipledMaterial : public Material
 {
 public:
-    PrincipledMaterial2(
+    PrincipledMaterial(
         const SpectrumTexture* basecolor,
         const FloatTexture* metallic,
         const FloatTexture* u_roughness,

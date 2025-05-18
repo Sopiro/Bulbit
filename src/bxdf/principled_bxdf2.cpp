@@ -6,7 +6,7 @@
 namespace bulbit
 {
 
-Spectrum PrincipledBxDF2::f(const Vec3& wo, const Vec3& wi) const
+Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
 {
     Float cos_theta_o = CosTheta(wo);
     Float cos_theta_i = CosTheta(wi);
@@ -68,7 +68,7 @@ Spectrum PrincipledBxDF2::f(const Vec3& wo, const Vec3& wi) const
     }
 }
 
-Float PrincipledBxDF2::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
+Float PrincipledBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
 {
     Float cos_theta_o = CosTheta(wo);
     Float cos_theta_i = CosTheta(wi);
@@ -138,7 +138,7 @@ Float PrincipledBxDF2::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
     }
 }
 
-bool PrincipledBxDF2::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
+bool PrincipledBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
 {
     BxDF_Flags flag;
     Vec3 wi;
@@ -216,7 +216,7 @@ bool PrincipledBxDF2::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12
     return true;
 }
 
-void PrincipledBxDF2::Regularize()
+void PrincipledBxDF::Regularize()
 {
     mf.Regularize();
 }

@@ -79,7 +79,7 @@ ConductorMaterial* CreateConductorMaterial(
     );
 }
 
-PrincipledMaterial* CreatePrincipledMaterial(
+MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
     Scene& scene,
     const Spectrum& basecolor,
     Float metallic,
@@ -89,14 +89,14 @@ PrincipledMaterial* CreatePrincipledMaterial(
     const FloatTexture* alpha
 )
 {
-    return scene.CreateMaterial<PrincipledMaterial>(
+    return scene.CreateMaterial<MetallicRoughnessMaterial>(
         CreateSpectrumConstantTexture(scene, basecolor), CreateFloatConstantTexture(scene, metallic),
         CreateFloatConstantTexture(scene, roughness), CreateFloatConstantTexture(scene, roughness),
         CreateSpectrumConstantTexture(scene, emission), normalmap, alpha
     );
 }
 
-PrincipledMaterial* CreatePrincipledMaterial(
+MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
     Scene& scene,
     const Spectrum& basecolor,
     Float metallic,
@@ -107,19 +107,19 @@ PrincipledMaterial* CreatePrincipledMaterial(
     const FloatTexture* alpha
 )
 {
-    return scene.CreateMaterial<PrincipledMaterial>(
+    return scene.CreateMaterial<MetallicRoughnessMaterial>(
         CreateSpectrumConstantTexture(scene, basecolor), CreateFloatConstantTexture(scene, metallic),
         CreateFloatConstantTexture(scene, u_roughness), CreateFloatConstantTexture(scene, v_roughness),
         CreateSpectrumConstantTexture(scene, emission), normalmap, alpha
     );
 }
 
-PrincipledMaterial2* CreatePrincipledMaterial2(
+PrincipledMaterial* CreatePrincipledMaterial(
     Scene& scene,
     const Spectrum& basecolor,
     Float metallic,
     Float roughness,
-    Float anisotropic,
+    Float anisotropy,
     Float ior,
     Float transmission,
     const Spectrum& emission,
@@ -127,9 +127,9 @@ PrincipledMaterial2* CreatePrincipledMaterial2(
     const FloatTexture* alpha
 )
 {
-    return scene.CreateMaterial<PrincipledMaterial2>(
+    return scene.CreateMaterial<PrincipledMaterial>(
         CreateSpectrumConstantTexture(scene, basecolor), CreateFloatConstantTexture(scene, metallic),
-        CreateFloatConstantTexture(scene, roughness), CreateFloatConstantTexture(scene, anisotropic), ior, transmission,
+        CreateFloatConstantTexture(scene, roughness), CreateFloatConstantTexture(scene, anisotropy), ior, transmission,
         CreateSpectrumConstantTexture(scene, emission), normalmap, alpha
     );
 }
@@ -221,7 +221,7 @@ const Material* CreateRandomPrincipledMaterial(Scene& scene)
 {
     // clang-format off
     Spectrum basecolor = Spectrum(Rand(0.0f, 1.0f), Rand(0.0f, 1.0f), Rand(0.0f, 1.0f)) * 0.7f;
-    return CreatePrincipledMaterial(scene, 
+    return CreateMetallicRoughnessMaterial(scene, 
         basecolor,
         Rand() > 0.5f ? 1.0f : 0.0f,
         (Float)std::sqrt(Rand(0.1f, 1.0f)),

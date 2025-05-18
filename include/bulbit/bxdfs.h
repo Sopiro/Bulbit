@@ -139,10 +139,10 @@ private:
     Float eta;
 };
 
-class PrincipledBxDF : public BxDF
+class MetallicRoughnessBxDF : public BxDF
 {
 public:
-    PrincipledBxDF(Spectrum basecolor, Float metallic, TrowbridgeReitzDistribution mf, Float t)
+    MetallicRoughnessBxDF(Spectrum basecolor, Float metallic, TrowbridgeReitzDistribution mf, Float t)
         : basecolor{ basecolor }
         , metallic{ metallic }
         , mf{ mf }
@@ -195,10 +195,10 @@ private:
     Float t;
 };
 
-class PrincipledBxDF2 : public BxDF
+class PrincipledBxDF : public BxDF
 {
 public:
-    PrincipledBxDF2(Spectrum basecolor, Float metallic, TrowbridgeReitzDistribution mf, Float eta, Float transmission)
+    PrincipledBxDF(Spectrum basecolor, Float metallic, TrowbridgeReitzDistribution mf, Float eta, Float transmission)
         : basecolor{ basecolor }
         , metallic{ metallic }
         , mf{ mf }
@@ -281,7 +281,7 @@ private:
 
 constexpr size_t max_bxdf_size = std::max(
     { sizeof(LambertianBxDF), sizeof(SpecularReflectionBxDF), sizeof(DielectricBxDF), sizeof(ConductorBxDF),
-      sizeof(ThinDielectricBxDF), sizeof(PrincipledBxDF), sizeof(PrincipledBxDF2), sizeof(NormalizedFresnelBxDF) }
+      sizeof(ThinDielectricBxDF), sizeof(MetallicRoughnessBxDF), sizeof(PrincipledBxDF), sizeof(NormalizedFresnelBxDF) }
 );
 
 } // namespace bulbit

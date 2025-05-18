@@ -5,7 +5,7 @@
 namespace bulbit
 {
 
-Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
+Spectrum MetallicRoughnessBxDF::f(const Vec3& wo, const Vec3& wi) const
 {
     if (!SameHemisphere(wo, wi))
     {
@@ -35,7 +35,7 @@ Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
     return f_d + f_s;
 }
 
-Float PrincipledBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
+Float MetallicRoughnessBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
 {
     if (!(flags & BxDF_SamplingFlags::Reflection))
     {
@@ -65,7 +65,7 @@ Float PrincipledBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
     return t * p_s + (1 - t) * p_d;
 }
 
-bool PrincipledBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
+bool MetallicRoughnessBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
 {
     if (!(flags & BxDF_SamplingFlags::Reflection))
     {
@@ -124,7 +124,7 @@ bool PrincipledBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12,
     return true;
 }
 
-void PrincipledBxDF::Regularize()
+void MetallicRoughnessBxDF::Regularize()
 {
     mf.Regularize();
 }

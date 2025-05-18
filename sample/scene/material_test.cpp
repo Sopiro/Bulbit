@@ -32,7 +32,7 @@ std::unique_ptr<Camera> MaterialTest(Scene& scene)
     const Material* outers[count];
     outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.08f);
     outers[1] = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.05f, 0.4f, normalmap);
-    outers[2] = CreatePrincipledMaterial(scene, { 80 / 255.0, 1.0, 175 / 255.0 }, 0, 0);
+    outers[2] = CreateMetallicRoughnessMaterial(scene, { 80 / 255.0, 1.0, 175 / 255.0 }, 0, 0);
 
     const Material* inners[count];
     inners[0] = CreateConductorMaterial(scene, Spectrum{ 0.7f }, (0.05f), (0.4f));
@@ -130,7 +130,7 @@ std::unique_ptr<Camera> Dielectrics(Scene& scene)
     outers[2] = CreateDielectricMaterial(scene, 1.5f, 0.05f);
 
     const Material* inners[count];
-    inners[0] = CreatePrincipledMaterial(scene, Spectrum{ 0.66 }, (0), (0));
+    inners[0] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 0.66 }, (0), (0));
     inners[1] = inners[0];
     inners[2] = inners[0];
 
@@ -335,7 +335,7 @@ std::unique_ptr<Camera> Mixtures(Scene& scene)
     outers[2] = scene.CreateMaterial<MixtureMaterial>(e, f, checker);
 
     const Material* inners[count];
-    inners[0] = CreatePrincipledMaterial(scene, Spectrum{ 0.66 }, 0, 0);
+    inners[0] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 0.66 }, 0, 0);
     inners[1] = inners[0];
     inners[2] = inners[0];
 
@@ -430,7 +430,7 @@ std::unique_ptr<Camera> MaterialTest5(Scene& scene)
     outers[2] = CreateDiffuseMaterial(scene, Spectrum(.22f, .23f, .75f), nullptr, 0.4f);
 
     const Material* inners[count];
-    inners[0] = CreatePrincipledMaterial(scene, Spectrum{ 0.66 }, (0), (0));
+    inners[0] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 0.66 }, (0), (0));
     inners[1] = inners[0];
     inners[2] = inners[0];
 
@@ -520,32 +520,32 @@ std::unique_ptr<Camera> MaterialTest6(Scene& scene)
     auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
-    // outers[3] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f }, 0, 0.1f, 0.0f);
-    // outers[1] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f }, 0, 0.3f, 0.0f);
-    // outers[0] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f }, 0, 0.5f, 0.0f);
-    // outers[2] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f }, 0, 0.7f, 0.0f);
-    // outers[4] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f }, 0, 0.9f, 0.0f);
+    // outers[3] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 1.0f }, 0, 0.1f, 0.0f);
+    // outers[1] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 1.0f }, 0, 0.3f, 0.0f);
+    // outers[0] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 1.0f }, 0, 0.5f, 0.0f);
+    // outers[2] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 1.0f }, 0, 0.7f, 0.0f);
+    // outers[4] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 1.0f }, 0, 0.9f, 0.0f);
 
-    // outers[3] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.0f, 0.0f);
-    // outers[1] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.25f, 0.0f);
-    // outers[0] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.0f);
-    // outers[2] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.75f, 0.0f);
-    // outers[4] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 2.0f, 0.0f);
+    // outers[3] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.0f, 0.0f);
+    // outers[1] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.25f, 0.0f);
+    // outers[0] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.0f);
+    // outers[2] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.75f, 0.0f);
+    // outers[4] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 2.0f, 0.0f);
 
-    // outers[3] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.0f);
-    // outers[1] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.25f);
-    // outers[0] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.5f);
-    // outers[2] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.75f);
-    // outers[4] = CreatePrincipledMaterial2(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 1.0f);
+    // outers[3] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.0f);
+    // outers[1] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.25f);
+    // outers[0] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.5f);
+    // outers[2] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.75f);
+    // outers[4] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 1.0f);
 
     Spectrum c0 = Spectrum(1);
     Spectrum c1 = Spectrum{ 1.0f, 0.5f, 0.8f };
 
-    outers[3] = CreatePrincipledMaterial2(scene, Lerp(c0, c1, 0.0f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f);
-    outers[1] = CreatePrincipledMaterial2(scene, Lerp(c0, c1, 0.25f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f);
-    outers[0] = CreatePrincipledMaterial2(scene, Lerp(c0, c1, 0.5f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f);
-    outers[2] = CreatePrincipledMaterial2(scene, Lerp(c0, c1, 0.75f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f);
-    outers[4] = CreatePrincipledMaterial2(scene, Lerp(c0, c1, 1.0f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f);
+    outers[3] = CreatePrincipledMaterial(scene, Lerp(c0, c1, 0.0f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f);
+    outers[1] = CreatePrincipledMaterial(scene, Lerp(c0, c1, 0.25f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f);
+    outers[0] = CreatePrincipledMaterial(scene, Lerp(c0, c1, 0.5f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f);
+    outers[2] = CreatePrincipledMaterial(scene, Lerp(c0, c1, 0.75f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f);
+    outers[4] = CreatePrincipledMaterial(scene, Lerp(c0, c1, 1.0f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f);
 
     // outers[3] = CreateDielectricMaterial(scene, 1.0f, 0.1f);
     // outers[1] = CreateDielectricMaterial(scene, 1.25f, 0.1f);
