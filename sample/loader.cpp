@@ -15,6 +15,13 @@
 namespace bulbit
 {
 
+constexpr int32 channel_ao = 0;
+constexpr int32 channel_roughness = 1;
+constexpr int32 channel_metallic = 2;
+constexpr int32 channel_alpha = 3;
+constexpr int32 channel_anisotropy_strength = 2;
+constexpr int32 channel_transmission = 0;
+
 static bool g_force_fallback_material = false;
 static const Material* g_fallback_material = nullptr;
 static MediumInterface g_fallback_medium_interface = {};
@@ -62,8 +69,9 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
         tinygltf::PbrMetallicRoughness& pbr = gltf_material.pbrMetallicRoughness;
 
         SpectrumTexture *basecolor_texture, *normal_texture, *emission_texture;
-        FloatTexture *metallic_texture, *roughness_texture, *anisotropy_texture, *alpha_texture;
+        FloatTexture *metallic_texture, *roughness_texture, *anisotropy_texture, *transmission_texture, *alpha_texture;
 
+        Float transmission_factor = 0.0f;
         Float ior_factor = 1.5f;
         Float anisotropy_factor = 0.0f;
         Spectrum basecolor_factor = { Float(pbr.baseColorFactor[0]), Float(pbr.baseColorFactor[1]),
@@ -81,7 +89,7 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                 tinygltf::Image& image = model.images[texture.source];
 
                 basecolor_texture = CreateSpectrumImageTexture(scene, g_folder + image.uri, false);
-                alpha_texture = CreateFloatImageTexture(scene, g_folder + image.uri, alpha_channel, true);
+                alpha_texture = CreateFloatImageTexture(scene, g_folder + image.uri, channel_alpha, true);
             }
             else
             {
@@ -97,9 +105,9 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                 tinygltf::Texture& texture = model.textures[pbr.metallicRoughnessTexture.index];
                 tinygltf::Image& image = model.images[texture.source];
 
-                metallic_texture = CreateFloatImageTexture(scene, g_folder + image.uri, metallic_channel, true, metallic_factor);
+                metallic_texture = CreateFloatImageTexture(scene, g_folder + image.uri, channel_metallic, true, metallic_factor);
                 roughness_texture =
-                    CreateFloatImageTexture(scene, g_folder + image.uri, roughness_channel, true, roughness_factor);
+                    CreateFloatImageTexture(scene, g_folder + image.uri, channel_roughness, true, roughness_factor);
             }
             else
             {
@@ -177,7 +185,7 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                         tinygltf::Texture& texture = model.textures[tex_index];
                         tinygltf::Image& image = model.images[texture.source];
                         anisotropy_texture = CreateFloatImageTexture(
-                            scene, g_folder + image.uri, anisotropy_strength_channel, true, anisotropy_factor
+                            scene, g_folder + image.uri, channel_anisotropy_strength, true, anisotropy_factor
                         );
                     }
                     else
@@ -185,13 +193,61 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                         anisotropy_texture = CreateFloatConstantTexture(scene, anisotropy_factor);
                     }
                 }
+                else
+                {
+                    anisotropy_texture = CreateFloatConstantTexture(scene, anisotropy_factor);
+                }
 
                 // Todo: support this
                 // if (ext.Has("anisotropyRotation")) {}
             }
             else
             {
-                anisotropy_texture = CreateFloatConstantTexture(scene, 0);
+                anisotropy_texture = CreateFloatConstantTexture(scene, anisotropy_factor);
+            }
+        }
+
+        // transmission
+        {
+            // https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_transmission/README.md
+            if (HasExtension(gltf_material, "KHR_materials_transmission"))
+            {
+                const tinygltf::Value& ext = gltf_material.extensions.at("KHR_materials_transmission");
+
+                if (ext.Has("transmissionFactor"))
+                {
+                    transmission_factor = Float(ext.Get("transmissionFactor").Get<double>());
+                }
+
+                if (ext.Has("transmissionTexture"))
+                {
+                    const tinygltf::Value& tex = ext.Get("transmissionTexture");
+                    int32 tex_index = -1;
+                    if (tex.Has("index"))
+                    {
+                        tex_index = tex.Get("index").Get<int>();
+                    }
+
+                    if (tex_index > 0)
+                    {
+                        tinygltf::Texture& texture = model.textures[tex_index];
+                        tinygltf::Image& image = model.images[texture.source];
+                        transmission_texture =
+                            CreateFloatImageTexture(scene, g_folder + image.uri, channel_transmission, true, transmission_factor);
+                    }
+                    else
+                    {
+                        transmission_texture = CreateFloatConstantTexture(scene, transmission_factor);
+                    }
+                }
+                else
+                {
+                    transmission_texture = CreateFloatConstantTexture(scene, transmission_factor);
+                }
+            }
+            else
+            {
+                transmission_texture = CreateFloatConstantTexture(scene, transmission_factor);
             }
         }
 
@@ -202,8 +258,8 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
         ));
 #else
         g_materials.push_back(scene.CreateMaterial<PrincipledMaterial>(
-            basecolor_texture, metallic_texture, roughness_texture, anisotropy_texture, CreateFloatConstantTexture(scene, 0),
-            ior_factor, emission_texture, normal_texture, alpha_texture
+            basecolor_texture, metallic_texture, roughness_texture, anisotropy_texture, transmission_texture, ior_factor,
+            emission_texture, normal_texture, alpha_texture
         ));
 #endif
     }
@@ -499,7 +555,7 @@ const Material* CreateOBJMaterial(Scene& scene, const tinyobj::material_t& mat, 
     if (!mat.diffuse_texname.empty())
     {
         basecolor_texture = CreateSpectrumImageTexture(scene, root + mat.diffuse_texname);
-        alpha_texture = CreateFloatImageTexture(scene, root + mat.diffuse_texname, alpha_channel, true);
+        alpha_texture = CreateFloatImageTexture(scene, root + mat.diffuse_texname, channel_alpha, true);
     }
     else
     {

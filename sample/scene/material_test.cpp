@@ -538,6 +538,12 @@ std::unique_ptr<Camera> MaterialTest6(Scene& scene)
     // outers[2] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.75f);
     // outers[4] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 1.0f);
 
+    // outers[3] = CreatePrincipledMaterial(scene, Spectrum{ 0.9f, 0.5f, 0.3f }, 1, 0.1f, 0.0f, 1.5f, 0.0f);
+    // outers[1] = CreatePrincipledMaterial(scene, Spectrum{ 0.9f, 0.5f, 0.3f }, 1, 0.1f, 0.25f, 1.5f, 0.0f);
+    // outers[0] = CreatePrincipledMaterial(scene, Spectrum{ 0.9f, 0.5f, 0.3f }, 1, 0.1f, 0.5f, 1.5f, 0.0f);
+    // outers[2] = CreatePrincipledMaterial(scene, Spectrum{ 0.9f, 0.5f, 0.3f }, 1, 0.1f, 0.74f, 1.5f, 0.0f);
+    // outers[4] = CreatePrincipledMaterial(scene, Spectrum{ 0.9f, 0.5f, 0.3f }, 1, 0.1f, 1.0f, 1.5f, 0.0f);
+
     Spectrum c0 = Spectrum(1);
     Spectrum c1 = Spectrum{ 1.0f, 0.5f, 0.8f };
 

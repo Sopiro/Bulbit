@@ -5,12 +5,6 @@
 namespace bulbit
 {
 
-constexpr int32 ao_channel = 0;
-constexpr int32 roughness_channel = 1;
-constexpr int32 metallic_channel = 2;
-constexpr int32 alpha_channel = 3;
-constexpr int32 anisotropy_strength_channel = 2;
-
 void SetLoaderFlipNormal(bool flip_normal);
 void SetLoaderFlipTexcoord(bool flip_texcoord);
 void SetLoaderUseForceFallbackMaterial(bool force_use_fallback_material);

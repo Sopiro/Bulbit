@@ -6,15 +6,9 @@ std::unique_ptr<Camera> StanfordScene(Scene& scene)
     {
         auto mat = scene.CreateMaterial<MetallicRoughnessMaterial>(
             CreateSpectrumImageTexture(scene, "res/dark_wooden_planks_4k/textures/dark_wooden_planks_diff_4k.jpg"),
-            CreateFloatImageTexture(
-                scene, "res/dark_wooden_planks_4k/textures/dark_wooden_planks_arm_4k.jpg", metallic_channel, true
-            ),
-            CreateFloatImageTexture(
-                scene, "res/dark_wooden_planks_4k/textures/dark_wooden_planks_arm_4k.jpg", roughness_channel, true
-            ),
-            CreateFloatImageTexture(
-                scene, "res/dark_wooden_planks_4k/textures/dark_wooden_planks_arm_4k.jpg", roughness_channel, true
-            ),
+            CreateFloatImageTexture(scene, "res/dark_wooden_planks_4k/textures/dark_wooden_planks_arm_4k.jpg", 2, true),
+            CreateFloatImageTexture(scene, "res/dark_wooden_planks_4k/textures/dark_wooden_planks_arm_4k.jpg", 1, true),
+            CreateFloatImageTexture(scene, "res/dark_wooden_planks_4k/textures/dark_wooden_planks_arm_4k.jpg", 1, true),
             CreateSpectrumConstantTexture(scene, Spectrum(0.0f)),
             CreateSpectrumImageTexture(scene, "res/dark_wooden_planks_4k/textures/dark_wooden_planks_nor_gl_4k.png", true)
         );
