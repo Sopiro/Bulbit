@@ -21,6 +21,7 @@ constexpr int32 channel_metallic = 2;
 constexpr int32 channel_alpha = 3;
 constexpr int32 channel_anisotropy_strength = 2;
 constexpr int32 channel_transmission = 0;
+constexpr int32 channel_clearcoat = 0;
 
 static bool g_force_fallback_material = false;
 static const Material* g_fallback_material = nullptr;
@@ -68,16 +69,26 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
         tinygltf::Material& gltf_material = model.materials[i];
         tinygltf::PbrMetallicRoughness& pbr = gltf_material.pbrMetallicRoughness;
 
-        SpectrumTexture *basecolor_texture, *normal_texture, *emission_texture;
-        FloatTexture *metallic_texture, *roughness_texture, *anisotropy_texture, *transmission_texture, *alpha_texture;
+        SpectrumTexture* basecolor_texture = nullptr;
+        FloatTexture* metallic_texture = nullptr;
+        FloatTexture* roughness_texture = nullptr;
+        FloatTexture* anisotropy_texture = nullptr;
+        FloatTexture* transmission_texture = nullptr;
+        FloatTexture* clearcoat_texture = nullptr;
+        FloatTexture* clearcoat_roughness_texture = nullptr;
+        SpectrumTexture* emission_texture = nullptr;
+        SpectrumTexture* normal_texture = nullptr;
+        FloatTexture* alpha_texture = nullptr;
 
-        Float transmission_factor = 0.0f;
-        Float ior_factor = 1.5f;
-        Float anisotropy_factor = 0.0f;
         Spectrum basecolor_factor = { Float(pbr.baseColorFactor[0]), Float(pbr.baseColorFactor[1]),
                                       Float(pbr.baseColorFactor[2]) };
         Float metallic_factor = Float(pbr.metallicFactor);
         Float roughness_factor = Float(pbr.roughnessFactor);
+        Float anisotropy_factor = 0.0f;
+        Float ior_factor = 1.5f;
+        Float transmission_factor = 0.0f;
+        Float clearcoat_factor = 0.0f;
+        Float clearcoat_roughness_factor = 0.0f;
         Spectrum emission_factor = { Float(gltf_material.emissiveFactor[0]), Float(gltf_material.emissiveFactor[1]),
                                      Float(gltf_material.emissiveFactor[2]) };
 
@@ -251,8 +262,82 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
             }
         }
 
-        FloatTexture* clearcoat_texture = CreateFloatConstantTexture(scene, 0);
-        FloatTexture* clearcoat_roughness_texture = CreateFloatConstantTexture(scene, 0);
+        // clearcoat
+        {
+            // https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_clearcoat/README.md
+            if (HasExtension(gltf_material, "KHR_materials_clearcoat"))
+            {
+                const tinygltf::Value& ext = gltf_material.extensions.at("KHR_materials_clearcoat");
+
+                if (ext.Has("clearcoatFactor"))
+                {
+                    clearcoat_factor = Float(ext.Get("clearcoatFactor").Get<double>());
+                }
+
+                if (ext.Has("clearcoatTexture"))
+                {
+                    const tinygltf::Value& tex = ext.Get("clearcoatTexture");
+                    int32 tex_index = -1;
+                    if (tex.Has("index"))
+                    {
+                        tex_index = tex.Get("index").Get<int>();
+                    }
+
+                    if (tex_index > 0)
+                    {
+                        tinygltf::Texture& texture = model.textures[tex_index];
+                        tinygltf::Image& image = model.images[texture.source];
+                        clearcoat_texture =
+                            CreateFloatImageTexture(scene, g_folder + image.uri, channel_clearcoat, true, clearcoat_factor);
+                    }
+                    else
+                    {
+                        clearcoat_texture = CreateFloatConstantTexture(scene, clearcoat_factor);
+                    }
+                }
+                else
+                {
+                    clearcoat_texture = CreateFloatConstantTexture(scene, clearcoat_factor);
+                }
+
+                if (ext.Has("clearcoatRoughnessFactor"))
+                {
+                    clearcoat_roughness_factor = Float(ext.Get("clearcoatRoughnessFactor").Get<double>());
+                }
+
+                if (ext.Has("clearcoatRoughnessTexture"))
+                {
+                    const tinygltf::Value& tex = ext.Get("clearcoatRoughnessTexture");
+                    int32 tex_index = -1;
+                    if (tex.Has("index"))
+                    {
+                        tex_index = tex.Get("index").Get<int>();
+                    }
+
+                    if (tex_index > 0)
+                    {
+                        tinygltf::Texture& texture = model.textures[tex_index];
+                        tinygltf::Image& image = model.images[texture.source];
+                        clearcoat_roughness_texture = CreateFloatImageTexture(
+                            scene, g_folder + image.uri, channel_roughness, true, clearcoat_roughness_factor
+                        );
+                    }
+                    else
+                    {
+                        clearcoat_roughness_texture = CreateFloatConstantTexture(scene, clearcoat_roughness_factor);
+                    }
+                }
+                else
+                {
+                    clearcoat_roughness_texture = CreateFloatConstantTexture(scene, clearcoat_roughness_factor);
+                }
+            }
+            else
+            {
+                clearcoat_texture = CreateFloatConstantTexture(scene, clearcoat_factor);
+                clearcoat_roughness_texture = CreateFloatConstantTexture(scene, clearcoat_roughness_factor);
+            }
+        }
 
 #if 0
         g_materials.push_back(scene.CreateMaterial<MetallicRoughnessMaterial>(
