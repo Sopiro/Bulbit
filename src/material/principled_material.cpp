@@ -9,8 +9,10 @@ PrincipledMaterial::PrincipledMaterial(
     const FloatTexture* metallic,
     const FloatTexture* roughness,
     const FloatTexture* anisotropy,
-    const FloatTexture* transmission,
     Float ior,
+    const FloatTexture* transmission,
+    const FloatTexture* clearcoat,
+    const FloatTexture* clearcoat_roughness,
     const SpectrumTexture* emissive,
     const SpectrumTexture* normalmap,
     const FloatTexture* alpha
@@ -21,8 +23,10 @@ PrincipledMaterial::PrincipledMaterial(
     , metallic{ metallic }
     , roughness{ roughness }
     , anisotropy{ anisotropy }
+    , ior{ std::max(ior, 1.01f) }
     , transmission{ transmission }
-    , ior{ ior }
+    , clearcoat{ clearcoat }
+    , clearcoat_roughness{ clearcoat_roughness }
     , emissive{ emissive }
     , normalmap{ normalmap }
     , alpha{ alpha }
@@ -68,12 +72,15 @@ bool PrincipledMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Ve
     Float rough = roughness->Evaluate(isect.uv);
     Float aniso = anisotropy->Evaluate(isect.uv);
     Float trans = transmission->Evaluate(isect.uv);
+    Float cc = clearcoat->Evaluate(isect.uv);
+    Float cc_rough = clearcoat_roughness->Evaluate(isect.uv);
 
     Point2 alpha = PrincipledBxDF::RoughnessToAlpha(rough, aniso);
+    Float cc_alpha = PrincipledBxDF::RoughnessToAlpha(cc_rough);
 
     *bsdf = BSDF(
         n, isect.shading.tangent,
-        alloc.new_object<PrincipledBxDF>(color, metal, TrowbridgeReitzDistribution(alpha.x, alpha.y), eta, trans)
+        alloc.new_object<PrincipledBxDF>(color, metal, TrowbridgeReitzDistribution(alpha.x, alpha.y), eta, trans, cc, cc_alpha)
     );
     return true;
 }

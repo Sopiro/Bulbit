@@ -197,12 +197,22 @@ private:
 class PrincipledBxDF : public BxDF
 {
 public:
-    PrincipledBxDF(Spectrum color, Float metallic, TrowbridgeReitzDistribution mf, Float eta, Float transmission)
+    PrincipledBxDF(
+        Spectrum color,
+        Float metallic,
+        TrowbridgeReitzDistribution mf,
+        Float eta,
+        Float transmission,
+        Float clearcoat,
+        Float clearcoat_roughness
+    )
         : color{ color }
         , metallic{ metallic }
         , mf{ mf }
         , eta{ eta }
         , transmission{ transmission }
+        , clearcoat{ clearcoat }
+        , clearcoat_roughness{ clearcoat_roughness }
     {
     }
 
@@ -261,6 +271,8 @@ private:
     TrowbridgeReitzDistribution mf;
     Float eta;
     Float transmission;
+    Float clearcoat;
+    Float clearcoat_roughness;
 };
 
 class NormalizedFresnelBxDF : public BxDF

@@ -77,6 +77,8 @@ PrincipledMaterial* CreatePrincipledMaterial(
     Float anisotropy,
     Float ior,
     Float transmission,
+    Float clearcoat,
+    Float clearcoat_roughness,
     const Spectrum& emission = Spectrum::black,
     const SpectrumTexture* normalmap = nullptr,
     const FloatTexture* alpha = nullptr

@@ -161,8 +161,10 @@ public:
         const FloatTexture* metallic,
         const FloatTexture* roughness,
         const FloatTexture* anisotropy,
+        Float ior,
         const FloatTexture* transmission,
-        Float ior = 1.5f,
+        const FloatTexture* clearcoat,
+        const FloatTexture* clearcoat_roughness,
         const SpectrumTexture* emissive = nullptr,
         const SpectrumTexture* normalmap = nullptr,
         const FloatTexture* alpha = nullptr
@@ -180,8 +182,10 @@ private:
     const FloatTexture* metallic;
     const FloatTexture* roughness;
     const FloatTexture* anisotropy;
-    const FloatTexture* transmission;
     Float ior;
+    const FloatTexture* transmission;
+    const FloatTexture* clearcoat;
+    const FloatTexture* clearcoat_roughness;
 
     const SpectrumTexture* emissive;
     const SpectrumTexture* normalmap;

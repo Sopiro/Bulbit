@@ -251,6 +251,9 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
             }
         }
 
+        FloatTexture* clearcoat_texture = CreateFloatConstantTexture(scene, 0);
+        FloatTexture* clearcoat_roughness_texture = CreateFloatConstantTexture(scene, 0);
+
 #if 0
         g_materials.push_back(scene.CreateMaterial<MetallicRoughnessMaterial>(
             basecolor_texture, metallic_texture, roughness_texture, roughness_texture, emission_texture, normal_texture,
@@ -258,8 +261,8 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
         ));
 #else
         g_materials.push_back(scene.CreateMaterial<PrincipledMaterial>(
-            basecolor_texture, metallic_texture, roughness_texture, anisotropy_texture, transmission_texture, ior_factor,
-            emission_texture, normal_texture, alpha_texture
+            basecolor_texture, metallic_texture, roughness_texture, anisotropy_texture, ior_factor, transmission_texture,
+            clearcoat_texture, clearcoat_roughness_texture, emission_texture, normal_texture, alpha_texture
         ));
 #endif
     }

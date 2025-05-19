@@ -122,6 +122,8 @@ PrincipledMaterial* CreatePrincipledMaterial(
     Float anisotropy,
     Float ior,
     Float transmission,
+    Float clearcoat,
+    Float clearcoat_roughness,
     const Spectrum& emission,
     const SpectrumTexture* normalmap,
     const FloatTexture* alpha
@@ -129,8 +131,9 @@ PrincipledMaterial* CreatePrincipledMaterial(
 {
     return scene.CreateMaterial<PrincipledMaterial>(
         CreateSpectrumConstantTexture(scene, basecolor), CreateFloatConstantTexture(scene, metallic),
-        CreateFloatConstantTexture(scene, roughness), CreateFloatConstantTexture(scene, anisotropy),
-        CreateFloatConstantTexture(scene, transmission), ior, CreateSpectrumConstantTexture(scene, emission), normalmap, alpha
+        CreateFloatConstantTexture(scene, roughness), CreateFloatConstantTexture(scene, anisotropy), ior,
+        CreateFloatConstantTexture(scene, transmission), CreateFloatConstantTexture(scene, clearcoat),
+        CreateFloatConstantTexture(scene, clearcoat_roughness), CreateSpectrumConstantTexture(scene, emission), normalmap, alpha
     );
 }
 
