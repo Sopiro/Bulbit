@@ -204,15 +204,15 @@ public:
         Float eta,
         Float transmission,
         Float clearcoat,
-        Float clearcoat_roughness
+        TrowbridgeReitzDistribution mf_clearcoat
     )
         : color{ color }
         , metallic{ metallic }
         , mf{ mf }
+        , mf_clearcoat{ mf_clearcoat }
         , eta{ eta }
         , transmission{ transmission }
         , clearcoat{ clearcoat }
-        , clearcoat_roughness{ clearcoat_roughness }
     {
     }
 
@@ -230,6 +230,7 @@ public:
 
     virtual void Regularize() override;
 
+    static const inline Float default_clearcoat_ior = 1.5f;
     static const inline Spectrum default_dielectric_f0 = Spectrum(0.04f);
     static const inline Float min_alpha = 1e-3f;
 
@@ -268,11 +269,10 @@ public:
 private:
     Spectrum color;
     Float metallic;
-    TrowbridgeReitzDistribution mf;
+    TrowbridgeReitzDistribution mf, mf_clearcoat;
     Float eta;
     Float transmission;
     Float clearcoat;
-    Float clearcoat_roughness;
 };
 
 class NormalizedFresnelBxDF : public BxDF

@@ -80,7 +80,10 @@ bool PrincipledMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Ve
 
     *bsdf = BSDF(
         n, isect.shading.tangent,
-        alloc.new_object<PrincipledBxDF>(color, metal, TrowbridgeReitzDistribution(alpha.x, alpha.y), eta, trans, cc, cc_alpha)
+        alloc.new_object<PrincipledBxDF>(
+            color, metal, TrowbridgeReitzDistribution(alpha.x, alpha.y), eta, trans, cc,
+            TrowbridgeReitzDistribution(cc_alpha, cc_alpha)
+        )
     );
     return true;
 }

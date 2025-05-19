@@ -38,34 +38,40 @@ Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
         return Spectrum::black;
     }
 
+    Float F_cc = clearcoat * FresnelDielectric(Dot(wo, wm), PrincipledBxDF::default_clearcoat_ior);
+    Float T_cc = 1 - F_cc;
+
     Spectrum F_d = Spectrum(FresnelDielectric(Dot(wo, wm), eta));
     Spectrum F_c = F_Schlick(color, Dot(wi, wm));
 
     Spectrum F = Lerp(F_d, F_c, metallic);
     Spectrum T = Spectrum(1) - F;
 
+    Spectrum f(0);
+
     if (reflect)
     {
-        // Add dielectric reflection and metal reflection
+        // Add clearcoat reflection
         Float denom = std::abs(4 * cos_theta_i * cos_theta_o);
-        Spectrum f = F * mf.D(wm) * mf.G(wo, wi) / denom;
+        f += F_cc * mf_clearcoat.D(wm) * mf_clearcoat.G(wo, wi) / denom;
+
+        // Add dielectric reflection and metal reflection
+        f += T_cc * F * mf.D(wm) * mf.G(wo, wi) / denom;
 
         // Add diffuse reflection
-        f += (1 - transmission) * (1 - metallic) * T * color * inv_pi;
-
-        return f;
+        f += (1 - transmission) * (1 - metallic) * T_cc * T * color * inv_pi;
     }
     else
     {
         // Add dielectric transmission
         Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p) * cos_theta_i * cos_theta_o;
-        Spectrum f = transmission * Sqrt(color) * T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / denom);
+        f += transmission * T_cc * T * Sqrt(color) * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / denom);
 
         // Handle solid angle squeezing
         f /= Sqr(eta_p);
-
-        return f;
     }
+
+    return f;
 }
 
 Float PrincipledBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
@@ -118,24 +124,29 @@ Float PrincipledBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
     pr /= p_sum;
     pt /= p_sum;
 
+    Float cc = clearcoat * FresnelDielectric(Dot(wo, wm), PrincipledBxDF::default_clearcoat_ior);
+
+    Float pdf = 0;
+
     if (reflect)
     {
+        // Add clearcoat BRDF
+        pdf += cc * mf_clearcoat.PDF(wo, wm) / (4 * AbsDot(wo, wm));
+
         // Add dielectric BRDF and metal BRDF
-        Float pdf = (metallic + (1 - metallic) * pr) * mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
+        pdf += (1 - cc) * (metallic + (1 - metallic) * pr) * mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
 
         // Add diffuse BRDF
-        pdf += (1 - metallic) * pt * (1 - transmission) * AbsCosTheta(wi) * inv_pi;
-
-        return pdf;
+        pdf += (1 - cc) * (1 - metallic) * pt * (1 - transmission) * AbsCosTheta(wi) * inv_pi;
     }
     else
     {
         // Add dielectric BTDF
         Float dwm_dwi = AbsDot(wi, wm) / Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p);
-        Float pdf = (1 - metallic) * pt * transmission * mf.PDF(wo, wm) * dwm_dwi;
-
-        return pdf;
+        pdf += (1 - cc) * (1 - metallic) * pt * transmission * mf.PDF(wo, wm) * dwm_dwi;
     }
+
+    return pdf;
 }
 
 bool PrincipledBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
@@ -144,12 +155,14 @@ bool PrincipledBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12,
     Vec3 wi;
     Float eta_p = 1;
 
-    if (u0 < metallic)
-    {
-        // Sample metal
-        Vec3 wm = mf.Sample_Wm(wo, u12);
-        wi = Reflect(wo, wm);
+    Vec3 wm = mf_clearcoat.Sample_Wm(wo, u12);
 
+    Float cc = clearcoat * FresnelDielectric(Dot(wo, wm), PrincipledBxDF::default_clearcoat_ior);
+
+    if (u0 < cc)
+    {
+        // Sample clearcoat
+        wi = Reflect(wo, wm);
         if (!SameHemisphere(wo, wi))
         {
             return false;
@@ -159,32 +172,16 @@ bool PrincipledBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12,
     }
     else
     {
-        // Sample dielectric
-        Vec3 wm = mf.Sample_Wm(wo, u12);
-
-        Float R = FresnelDielectric(Dot(wo, wm), eta);
-        Float T = 1 - R;
-
-        // Compute sampling probabilities for reflection and transmission
-        Float pr = R;
-        Float pt = T;
-        if (!(flags & BxDF_SamplingFlags::Reflection)) pr = 0;
-        if (!(flags & BxDF_SamplingFlags::Transmission)) pt = 0;
-        if (pr == 0 && pt == 0)
-        {
-            return false;
-        }
-
-        Float p_sum = pr + pt;
-        pr /= p_sum;
-        pt /= p_sum;
-
         // Renormalize
-        u0 = (u0 - metallic) / (1 - metallic);
+        u0 = (u0 - cc) / (1 - cc);
+        u12[0] = (u12[0] - cc) / (1 - cc);
+        u12[1] = (u12[1] - cc) / (1 - cc);
 
-        if (u0 < pr)
+        wm = mf.Sample_Wm(wo, u12);
+
+        if (u0 < metallic)
         {
-            // Sample glossy reflection
+            // Sample metal
             wi = Reflect(wo, wm);
             if (!SameHemisphere(wo, wi))
             {
@@ -195,27 +192,62 @@ bool PrincipledBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12,
         }
         else
         {
-            // Renormalize
-            u0 = (u0 - pr) / (pt);
+            // Sample dielectric
+            Float R = FresnelDielectric(Dot(wo, wm), eta);
+            Float T = 1 - R;
 
-            if (u0 < transmission)
+            // Compute sampling probabilities for reflection and transmission
+            Float pr = R;
+            Float pt = T;
+            if (!(flags & BxDF_SamplingFlags::Reflection)) pr = 0;
+            if (!(flags & BxDF_SamplingFlags::Transmission)) pt = 0;
+            if (pr == 0 && pt == 0)
             {
-                // Sample glossy transmission
+                return false;
+            }
 
-                // Total internal reflection
-                bool tir = !Refract(&wi, wo, wm, eta, &eta_p);
-                if (SameHemisphere(wo, wi) || wi.z == 0 || tir)
+            Float p_sum = pr + pt;
+            pr /= p_sum;
+            pt /= p_sum;
+
+            // Renormalize
+            u0 = (u0 - metallic) / (1 - metallic);
+
+            if (u0 < pr)
+            {
+                // Sample glossy reflection
+                wi = Reflect(wo, wm);
+                if (!SameHemisphere(wo, wi))
                 {
                     return false;
                 }
 
-                flag = BxDF_Flags::GlossyTransmission;
+                flag = BxDF_Flags::GlossyReflection;
             }
             else
             {
-                // Sample diffuse reflection
-                wi = SampleCosineHemisphere(u12);
-                flag = BxDF_Flags::DiffuseReflection;
+                // Renormalize
+                u0 = (u0 - pr) / (pt);
+
+                if (u0 < transmission)
+                {
+                    // Sample glossy transmission
+
+                    // Total internal reflection
+                    bool tir = !Refract(&wi, wo, wm, eta, &eta_p);
+                    if (SameHemisphere(wo, wi) || wi.z == 0 || tir)
+                    {
+                        return false;
+                    }
+
+                    flag = BxDF_Flags::GlossyTransmission;
+                }
+                else
+                {
+                    // Sample diffuse reflection
+                    wi = SampleCosineHemisphere(u12);
+                    flag = BxDF_Flags::DiffuseReflection;
+                }
             }
         }
     }
