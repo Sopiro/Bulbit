@@ -199,20 +199,13 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                             scene, g_folder + image.uri, channel_anisotropy_strength, true, anisotropy_factor
                         );
                     }
-                    else
-                    {
-                        anisotropy_texture = CreateFloatConstantTexture(scene, anisotropy_factor);
-                    }
-                }
-                else
-                {
-                    anisotropy_texture = CreateFloatConstantTexture(scene, anisotropy_factor);
                 }
 
                 // Todo: support this
                 // if (ext.Has("anisotropyRotation")) {}
             }
-            else
+
+            if (anisotropy_texture == nullptr)
             {
                 anisotropy_texture = CreateFloatConstantTexture(scene, anisotropy_factor);
             }
@@ -246,17 +239,10 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                         transmission_texture =
                             CreateFloatImageTexture(scene, g_folder + image.uri, channel_transmission, true, transmission_factor);
                     }
-                    else
-                    {
-                        transmission_texture = CreateFloatConstantTexture(scene, transmission_factor);
-                    }
-                }
-                else
-                {
-                    transmission_texture = CreateFloatConstantTexture(scene, transmission_factor);
                 }
             }
-            else
+
+            if (transmission_texture == nullptr)
             {
                 transmission_texture = CreateFloatConstantTexture(scene, transmission_factor);
             }
@@ -290,14 +276,6 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                         clearcoat_texture =
                             CreateFloatImageTexture(scene, g_folder + image.uri, channel_clearcoat, true, clearcoat_factor);
                     }
-                    else
-                    {
-                        clearcoat_texture = CreateFloatConstantTexture(scene, clearcoat_factor);
-                    }
-                }
-                else
-                {
-                    clearcoat_texture = CreateFloatConstantTexture(scene, clearcoat_factor);
                 }
 
                 if (ext.Has("clearcoatRoughnessFactor"))
@@ -322,19 +300,16 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                             scene, g_folder + image.uri, channel_roughness, true, clearcoat_roughness_factor
                         );
                     }
-                    else
-                    {
-                        clearcoat_roughness_texture = CreateFloatConstantTexture(scene, clearcoat_roughness_factor);
-                    }
-                }
-                else
-                {
-                    clearcoat_roughness_texture = CreateFloatConstantTexture(scene, clearcoat_roughness_factor);
                 }
             }
-            else
+
+            if (clearcoat_texture == nullptr)
             {
                 clearcoat_texture = CreateFloatConstantTexture(scene, clearcoat_factor);
+            }
+
+            if (clearcoat_roughness_texture == nullptr)
+            {
                 clearcoat_roughness_texture = CreateFloatConstantTexture(scene, clearcoat_roughness_factor);
             }
         }
