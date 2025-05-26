@@ -17,7 +17,7 @@ DiffuseMaterial* CreateDiffuseMaterial(
 );
 
 DielectricMaterial* CreateDielectricMaterial(
-    Scene& scene, Float eta, Float roughness = 0, const SpectrumTexture* normalmap = nullptr
+    Scene& scene, Float eta, Spectrum reflectance = Spectrum(1), Float roughness = 0, const SpectrumTexture* normalmap = nullptr
 );
 
 ConductorMaterial* CreateConductorMaterial(

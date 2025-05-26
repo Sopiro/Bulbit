@@ -49,18 +49,18 @@ Spectrum DielectricBxDF::f(const Vec3& wo, const Vec3& wi) const
     if (reflect)
     {
         // Compute reflection at rough dielectric interface
-        return Spectrum(mf.D(wm) * mf.G(wo, wi) * F / std::abs(4 * cos_theta_i * cos_theta_o));
+        return Spectrum(F * mf.D(wm) * mf.G(wo, wi) / std::abs(4 * cos_theta_i * cos_theta_o));
     }
     else
     {
         // Compute transmission at rough dielectric interface
         Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p) * cos_theta_i * cos_theta_o;
-        Float ft = mf.D(wm) * (1 - F) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / denom);
+        Float ft = (1 - F) * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / denom);
 
         // Handle solid angle squeezing
         ft /= Sqr(eta_p);
 
-        return Spectrum(ft);
+        return r * ft;
     }
 }
 
@@ -173,7 +173,7 @@ bool DielectricBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12,
             // Handle solid angle squeezing
             ft /= Sqr(eta_p);
 
-            *sample = BSDFSample(ft, wi, pt / (pr + pt), BxDF_Flags::SpecularTransmission, eta_p);
+            *sample = BSDFSample(r * ft, wi, pt / (pr + pt), BxDF_Flags::SpecularTransmission, eta_p);
         }
 
         return true;
@@ -237,7 +237,7 @@ bool DielectricBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12,
             // Handle solid angle squeezing
             ft /= Sqr(eta_p);
 
-            *sample = BSDFSample(ft, wi, pdf, BxDF_Flags::GlossyTransmission, eta_p);
+            *sample = BSDFSample(r * ft, wi, pdf, BxDF_Flags::GlossyTransmission, eta_p);
         }
 
         return true;

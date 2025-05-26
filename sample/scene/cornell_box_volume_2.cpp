@@ -11,8 +11,7 @@ std::unique_ptr<Camera> CornellBoxVolume2(Scene& scene)
     auto white = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
     auto wakgood_mat = CreateDiffuseMaterial(scene, "res/wakdu.jpg");
     auto light = CreateDiffuseLightMaterial(scene, Spectrum(300.0f));
-    auto glass = CreateDielectricMaterial(scene, 1.5f, 0.0f);
-    auto plastic = CreateDielectricMaterial(scene, 1.5f, 0.2f);
+    auto glass = CreateDielectricMaterial(scene, 1.5f);
     // auto light = CreateDiffuseLightMaterial(scene, Spectrum(17.0f, 12.0f, 4.0f));
     auto mirror = CreateMirrorMaterial(scene, Spectrum(0.73f));
     auto mix = CreateMixtureMaterial(scene, red, blue, 0.5f);

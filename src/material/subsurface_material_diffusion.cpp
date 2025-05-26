@@ -52,7 +52,7 @@ bool SubsurfaceDiffusionMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect,
 
     *bsdf = BSDF(
         isect.shading.normal, isect.shading.tangent,
-        alloc.new_object<DielectricBxDF>(eta_p, TrowbridgeReitzDistribution(alpha_x, alpha_y))
+        alloc.new_object<DielectricBxDF>(eta_p, Spectrum(1), TrowbridgeReitzDistribution(alpha_x, alpha_y))
     );
 
     return true;

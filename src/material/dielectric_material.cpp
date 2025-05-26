@@ -6,14 +6,20 @@ namespace bulbit
 {
 
 DielectricMaterial::DielectricMaterial(
-    Float eta, const FloatTexture* u_roughness, const FloatTexture* v_roughness, const SpectrumTexture* normalmap
+    Float eta,
+    const SpectrumTexture* reflectance,
+    const FloatTexture* u_roughness,
+    const FloatTexture* v_roughness,
+    const SpectrumTexture* normalmap
 )
     : Material{ TypeIndexOf<DielectricMaterial>() }
     , eta{ eta }
+    , reflectance{ reflectance }
     , u_roughness{ u_roughness }
     , v_roughness{ v_roughness }
     , normalmap{ normalmap }
 {
+    std::cout << type_index << std::endl;
 }
 
 Float DielectricMaterial::GetAlpha(const Intersection& isect) const
@@ -38,14 +44,15 @@ bool DielectricMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Ve
 {
     BulbitNotUsed(wo);
 
+    Float eta_p = isect.front_face ? eta : 1 / eta;
+
+    Spectrum r = reflectance->Evaluate(isect.uv);
     Float alpha_x = u_roughness->Evaluate(isect.uv);
     Float alpha_y = v_roughness->Evaluate(isect.uv);
 
-    Float eta_p = isect.front_face ? eta : 1 / eta;
-
     *bsdf = BSDF(
         isect.shading.normal, isect.shading.tangent,
-        alloc.new_object<DielectricBxDF>(eta_p, TrowbridgeReitzDistribution(alpha_x, alpha_y))
+        alloc.new_object<DielectricBxDF>(eta_p, r, TrowbridgeReitzDistribution(alpha_x, alpha_y))
     );
     return true;
 }

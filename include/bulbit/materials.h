@@ -51,7 +51,11 @@ class DielectricMaterial : public Material
 {
 public:
     DielectricMaterial(
-        Float eta, const FloatTexture* u_roughness, const FloatTexture* v_roughness, const SpectrumTexture* normalmap = nullptr
+        Float eta,
+        const SpectrumTexture* reflectance,
+        const FloatTexture* u_roughness,
+        const FloatTexture* v_roughness,
+        const SpectrumTexture* normalmap = nullptr
     );
 
     Float GetAlpha(const Intersection& isect) const;
@@ -63,6 +67,8 @@ public:
 
 private:
     Float eta;
+
+    const SpectrumTexture* reflectance;
     const FloatTexture* u_roughness;
     const FloatTexture* v_roughness;
 
