@@ -6,7 +6,7 @@ namespace bulbit
 {
 
 DiffuseLightMaterial::DiffuseLightMaterial(const SpectrumTexture* emission, bool two_sided, const FloatTexture* alpha)
-    : Material{ TypeIndexOf<DiffuseLightMaterial>() }
+    : Material(TypeIndexOf<DiffuseLightMaterial>())
     , two_sided{ two_sided }
     , emission{ emission }
     , alpha{ alpha }

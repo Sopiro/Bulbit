@@ -18,7 +18,7 @@ PrincipledMaterial::PrincipledMaterial(
     const FloatTexture* alpha
 
 )
-    : Material{ TypeIndexOf<PrincipledMaterial>() }
+    : Material(TypeIndexOf<PrincipledMaterial>())
     , basecolor{ basecolor }
     , metallic{ metallic }
     , roughness{ roughness }

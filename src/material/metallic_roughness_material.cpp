@@ -14,7 +14,7 @@ MetallicRoughnessMaterial::MetallicRoughnessMaterial(
     const FloatTexture* alpha
 
 )
-    : Material{ TypeIndexOf<MetallicRoughnessMaterial>() }
+    : Material(TypeIndexOf<MetallicRoughnessMaterial>())
     , basecolor{ basecolor }
     , metallic{ metallic }
     , u_roughness{ u_roughness }

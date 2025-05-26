@@ -29,7 +29,7 @@ ConductorMaterial::ConductorMaterial(
     const SpectrumTexture* normalmap,
     const FloatTexture* alpha
 )
-    : Material{ TypeIndexOf<ConductorMaterial>() }
+    : Material(TypeIndexOf<ConductorMaterial>())
     , eta{ nullptr }
     , k{ reflectance }
     , u_roughness{ u_roughness }

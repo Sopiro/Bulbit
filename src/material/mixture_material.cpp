@@ -6,7 +6,7 @@ namespace bulbit
 {
 
 MixtureMaterial::MixtureMaterial(const Material* material1, const Material* material2, const FloatTexture* amount)
-    : Material{ TypeIndexOf<MixtureMaterial>() }
+    : Material(TypeIndexOf<MixtureMaterial>())
     , mixture_amount{ amount }
 {
     BulbitAssert(material1 != nullptr);

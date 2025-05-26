@@ -6,7 +6,7 @@ namespace bulbit
 {
 
 MirrorMaterial::MirrorMaterial(const SpectrumTexture* reflectance, const SpectrumTexture* normalmap, const FloatTexture* alpha)
-    : Material{ TypeIndexOf<MirrorMaterial>() }
+    : Material(TypeIndexOf<MirrorMaterial>())
     , reflectance{ reflectance }
     , normalmap{ normalmap }
     , alpha{ alpha }

@@ -6,7 +6,7 @@ namespace bulbit
 {
 
 DiffuseMaterial::DiffuseMaterial(const SpectrumTexture* reflectance, const SpectrumTexture* normalmap, const FloatTexture* alpha)
-    : Material{ TypeIndexOf<DiffuseMaterial>() }
+    : Material(TypeIndexOf<DiffuseMaterial>())
     , reflectance{ reflectance }
     , normalmap{ normalmap }
     , alpha{ alpha }

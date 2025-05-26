@@ -12,14 +12,13 @@ DielectricMaterial::DielectricMaterial(
     const FloatTexture* v_roughness,
     const SpectrumTexture* normalmap
 )
-    : Material{ TypeIndexOf<DielectricMaterial>() }
+    : Material(TypeIndexOf<DielectricMaterial>())
     , eta{ eta }
     , reflectance{ reflectance }
     , u_roughness{ u_roughness }
     , v_roughness{ v_roughness }
     , normalmap{ normalmap }
 {
-    std::cout << type_index << std::endl;
 }
 
 Float DielectricMaterial::GetAlpha(const Intersection& isect) const

@@ -727,8 +727,6 @@ std::unique_ptr<Camera> MaterialTest7(Scene& scene)
 
 std::unique_ptr<Camera> ColoredDielectrics(Scene& scene)
 {
-    std::cout << "here" << std::endl;
-
     HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
