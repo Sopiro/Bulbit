@@ -209,7 +209,8 @@ public:
         Float clearcoat,
         TrowbridgeReitzDistribution mf_clearcoat,
         Float sheen,
-        CharlieSheenDistribution mf_sheen
+        CharlieSheenDistribution mf_sheen,
+        Spectrum sheen_color
     )
         : color{ color }
         , metallic{ metallic }
@@ -220,6 +221,7 @@ public:
         , clearcoat{ clearcoat }
         , sheen{ sheen }
         , mf_sheen{ mf_sheen }
+        , sheen_color{ sheen_color }
     {
     }
 
@@ -282,6 +284,7 @@ private:
     Float clearcoat;
     Float sheen;
     CharlieSheenDistribution mf_sheen;
+    Spectrum sheen_color;
 };
 
 class NormalizedFresnelBxDF : public BxDF

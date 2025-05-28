@@ -22,6 +22,7 @@ constexpr int32 channel_alpha = 3;
 constexpr int32 channel_anisotropy_strength = 2;
 constexpr int32 channel_transmission = 0;
 constexpr int32 channel_clearcoat = 0;
+constexpr int32 channel_sheen_roughness = 4;
 
 static bool g_force_fallback_material = false;
 static const Material* g_fallback_material = nullptr;
@@ -76,6 +77,9 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
         FloatTexture* transmission_texture = nullptr;
         FloatTexture* clearcoat_texture = nullptr;
         FloatTexture* clearcoat_roughness_texture = nullptr;
+        FloatTexture* sheen_texture = nullptr;
+        SpectrumTexture* sheen_color_texture = nullptr;
+        FloatTexture* sheen_roughness_texture = nullptr;
         SpectrumTexture* emission_texture = nullptr;
         SpectrumTexture* normal_texture = nullptr;
         FloatTexture* alpha_texture = nullptr;
@@ -89,6 +93,8 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
         Float transmission_factor = 0.0f;
         Float clearcoat_factor = 0.0f;
         Float clearcoat_roughness_factor = 0.0f;
+        Spectrum sheen_color_factor = { 0.0f, 0.0f, 0.0f };
+        Float sheen_roughness_factor = 0.0f;
         Spectrum emission_factor = { Float(gltf_material.emissiveFactor[0]), Float(gltf_material.emissiveFactor[1]),
                                      Float(gltf_material.emissiveFactor[2]) };
 
@@ -314,8 +320,81 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
             }
         }
 
-        FloatTexture* sheen_texture = CreateFloatConstantTexture(scene, 0);
-        FloatTexture* sheen_roughness_texture = CreateFloatConstantTexture(scene, 0);
+        // sheen
+        {
+            // https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_sheen/README.md
+            if (HasExtension(gltf_material, "KHR_materials_sheen"))
+            {
+                const tinygltf::Value& ext = gltf_material.extensions.at("KHR_materials_sheen");
+
+                if (ext.Has("sheenColorFactor"))
+                {
+                    auto arr = ext.Get("sheenColorFactor").Get<tinygltf::Value::Array>();
+                    sheen_color_factor = { Float(arr[0].Get<double>()), Float(arr[1].Get<double>()),
+                                           Float(arr[2].Get<double>()) };
+                }
+
+                if (ext.Has("sheenColorTexture"))
+                {
+                    const tinygltf::Value& tex = ext.Get("sheenColorTexture");
+                    int32 tex_index = -1;
+                    if (tex.Has("index"))
+                    {
+                        tex_index = tex.Get("index").Get<int>();
+                    }
+
+                    if (tex_index > 0)
+                    {
+                        tinygltf::Texture& texture = model.textures[tex_index];
+                        tinygltf::Image& image = model.images[texture.source];
+                        sheen_color_texture = CreateSpectrumImageTexture(scene, g_folder + image.uri, false, sheen_color_factor);
+                    }
+                }
+
+                if (ext.Has("sheenRoughnessFactor"))
+                {
+                    sheen_roughness_factor = Float(ext.Get("sheenRoughnessFactor").Get<double>());
+                }
+
+                if (ext.Has("sheenRoughnessTexture"))
+                {
+                    const tinygltf::Value& tex = ext.Get("sheenRoughnessTexture");
+                    int32 tex_index = -1;
+                    if (tex.Has("index"))
+                    {
+                        tex_index = tex.Get("index").Get<int>();
+                    }
+
+                    if (tex_index > 0)
+                    {
+                        tinygltf::Texture& texture = model.textures[tex_index];
+                        tinygltf::Image& image = model.images[texture.source];
+                        sheen_roughness_texture = CreateFloatImageTexture(
+                            scene, g_folder + image.uri, channel_sheen_roughness, true, sheen_roughness_factor
+                        );
+                    }
+                }
+            }
+
+            if (sheen_color_factor == Spectrum(0))
+            {
+                sheen_texture = CreateFloatConstantTexture(scene, 0);
+            }
+            else
+            {
+                sheen_texture = CreateFloatConstantTexture(scene, 1);
+            }
+
+            if (sheen_color_texture == nullptr)
+            {
+                sheen_color_texture = CreateSpectrumConstantTexture(scene, sheen_color_factor);
+            }
+
+            if (sheen_roughness_texture == nullptr)
+            {
+                sheen_roughness_texture = CreateFloatConstantTexture(scene, sheen_roughness_factor);
+            }
+        }
 
 #if 0
         g_materials.push_back(scene.CreateMaterial<MetallicRoughnessMaterial>(
@@ -325,8 +404,8 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
 #else
         g_materials.push_back(scene.CreateMaterial<PrincipledMaterial>(
             basecolor_texture, metallic_texture, roughness_texture, anisotropy_texture, ior_factor, transmission_texture,
-            clearcoat_texture, clearcoat_roughness_texture, sheen_texture, sheen_roughness_texture, emission_texture,
-            normal_texture, alpha_texture
+            clearcoat_texture, clearcoat_roughness_texture, sheen_texture, sheen_roughness_texture, sheen_color_texture,
+            emission_texture, normal_texture, alpha_texture
         ));
 #endif
     }

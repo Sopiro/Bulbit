@@ -81,6 +81,7 @@ PrincipledMaterial* CreatePrincipledMaterial(
     Float clearcoat_roughness = 0,
     Float sheen = 0,
     Float sheen_roughness = 0,
+    const Spectrum& sheen_color = Spectrum(1),
     const Spectrum& emission = Spectrum::black,
     const SpectrumTexture* normalmap = nullptr,
     const FloatTexture* alpha = nullptr

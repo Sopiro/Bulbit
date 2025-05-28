@@ -62,7 +62,8 @@ Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
         if (sheen > 0)
         {
             // Add sheen reflection
-            f += sheen * (1 - transmission) * (1 - metallic) * T_cc * T * mf_sheen.D(wm) * mf_sheen.G(wo, wi) / denom;
+            f += sheen * (1 - transmission) * (1 - metallic) * T_cc * T * sheen_color * mf_sheen.D(wm) * mf_sheen.G(wo, wi) /
+                 denom;
 
             Float sheen_reflectance = mf_sheen.rho(wo);
 
