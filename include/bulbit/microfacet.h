@@ -103,4 +103,71 @@ private:
     Float alpha_x, alpha_y;
 };
 
+// https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_sheen.pdf
+class CharlieSheenDistribution
+{
+public:
+    CharlieSheenDistribution(Float alpha)
+        : alpha{ std::max(alpha, 1e-4f) }
+    {
+    }
+
+    Float D(Vec3& wm) const
+    {
+        // Eq. (2)
+        Float inv_r = 1 / alpha;
+
+        Float cos2_theta = CosTheta(wm);
+        Float sin2_theta = 1 - cos2_theta;
+
+        return (2.0f + inv_r) * std::pow(sin2_theta, 0.5f * inv_r) * inv_two_pi;
+    }
+
+    Float G(const Vec3& wo, const Vec3& wi) const
+    {
+#if 1
+        return 1 / (1 + Lambda(wo) + Lambda(wi));
+#else
+        return 1 / (1 + Lambda2(wo) + Lambda2(wi));
+#endif
+    }
+
+    Float Lambda(const Vec3& w) const
+    {
+        // Eq. 3
+        Float cos_theta = CosTheta(w);
+        if (cos_theta < 0.5f)
+        {
+            return std::exp(L(cos_theta));
+        }
+        else
+        {
+            return std::exp(2.0f * L(0.5f) - L(1.0f - cos_theta));
+        }
+    }
+
+    Float Lambda2(const Vec3& w) const
+    {
+        // 4 Terminator Softening
+        return std::pow(Lambda(w), 1 + 2 * std::pow(1 - CosTheta(w), 8));
+    }
+
+private:
+    Float L(Float x) const
+    {
+        Float t = Sqr(1.0 - alpha);
+
+        Float a = Lerp(21.5473f, 25.3245f, t);
+        Float b = Lerp(3.82987f, 3.32435f, t);
+        Float c = Lerp(0.19823f, 0.16801f, t);
+        Float d = Lerp(-1.97760f, -1.27393f, t);
+        Float e = Lerp(-4.32054f, -4.85967f, t);
+
+        // 3 Shadowing Term
+        return a / (1.0 + b * std::pow(x, c)) + d * x + e;
+    }
+
+    Float alpha;
+};
+
 } // namespace bulbit
