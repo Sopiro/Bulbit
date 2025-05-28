@@ -113,6 +113,17 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
     }
     break;
 
+    case 8:
+    {
+        Spectrum color = { 0.3f, 0.0f, 0.01f };
+        outers[3] = CreatePrincipledMaterial(scene, color, 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+        outers[1] = CreatePrincipledMaterial(scene, color, 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.25f);
+        outers[0] = CreatePrincipledMaterial(scene, color, 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.5f);
+        outers[2] = CreatePrincipledMaterial(scene, color, 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.75f);
+        outers[4] = CreatePrincipledMaterial(scene, color, 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+    }
+    break;
+
     default:
         break;
     }
@@ -198,7 +209,8 @@ enum
     colored_transmission = 4,
     clearcoat = 5,
     clearcoat_roughness = 6,
-    metallic = 7
+    metallic = 7,
+    sheen = 8
 };
 
 enum
@@ -215,3 +227,4 @@ static int32 index4 = Sample::Register("principled4", std::bind(Principled, std:
 static int32 index5 = Sample::Register("principled5", std::bind(Principled, std::placeholders::_1, clearcoat, cloth));
 static int32 index6 = Sample::Register("principled6", std::bind(Principled, std::placeholders::_1, clearcoat_roughness, cloth));
 static int32 index7 = Sample::Register("principled7", std::bind(Principled, std::placeholders::_1, metallic, knob));
+static int32 index8 = Sample::Register("principled8", std::bind(Principled, std::placeholders::_1, sheen, cloth));
