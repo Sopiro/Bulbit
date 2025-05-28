@@ -171,6 +171,8 @@ public:
         const FloatTexture* transmission,
         const FloatTexture* clearcoat,
         const FloatTexture* clearcoat_roughness,
+        const FloatTexture* sheen,
+        const FloatTexture* sheen_roughness,
         const SpectrumTexture* emissive = nullptr,
         const SpectrumTexture* normalmap = nullptr,
         const FloatTexture* alpha = nullptr
@@ -192,6 +194,8 @@ private:
     const FloatTexture* transmission;
     const FloatTexture* clearcoat;
     const FloatTexture* clearcoat_roughness;
+    const FloatTexture* sheen;
+    const FloatTexture* sheen_roughness;
 
     const SpectrumTexture* emissive;
     const SpectrumTexture* normalmap;

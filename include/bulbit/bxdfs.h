@@ -207,7 +207,9 @@ public:
         Float eta,
         Float transmission,
         Float clearcoat,
-        TrowbridgeReitzDistribution mf_clearcoat
+        TrowbridgeReitzDistribution mf_clearcoat,
+        Float sheen,
+        CharlieSheenDistribution mf_sheen
     )
         : color{ color }
         , metallic{ metallic }
@@ -216,6 +218,8 @@ public:
         , eta{ eta }
         , transmission{ transmission }
         , clearcoat{ clearcoat }
+        , sheen{ sheen }
+        , mf_sheen{ mf_sheen }
     {
     }
 
@@ -276,6 +280,8 @@ private:
     Float eta;
     Float transmission;
     Float clearcoat;
+    Float sheen;
+    CharlieSheenDistribution mf_sheen;
 };
 
 class NormalizedFresnelBxDF : public BxDF

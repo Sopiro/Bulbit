@@ -127,6 +127,8 @@ PrincipledMaterial* CreatePrincipledMaterial(
     Float transmission,
     Float clearcoat,
     Float clearcoat_roughness,
+    Float sheen,
+    Float sheen_roughness,
     const Spectrum& emission,
     const SpectrumTexture* normalmap,
     const FloatTexture* alpha
@@ -136,7 +138,8 @@ PrincipledMaterial* CreatePrincipledMaterial(
         CreateSpectrumConstantTexture(scene, basecolor), CreateFloatConstantTexture(scene, metallic),
         CreateFloatConstantTexture(scene, roughness), CreateFloatConstantTexture(scene, anisotropy), ior,
         CreateFloatConstantTexture(scene, transmission), CreateFloatConstantTexture(scene, clearcoat),
-        CreateFloatConstantTexture(scene, clearcoat_roughness), CreateSpectrumConstantTexture(scene, emission), normalmap, alpha
+        CreateFloatConstantTexture(scene, clearcoat_roughness), CreateFloatConstantTexture(scene, sheen),
+        CreateFloatConstantTexture(scene, sheen_roughness), CreateSpectrumConstantTexture(scene, emission), normalmap, alpha
     );
 }
 

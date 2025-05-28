@@ -13,6 +13,8 @@ PrincipledMaterial::PrincipledMaterial(
     const FloatTexture* transmission,
     const FloatTexture* clearcoat,
     const FloatTexture* clearcoat_roughness,
+    const FloatTexture* sheen,
+    const FloatTexture* sheen_roughness,
     const SpectrumTexture* emissive,
     const SpectrumTexture* normalmap,
     const FloatTexture* alpha
@@ -27,6 +29,8 @@ PrincipledMaterial::PrincipledMaterial(
     , transmission{ transmission }
     , clearcoat{ clearcoat }
     , clearcoat_roughness{ clearcoat_roughness }
+    , sheen{ sheen }
+    , sheen_roughness{ sheen_roughness }
     , emissive{ emissive }
     , normalmap{ normalmap }
     , alpha{ alpha }
@@ -74,15 +78,18 @@ bool PrincipledMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Ve
     Float trans = transmission->Evaluate(isect.uv);
     Float cc = clearcoat->Evaluate(isect.uv);
     Float cc_rough = clearcoat_roughness->Evaluate(isect.uv);
+    Float sh = sheen->Evaluate(isect.uv);
+    Float sh_rough = sheen_roughness->Evaluate(isect.uv);
 
     Point2 alpha = PrincipledBxDF::RoughnessToAlpha(rough, aniso);
     Float cc_alpha = PrincipledBxDF::RoughnessToAlpha(cc_rough);
+    Float sh_alpha = PrincipledBxDF::RoughnessToAlpha(sh_rough);
 
     *bsdf = BSDF(
         n, isect.shading.tangent,
         alloc.new_object<PrincipledBxDF>(
             color, metal, TrowbridgeReitzDistribution(alpha.x, alpha.y), eta, trans, cc,
-            TrowbridgeReitzDistribution(cc_alpha, cc_alpha)
+            TrowbridgeReitzDistribution(cc_alpha, cc_alpha), sh, CharlieSheenDistribution(sh_alpha)
         )
     );
     return true;
