@@ -64,23 +64,7 @@ Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
             // Add sheen reflection
             f += sheen * (1 - transmission) * (1 - metallic) * T_cc * T * mf_sheen.D(wm) * mf_sheen.G(wo, wi) / denom;
 
-            Float sheen_reflectance = 0;
-
-            RNG rng(Hash(wo, wi));
-
-            const int32 samples = 8;
-            for (int32 i = 0; i < samples; ++i)
-            {
-                Vec3 w = SampleCosineHemisphere({ rng.NextFloat(), rng.NextFloat() });
-                Vec3 h = Normalize(wo + w);
-
-                Float r = mf_sheen.D(h) * mf_sheen.G(wo, w) / (4 * AbsCosTheta(wo) * AbsCosTheta(w));
-                Float pdf = CosineHemispherePDF(AbsCosTheta(w));
-
-                sheen_reflectance += r * AbsCosTheta(w) / pdf;
-            }
-
-            sheen_reflectance /= samples;
+            Float sheen_reflectance = mf_sheen.rho(wo);
 
             // Add diffuse reflection
             f += (1 - sheen * sheen_reflectance) * (1 - transmission) * (1 - metallic) * T_cc * T * color * inv_pi;

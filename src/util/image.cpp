@@ -198,4 +198,55 @@ void WriteImage(const Image3& image, const std::filesystem::path& filename, Tone
     }
 }
 
+void WriteImage(const Image1& image, const std::filesystem::path& filename, ToneMappingCallback* callback)
+{
+    stbi_flip_vertically_on_write(true);
+
+    std::string extension = filename.extension().string();
+    if (extension == ".hdr")
+    {
+        stbi_write_hdr(filename.string().c_str(), image.width, image.height, 1, &image[0]);
+    }
+    else if (extension == ".jpg" || extension == ".png")
+    {
+        std::vector<uint8> pixels(image.width * image.height * 3);
+
+        if (image.width * image.height > 64 * 1024)
+        {
+            ParallelFor(0, image.width * image.height, [&](int32 i) {
+                Vec3 mapped = callback({ image[i], image[i], image[i] });
+
+                pixels[i * 3 + 0] = uint8(std::min(std::clamp(mapped[0], 0.0f, 1.0f) * 256.0, 255.0));
+                pixels[i * 3 + 1] = uint8(std::min(std::clamp(mapped[1], 0.0f, 1.0f) * 256.0, 255.0));
+                pixels[i * 3 + 2] = uint8(std::min(std::clamp(mapped[2], 0.0f, 1.0f) * 256.0, 255.0));
+            });
+        }
+        else
+        {
+            for (int32 i = 0; i < image.width * image.height; ++i)
+            {
+                Vec3 mapped = callback({ image[i], image[i], image[i] });
+
+                pixels[i * 3 + 0] = uint8(std::min(std::clamp(mapped[0], 0.0f, 1.0f) * 256.0, 255.0));
+                pixels[i * 3 + 1] = uint8(std::min(std::clamp(mapped[1], 0.0f, 1.0f) * 256.0, 255.0));
+                pixels[i * 3 + 2] = uint8(std::min(std::clamp(mapped[2], 0.0f, 1.0f) * 256.0, 255.0));
+            }
+        }
+
+        if (extension == ".jpg")
+        {
+            stbi_write_jpg(filename.string().c_str(), image.width, image.height, 3, &pixels[0], 100);
+        }
+        else
+        {
+            stbi_write_png(filename.string().c_str(), image.width, image.height, 3, &pixels[0], image.width * 3);
+        }
+    }
+    else
+    {
+        std::cout << "Faild to write image, extention not supported: " << extension << std::endl;
+        std::cout << "Supported extensions: .jpg .png .hdr" << std::endl;
+    }
+}
+
 } // namespace bulbit

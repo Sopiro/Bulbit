@@ -91,5 +91,8 @@ inline ToneMappingCallback* default_tonemapping_callback = [](const Vec3& RGB) -
 void WriteImage(
     const Image3& image, const std::filesystem::path& filename, ToneMappingCallback* callback = default_tonemapping_callback
 );
+void WriteImage(
+    const Image1& image, const std::filesystem::path& filename, ToneMappingCallback* callback = default_tonemapping_callback
+);
 
 } // namespace bulbit
