@@ -14,16 +14,16 @@ using namespace bulbit;
 
 struct Sample
 {
-    typedef std::unique_ptr<Camera> Func(Scene&);
+    using Func = std::function<std::unique_ptr<Camera>(Scene&)>;
 
-    static int32 Register(std::string name, Func* func);
+    static int32 Register(std::string name, Func func);
     static bool Get(std::string name, Scene* scene, std::unique_ptr<Camera>* camera);
 
-    static inline std::unordered_map<std::string, Func*> samples;
+    static inline std::unordered_map<std::string, Func> samples;
     static inline int32 count = 0;
 };
 
-inline int32 Sample::Register(std::string name, Func* func)
+inline int32 Sample::Register(std::string name, Func func)
 {
     samples.insert(std::make_pair(name, func));
 
