@@ -184,7 +184,7 @@ public:
     Float Lambda2(const Vec3& w) const
     {
         // 4 Terminator Softening
-        return std::pow(Lambda(w), 1 + 2 * std::pow(1 - CosTheta(w), 8));
+        return std::pow(Lambda(w), 1.0f + 2.0f * std::pow(1.0f - CosTheta(w), 8.0f));
     }
 
     Float L(Float x) const
@@ -267,7 +267,7 @@ private:
     static Float Lambda2(Float alpha, const Vec3& w)
     {
         // 4 Terminator Softening
-        return std::pow(Lambda(alpha, w), 1 + 2 * std::pow(1 - CosTheta(w), 8));
+        return std::pow(Lambda(alpha, w), 1.0f + 2.0f * std::pow(1.0f - CosTheta(w), 8.0f));
     }
 
     static Float L(Float alpha, Float x)

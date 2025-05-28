@@ -9,6 +9,7 @@
 #include <limits>
 #include <memory>
 #include <memory_resource>
+#include <mutex>
 #include <span>
 #include <sstream>
 #include <string>
