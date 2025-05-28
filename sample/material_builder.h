@@ -79,6 +79,7 @@ PrincipledMaterial* CreatePrincipledMaterial(
     Float transmission = 0,
     Float clearcoat = 0,
     Float clearcoat_roughness = 0,
+    const Spectrum& clearcoat_color = Spectrum(1),
     Float sheen = 0,
     Float sheen_roughness = 0,
     const Spectrum& sheen_color = Spectrum(1),

@@ -1,5 +1,26 @@
 #include "../samples.h"
 
+enum
+{
+    roughness = 0,
+    ior = 1,
+    transmission = 2,
+    anisotrophy = 3,
+    colored_transmission = 4,
+    clearcoat = 5,
+    clearcoat_roughness = 6,
+    metallic = 7,
+    sheen = 8,
+    colored_sheen = 9,
+    colored_coat = 10,
+};
+
+enum
+{
+    knob = 0,
+    cloth = 1
+};
+
 std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
 {
     HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
@@ -30,7 +51,7 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
     const Material* outers[count];
     switch (lobe)
     {
-    case 0:
+    case roughness:
     {
         outers[3] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 1, 0.1f);
         outers[1] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 1, 0.3f);
@@ -40,37 +61,37 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
     }
     break;
 
-    case 1:
+    case ior:
     {
-        outers[3] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f);
-        outers[1] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.25f, 0.0f, 0.0f, 0.0f);
-        outers[0] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f);
-        outers[2] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.75f, 0.0f, 0.0f, 0.0f);
-        outers[4] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 2.0f, 0.0f, 0.0f, 0.0f);
+        outers[3] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.0f);
+        outers[1] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.25f);
+        outers[0] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f);
+        outers[2] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.75f);
+        outers[4] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 2.0f);
     }
     break;
 
-    case 2:
+    case transmission:
     {
-        outers[3] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f);
-        outers[1] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.25f, 0.0f, 0.0f);
-        outers[0] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.5f, 0.0f, 0.0f);
-        outers[2] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.75f, 0.0f, 0.0f);
-        outers[4] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 1.0f, 0.0f, 0.0f);
+        outers[3] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.0f);
+        outers[1] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.25f);
+        outers[0] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.5f);
+        outers[2] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 0.75f);
+        outers[4] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0, 0.1f, 0.0f, 1.5f, 1.0f);
     }
     break;
 
-    case 3:
+    case anisotrophy:
     {
-        outers[3] = CreatePrincipledMaterial(scene, Spectrum{ 0.9f, 0.5f, 0.3f }, 1, 0.1f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f);
-        outers[1] = CreatePrincipledMaterial(scene, Spectrum{ 0.9f, 0.5f, 0.3f }, 1, 0.1f, 0.25f, 1.5f, 0.0f, 0.0f, 0.0f);
-        outers[0] = CreatePrincipledMaterial(scene, Spectrum{ 0.9f, 0.5f, 0.3f }, 1, 0.1f, 0.5f, 1.5f, 0.0f, 0.0f, 0.0f);
-        outers[2] = CreatePrincipledMaterial(scene, Spectrum{ 0.9f, 0.5f, 0.3f }, 1, 0.1f, 0.74f, 1.5f, 0.0f, 0.0f, 0.0f);
-        outers[4] = CreatePrincipledMaterial(scene, Spectrum{ 0.9f, 0.5f, 0.3f }, 1, 0.1f, 1.0f, 1.5f, 0.0f, 0.0f, 0.0f);
+        outers[3] = CreatePrincipledMaterial(scene, Spectrum{ 0.9f, 0.5f, 0.3f }, 1, 0.1f, 0.0f);
+        outers[1] = CreatePrincipledMaterial(scene, Spectrum{ 0.9f, 0.5f, 0.3f }, 1, 0.1f, 0.25f);
+        outers[0] = CreatePrincipledMaterial(scene, Spectrum{ 0.9f, 0.5f, 0.3f }, 1, 0.1f, 0.5f);
+        outers[2] = CreatePrincipledMaterial(scene, Spectrum{ 0.9f, 0.5f, 0.3f }, 1, 0.1f, 0.74f);
+        outers[4] = CreatePrincipledMaterial(scene, Spectrum{ 0.9f, 0.5f, 0.3f }, 1, 0.1f, 1.0f);
     }
     break;
 
-    case 4:
+    case colored_transmission:
     {
         Spectrum c0 = Spectrum(1);
         Spectrum c1 = Spectrum{ 1.0f, 0.5f, 0.8f };
@@ -83,7 +104,7 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
     }
     break;
 
-    case 5:
+    case clearcoat:
     {
         outers[3] = CreatePrincipledMaterial(scene, { 0.6f, 0.0f, 0.0f }, 0.0f, 0.7f, 0.0f, 1.5f, 0.0f, 0.0f, 0.03f);
         outers[1] = CreatePrincipledMaterial(scene, { 0.6f, 0.0f, 0.0f }, 0.0f, 0.7f, 0.0f, 1.5f, 0.0f, 0.25f, 0.03f);
@@ -93,7 +114,7 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
     }
     break;
 
-    case 6:
+    case clearcoat_roughness:
     {
         outers[3] = CreatePrincipledMaterial(scene, { 0.6f, 0.0f, 0.0f }, 0.0f, 0.7f, 0.0f, 1.5f, 0.0f, 1.0f, 0.0f);
         outers[1] = CreatePrincipledMaterial(scene, { 0.6f, 0.0f, 0.0f }, 0.0f, 0.7f, 0.0f, 1.5f, 0.0f, 1.0f, 0.1f);
@@ -103,7 +124,7 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
     }
     break;
 
-    case 7:
+    case metallic:
     {
         outers[3] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0.0f, 0.2f);
         outers[1] = CreatePrincipledMaterial(scene, Spectrum{ 1.0f, 0.5f, 0.3f }, 0.25f, 0.2f);
@@ -113,22 +134,36 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
     }
     break;
 
-    case 8:
+    case sheen:
     {
         Spectrum color = { 0.3f, 0.0f, 0.01f };
-        outers[3] = CreatePrincipledMaterial(scene, color, 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
-        outers[1] = CreatePrincipledMaterial(scene, color, 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.25f);
-        outers[0] = CreatePrincipledMaterial(scene, color, 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.5f);
-        outers[2] = CreatePrincipledMaterial(scene, color, 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.75f);
-        outers[4] = CreatePrincipledMaterial(scene, color, 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+        outers[3] = CreatePrincipledMaterial(scene, color, 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, Spectrum(1), 1.0f, 0.0f);
+        outers[1] = CreatePrincipledMaterial(scene, color, 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, Spectrum(1), 1.0f, 0.25f);
+        outers[0] = CreatePrincipledMaterial(scene, color, 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, Spectrum(1), 1.0f, 0.5f);
+        outers[2] = CreatePrincipledMaterial(scene, color, 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, Spectrum(1), 1.0f, 0.75f);
+        outers[4] = CreatePrincipledMaterial(scene, color, 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, Spectrum(1), 1.0f, 1.0f);
     }
     break;
 
-    case 9:
+    case colored_sheen:
     {
         Spectrum color = { 0.7f, 0.7f, 0.7f };
 
-#define default_val 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.65f
+#define default_val 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, Spectrum(1), 1.0f, 0.65f
+        outers[3] = CreatePrincipledMaterial(scene, color, default_val, { 1, 0, 0 });
+        outers[1] = CreatePrincipledMaterial(scene, color, default_val, { 0, 1, 0 });
+        outers[0] = CreatePrincipledMaterial(scene, color, default_val, { 0, 0, 1 });
+        outers[2] = CreatePrincipledMaterial(scene, color, default_val, { 1, 1, 0 });
+        outers[4] = CreatePrincipledMaterial(scene, color, default_val, { 1, 0, 1 });
+#undef default_val
+    }
+    break;
+
+    case colored_coat:
+    {
+        Spectrum color = { 0.7f, 0.7f, 0.7f };
+
+#define default_val 0.0f, 0.3f, 0.0f, 1.5f, 0.0f, 1.0f, 0.03f
         outers[3] = CreatePrincipledMaterial(scene, color, default_val, { 1, 0, 0 });
         outers[1] = CreatePrincipledMaterial(scene, color, default_val, { 0, 1, 0 });
         outers[0] = CreatePrincipledMaterial(scene, color, default_val, { 0, 0, 1 });
@@ -214,26 +249,6 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
     return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height));
 }
 
-enum
-{
-    roughness = 0,
-    ior = 1,
-    transmission = 2,
-    anisotrophy = 3,
-    colored_transmission = 4,
-    clearcoat = 5,
-    clearcoat_roughness = 6,
-    metallic = 7,
-    sheen = 8,
-    colored_sheen = 9,
-};
-
-enum
-{
-    knob = 0,
-    cloth = 1
-};
-
 static int32 index0 = Sample::Register("principled0", std::bind(Principled, std::placeholders::_1, roughness, knob));
 static int32 index1 = Sample::Register("principled1", std::bind(Principled, std::placeholders::_1, ior, knob));
 static int32 index2 = Sample::Register("principled2", std::bind(Principled, std::placeholders::_1, transmission, knob));
@@ -244,3 +259,4 @@ static int32 index6 = Sample::Register("principled6", std::bind(Principled, std:
 static int32 index7 = Sample::Register("principled7", std::bind(Principled, std::placeholders::_1, metallic, knob));
 static int32 index8 = Sample::Register("principled8", std::bind(Principled, std::placeholders::_1, sheen, cloth));
 static int32 index9 = Sample::Register("principled9", std::bind(Principled, std::placeholders::_1, colored_sheen, cloth));
+static int32 index10 = Sample::Register("principled10", std::bind(Principled, std::placeholders::_1, colored_coat, knob));

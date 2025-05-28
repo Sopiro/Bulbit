@@ -54,7 +54,7 @@ Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
     {
         // Add clearcoat reflection
         Float denom = std::abs(4 * cos_theta_i * cos_theta_o);
-        f += F_cc * mf_clearcoat.D(wm) * mf_clearcoat.G(wo, wi) / denom;
+        f += F_cc * clearcoat_color * mf_clearcoat.D(wm) * mf_clearcoat.G(wo, wi) / denom;
 
         // Add dielectric reflection and metal reflection
         f += T_cc * F * mf.D(wm) * mf.G(wo, wi) / denom;

@@ -189,7 +189,7 @@ public:
 
     Float L(Float x) const
     {
-        Float t = Sqr(1.0 - alpha);
+        Float t = Sqr(1.0f - alpha);
 
         Float a = Lerp(21.5473f, 25.3245f, t);
         Float b = Lerp(3.82987f, 3.32435f, t);
@@ -198,7 +198,7 @@ public:
         Float e = Lerp(-4.32054f, -4.85967f, t);
 
         // 3 Shadowing Term
-        return a / (1.0 + b * std::pow(x, c)) + d * x + e;
+        return a / (1.0f + b * std::pow(x, c)) + d * x + e;
     }
 
     // Hemispherical reflectance
@@ -272,7 +272,7 @@ private:
 
     static Float L(Float alpha, Float x)
     {
-        Float t = Sqr(1.0 - alpha);
+        Float t = Sqr(1.0f - alpha);
 
         Float a = Lerp(21.5473f, 25.3245f, t);
         Float b = Lerp(3.82987f, 3.32435f, t);
@@ -281,7 +281,7 @@ private:
         Float e = Lerp(-4.32054f, -4.85967f, t);
 
         // 3 Shadowing Term
-        return a / (1.0 + b * std::pow(x, c)) + d * x + e;
+        return a / (1.0f + b * std::pow(x, c)) + d * x + e;
     }
 
     Float alpha;

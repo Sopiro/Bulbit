@@ -77,6 +77,7 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
         FloatTexture* transmission_texture = nullptr;
         FloatTexture* clearcoat_texture = nullptr;
         FloatTexture* clearcoat_roughness_texture = nullptr;
+        SpectrumTexture* clearcoat_color_texture = nullptr;
         FloatTexture* sheen_texture = nullptr;
         SpectrumTexture* sheen_color_texture = nullptr;
         FloatTexture* sheen_roughness_texture = nullptr;
@@ -93,6 +94,7 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
         Float transmission_factor = 0.0f;
         Float clearcoat_factor = 0.0f;
         Float clearcoat_roughness_factor = 0.0f;
+        Spectrum clearcoat_color_factor = { 1.0f, 1.0f, 1.0f };
         Spectrum sheen_color_factor = { 0.0f, 0.0f, 0.0f };
         Float sheen_roughness_factor = 0.0f;
         Spectrum emission_factor = { Float(gltf_material.emissiveFactor[0]), Float(gltf_material.emissiveFactor[1]),
@@ -318,6 +320,11 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
             {
                 clearcoat_roughness_texture = CreateFloatConstantTexture(scene, clearcoat_roughness_factor);
             }
+
+            if (clearcoat_color_texture == nullptr)
+            {
+                clearcoat_color_texture = CreateSpectrumConstantTexture(scene, clearcoat_color_factor);
+            }
         }
 
         // sheen
@@ -404,8 +411,8 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
 #else
         g_materials.push_back(scene.CreateMaterial<PrincipledMaterial>(
             basecolor_texture, metallic_texture, roughness_texture, anisotropy_texture, ior_factor, transmission_texture,
-            clearcoat_texture, clearcoat_roughness_texture, sheen_texture, sheen_roughness_texture, sheen_color_texture,
-            emission_texture, normal_texture, alpha_texture
+            clearcoat_texture, clearcoat_roughness_texture, clearcoat_color_texture, sheen_texture, sheen_roughness_texture,
+            sheen_color_texture, emission_texture, normal_texture, alpha_texture
         ));
 #endif
     }

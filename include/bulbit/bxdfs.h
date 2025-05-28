@@ -208,6 +208,7 @@ public:
         Float transmission,
         Float clearcoat,
         TrowbridgeReitzDistribution mf_clearcoat,
+        Spectrum clearcoat_color,
         Float sheen,
         CharlieSheenDistribution mf_sheen,
         Spectrum sheen_color
@@ -215,10 +216,11 @@ public:
         : color{ color }
         , metallic{ metallic }
         , mf{ mf }
-        , mf_clearcoat{ mf_clearcoat }
         , eta{ eta }
         , transmission{ transmission }
         , clearcoat{ clearcoat }
+        , mf_clearcoat{ mf_clearcoat }
+        , clearcoat_color{ clearcoat_color }
         , sheen{ sheen }
         , mf_sheen{ mf_sheen }
         , sheen_color{ sheen_color }
@@ -278,10 +280,12 @@ public:
 private:
     Spectrum color;
     Float metallic;
-    TrowbridgeReitzDistribution mf, mf_clearcoat;
+    TrowbridgeReitzDistribution mf;
     Float eta;
     Float transmission;
     Float clearcoat;
+    TrowbridgeReitzDistribution mf_clearcoat;
+    Spectrum clearcoat_color;
     Float sheen;
     CharlieSheenDistribution mf_sheen;
     Spectrum sheen_color;
