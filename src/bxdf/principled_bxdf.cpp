@@ -56,8 +56,28 @@ Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
         Float denom = std::abs(4 * cos_theta_i * cos_theta_o);
         f += F_cc * clearcoat_color * mf_clearcoat.D(wm) * mf_clearcoat.G(wo, wi) / denom;
 
+#if 1
+        // Revisiting Physically Based Shading at Imageworks (Christopher Kulla and Alejandro Conty)
+        // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_slides_v2.pdf
+        Float E_avg = mf.rho_avg();
+
+        Spectrum f0 = F0(eta, color, metallic);
+        Spectrum fresnel_avg = F_avg_Schlick(f0);
+        Spectrum fresnel_ms = fresnel_avg * fresnel_avg * E_avg / (Spectrum(1) - fresnel_avg * (1 - E_avg));
+
+        Spectrum f_ms = fresnel_ms * ((1 - mf.rho(wo)) * (1 - mf.rho(wi))) / (pi * (1 - E_avg));
+
         // Add dielectric reflection and metal reflection
-        f += T_cc * F * mf.D(wm) * mf.G(wo, wi) / denom;
+        f += T_cc * (F * mf.D(wm) * mf.G(wo, wi) / denom + f_ms);
+#else
+        // Practical multiple scattering compensation for microfacet models (Emmanuel Turquin)
+        // https://blog.selfshadow.com/publications/turquin/ms_comp_final.pdf
+        Spectrum f0 = F0(eta, color, metallic);
+
+        // Add dielectric reflection and metal reflection
+        Spectrum rho = T_cc * F * mf.D(wm) * mf.G(wo, wi) / denom;
+        f += (Spectrum(1) + f0 * (1 / mf.rho(wo) - 1)) * rho;
+#endif
 
         if (sheen > 0)
         {

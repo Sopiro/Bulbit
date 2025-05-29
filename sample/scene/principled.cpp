@@ -13,6 +13,7 @@ enum
     sheen = 8,
     colored_sheen = 9,
     colored_coat = 10,
+    multi_scattering = 11,
 };
 
 enum
@@ -173,6 +174,20 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
     }
     break;
 
+    case multi_scattering:
+    {
+        Spectrum color = { 1.0f, 1.0f, 1.0f };
+        Float metallic = 1.0f;
+        Float transmission = 0.0f;
+
+        outers[3] = CreatePrincipledMaterial(scene, color, metallic, 0.0f, 0.0f, 1.5f, transmission);
+        outers[1] = CreatePrincipledMaterial(scene, color, metallic, 0.25f, 0.0f, 1.5f, transmission);
+        outers[0] = CreatePrincipledMaterial(scene, color, metallic, 0.5f, 0.0f, 1.5f, transmission);
+        outers[2] = CreatePrincipledMaterial(scene, color, metallic, 0.75f, 0.0f, 1.5f, transmission);
+        outers[4] = CreatePrincipledMaterial(scene, color, metallic, 1.0f, 0.0f, 1.5f, transmission);
+    }
+    break;
+
     default:
         break;
     }
@@ -201,8 +216,11 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
                 auto tf = Transform{ p, Quat::FromEuler({ 0, 0, 0 }), Vec3(2.0f) };
                 LoadModel(scene, "res/mori_knob/base.obj", tf);
 
-                tf = Transform{ p, Quat::FromEuler({ 0, pi, 0 }), Vec3(2.0f) };
+                tf = Transform{ p, Quat::FromEuler({ 0, 0, 0 }), Vec3(2.0f) };
                 LoadModel(scene, "res/mori_knob/outer.obj", tf);
+
+                LoadModel(scene, "res/mori_knob/inner.obj", tf);
+                LoadModel(scene, "res/mori_knob/equation.obj", tf);
             }
             else
             {
@@ -260,3 +278,4 @@ static int32 index7 = Sample::Register("principled7", std::bind(Principled, std:
 static int32 index8 = Sample::Register("principled8", std::bind(Principled, std::placeholders::_1, sheen, cloth));
 static int32 index9 = Sample::Register("principled9", std::bind(Principled, std::placeholders::_1, colored_sheen, cloth));
 static int32 index10 = Sample::Register("principled10", std::bind(Principled, std::placeholders::_1, colored_coat, knob));
+static int32 index11 = Sample::Register("principled11", std::bind(Principled, std::placeholders::_1, multi_scattering, knob));

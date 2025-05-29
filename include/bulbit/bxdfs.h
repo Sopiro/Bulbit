@@ -277,6 +277,11 @@ public:
         return f0 + (/*f90*/ Spectrum(1) - f0) * std::pow(1 - cosine_theta, 5.0f);
     }
 
+    static Spectrum F_avg_Schlick(Spectrum f0)
+    {
+        return (Spectrum(1) + 20 * f0) / 21;
+    }
+
 private:
     Spectrum color;
     Float metallic;
