@@ -17,6 +17,8 @@ UniDirectionalRayIntegrator::UniDirectionalRayIntegrator(
 
 std::unique_ptr<RenderingProgress> UniDirectionalRayIntegrator::Render(const Camera& camera)
 {
+    PrecomputeMicrofacetReflectanceTextures();
+
     Point2i resolution = camera.GetScreenResolution();
 
     const int32 spp = sampler_prototype->samples_per_pixel;

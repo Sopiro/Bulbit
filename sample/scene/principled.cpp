@@ -14,6 +14,7 @@ enum
     colored_sheen = 9,
     colored_coat = 10,
     multi_scattering = 11,
+    multi_scattering_2 = 12,
 };
 
 enum
@@ -188,6 +189,20 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
     }
     break;
 
+    case multi_scattering_2:
+    {
+        Spectrum color = { 1.0f, 1.0f, 1.0f };
+        Float metallic = 0.0f;
+        Float transmission = 1.0f;
+
+        outers[3] = CreatePrincipledMaterial(scene, color, metallic, 0.0f, 0.0f, 1.5f, transmission);
+        outers[1] = CreatePrincipledMaterial(scene, color, metallic, 0.25f, 0.0f, 1.5f, transmission);
+        outers[0] = CreatePrincipledMaterial(scene, color, metallic, 0.5f, 0.0f, 1.5f, transmission);
+        outers[2] = CreatePrincipledMaterial(scene, color, metallic, 0.75f, 0.0f, 1.5f, transmission);
+        outers[4] = CreatePrincipledMaterial(scene, color, metallic, 1.0f, 0.0f, 1.5f, transmission);
+    }
+    break;
+
     default:
         break;
     }
@@ -238,11 +253,11 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
     //     "res/material_test_ball/envmap.hdr", Transform(Quat::FromEuler(0, DegToRad(-67.26139831542969), 0))
     // );
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
-    CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
+    // CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/scythian_tombs_2_4k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
+    CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr", Transform(Quat(0, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/solitude_night_1k.hdr");
     // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
@@ -279,3 +294,4 @@ static int32 index8 = Sample::Register("principled8", std::bind(Principled, std:
 static int32 index9 = Sample::Register("principled9", std::bind(Principled, std::placeholders::_1, colored_sheen, cloth));
 static int32 index10 = Sample::Register("principled10", std::bind(Principled, std::placeholders::_1, colored_coat, knob));
 static int32 index11 = Sample::Register("principled11", std::bind(Principled, std::placeholders::_1, multi_scattering, knob));
+static int32 index12 = Sample::Register("principled12", std::bind(Principled, std::placeholders::_1, multi_scattering_2, knob));
