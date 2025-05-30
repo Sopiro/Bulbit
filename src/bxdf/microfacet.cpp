@@ -88,4 +88,156 @@ void PrecomputeMicrofacetReflectanceTextures()
     }
 }
 
+// Hemispherical reflectance
+Float TrowbridgeReitzDistribution::rho(Float alpha_x, Float alpha_y, const Vec3& wo, std::span<const Point2> u)
+{
+    Float r = 0;
+    for (size_t i = 0; i < u.size(); ++i)
+    {
+        Vec3 wm = Sample_Wm(alpha_x, alpha_y, wo, u[i]);
+        Vec3 wi = Reflect(wo, wm);
+
+        Float pdf = PDF(alpha_x, alpha_y, wo, wm) / (4 * AbsDot(wo, wm));
+
+        Float f = D(alpha_x, alpha_y, wm) * G(alpha_x, alpha_y, wo, wi) / (4 * AbsCosTheta(wo) * AbsCosTheta(wi));
+
+        r += f * AbsCosTheta(wi) / pdf;
+    }
+
+    return r / u.size();
+}
+
+Float TrowbridgeReitzDistribution::D(Float alpha_x, Float alpha_y, const Vec3& wm)
+{
+    Float tan2_theta = Tan2Theta(wm);
+    if (std::isinf(tan2_theta))
+    {
+        return 0;
+    }
+
+    Float cos4_theta = Sqr(Cos2Theta(wm));
+
+    if (cos4_theta < 1e-16f)
+    {
+        return 0;
+    }
+    Float e = tan2_theta * (Sqr(CosPhi(wm) / alpha_x) + Sqr(SinPhi(wm) / alpha_y));
+
+    return 1 / (pi * alpha_x * alpha_y * cos4_theta * Sqr(1 + e));
+}
+
+Float TrowbridgeReitzDistribution::D(Float alpha_x, Float alpha_y, const Vec3& w, const Vec3& wm)
+{
+    return G1(alpha_x, alpha_y, w) / AbsCosTheta(w) * D(alpha_x, alpha_y, wm) * AbsDot(w, wm);
+}
+
+Float TrowbridgeReitzDistribution::PDF(Float alpha_x, Float alpha_y, const Vec3& w, const Vec3& wm)
+{
+    return D(alpha_x, alpha_y, w, wm);
+}
+
+Float TrowbridgeReitzDistribution::G1(Float alpha_x, Float alpha_y, const Vec3& w)
+{
+    return 1 / (1 + Lambda(alpha_x, alpha_y, w));
+}
+
+Float TrowbridgeReitzDistribution::G(Float alpha_x, Float alpha_y, const Vec3& wo, const Vec3& wi)
+{
+    return 1 / (1 + Lambda(alpha_x, alpha_y, wo) + Lambda(alpha_x, alpha_y, wi));
+}
+
+Float TrowbridgeReitzDistribution::Lambda(Float alpha_x, Float alpha_y, const Vec3& w)
+{
+    Float tan2_theta = Tan2Theta(w);
+    if (std::isinf(tan2_theta))
+    {
+        return 0;
+    }
+
+    Float alpha2 = Sqr(CosPhi(w) * alpha_x) + Sqr(SinPhi(w) * alpha_y);
+    return (std::sqrt(1 + alpha2 * tan2_theta) - 1) / 2;
+}
+
+Vec3 TrowbridgeReitzDistribution::Sample_Wm(Float alpha_x, Float alpha_y, const Vec3& w, Point2 u)
+{
+#if 1
+    Vec3 wm = Sample_GGX_VNDF_Dupuy_Benyoub(w, alpha_x, alpha_y, u);
+#else
+    Vec3 wm = Sample_GGX_VNDF_Heitz(w, alpha_x, alpha_y, u);
+#endif
+    return wm;
+}
+
+// Hemispherical reflectance
+Float CharlieSheenDistribution::rho(Float alpha, const Vec3& wo, std::span<const Point2> u)
+{
+    Float r = 0;
+    for (size_t i = 0; i < u.size(); ++i)
+    {
+        Vec3 wi = SampleCosineHemisphere(u[i]);
+        Vec3 h = Normalize(wo + wi);
+
+        Float f = D(alpha, h) * G(alpha, wo, wi) / (4 * AbsCosTheta(wo) * AbsCosTheta(wi));
+        Float pdf = CosineHemispherePDF(AbsCosTheta(wi));
+
+        r += f * AbsCosTheta(wi) / pdf;
+    }
+
+    return r / u.size();
+}
+
+Float CharlieSheenDistribution::D(Float alpha, Vec3& wm)
+{
+    // Eq. (2)
+    Float inv_r = 1 / alpha;
+
+    Float cos2_theta = CosTheta(wm);
+    Float sin2_theta = 1 - cos2_theta;
+
+    return (2.0f + inv_r) * std::pow(sin2_theta, 0.5f * inv_r) * inv_two_pi;
+}
+
+Float CharlieSheenDistribution::G(Float alpha, const Vec3& wo, const Vec3& wi)
+{
+#if 1
+    return 1 / (1 + Lambda(alpha, wo) + Lambda(alpha, wi));
+#else
+    return 1 / (1 + Lambda2(alpha, wo) + Lambda2(alpha, wi));
+#endif
+}
+
+Float CharlieSheenDistribution::Lambda(Float alpha, const Vec3& w)
+{
+    // Eq. 3
+    Float cos_theta = CosTheta(w);
+    if (cos_theta < 0.5f)
+    {
+        return std::exp(L(alpha, cos_theta));
+    }
+    else
+    {
+        return std::exp(2.0f * L(alpha, 0.5f) - L(alpha, 1.0f - cos_theta));
+    }
+}
+
+Float CharlieSheenDistribution::Lambda2(Float alpha, const Vec3& w)
+{
+    // 4 Terminator Softening
+    return std::pow(Lambda(alpha, w), 1.0f + 2.0f * std::pow(1.0f - CosTheta(w), 8.0f));
+}
+
+Float CharlieSheenDistribution::L(Float alpha, Float x)
+{
+    Float t = Sqr(1.0f - alpha);
+
+    Float a = Lerp(21.5473f, 25.3245f, t);
+    Float b = Lerp(3.82987f, 3.32435f, t);
+    Float c = Lerp(0.19823f, 0.16801f, t);
+    Float d = Lerp(-1.97760f, -1.27393f, t);
+    Float e = Lerp(-4.32054f, -4.85967f, t);
+
+    // 3 Shadowing Term
+    return a / (1.0f + b * std::pow(x, c)) + d * x + e;
+}
+
 } // namespace bulbit
