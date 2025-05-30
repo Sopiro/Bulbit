@@ -97,6 +97,11 @@ Float TrowbridgeReitzDistribution::rho(Float alpha_x, Float alpha_y, const Vec3&
         Vec3 wm = Sample_Wm(alpha_x, alpha_y, wo, u[i]);
         Vec3 wi = Reflect(wo, wm);
 
+        if (!SameHemisphere(wo, wi))
+        {
+            continue;
+        }
+
         Float pdf = PDF(alpha_x, alpha_y, wo, wm) / (4 * AbsDot(wo, wm));
 
         Float f = D(alpha_x, alpha_y, wm) * G(alpha_x, alpha_y, wo, wi) / (4 * AbsCosTheta(wo) * AbsCosTheta(wi));
