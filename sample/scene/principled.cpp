@@ -194,12 +194,13 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
         Spectrum color = { 1.0f, 1.0f, 1.0f };
         Float metallic = 0.0f;
         Float transmission = 1.0f;
+        Float ior = 1.5f;
 
-        outers[3] = CreatePrincipledMaterial(scene, color, metallic, 0.0f, 0.0f, 1.5f, transmission);
-        outers[1] = CreatePrincipledMaterial(scene, color, metallic, 0.25f, 0.0f, 1.5f, transmission);
-        outers[0] = CreatePrincipledMaterial(scene, color, metallic, 0.5f, 0.0f, 1.5f, transmission);
-        outers[2] = CreatePrincipledMaterial(scene, color, metallic, 0.75f, 0.0f, 1.5f, transmission);
-        outers[4] = CreatePrincipledMaterial(scene, color, metallic, 1.0f, 0.0f, 1.5f, transmission);
+        outers[3] = CreatePrincipledMaterial(scene, color, metallic, 0.0f, 0.0f, ior, transmission);
+        outers[1] = CreatePrincipledMaterial(scene, color, metallic, 0.25f, 0.0f, ior, transmission);
+        outers[0] = CreatePrincipledMaterial(scene, color, metallic, 0.5f, 0.0f, ior, transmission);
+        outers[2] = CreatePrincipledMaterial(scene, color, metallic, 0.75f, 0.0f, ior, transmission);
+        outers[4] = CreatePrincipledMaterial(scene, color, metallic, 1.0f, 0.0f, ior, transmission);
     }
     break;
 

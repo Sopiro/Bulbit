@@ -208,7 +208,7 @@ bool DielectricBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12,
             // Compute PDF of rough dielectric reflection
             Float pdf = mf.PDF(wo, wm) / (4 * AbsDot(wo, wm)) * pr / (pr + pt);
 
-            Spectrum fr(mf.D(wm) * mf.G(wo, wi) * R / (4 * CosTheta(wi) * CosTheta(wo)));
+            Spectrum fr(R * mf.D(wm) * mf.G(wo, wi) / (4 * CosTheta(wi) * CosTheta(wo)));
             *sample = BSDFSample(fr, wi, pdf, BxDF_Flags::GlossyReflection);
         }
         else
@@ -229,7 +229,6 @@ bool DielectricBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12,
             Float dwm_dwi = AbsDot(wi, wm) / denom;
             Float pdf = mf.PDF(wo, wm) * dwm_dwi * pt / (pr + pt);
 
-            // Evaluate BRDF and return _BSDFSample_ for rough transmission
             Spectrum ft(
                 T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom))
             );
