@@ -108,7 +108,7 @@ public:
     {
         Float alpha = std::sqrt(alpha_x * alpha_y);
 
-        return rho_texture->Evaluate({ wo.z, alpha })[0];
+        return rho_texture->Evaluate({ wo.z, alpha });
     }
 
     Float rho_avg() const
@@ -121,7 +121,7 @@ public:
 private:
     friend void PrecomputeMicrofacetReflectanceTextures();
 
-    static inline std::unique_ptr<SpectrumImageTexture> rho_texture = nullptr;
+    static inline std::unique_ptr<FloatImageTexture> rho_texture = nullptr;
     static inline std::unique_ptr<FloatImageTexture> rho_avg_texture = nullptr;
 
     // Hemispherical reflectance
@@ -204,13 +204,13 @@ public:
     // Hemispherical-Directional reflectance
     Float rho(const Vec3& wo) const
     {
-        return rho_texture->Evaluate({ wo.z, alpha })[0];
+        return rho_texture->Evaluate({ wo.z, alpha });
     }
 
 private:
     friend void PrecomputeMicrofacetReflectanceTextures();
 
-    static inline std::unique_ptr<SpectrumImageTexture> rho_texture = nullptr;
+    static inline std::unique_ptr<FloatImageTexture> rho_texture = nullptr;
 
     // Hemispherical reflectance
     static Float rho(Float alpha, const Vec3& wo, std::span<const Point2> u);

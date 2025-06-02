@@ -24,7 +24,7 @@ void PrecomputeMicrofacetReflectanceTextures()
 
     // TrowbridgeReitzDistribution
     {
-        Image3f image_e(rho_texture_size, rho_texture_size);
+        Image1f image_e(rho_texture_size, rho_texture_size);
         Image1f image_e_avg(rho_texture_size, 1);
 
         Float d = 1.0f / rho_texture_size;
@@ -45,7 +45,7 @@ void PrecomputeMicrofacetReflectanceTextures()
 
                 r_sum += r * cos_theta * d;
 
-                image_e(i, j) = { r, r, r };
+                image_e(i, j) = r;
             }
 
             image_e_avg(j, 0) = 2 * r_sum;
@@ -54,15 +54,14 @@ void PrecomputeMicrofacetReflectanceTextures()
         WriteImage(image_e, "r_tr.hdr");
         WriteImage(image_e_avg, "r_avg_tr.hdr");
 
-        TrowbridgeReitzDistribution::rho_texture =
-            std::make_unique<SpectrumImageTexture>(std::move(image_e), TexCoordFilter::clamp);
+        TrowbridgeReitzDistribution::rho_texture = std::make_unique<FloatImageTexture>(std::move(image_e), TexCoordFilter::clamp);
         TrowbridgeReitzDistribution::rho_avg_texture =
             std::make_unique<FloatImageTexture>(std::move(image_e_avg), TexCoordFilter::clamp);
     }
 
     // CharlieSheenDistribution
     {
-        Image3f image(rho_texture_size, rho_texture_size);
+        Image1f image(rho_texture_size, rho_texture_size);
 
         Float d = 1.0f / rho_texture_size;
         for (int32 j = 0; j < rho_texture_size; ++j)
@@ -78,13 +77,13 @@ void PrecomputeMicrofacetReflectanceTextures()
 
                 Float r = CharlieSheenDistribution::rho(a, wo, u_rho);
 
-                image(i, j) = { r, r, r };
+                image(i, j) = r;
             }
         }
 
         WriteImage(image, "r_cs.hdr");
 
-        CharlieSheenDistribution::rho_texture = std::make_unique<SpectrumImageTexture>(std::move(image), TexCoordFilter::clamp);
+        CharlieSheenDistribution::rho_texture = std::make_unique<FloatImageTexture>(std::move(image), TexCoordFilter::clamp);
     }
 }
 
