@@ -36,15 +36,16 @@ bool Sphere::Intersect(Intersection* isect, const Ray& ray, Float t_min, Float t
     // Found intersection
 
     Point3 point = r.At(root);
-    Vec3 normal = point / radius;
+    Vec3 normal = Normalize(point / radius);
 
     isect->t = root;
     isect->point = Mul(transform, point);
     isect->uv = ComputeTexCoord(normal);
 
     Vec3 n = transform.q.Rotate(normal);
-    Vec3 t = transform.q.Rotate(Normalize(Cross(y_axis, normal)));
-    SetFaceNormal(isect, ray.d, n, n, t);
+    Vec3 x, y;
+    CoordinateSystem(n, &x, &y);
+    SetFaceNormal(isect, ray.d, n, n, x);
 
     return true;
 }
