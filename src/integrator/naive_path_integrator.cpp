@@ -82,13 +82,17 @@ Spectrum NaivePathIntegrator::Li(const Ray& primary_ray, const Medium* primary_m
         constexpr int32 min_bounces = 2;
         if (bounce > min_bounces)
         {
-            Float p = beta.MaxComponent() * eta_scale;
-            if (p < 1 && sampler.Next1D() > p)
+            if (Float p = beta.MaxComponent() * eta_scale < 1)
             {
-                break;
+                if (sampler.Next1D() > p)
+                {
+                    break;
+                }
+                else
+                {
+                    beta /= p;
+                }
             }
-
-            beta /= p;
         }
     }
 
