@@ -54,19 +54,19 @@ public:
         Float w = uv.x * image.width + 0.5f;
         Float h = uv.y * image.height + 0.5f;
 
-        int32 i = int32(w);
-        int32 j = int32(h);
+        int32 i = int32(std::floor(w));
+        int32 j = int32(std::floor(h));
 
         FilterTexCoord(&i, &j);
 
-        return image[i + j * image.width];
+        return image(i, j);
 #else
         // Bilinear sampling
-        Float w = uv.x * image.width + 0.5f;
-        Float h = uv.y * image.height + 0.5f;
+        Float w = uv.x * image.width - 0.5f;
+        Float h = uv.y * image.height - 0.5f;
 
-        int32 i0 = int32(w), i1 = int32(w) + 1;
-        int32 j0 = int32(h), j1 = int32(h) + 1;
+        int32 i0 = int32(std::floor(w)), i1 = i0 + 1;
+        int32 j0 = int32(std::floor(h)), j1 = j0 + 1;
 
         FilterTexCoord(&i0, &j0, image.width, image.height, texcoord_filter);
         FilterTexCoord(&i1, &j1, image.width, image.height, texcoord_filter);
