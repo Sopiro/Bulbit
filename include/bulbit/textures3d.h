@@ -93,4 +93,42 @@ private:
     TexCoordFilter texcoord_filter;
 };
 
+template <typename T>
+class CheckerTexture3D : public Texture3D<T>
+{
+public:
+    CheckerTexture3D(const Texture3D<T>* a, const Texture3D<T>* b, const Point3& resolution)
+        : a{ a }
+        , b{ b }
+        , resolution{ resolution }
+    {
+    }
+
+    virtual T Evaluate(const Point3& uvw) const override
+    {
+        Point3i scale = uvw * resolution;
+        int32 c = scale.x + scale.y + scale.z;
+
+        if (c % 2)
+        {
+            return a->Evaluate(uvw);
+        }
+        else
+        {
+            return b->Evaluate(uvw);
+        }
+    }
+
+private:
+    const Texture3D<T>* a;
+    const Texture3D<T>* b;
+    Point3 resolution;
+};
+
+using FloatImageTexture3D = ImageTexture3D<Float>;
+using SpectrumImageTexture3D = ImageTexture3D<Spectrum>;
+
+using FloatCheckerTexture3D = CheckerTexture3D<Float>;
+using SpectrumCheckerTexture3D = CheckerTexture3D<Spectrum>;
+
 } // namespace bulbit

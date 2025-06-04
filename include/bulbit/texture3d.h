@@ -8,7 +8,7 @@ namespace bulbit
 template <typename T>
 struct Texture3D
 {
-    virtual ~Texture() = default;
+    virtual ~Texture3D() = default;
     virtual T Evaluate(const Point3& uvw) const = 0;
 };
 
