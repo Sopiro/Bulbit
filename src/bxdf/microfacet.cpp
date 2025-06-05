@@ -23,7 +23,7 @@ Float IORtoF0(Float ior)
 
 Float F0toIOR(Float f0)
 {
-    Float sqrt_f0 = std::sqrtf(f0);
+    Float sqrt_f0 = std::sqrt(f0);
     return (1 + sqrt_f0) / (1 - sqrt_f0);
 }
 
