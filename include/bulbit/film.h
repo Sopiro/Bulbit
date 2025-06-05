@@ -35,9 +35,9 @@ inline Film::Film(const Point2i& resolution)
     sample_counts = std::make_unique<int32[]>(size);
     moments = std::make_unique<Point2[]>(size);
 
-    memset(samples.get(), 0, sizeof(Spectrum) * size);
-    memset(sample_counts.get(), 0, sizeof(int32) * size);
-    memset(moments.get(), 0, sizeof(Point2) * size);
+    memset((void*)samples.get(), 0, sizeof(Spectrum) * size);
+    memset((void*)sample_counts.get(), 0, sizeof(int32) * size);
+    memset((void*)moments.get(), 0, sizeof(Point2) * size);
 }
 
 inline void Film::AddSample(const Point2i& pixel, const Spectrum& L, Float w)
