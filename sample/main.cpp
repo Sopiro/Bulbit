@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
     t = timer.Get();
     std::cout << "\nComplete: " << t << 's' << std::endl;
 
-    Image3 image = film.ConvertToImage();
+    Image3 image = film.GetRenderedImage();
 
     auto [width, height] = camera->GetScreenResolution();
     std::string filename = std::format("render_{}x{}_s{}_d{}_t{}s.hdr", width, height, samples_per_pixel, max_bounces, t);
