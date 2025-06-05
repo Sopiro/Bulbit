@@ -267,14 +267,9 @@ public:
         return Lerp(f0, color, metallic);
     }
 
-    static Spectrum F0(Spectrum color, Float metallic)
+    static Spectrum F_Schlick(Spectrum f0, Float cos_theta)
     {
-        return Lerp(default_dielectric_f0, color, metallic);
-    }
-
-    static Spectrum F_Schlick(Spectrum f0, Float cosine_theta)
-    {
-        return f0 + (/*f90*/ Spectrum(1) - f0) * std::pow(1 - cosine_theta, 5.0f);
+        return f0 + (/*f90*/ Spectrum(1) - f0) * std::pow(1 - cos_theta, 5.0f);
     }
 
     static Spectrum F_avg_Schlick(Spectrum f0)

@@ -138,7 +138,7 @@ bool MetallicRoughnessBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Poin
         return false;
     }
 
-    Spectrum f0 = MetallicRoughnessBxDF::F0(color, metallic);
+    Spectrum f0 = F0(color, metallic);
     Spectrum F = F_Schlick(f0, Dot(wi, wm));
 
     Spectrum f_r = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);

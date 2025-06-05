@@ -14,6 +14,22 @@ static const Point2 u_rho[rho_samples] = {
     Point2(0.756135f, 0.731258f), Point2(0.516165f, 0.152852f), Point2(0.180888f, 0.214174f), Point2(0.898579f, 0.503897f)
 };
 
+static Float IORtoF0(Float ior)
+{
+    return Sqr((ior - 1) / (ior + 1));
+}
+
+static Float F0toIOR(Float f0)
+{
+    Float sqrt_f0 = std::sqrtf(f0);
+    return (1 + sqrt_f0) / (1 - sqrt_f0);
+}
+
+static float MapF0toIOR(Float f0)
+{
+    return F0toIOR(Sqr(Sqr(f0)));
+}
+
 void PrecomputeMicrofacetReflectanceTextures()
 {
     if (TrowbridgeReitzDistribution::rho_texture || TrowbridgeReitzDistribution::rho_avg_texture ||
