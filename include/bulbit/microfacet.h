@@ -10,7 +10,7 @@
 namespace bulbit
 {
 
-void PrecomputeMicrofacetReflectanceTextures();
+void ComoputeReflectanceTextures();
 
 class TrowbridgeReitzDistribution
 {
@@ -103,36 +103,51 @@ public:
         if (alpha_y < 0.3f) alpha_y = Clamp(2 * alpha_y, 0.1f, 0.3f);
     }
 
+    Float rho(const Vec3& wo, std::span<const Point2> u)
+    {
+        Float r = 0;
+        for (size_t i = 0; i < u.size(); ++i)
+        {
+            Vec3 wm = Sample_Wm(wo, u[i]);
+            Vec3 wi = Reflect(wo, wm);
+
+            if (!SameHemisphere(wo, wi))
+            {
+                continue;
+            }
+
+            Float pdf = PDF(wo, wm) / (4 * AbsDot(wo, wm));
+
+            Float f = D(wm) * G(wo, wi) / (4 * AbsCosTheta(wo) * AbsCosTheta(wi));
+
+            r += f * AbsCosTheta(wi) / pdf;
+        }
+
+        return r / u.size();
+    }
+
     // Hemispherical-Directional reflectance
     Float rho(const Vec3& wo) const
     {
-        Float alpha = std::sqrt(alpha_x * alpha_y);
+        BulbitAssert(rho_texture != nullptr);
 
+        Float alpha = std::sqrt(alpha_x * alpha_y);
         return rho_texture->Evaluate({ wo.z, alpha });
     }
 
     Float rho_avg() const
     {
-        Float alpha = std::sqrt(alpha_x * alpha_y);
+        BulbitAssert(rho_avg_texture != nullptr);
 
+        Float alpha = std::sqrt(alpha_x * alpha_y);
         return rho_avg_texture->Evaluate({ alpha, 0 });
     }
 
-private:
-    friend void PrecomputeMicrofacetReflectanceTextures();
+    static void ComputeReflectanceTexture();
 
+private:
     static inline std::unique_ptr<FloatImageTexture> rho_texture = nullptr;
     static inline std::unique_ptr<FloatImageTexture> rho_avg_texture = nullptr;
-
-    // Hemispherical reflectance
-    static Float rho(Float alpha_x, Float alpha_y, const Vec3& wo, std::span<const Point2> u);
-    static Float D(Float alpha_x, Float alpha_y, const Vec3& wm);
-    static Float D(Float alpha_x, Float alpha_y, const Vec3& w, const Vec3& wm);
-    static Float PDF(Float alpha_x, Float alpha_y, const Vec3& w, const Vec3& wm);
-    static Float G1(Float alpha_x, Float alpha_y, const Vec3& w);
-    static Float G(Float alpha_x, Float alpha_y, const Vec3& wo, const Vec3& wi);
-    static Float Lambda(Float alpha_x, Float alpha_y, const Vec3& w);
-    static Vec3 Sample_Wm(Float alpha_x, Float alpha_y, const Vec3& w, Point2 u);
 
     Float alpha_x, alpha_y;
 };
@@ -201,24 +216,35 @@ public:
         return a / (1.0f + b * std::pow(x, c)) + d * x + e;
     }
 
+    Float rho(const Vec3& wo, std::span<const Point2> u)
+    {
+        Float r = 0;
+        for (size_t i = 0; i < u.size(); ++i)
+        {
+            Vec3 wi = SampleCosineHemisphere(u[i]);
+            Vec3 h = Normalize(wo + wi);
+
+            Float f = D(h) * G(wo, wi) / (4 * AbsCosTheta(wo) * AbsCosTheta(wi));
+            Float pdf = CosineHemispherePDF(AbsCosTheta(wi));
+
+            r += f * AbsCosTheta(wi) / pdf;
+        }
+
+        return r / u.size();
+    }
+
     // Hemispherical-Directional reflectance
     Float rho(const Vec3& wo) const
     {
+        BulbitAssert(rho_texture != nullptr);
+
         return rho_texture->Evaluate({ wo.z, alpha });
     }
 
+    static void ComputeReflectanceTexture();
+
 private:
-    friend void PrecomputeMicrofacetReflectanceTextures();
-
     static inline std::unique_ptr<FloatImageTexture> rho_texture = nullptr;
-
-    // Hemispherical reflectance
-    static Float rho(Float alpha, const Vec3& wo, std::span<const Point2> u);
-    static Float D(Float alpha, Vec3& wm);
-    static Float G(Float alpha, const Vec3& wo, const Vec3& wi);
-    static Float Lambda(Float alpha, const Vec3& w);
-    static Float Lambda2(Float alpha, const Vec3& w);
-    static Float L(Float alpha, Float x);
 
     Float alpha;
 };
