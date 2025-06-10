@@ -99,6 +99,7 @@ public:
         const SpectrumTexture* k,
         const FloatTexture* u_roughness,
         const FloatTexture* v_roughness,
+        bool energy_compensation = true,
         const SpectrumTexture* normalmap = nullptr,
         const FloatTexture* alpha = nullptr
     );
@@ -106,6 +107,7 @@ public:
         const SpectrumTexture* reflectance,
         const FloatTexture* u_roughness,
         const FloatTexture* v_roughness,
+        bool energy_compensation = true,
         const SpectrumTexture* normalmap = nullptr,
         const FloatTexture* alpha = nullptr
     );
@@ -123,6 +125,8 @@ private:
 
     const FloatTexture* u_roughness;
     const FloatTexture* v_roughness;
+
+    bool energy_compensation;
 
     const SpectrumTexture* normalmap;
     const FloatTexture* alpha;

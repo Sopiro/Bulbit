@@ -92,10 +92,11 @@ private:
 class ConductorBxDF : public BxDF
 {
 public:
-    ConductorBxDF(Spectrum eta, Spectrum k, TrowbridgeReitzDistribution mf)
+    ConductorBxDF(Spectrum eta, Spectrum k, TrowbridgeReitzDistribution mf, bool ms)
         : mf{ mf }
         , eta{ eta }
         , k{ k }
+        , ms{ ms }
     {
     }
 
@@ -116,6 +117,7 @@ public:
 private:
     TrowbridgeReitzDistribution mf;
     Spectrum eta, k;
+    bool ms;
 };
 
 class ThinDielectricBxDF : public BxDF

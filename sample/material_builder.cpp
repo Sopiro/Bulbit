@@ -35,13 +35,19 @@ DielectricMaterial* CreateDielectricMaterial(
 }
 
 ConductorMaterial* CreateConductorMaterial(
-    Scene& scene, const Spectrum& eta, const Spectrum& k, Float roughness, const SpectrumTexture* normalmap, Float alpha
+    Scene& scene,
+    const Spectrum& eta,
+    const Spectrum& k,
+    Float roughness,
+    bool energy_compensation,
+    const SpectrumTexture* normalmap,
+    Float alpha
 )
 {
     return scene.CreateMaterial<ConductorMaterial>(
         CreateSpectrumConstantTexture(scene, eta), CreateSpectrumConstantTexture(scene, k),
-        CreateFloatConstantTexture(scene, roughness), CreateFloatConstantTexture(scene, roughness), normalmap,
-        CreateFloatConstantTexture(scene, alpha)
+        CreateFloatConstantTexture(scene, roughness), CreateFloatConstantTexture(scene, roughness), energy_compensation,
+        normalmap, CreateFloatConstantTexture(scene, alpha)
     );
 }
 
@@ -51,34 +57,46 @@ ConductorMaterial* CreateConductorMaterial(
     const Spectrum& k,
     Float roughness_u,
     Float roughness_v,
+    bool energy_compensation,
     const SpectrumTexture* normalmap,
     Float alpha
 )
 {
     return scene.CreateMaterial<ConductorMaterial>(
         CreateSpectrumConstantTexture(scene, eta), CreateSpectrumConstantTexture(scene, k),
-        CreateFloatConstantTexture(scene, roughness_u), CreateFloatConstantTexture(scene, roughness_v), normalmap,
-        CreateFloatConstantTexture(scene, alpha)
+        CreateFloatConstantTexture(scene, roughness_u), CreateFloatConstantTexture(scene, roughness_v), energy_compensation,
+        normalmap, CreateFloatConstantTexture(scene, alpha)
     );
 }
 
 ConductorMaterial* CreateConductorMaterial(
-    Scene& scene, const Spectrum& reflectance, Float roughness, const SpectrumTexture* normalmap, Float alpha
+    Scene& scene,
+    const Spectrum& reflectance,
+    Float roughness,
+    bool energy_compensation,
+    const SpectrumTexture* normalmap,
+    Float alpha
 )
 {
     return scene.CreateMaterial<ConductorMaterial>(
         CreateSpectrumConstantTexture(scene, reflectance), CreateFloatConstantTexture(scene, roughness),
-        CreateFloatConstantTexture(scene, roughness), normalmap, CreateFloatConstantTexture(scene, alpha)
+        CreateFloatConstantTexture(scene, roughness), energy_compensation, normalmap, CreateFloatConstantTexture(scene, alpha)
     );
 }
 
 ConductorMaterial* CreateConductorMaterial(
-    Scene& scene, const Spectrum& reflectance, Float roughness_u, Float roughness_v, const SpectrumTexture* normalmap, Float alpha
+    Scene& scene,
+    const Spectrum& reflectance,
+    Float roughness_u,
+    Float roughness_v,
+    bool energy_compensation,
+    const SpectrumTexture* normalmap,
+    Float alpha
 )
 {
     return scene.CreateMaterial<ConductorMaterial>(
         CreateSpectrumConstantTexture(scene, reflectance), CreateFloatConstantTexture(scene, roughness_u),
-        CreateFloatConstantTexture(scene, roughness_v), normalmap, CreateFloatConstantTexture(scene, alpha)
+        CreateFloatConstantTexture(scene, roughness_v), energy_compensation, normalmap, CreateFloatConstantTexture(scene, alpha)
     );
 }
 

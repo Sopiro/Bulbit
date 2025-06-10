@@ -25,6 +25,7 @@ ConductorMaterial* CreateConductorMaterial(
     const Spectrum& eta,
     const Spectrum& k,
     Float roughness,
+    bool energy_compensation = true,
     const SpectrumTexture* normalmap = nullptr,
     Float alpha = 1
 );
@@ -34,17 +35,24 @@ ConductorMaterial* CreateConductorMaterial(
     const Spectrum& k,
     Float roughness_u,
     Float roughness_v,
+    bool energy_compensation = true,
     const SpectrumTexture* normalmap = nullptr,
     Float alpha = 1
 );
 ConductorMaterial* CreateConductorMaterial(
-    Scene& scene, const Spectrum& reflectance, Float roughness, const SpectrumTexture* normalmap = nullptr, Float alpha = 1
+    Scene& scene,
+    const Spectrum& reflectance,
+    Float roughness,
+    bool energy_compensation = true,
+    const SpectrumTexture* normalmap = nullptr,
+    Float alpha = 1
 );
 ConductorMaterial* CreateConductorMaterial(
     Scene& scene,
     const Spectrum& reflectance,
     Float roughness_u,
     Float roughness_v,
+    bool energy_compensation = true,
     const SpectrumTexture* normalmap = nullptr,
     Float alpha = 1
 );
