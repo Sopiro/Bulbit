@@ -96,67 +96,67 @@ struct RGBSpectrum
 constexpr inline int32 RGBSpectrum::num_spectral_samples(3);
 constexpr inline RGBSpectrum RGBSpectrum::black(0);
 
-inline RGBSpectrum operator-(const RGBSpectrum& sp)
+constexpr inline RGBSpectrum operator-(const RGBSpectrum& sp)
 {
     return RGBSpectrum(-sp.r, -sp.g, -sp.b);
 }
 
-inline RGBSpectrum operator+(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
+constexpr inline RGBSpectrum operator+(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
 {
     return RGBSpectrum(sp1.r + sp2.r, sp1.g + sp2.g, sp1.b + sp2.b);
 }
 
-inline RGBSpectrum operator-(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
+constexpr inline RGBSpectrum operator-(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
 {
     return RGBSpectrum(sp1.r - sp2.r, sp1.g - sp2.g, sp1.b - sp2.b);
 }
 
 template <typename T>
-inline RGBSpectrum operator*(const RGBSpectrum& sp, T s)
+constexpr inline RGBSpectrum operator*(const RGBSpectrum& sp, T s)
 {
     return RGBSpectrum(sp.r * Float(s), sp.g * Float(s), sp.b * Float(s));
 }
 
 template <typename T>
-inline RGBSpectrum operator*(T s, const RGBSpectrum& sp)
+constexpr inline RGBSpectrum operator*(T s, const RGBSpectrum& sp)
 {
     return RGBSpectrum(sp.r * s, sp.g * s, sp.b * s);
 }
 
-inline RGBSpectrum operator*(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
+constexpr inline RGBSpectrum operator*(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
 {
     return RGBSpectrum(sp1.r * sp2.r, sp1.g * sp2.g, sp1.b * sp2.b);
 }
 
 template <typename T>
-inline RGBSpectrum operator/(const RGBSpectrum& sp, T s)
+constexpr inline RGBSpectrum operator/(const RGBSpectrum& sp, T s)
 {
     return RGBSpectrum(sp.r / s, sp.g / s, sp.b / s);
 }
 
 template <typename T>
-inline RGBSpectrum operator/(T s, const RGBSpectrum& sp)
+constexpr inline RGBSpectrum operator/(T s, const RGBSpectrum& sp)
 {
     return RGBSpectrum(s / sp.r, s / sp.g, s / sp.b);
 }
 
-inline RGBSpectrum operator/(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
+constexpr inline RGBSpectrum operator/(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
 {
     return RGBSpectrum(sp1.r / sp2.r, sp1.g / sp2.g, sp1.b / sp2.b);
 }
 
-inline bool operator==(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
+constexpr inline bool operator==(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
 {
     return sp1.r == sp2.r && sp1.g == sp2.g && sp1.b == sp2.b;
 }
 
-inline bool operator!=(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
+constexpr inline bool operator!=(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
 {
     return sp1.r != sp2.r || sp1.g != sp2.g || sp1.b != sp2.b;
 }
 
 template <typename T>
-inline RGBSpectrum operator+=(RGBSpectrum& sp1, T s)
+constexpr inline RGBSpectrum operator+=(RGBSpectrum& sp1, T s)
 {
     sp1.r += s;
     sp1.g += s;
@@ -165,7 +165,7 @@ inline RGBSpectrum operator+=(RGBSpectrum& sp1, T s)
 }
 
 template <typename T>
-inline RGBSpectrum operator-=(RGBSpectrum& sp1, T s)
+constexpr inline RGBSpectrum operator-=(RGBSpectrum& sp1, T s)
 {
     sp1.r -= s;
     sp1.g -= s;
@@ -174,7 +174,7 @@ inline RGBSpectrum operator-=(RGBSpectrum& sp1, T s)
 }
 
 template <typename T>
-inline RGBSpectrum operator*=(RGBSpectrum& sp1, T s)
+constexpr inline RGBSpectrum operator*=(RGBSpectrum& sp1, T s)
 {
     sp1.r *= s;
     sp1.g *= s;
@@ -183,7 +183,7 @@ inline RGBSpectrum operator*=(RGBSpectrum& sp1, T s)
 }
 
 template <typename T>
-inline RGBSpectrum operator/=(RGBSpectrum& sp1, T s)
+constexpr inline RGBSpectrum operator/=(RGBSpectrum& sp1, T s)
 {
     sp1.r /= s;
     sp1.g /= s;
@@ -191,7 +191,7 @@ inline RGBSpectrum operator/=(RGBSpectrum& sp1, T s)
     return sp1;
 }
 
-inline RGBSpectrum operator+=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
+constexpr inline RGBSpectrum operator+=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
 {
     sp1.r += sp2.r;
     sp1.g += sp2.g;
@@ -199,7 +199,7 @@ inline RGBSpectrum operator+=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
     return sp1;
 }
 
-inline RGBSpectrum operator-=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
+constexpr inline RGBSpectrum operator-=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
 {
     sp1.r -= sp2.r;
     sp1.g -= sp2.g;
@@ -207,7 +207,7 @@ inline RGBSpectrum operator-=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
     return sp1;
 }
 
-inline RGBSpectrum operator*=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
+constexpr inline RGBSpectrum operator*=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
 {
     sp1.r *= sp2.r;
     sp1.g *= sp2.g;
@@ -215,7 +215,7 @@ inline RGBSpectrum operator*=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
     return sp1;
 }
 
-inline RGBSpectrum operator/=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
+constexpr inline RGBSpectrum operator/=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
 {
     sp1.r /= sp2.r;
     sp1.g /= sp2.g;
@@ -224,7 +224,7 @@ inline RGBSpectrum operator/=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
 }
 
 template <typename T>
-inline RGBSpectrum Lerp(const RGBSpectrum& sp1, const RGBSpectrum& sp2, T t)
+constexpr inline RGBSpectrum Lerp(const RGBSpectrum& sp1, const RGBSpectrum& sp2, T t)
 {
     return (T(1) - t) * sp1 + t * sp2;
 }
@@ -240,19 +240,19 @@ inline RGBSpectrum Exp(const RGBSpectrum& sp)
 }
 
 template <typename T>
-inline RGBSpectrum Min(const RGBSpectrum& sp, T val)
+constexpr inline RGBSpectrum Min(const RGBSpectrum& sp, T val)
 {
     return RGBSpectrum(std::min(Float(val), sp.r), std::min(Float(val), sp.g), std::min(Float(val), sp.b));
 }
 
 template <typename T>
-inline RGBSpectrum Max(const RGBSpectrum& sp, T val)
+constexpr inline RGBSpectrum Max(const RGBSpectrum& sp, T val)
 {
     return RGBSpectrum(std::max(Float(val), sp.r), std::max(Float(val), sp.g), std::max(Float(val), sp.b));
 }
 
 template <typename U, typename V>
-inline RGBSpectrum Clamp(const RGBSpectrum& sp, U left, V right)
+constexpr inline RGBSpectrum Clamp(const RGBSpectrum& sp, U left, V right)
 {
     return RGBSpectrum(Clamp(sp.r, left, right), Clamp(sp.g, left, right), Clamp(sp.b, left, right));
 }
