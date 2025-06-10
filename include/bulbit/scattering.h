@@ -153,4 +153,35 @@ inline Float FresnelMoment1(Float eta)
     }
 }
 
+inline Float FresnelDielectricAverage(Float eta)
+{
+    // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_sheen.pdf
+    // P. 23
+
+    if (eta < 1)
+    {
+        const Float eta2 = eta * eta;
+        const Float eta3 = eta * eta2;
+
+        return 0.997118f + 0.1014f * eta - 0.965241f * eta2 + 0.130607f * eta3;
+    }
+    else
+    {
+        return (eta - 1) / (4.08567f + 1.00071f * eta);
+    }
+}
+
+inline Spectrum FresnelConductorAverage(const Spectrum& eta, const Spectrum& k)
+{
+    // Analytic solution to the Schlick fresnel
+    // F_schlick = F0 + (F90-F0) * (1-cos_theta)^5
+    // F_avg = 2*\int_0^1 F(\mu) \mu d\mu
+    //       = (20*F0 + F90) / 21
+
+    Spectrum F0 = FresnelComplex(1, eta, k);
+    Spectrum F90 = FresnelComplex(0, eta, k);
+
+    return (20 * F0 + F90) / 21;
+}
+
 } // namespace bulbit
