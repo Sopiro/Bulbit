@@ -10,6 +10,7 @@ DielectricMaterial::DielectricMaterial(
     const SpectrumTexture* reflectance,
     const FloatTexture* u_roughness,
     const FloatTexture* v_roughness,
+    bool energy_compensation,
     const SpectrumTexture* normalmap
 )
     : Material(TypeIndexOf<DielectricMaterial>())
@@ -17,6 +18,7 @@ DielectricMaterial::DielectricMaterial(
     , reflectance{ reflectance }
     , u_roughness{ u_roughness }
     , v_roughness{ v_roughness }
+    , energy_compensation{ energy_compensation }
     , normalmap{ normalmap }
 {
 }
@@ -51,7 +53,7 @@ bool DielectricMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Ve
 
     *bsdf = BSDF(
         isect.shading.normal, isect.shading.tangent,
-        alloc.new_object<DielectricBxDF>(eta_p, r, TrowbridgeReitzDistribution(alpha_x, alpha_y))
+        alloc.new_object<DielectricBxDF>(eta_p, r, TrowbridgeReitzDistribution(alpha_x, alpha_y), energy_compensation)
     );
     return true;
 }

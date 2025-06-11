@@ -60,7 +60,7 @@ private:
 class DielectricBxDF : public BxDF
 {
 public:
-    DielectricBxDF(Float eta, Spectrum r, TrowbridgeReitzDistribution mf, bool ms = true)
+    DielectricBxDF(Float eta, Spectrum r, TrowbridgeReitzDistribution mf, bool ms)
         : eta{ eta }
         , r{ Sqrt(r) }
         , mf{ mf }

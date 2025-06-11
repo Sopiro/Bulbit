@@ -25,12 +25,12 @@ DiffuseMaterial* CreateDiffuseMaterial(Scene& scene, const std::string& filename
 }
 
 DielectricMaterial* CreateDielectricMaterial(
-    Scene& scene, Float eta, Spectrum reflectance, Float roughness, const SpectrumTexture* normalmap
+    Scene& scene, Float eta, Spectrum reflectance, Float roughness, bool energy_compensation, const SpectrumTexture* normalmap
 )
 {
     return scene.CreateMaterial<DielectricMaterial>(
         eta, CreateSpectrumConstantTexture(scene, reflectance), CreateFloatConstantTexture(scene, roughness),
-        CreateFloatConstantTexture(scene, roughness), normalmap
+        CreateFloatConstantTexture(scene, roughness), energy_compensation, normalmap
     );
 }
 
