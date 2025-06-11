@@ -48,8 +48,8 @@ void TrowbridgeReitzDistribution::ComputeReflectanceTexture(int32 texture_size, 
     }
 
 #if WRITE_REFLECTANCE_TEXTURE
-    WriteImage(image_e, "r_tr.hdr");
-    WriteImage(image_e_avg, "r_avg_tr.hdr");
+    WriteImage(image_e, "E_tr.hdr");
+    WriteImage(image_e_avg, "E_avg_tr.hdr");
 #endif
 
     TrowbridgeReitzDistribution::E_texture = std::make_unique<FloatImageTexture>(std::move(image_e), TexCoordFilter::clamp);
@@ -88,7 +88,7 @@ void CharlieSheenDistribution::ComputeReflectanceTexture(int32 texture_size, std
     }
 
 #if WRITE_REFLECTANCE_TEXTURE
-    WriteImage(image, "r_cs.hdr");
+    WriteImage(image, "E_cs.hdr");
 #endif
 
     CharlieSheenDistribution::E_texture = std::make_unique<FloatImageTexture>(std::move(image), TexCoordFilter::clamp);
@@ -103,7 +103,8 @@ void DielectricBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Flo
 
     Image3D1f image_e(texture_size, texture_size, texture_size);
     Image3D1f image_e_inv(texture_size, texture_size, texture_size);
-    // Image1f image_e_avg(texture_size, 1);
+    Image1f image_e_avg(texture_size, texture_size);
+    Image1f image_e_inv_avg(texture_size, texture_size);
 
     const Float d = 1.0f / texture_size;
 
@@ -117,7 +118,8 @@ void DielectricBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Flo
         {
             Float a = d / 2 + d * j;
 
-            // Float r_sum = 0;
+            Float r_sum = 0;
+            Float r_inv_sum = 0;
 
             for (int32 i = 0; i < texture_size; ++i)
             {
@@ -129,26 +131,32 @@ void DielectricBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Flo
                 DielectricBxDF bsdf_i(ior, Spectrum(1), TrowbridgeReitzDistribution(a, a), false);
                 DielectricBxDF bsdf_t(1 / ior, Spectrum(1), TrowbridgeReitzDistribution(a, a), false);
 
-                Spectrum r = bsdf_i.rho(wo, uc, u);
-                Spectrum r_inv = bsdf_t.rho(wo, uc, u);
+                Float r = bsdf_i.rho(wo, uc, u).Average();
+                Float r_inv = bsdf_t.rho(wo, uc, u).Average();
 
-                // r_sum += r * cos_theta * d;
+                r_sum += r * cos_theta * d;
+                r_inv_sum += r_inv * cos_theta * d;
 
-                image_e(k, i, j) = r.Average();
-                image_e_inv(k, i, j) = r_inv.Average();
+                image_e(k, i, j) = r;
+                image_e_inv(k, i, j) = r_inv;
             }
 
-            // image_e_avg(j, 0) = 2 * r_sum;
+            image_e_avg(k, j) = 2 * r_sum;
+            image_e_inv_avg(k, j) = 2 * r_inv_sum;
         }
     }
 
 #if WRITE_REFLECTANCE_TEXTURE
-    WriteImage3D(image_e, "r_d.hdr");
-    WriteImage3D(image_e_inv, "r_d_inv.hdr");
+    WriteImage3D(image_e, "E_d.hdr");
+    WriteImage3D(image_e_inv, "E_inv_d.hdr");
+    WriteImage(image_e_avg, "E_avg_d.hdr");
+    WriteImage(image_e_inv_avg, "E_inv_avg_d.hdr");
 #endif
 
     DielectricBxDF::E_texture = std::make_unique<FloatImageTexture3D>(std::move(image_e), TexCoordFilter::clamp);
     DielectricBxDF::E_inv_texture = std::make_unique<FloatImageTexture3D>(std::move(image_e_inv), TexCoordFilter::clamp);
+    DielectricBxDF::E_avg_texture = std::make_unique<FloatImageTexture>(std::move(image_e_avg), TexCoordFilter::clamp);
+    DielectricBxDF::E_inv_avg_texture = std::make_unique<FloatImageTexture>(std::move(image_e_inv_avg), TexCoordFilter::clamp);
 }
 
 void ComoputeReflectanceTextures()

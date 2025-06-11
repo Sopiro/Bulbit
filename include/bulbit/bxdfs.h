@@ -93,12 +93,30 @@ public:
         if (eta >= 1.0f)
         {
             Float f0 = MapIORtoF0(eta);
-            return E_texture->Evaluate({ f0, wo.z, alpha });
+            return E_texture->Evaluate({ f0, std::abs(wo.z), alpha });
         }
         else
         {
             Float f0 = MapIORtoF0(1 / eta);
-            return E_inv_texture->Evaluate({ f0, wo.z, alpha });
+            return E_inv_texture->Evaluate({ f0, std::abs(wo.z), alpha });
+        }
+    }
+
+    Float E_avg() const
+    {
+        BulbitAssert(E_avg_texture != nullptr);
+        BulbitAssert(E_inv_avg_texture != nullptr);
+
+        Float alpha = std::sqrt(mf.alpha_x * mf.alpha_y);
+        if (eta >= 1.0f)
+        {
+            Float f0 = MapIORtoF0(eta);
+            return E_avg_texture->Evaluate({ f0, alpha });
+        }
+        else
+        {
+            Float f0 = MapIORtoF0(1 / eta);
+            return E_inv_avg_texture->Evaluate({ f0, alpha });
         }
     }
 
@@ -107,6 +125,8 @@ public:
 private:
     static inline std::unique_ptr<FloatImageTexture3D> E_texture = nullptr;
     static inline std::unique_ptr<FloatImageTexture3D> E_inv_texture = nullptr;
+    static inline std::unique_ptr<FloatImageTexture> E_avg_texture = nullptr;
+    static inline std::unique_ptr<FloatImageTexture> E_inv_avg_texture = nullptr;
 
     Float eta;
 
