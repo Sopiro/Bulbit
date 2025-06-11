@@ -184,4 +184,27 @@ inline Spectrum FresnelConductorAverage(const Spectrum& eta, const Spectrum& k)
     return (20 * F0 + F90) / 21;
 }
 
+// Some utility functions for energy conserving bsdfs
+
+inline Float F0toIOR(Float f0)
+{
+    Float sqrt_f0 = std::sqrt(f0);
+    return (1 + sqrt_f0) / (1 - sqrt_f0);
+}
+
+inline Float IORtoF0(Float ior)
+{
+    return Sqr((ior - 1) / (ior + 1));
+}
+
+inline float MapF0toIOR(Float f0)
+{
+    return F0toIOR(Sqr(Sqr(f0)));
+}
+
+inline float MapIORtoF0(Float ior)
+{
+    return std::sqrt((ior - 1) / (ior + 1));
+}
+
 } // namespace bulbit
