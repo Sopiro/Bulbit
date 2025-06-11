@@ -59,13 +59,13 @@ Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
 #if 1
         // Revisiting Physically Based Shading at Imageworks (Christopher Kulla and Alejandro Conty)
         // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_slides_v2.pdf
-        Float E_avg = mf.rho_avg();
+        Float E_avg = mf.E_avg();
 
         Spectrum f0 = F0(eta, color, metallic);
         Spectrum fresnel_avg = F_avg_Schlick(f0);
         Spectrum fresnel_ms = fresnel_avg * fresnel_avg * E_avg / (Spectrum(1) - fresnel_avg * (1 - E_avg));
 
-        Spectrum f_ms = fresnel_ms * ((1 - mf.rho(wo)) * (1 - mf.rho(wi))) / (pi * (1 - E_avg));
+        Spectrum f_ms = fresnel_ms * ((1 - mf.E(wo)) * (1 - mf.E(wi))) / (pi * (1 - E_avg));
 
         // Add dielectric reflection and metal reflection
         f += T_cc * (F * mf.D(wm) * mf.G(wo, wi) / denom + f_ms);
@@ -85,7 +85,7 @@ Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
             f += sheen * (1 - transmission) * (1 - metallic) * T_cc * T * sheen_color * mf_sheen.D(wm) * mf_sheen.G(wo, wi) /
                  denom;
 
-            Float sheen_reflectance = mf_sheen.rho(wo);
+            Float sheen_reflectance = mf_sheen.E(wo);
 
             // Add diffuse reflection
             f += (1 - sheen * sheen_reflectance) * (1 - transmission) * (1 - metallic) * T_cc * T * color * inv_pi;

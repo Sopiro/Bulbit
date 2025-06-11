@@ -14,7 +14,7 @@ void TrowbridgeReitzDistribution::ComputeReflectanceTexture(int32 texture_size, 
 {
     BulbitNotUsed(uc);
 
-    if (rho_texture && rho_avg_texture)
+    if (E_texture && E_avg_texture)
     {
         return;
     }
@@ -52,8 +52,8 @@ void TrowbridgeReitzDistribution::ComputeReflectanceTexture(int32 texture_size, 
     WriteImage(image_e_avg, "r_avg_tr.hdr");
 #endif
 
-    TrowbridgeReitzDistribution::rho_texture = std::make_unique<FloatImageTexture>(std::move(image_e), TexCoordFilter::clamp);
-    TrowbridgeReitzDistribution::rho_avg_texture =
+    TrowbridgeReitzDistribution::E_texture = std::make_unique<FloatImageTexture>(std::move(image_e), TexCoordFilter::clamp);
+    TrowbridgeReitzDistribution::E_avg_texture =
         std::make_unique<FloatImageTexture>(std::move(image_e_avg), TexCoordFilter::clamp);
 }
 
@@ -61,7 +61,7 @@ void CharlieSheenDistribution::ComputeReflectanceTexture(int32 texture_size, std
 {
     BulbitNotUsed(uc);
 
-    if (CharlieSheenDistribution::rho_texture)
+    if (CharlieSheenDistribution::E_texture)
     {
         return;
     }
@@ -91,12 +91,12 @@ void CharlieSheenDistribution::ComputeReflectanceTexture(int32 texture_size, std
     WriteImage(image, "r_cs.hdr");
 #endif
 
-    CharlieSheenDistribution::rho_texture = std::make_unique<FloatImageTexture>(std::move(image), TexCoordFilter::clamp);
+    CharlieSheenDistribution::E_texture = std::make_unique<FloatImageTexture>(std::move(image), TexCoordFilter::clamp);
 }
 
 void DielectricBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u)
 {
-    if (rho_texture && rho_inv_texture)
+    if (E_texture && E_inv_texture)
     {
         return;
     }
@@ -147,8 +147,8 @@ void DielectricBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Flo
     WriteImage3D(image_e_inv, "r_d_inv.hdr");
 #endif
 
-    DielectricBxDF::rho_texture = std::make_unique<FloatImageTexture3D>(std::move(image_e), TexCoordFilter::clamp);
-    DielectricBxDF::rho_inv_texture = std::make_unique<FloatImageTexture3D>(std::move(image_e_inv), TexCoordFilter::clamp);
+    DielectricBxDF::E_texture = std::make_unique<FloatImageTexture3D>(std::move(image_e), TexCoordFilter::clamp);
+    DielectricBxDF::E_inv_texture = std::make_unique<FloatImageTexture3D>(std::move(image_e_inv), TexCoordFilter::clamp);
 }
 
 void ComoputeReflectanceTextures()

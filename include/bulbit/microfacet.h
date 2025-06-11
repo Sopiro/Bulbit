@@ -127,20 +127,20 @@ public:
     }
 
     // Hemispherical-Directional reflectance
-    Float rho(const Vec3& wo) const
+    Float E(const Vec3& wo) const
     {
-        BulbitAssert(rho_texture != nullptr);
+        BulbitAssert(E_texture != nullptr);
 
         Float alpha = std::sqrt(alpha_x * alpha_y);
-        return rho_texture->Evaluate({ wo.z, alpha });
+        return E_texture->Evaluate({ wo.z, alpha });
     }
 
-    Float rho_avg() const
+    Float E_avg() const
     {
-        BulbitAssert(rho_avg_texture != nullptr);
+        BulbitAssert(E_avg_texture != nullptr);
 
         Float alpha = std::sqrt(alpha_x * alpha_y);
-        return rho_avg_texture->Evaluate({ alpha, 0 });
+        return E_avg_texture->Evaluate({ alpha, 0 });
     }
 
     static void ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
@@ -148,8 +148,8 @@ public:
 private:
     friend class DielectricBxDF;
 
-    static inline std::unique_ptr<FloatImageTexture> rho_texture = nullptr;
-    static inline std::unique_ptr<FloatImageTexture> rho_avg_texture = nullptr;
+    static inline std::unique_ptr<FloatImageTexture> E_texture = nullptr;
+    static inline std::unique_ptr<FloatImageTexture> E_avg_texture = nullptr;
 
     Float alpha_x, alpha_y;
 };
@@ -236,17 +236,17 @@ public:
     }
 
     // Hemispherical-Directional reflectance
-    Float rho(const Vec3& wo) const
+    Float E(const Vec3& wo) const
     {
-        BulbitAssert(rho_texture != nullptr);
+        BulbitAssert(E_texture != nullptr);
 
-        return rho_texture->Evaluate({ wo.z, alpha });
+        return E_texture->Evaluate({ wo.z, alpha });
     }
 
     static void ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
 
 private:
-    static inline std::unique_ptr<FloatImageTexture> rho_texture = nullptr;
+    static inline std::unique_ptr<FloatImageTexture> E_texture = nullptr;
 
     Float alpha;
 };

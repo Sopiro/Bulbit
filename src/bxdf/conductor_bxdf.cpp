@@ -36,12 +36,12 @@ Spectrum ConductorBxDF::f(const Vec3& wo, const Vec3& wi) const
     }
     else
     {
-        Float E_avg = mf.rho_avg();
+        Float E_avg = mf.E_avg();
 
         Spectrum fresnel_avg = FresnelConductorAverage(eta, k);
         Spectrum fresnel_ms = fresnel_avg * fresnel_avg * E_avg / (Spectrum(1) - fresnel_avg * (1 - E_avg));
 
-        Spectrum f_ms = fresnel_ms * ((1 - mf.rho(wo)) * (1 - mf.rho(wi))) / (pi * (1 - E_avg));
+        Spectrum f_ms = fresnel_ms * ((1 - mf.E(wo)) * (1 - mf.E(wi))) / (pi * (1 - E_avg));
 
         return f_ss + f_ms;
     }
@@ -125,12 +125,12 @@ bool ConductorBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, 
     }
     else
     {
-        Float E_avg = mf.rho_avg();
+        Float E_avg = mf.E_avg();
 
         Spectrum fresnel_avg = FresnelConductorAverage(eta, k);
         Spectrum fresnel_ms = fresnel_avg * fresnel_avg * E_avg / (Spectrum(1) - fresnel_avg * (1 - E_avg));
 
-        Spectrum f_ms = fresnel_ms * ((1 - mf.rho(wo)) * (1 - mf.rho(wi))) / (pi * (1 - E_avg));
+        Spectrum f_ms = fresnel_ms * ((1 - mf.E(wo)) * (1 - mf.E(wi))) / (pi * (1 - E_avg));
 
         *sample = BSDFSample(f_ss + f_ms, wi, pdf, BxDF_Flags::GlossyReflection);
         return true;

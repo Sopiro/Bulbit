@@ -86,27 +86,27 @@ public:
 
     Float E(Vec3 wo) const
     {
-        BulbitAssert(rho_texture != nullptr);
-        BulbitAssert(rho_inv_texture != nullptr);
+        BulbitAssert(E_texture != nullptr);
+        BulbitAssert(E_inv_texture != nullptr);
 
         Float alpha = std::sqrt(mf.alpha_x * mf.alpha_y);
         if (eta >= 1.0f)
         {
             Float f0 = MapIORtoF0(eta);
-            return rho_texture->Evaluate({ f0, wo.z, alpha });
+            return E_texture->Evaluate({ f0, wo.z, alpha });
         }
         else
         {
             Float f0 = MapIORtoF0(1 / eta);
-            return rho_inv_texture->Evaluate({ f0, wo.z, alpha });
+            return E_inv_texture->Evaluate({ f0, wo.z, alpha });
         }
     }
 
     static void ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
 
 private:
-    static inline std::unique_ptr<FloatImageTexture3D> rho_texture = nullptr;
-    static inline std::unique_ptr<FloatImageTexture3D> rho_inv_texture = nullptr;
+    static inline std::unique_ptr<FloatImageTexture3D> E_texture = nullptr;
+    static inline std::unique_ptr<FloatImageTexture3D> E_inv_texture = nullptr;
 
     Float eta;
 
