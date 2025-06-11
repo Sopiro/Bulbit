@@ -49,7 +49,16 @@ Spectrum DielectricBxDF::f(const Vec3& wo, const Vec3& wi) const
     if (reflect)
     {
         // Compute reflection at rough dielectric interface
-        return Spectrum(F * mf.D(wm) * mf.G(wo, wi) / std::abs(4 * cos_theta_i * cos_theta_o));
+        Spectrum fs = Spectrum(F * mf.D(wm) * mf.G(wo, wi) / std::abs(4 * cos_theta_i * cos_theta_o));
+
+        if (!ms)
+        {
+            return fs;
+        }
+        else
+        {
+            return fs / E(wo);
+        }
     }
     else
     {
@@ -60,7 +69,14 @@ Spectrum DielectricBxDF::f(const Vec3& wo, const Vec3& wi) const
         // Handle solid angle squeezing
         ft /= Sqr(eta_p);
 
-        return r * ft;
+        if (!ms)
+        {
+            return r * ft;
+        }
+        else
+        {
+            return r * ft / E(wo);
+        }
     }
 }
 
@@ -209,7 +225,14 @@ bool DielectricBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12,
             Float pdf = mf.PDF(wo, wm) / (4 * AbsDot(wo, wm)) * pr / (pr + pt);
 
             Spectrum fr(R * mf.D(wm) * mf.G(wo, wi) / (4 * CosTheta(wi) * CosTheta(wo)));
-            *sample = BSDFSample(fr, wi, pdf, BxDF_Flags::GlossyReflection);
+            if (!ms)
+            {
+                *sample = BSDFSample(fr, wi, pdf, BxDF_Flags::GlossyReflection);
+            }
+            else
+            {
+                *sample = BSDFSample(fr / E(wo), wi, pdf, BxDF_Flags::GlossyReflection);
+            }
         }
         else
         {
@@ -236,7 +259,14 @@ bool DielectricBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12,
             // Handle solid angle squeezing
             ft /= Sqr(eta_p);
 
-            *sample = BSDFSample(r * ft, wi, pdf, BxDF_Flags::GlossyTransmission, eta_p);
+            if (!ms)
+            {
+                *sample = BSDFSample(r * ft, wi, pdf, BxDF_Flags::GlossyTransmission, eta_p);
+            }
+            else
+            {
+                *sample = BSDFSample(r * ft / E(wo), wi, pdf, BxDF_Flags::GlossyTransmission, eta_p);
+            }
         }
 
         return true;

@@ -1,20 +1,12 @@
 #include "bulbit/microfacet.h"
 #include "bulbit/async_job.h"
+#include "bulbit/bxdfs.h"
+#include "bulbit/samplers.h"
 
-#define WRITE_REFLECTANCE_TEXTURE 0
+#define WRITE_REFLECTANCE_TEXTURE 1
 
 namespace bulbit
 {
-
-static const int32 rho_texture_size = 32;
-
-static const int32 rho_samples = 16;
-static const Point2 u_rho[rho_samples] = {
-    Point2(0.855985f, 0.570367f), Point2(0.381823f, 0.851844f), Point2(0.285328f, 0.764262f), Point2(0.733380f, 0.114073f),
-    Point2(0.542663f, 0.344465f), Point2(0.127274f, 0.414848f), Point2(0.964700f, 0.947162f), Point2(0.594089f, 0.643463f),
-    Point2(0.095109f, 0.170369f), Point2(0.825444f, 0.263359f), Point2(0.429467f, 0.454469f), Point2(0.244460f, 0.816459f),
-    Point2(0.756135f, 0.731258f), Point2(0.516165f, 0.152852f), Point2(0.180888f, 0.214174f), Point2(0.898579f, 0.503897f)
-};
 
 Float IORtoF0(Float ior)
 {
@@ -32,24 +24,26 @@ float MapF0toIOR(Float f0)
     return F0toIOR(Sqr(Sqr(f0)));
 }
 
-void TrowbridgeReitzDistribution::ComputeReflectanceTexture()
+void TrowbridgeReitzDistribution::ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u)
 {
+    BulbitNotUsed(uc);
+
     if (rho_texture && rho_avg_texture)
     {
         return;
     }
 
-    Image1f image_e(rho_texture_size, rho_texture_size);
-    Image1f image_e_avg(rho_texture_size, 1);
+    Image1f image_e(texture_size, texture_size);
+    Image1f image_e_avg(texture_size, 1);
 
-    Float d = 1.0f / rho_texture_size;
-    for (int32 j = 0; j < rho_texture_size; ++j)
+    Float d = 1.0f / texture_size;
+    for (int32 j = 0; j < texture_size; ++j)
     {
         Float a = d / 2 + d * j;
 
         Float r_sum = 0;
 
-        for (int32 i = 0; i < rho_texture_size; ++i)
+        for (int32 i = 0; i < texture_size; ++i)
         {
             Float cos_theta = d / 2 + d * i;
             Float sin_theta = std::sqrt(1 - Sqr(cos_theta));
@@ -57,7 +51,7 @@ void TrowbridgeReitzDistribution::ComputeReflectanceTexture()
             Vec3 wo(sin_theta, 0, cos_theta);
 
             TrowbridgeReitzDistribution distribution(a, a);
-            Float r = distribution.rho(wo, u_rho);
+            Float r = distribution.rho(wo, u);
 
             r_sum += r * cos_theta * d;
 
@@ -77,21 +71,23 @@ void TrowbridgeReitzDistribution::ComputeReflectanceTexture()
         std::make_unique<FloatImageTexture>(std::move(image_e_avg), TexCoordFilter::clamp);
 }
 
-void CharlieSheenDistribution::ComputeReflectanceTexture()
+void CharlieSheenDistribution::ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u)
 {
+    BulbitNotUsed(uc);
+
     if (CharlieSheenDistribution::rho_texture)
     {
         return;
     }
 
-    Image1f image(rho_texture_size, rho_texture_size);
+    Image1f image(texture_size, texture_size);
 
-    Float d = 1.0f / rho_texture_size;
-    for (int32 j = 0; j < rho_texture_size; ++j)
+    Float d = 1.0f / texture_size;
+    for (int32 j = 0; j < texture_size; ++j)
     {
         Float a = d / 2 + d * j;
 
-        for (int32 i = 0; i < rho_texture_size; ++i)
+        for (int32 i = 0; i < texture_size; ++i)
         {
             Float cos_theta = d / 2 + d * i;
             Float sin_theta = std::sqrt(1 - Sqr(cos_theta));
@@ -99,7 +95,7 @@ void CharlieSheenDistribution::ComputeReflectanceTexture()
             Vec3 wo(sin_theta, 0, cos_theta);
 
             CharlieSheenDistribution distribution(a);
-            Float r = distribution.rho(wo, u_rho);
+            Float r = distribution.rho(wo, u);
 
             image(i, j) = r;
         }
@@ -112,20 +108,104 @@ void CharlieSheenDistribution::ComputeReflectanceTexture()
     CharlieSheenDistribution::rho_texture = std::make_unique<FloatImageTexture>(std::move(image), TexCoordFilter::clamp);
 }
 
+void DielectricBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u)
+{
+    if (rho_texture && rho_inv_texture)
+    {
+        return;
+    }
+
+    Image1f image_e(texture_size, texture_size);
+    Image1f image_e_inv(texture_size, texture_size);
+    // Image1f image_e_avg(texture_size, 1);
+
+    Float d = 1.0f / texture_size;
+    for (int32 j = 0; j < texture_size; ++j)
+    {
+        Float a = d / 2 + d * j;
+
+        // Float r_sum = 0;
+
+        for (int32 i = 0; i < texture_size; ++i)
+        {
+            Float cos_theta = d / 2 + d * i;
+            Float sin_theta = std::sqrt(1 - Sqr(cos_theta));
+
+            Vec3 wo(sin_theta, 0, cos_theta);
+
+            DielectricBxDF f(1.5f, Spectrum(1), TrowbridgeReitzDistribution(a, a), false);
+            DielectricBxDF t(1 / 1.5f, Spectrum(1), TrowbridgeReitzDistribution(a, a), false);
+
+            Spectrum r = f.rho(wo, uc, u);
+            Spectrum r_inv = t.rho(wo, uc, u);
+
+            // r_sum += r * cos_theta * d;
+
+            image_e(i, j) = r.Average();
+            image_e_inv(i, j) = r_inv.Average();
+        }
+
+        // image_e_avg(j, 0) = 2 * r_sum;
+    }
+
+#if WRITE_REFLECTANCE_TEXTURE
+    WriteImage(image_e, "r_d.hdr");
+    WriteImage(image_e_inv, "r_d_inv.hdr");
+#endif
+
+    DielectricBxDF::rho_texture = std::make_unique<FloatImageTexture>(std::move(image_e), TexCoordFilter::clamp);
+    DielectricBxDF::rho_inv_texture = std::make_unique<FloatImageTexture>(std::move(image_e_inv), TexCoordFilter::clamp);
+}
+
 void ComoputeReflectanceTextures()
 {
-    std::unique_ptr<AsyncJob<bool>> tr = RunAsync([]() {
-        TrowbridgeReitzDistribution::ComputeReflectanceTexture();
+    int32 texture_size = 32;
+
+    int32 x_samples = 32;
+    int32 y_samples = x_samples;
+    int32 samples = x_samples * y_samples;
+    std::vector<Float> uc(samples);
+    std::vector<Point2> u(samples);
+
+    const uint32 hash_uc = 123;
+    const uint32 hash_u = 456;
+    RNG rng(789);
+
+    for (int32 i = 0; i < samples; ++i)
+    {
+        {
+            int32 stratum = PermutationElement(i, samples, hash_uc);
+            uc[i] = (stratum + rng.NextFloat()) / samples;
+        }
+
+        {
+            int32 stratum = PermutationElement(i, samples, hash_u);
+
+            int32 x = stratum % x_samples;
+            int32 y = stratum / x_samples;
+
+            u[i] = { (x + rng.NextFloat()) / x_samples, (y + rng.NextFloat()) / y_samples };
+        }
+    }
+
+    std::unique_ptr<AsyncJob<bool>> tr = RunAsync([&]() {
+        TrowbridgeReitzDistribution::ComputeReflectanceTexture(texture_size, uc, u);
         return true;
     });
 
-    std::unique_ptr<AsyncJob<bool>> cs = RunAsync([]() {
-        CharlieSheenDistribution::ComputeReflectanceTexture();
+    std::unique_ptr<AsyncJob<bool>> cs = RunAsync([&]() {
+        CharlieSheenDistribution::ComputeReflectanceTexture(texture_size, uc, u);
+        return true;
+    });
+
+    std::unique_ptr<AsyncJob<bool>> d = RunAsync([&]() {
+        DielectricBxDF::ComputeReflectanceTexture(texture_size, uc, u);
         return true;
     });
 
     tr->Wait();
     cs->Wait();
+    d->Wait();
 }
 
 } // namespace bulbit

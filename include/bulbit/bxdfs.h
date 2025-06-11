@@ -60,10 +60,11 @@ private:
 class DielectricBxDF : public BxDF
 {
 public:
-    DielectricBxDF(Float eta, Spectrum r, TrowbridgeReitzDistribution mf)
+    DielectricBxDF(Float eta, Spectrum r, TrowbridgeReitzDistribution mf, bool ms = true)
         : eta{ eta }
         , r{ Sqrt(r) }
         , mf{ mf }
+        , ms{ ms }
     {
     }
 
@@ -82,11 +83,33 @@ public:
 
     virtual void Regularize() override;
 
+    Float E(Vec3 wo) const
+    {
+        BulbitAssert(rho_texture != nullptr);
+        BulbitAssert(rho_inv_texture != nullptr);
+
+        Float alpha = std::sqrt(mf.alpha_x * mf.alpha_y);
+        if (eta >= 1.0f)
+        {
+            return rho_texture->Evaluate({ wo.z, alpha });
+        }
+        else
+        {
+            return rho_inv_texture->Evaluate({ wo.z, alpha });
+        }
+    }
+
+    static void ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
+
 private:
+    static inline std::unique_ptr<FloatImageTexture> rho_texture = nullptr;
+    static inline std::unique_ptr<FloatImageTexture> rho_inv_texture = nullptr;
+
     Float eta;
 
     Spectrum r;
     TrowbridgeReitzDistribution mf;
+    bool ms;
 };
 
 class ConductorBxDF : public BxDF

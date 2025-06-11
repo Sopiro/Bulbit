@@ -143,9 +143,11 @@ public:
         return rho_avg_texture->Evaluate({ alpha, 0 });
     }
 
-    static void ComputeReflectanceTexture();
+    static void ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
 
 private:
+    friend class DielectricBxDF;
+
     static inline std::unique_ptr<FloatImageTexture> rho_texture = nullptr;
     static inline std::unique_ptr<FloatImageTexture> rho_avg_texture = nullptr;
 
@@ -241,7 +243,7 @@ public:
         return rho_texture->Evaluate({ wo.z, alpha });
     }
 
-    static void ComputeReflectanceTexture();
+    static void ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
 
 private:
     static inline std::unique_ptr<FloatImageTexture> rho_texture = nullptr;
