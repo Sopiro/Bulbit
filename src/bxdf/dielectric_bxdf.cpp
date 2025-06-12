@@ -267,7 +267,10 @@ bool DielectricBxDF::Sample_f(
             );
 
             // Handle solid angle squeezing
-            ft /= Sqr(eta_p);
+            if (direction == TransportDirection::ToLight)
+            {
+                ft /= Sqr(eta_p);
+            }
 
             if (!ms)
             {
