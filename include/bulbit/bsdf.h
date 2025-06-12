@@ -31,8 +31,15 @@ public:
         BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
     ) const;
 
-    Spectrum rho(Vec3 wo, std::span<const Float> uc, std::span<const Point2> u) const;
-    Spectrum rho(std::span<const Point2> u1, std::span<const Float> uc, std::span<const Point2> u2) const;
+    Spectrum rho(
+        Vec3 wo, std::span<const Float> uc, std::span<const Point2> u, TransportDirection direction = TransportDirection::ToLight
+    ) const;
+    Spectrum rho(
+        std::span<const Point2> u1,
+        std::span<const Float> uc,
+        std::span<const Point2> u2,
+        TransportDirection direction = TransportDirection::ToLight
+    ) const;
 
     Vec3 WorldToLocal(const Vec3& v) const;
     Vec3 LocalToWorld(const Vec3& v) const;
@@ -110,15 +117,17 @@ inline bool BSDF::Sample_f(
     return true;
 }
 
-inline Spectrum BSDF::rho(std::span<const Point2> u1, std::span<const Float> uc, std::span<const Point2> u2) const
+inline Spectrum BSDF::rho(
+    std::span<const Point2> u1, std::span<const Float> uc, std::span<const Point2> u2, TransportDirection direction
+) const
 {
-    return bxdf->rho(u1, uc, u2);
+    return bxdf->rho(u1, uc, u2, direction);
 }
 
-inline Spectrum BSDF::rho(Vec3 wo, std::span<const Float> uc, std::span<const Point2> u) const
+inline Spectrum BSDF::rho(Vec3 wo, std::span<const Float> uc, std::span<const Point2> u, TransportDirection direction) const
 {
     wo = WorldToLocal(wo);
-    return bxdf->rho(wo, uc, u);
+    return bxdf->rho(wo, uc, u, direction);
 }
 
 inline Vec3 BSDF::WorldToLocal(const Vec3& v) const

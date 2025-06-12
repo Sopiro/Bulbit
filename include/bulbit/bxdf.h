@@ -113,10 +113,17 @@ public:
     virtual void Regularize() {};
 
     // Compute Hemispherical-Directional reflectance (albedo)
-    Spectrum rho(Vec3 wo, std::span<const Float> uc, std::span<const Point2> u2) const;
+    Spectrum rho(
+        Vec3 wo, std::span<const Float> uc, std::span<const Point2> u2, TransportDirection direction = TransportDirection::ToLight
+    ) const;
 
     // Compute Hemispherical-Hemispherical reflectance
-    Spectrum rho(std::span<const Point2> u1, std::span<const Float> uc, std::span<const Point2> u2) const;
+    Spectrum rho(
+        std::span<const Point2> u1,
+        std::span<const Float> uc,
+        std::span<const Point2> u2,
+        TransportDirection direction = TransportDirection::ToLight
+    ) const;
 };
 
 } // namespace bulbit

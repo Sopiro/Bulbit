@@ -5,13 +5,13 @@
 namespace bulbit
 {
 
-Spectrum BxDF::rho(Vec3 wo, std::span<const Float> uc, std::span<const Point2> u) const
+Spectrum BxDF::rho(Vec3 wo, std::span<const Float> uc, std::span<const Point2> u, TransportDirection direction) const
 {
     Spectrum r(0);
     for (size_t i = 0; i < uc.size(); ++i)
     {
         BSDFSample sample;
-        if (Sample_f(&sample, wo, uc[i], u[i]))
+        if (Sample_f(&sample, wo, uc[i], u[i], direction))
         {
             r += sample.f * AbsCosTheta(sample.wi) / sample.pdf;
         }
@@ -19,7 +19,9 @@ Spectrum BxDF::rho(Vec3 wo, std::span<const Float> uc, std::span<const Point2> u
     return r / uc.size();
 }
 
-Spectrum BxDF::rho(std::span<const Point2> u1, std::span<const Float> uc, std::span<const Point2> u2) const
+Spectrum BxDF::rho(
+    std::span<const Point2> u1, std::span<const Float> uc, std::span<const Point2> u2, TransportDirection direction
+) const
 {
     Spectrum r(0);
     for (size_t i = 0; i < uc.size(); ++i)
@@ -32,7 +34,7 @@ Spectrum BxDF::rho(std::span<const Point2> u1, std::span<const Float> uc, std::s
 
         Float pdf_o = UniformHemispherePDF();
         BSDFSample sample;
-        if (Sample_f(&sample, wo, uc[i], u2[i]))
+        if (Sample_f(&sample, wo, uc[i], u2[i], direction))
         {
             r += sample.f * AbsCosTheta(sample.wi) * AbsCosTheta(wo) / (pdf_o * sample.pdf);
         }
