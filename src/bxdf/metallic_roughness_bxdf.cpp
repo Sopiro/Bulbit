@@ -5,8 +5,10 @@
 namespace bulbit
 {
 
-Spectrum MetallicRoughnessBxDF::f(const Vec3& wo, const Vec3& wi) const
+Spectrum MetallicRoughnessBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection direction) const
 {
+    BulbitNotUsed(direction);
+
     if (!SameHemisphere(wo, wi))
     {
         return Spectrum::black;
@@ -35,8 +37,10 @@ Spectrum MetallicRoughnessBxDF::f(const Vec3& wo, const Vec3& wi) const
     return f_d + f_s;
 }
 
-Float MetallicRoughnessBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
+Float MetallicRoughnessBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_SamplingFlags flags) const
 {
+    BulbitNotUsed(direction);
+
     if (!(flags & BxDF_SamplingFlags::Reflection))
     {
         return 0;
@@ -79,8 +83,12 @@ Float MetallicRoughnessBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) con
     return pr * pdf_r + pt * pdf_d;
 }
 
-bool MetallicRoughnessBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
+bool MetallicRoughnessBxDF::Sample_f(
+    BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, TransportDirection direction, BxDF_SamplingFlags flags
+) const
 {
+    BulbitNotUsed(direction);
+
     if (!(flags & BxDF_SamplingFlags::Reflection))
     {
         return false;

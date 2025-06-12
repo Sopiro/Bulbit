@@ -49,6 +49,17 @@ inline int operator&(BxDF_SamplingFlags a, BxDF_SamplingFlags b) { return ((int)
 inline BxDF_SamplingFlags& operator|=(BxDF_SamplingFlags& a, BxDF_SamplingFlags b) { (int&)a |= int(b); return a;}
 // clang-format on
 
+enum class TransportDirection
+{
+    ToLight,  // Radiance transport
+    ToCamera, // Importance transport
+};
+
+inline TransportDirection operator!(TransportDirection direction)
+{
+    return (direction == TransportDirection::ToLight) ? TransportDirection::ToCamera : TransportDirection::ToLight;
+}
+
 struct BSDFSample
 {
     BSDFSample() = default;
@@ -82,11 +93,21 @@ class BxDF
 public:
     virtual BxDF_Flags Flags() const = 0;
 
-    virtual Spectrum f(const Vec3& wo, const Vec3& wi) const = 0;
-    virtual Float PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All) const = 0;
+    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const = 0;
+    virtual Float PDF(
+        Vec3 wo,
+        Vec3 wi,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const = 0;
 
     virtual bool Sample_f(
-        BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+        BSDFSample* sample,
+        Vec3 wo,
+        Float u0,
+        Point2 u12,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
     ) const = 0;
 
     virtual void Regularize() {};

@@ -7,7 +7,7 @@
 namespace bulbit
 {
 
-Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
+Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection direction) const
 {
     Float cos_theta_o = CosTheta(wo);
     Float cos_theta_i = CosTheta(wi);
@@ -103,14 +103,19 @@ Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi) const
         f += transmission * T_cc * T * Sqrt(color) * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / denom);
 
         // Handle solid angle squeezing
-        f /= Sqr(eta_p);
+        if (direction == TransportDirection::ToLight)
+        {
+            f /= Sqr(eta_p);
+        }
     }
 
     return f;
 }
 
-Float PrincipledBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
+Float PrincipledBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_SamplingFlags flags) const
 {
+    BulbitNotUsed(direction);
+
     Float cos_theta_o = CosTheta(wo);
     Float cos_theta_i = CosTheta(wi);
 
@@ -184,7 +189,9 @@ Float PrincipledBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
     return pdf;
 }
 
-bool PrincipledBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
+bool PrincipledBxDF::Sample_f(
+    BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, TransportDirection direction, BxDF_SamplingFlags flags
+) const
 {
     BxDF_Flags flag;
     Vec3 wi;
@@ -287,7 +294,7 @@ bool PrincipledBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12,
         }
     }
 
-    *sample = BSDFSample(f(wo, wi), wi, PDF(wo, wi), flag, eta_p);
+    *sample = BSDFSample(f(wo, wi, direction), wi, PDF(wo, wi, direction), flag, eta_p);
     return true;
 }
 

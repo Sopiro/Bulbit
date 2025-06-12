@@ -6,7 +6,7 @@
 namespace bulbit
 {
 
-Spectrum DielectricBxDF::f(const Vec3& wo, const Vec3& wi) const
+Spectrum DielectricBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection direction) const
 {
     if (eta == 1 || mf.EffectivelySmooth())
     {
@@ -67,7 +67,10 @@ Spectrum DielectricBxDF::f(const Vec3& wo, const Vec3& wi) const
         Float ft = (1 - F) * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / denom);
 
         // Handle solid angle squeezing
-        ft /= Sqr(eta_p);
+        if (direction == TransportDirection::ToLight)
+        {
+            ft /= Sqr(eta_p);
+        }
 
         if (!ms)
         {
@@ -80,8 +83,10 @@ Spectrum DielectricBxDF::f(const Vec3& wo, const Vec3& wi) const
     }
 }
 
-Float DielectricBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
+Float DielectricBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_SamplingFlags flags) const
 {
+    BulbitNotUsed(direction);
+
     if (eta == 1 || mf.EffectivelySmooth())
     {
         return 0;
@@ -147,7 +152,9 @@ Float DielectricBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
     return pdf;
 }
 
-bool DielectricBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
+bool DielectricBxDF::Sample_f(
+    BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, TransportDirection direction, BxDF_SamplingFlags flags
+) const
 {
     if (eta == 1 || mf.EffectivelySmooth())
     {
@@ -187,7 +194,10 @@ bool DielectricBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12,
             Spectrum ft(T / AbsCosTheta(wi));
 
             // Handle solid angle squeezing
-            ft /= Sqr(eta_p);
+            if (direction == TransportDirection::ToLight)
+            {
+                ft /= Sqr(eta_p);
+            }
 
             *sample = BSDFSample(r * ft, wi, pt / (pr + pt), BxDF_Flags::SpecularTransmission, eta_p);
         }

@@ -30,7 +30,9 @@ public:
     {
     }
 
-    virtual Spectrum S(const Intersection& pi, const Vec3& wi) const = 0;
+    virtual Spectrum S(
+        const Intersection& pi, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight
+    ) const = 0;
     virtual bool Sample_S(BSSRDFSample* bssrdf_sample, const Intersectable* accel, int32 wavelength, Float u0, Point2 u12) = 0;
 
 protected:
@@ -44,16 +46,19 @@ class SeparableBSSRDF : public BSSRDF
 public:
     SeparableBSSRDF(const Intersection& po, const Vec3& wo, Float eta)
         : BSSRDF(po, wo, eta)
-        , sw(eta)
+        , sw{ eta }
     {
     }
 
-    virtual Spectrum S(const Intersection& pi, const Vec3& wi) const override;
-    Spectrum Sw(const Intersection& pi, const Vec3& wi) const;
+    virtual Spectrum S(
+        const Intersection& pi, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight
+    ) const override;
+    Spectrum Sw(const Intersection& pi, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const;
     Spectrum Sp(const Intersection& pi) const;
 
-    virtual bool Sample_S(BSSRDFSample* bssrdf_sample, const Intersectable* accel, int32 wavelength, Float u0, Point2 u12)
-        override;
+    virtual bool Sample_S(
+        BSSRDFSample* bssrdf_sample, const Intersectable* accel, int32 wavelength, Float u0, Point2 u12
+    ) override;
 
     Spectrum PDF_Sp(const Intersection& pi) const;
 
@@ -89,9 +94,12 @@ public:
     {
     }
 
-    virtual Spectrum S(const Intersection& pi, const Vec3& wi) const override;
-    virtual bool Sample_S(BSSRDFSample* bssrdf_sample, const Intersectable* accel, int32 wavelength, Float u0, Point2 u12)
-        override;
+    virtual Spectrum S(
+        const Intersection& pi, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight
+    ) const override;
+    virtual bool Sample_S(
+        BSSRDFSample* bssrdf_sample, const Intersectable* accel, int32 wavelength, Float u0, Point2 u12
+    ) override;
 
 private:
     Spectrum R;

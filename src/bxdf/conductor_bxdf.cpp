@@ -6,8 +6,10 @@
 namespace bulbit
 {
 
-Spectrum ConductorBxDF::f(const Vec3& wo, const Vec3& wi) const
+Spectrum ConductorBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection direction) const
 {
+    BulbitNotUsed(direction);
+
     if (!SameHemisphere(wo, wi) || mf.EffectivelySmooth())
     {
         return Spectrum::black;
@@ -47,8 +49,10 @@ Spectrum ConductorBxDF::f(const Vec3& wo, const Vec3& wi) const
     }
 }
 
-Float ConductorBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
+Float ConductorBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_SamplingFlags flags) const
 {
+    BulbitNotUsed(direction);
+
     if (!(flags & BxDF_SamplingFlags::Reflection))
     {
         return 0;
@@ -74,9 +78,12 @@ Float ConductorBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
     return mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
 }
 
-bool ConductorBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
+bool ConductorBxDF::Sample_f(
+    BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, TransportDirection direction, BxDF_SamplingFlags flags
+) const
 {
     BulbitNotUsed(u0);
+    BulbitNotUsed(direction);
 
     if (!(flags & BxDF_SamplingFlags::Reflection))
     {

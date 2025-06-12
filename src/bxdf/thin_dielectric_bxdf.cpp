@@ -4,26 +4,31 @@
 namespace bulbit
 {
 
-Spectrum ThinDielectricBxDF::f(const Vec3& wo, const Vec3& wi) const
+Spectrum ThinDielectricBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection direction) const
 {
     BulbitNotUsed(wo);
     BulbitNotUsed(wi);
+    BulbitNotUsed(direction);
 
     return Spectrum::black;
 }
 
-Float ThinDielectricBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
+Float ThinDielectricBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_SamplingFlags flags) const
 {
     BulbitNotUsed(wo);
     BulbitNotUsed(wi);
+    BulbitNotUsed(direction);
     BulbitNotUsed(flags);
 
     return 0;
 }
 
-bool ThinDielectricBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
+bool ThinDielectricBxDF::Sample_f(
+    BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, TransportDirection direction, BxDF_SamplingFlags flags
+) const
 {
     BulbitNotUsed(u12);
+    BulbitNotUsed(direction);
 
     Float R = FresnelDielectric(AbsCosTheta(wo), eta);
     Float T = 1 - R;

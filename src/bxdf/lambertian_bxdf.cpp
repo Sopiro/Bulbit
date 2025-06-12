@@ -5,8 +5,10 @@
 namespace bulbit
 {
 
-Spectrum LambertianBxDF::f(const Vec3& wo, const Vec3& wi) const
+Spectrum LambertianBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection direction) const
 {
+    BulbitNotUsed(direction);
+
     if (!SameHemisphere(wo, wi))
     {
         return Spectrum::black;
@@ -15,8 +17,10 @@ Spectrum LambertianBxDF::f(const Vec3& wo, const Vec3& wi) const
     return r * inv_pi;
 }
 
-Float LambertianBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
+Float LambertianBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_SamplingFlags flags) const
 {
+    BulbitNotUsed(direction);
+
     if (!(flags & BxDF_SamplingFlags::Reflection) || !SameHemisphere(wo, wi))
     {
         return 0;
@@ -25,9 +29,12 @@ Float LambertianBxDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
     return CosineHemispherePDF(AbsCosTheta(wi));
 }
 
-bool LambertianBxDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
+bool LambertianBxDF::Sample_f(
+    BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, TransportDirection direction, BxDF_SamplingFlags flags
+) const
 {
     BulbitNotUsed(u0);
+    BulbitNotUsed(direction);
 
     if (!(flags & BxDF_SamplingFlags::Reflection))
     {

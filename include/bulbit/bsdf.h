@@ -14,10 +14,22 @@ public:
     BSDF(Vec3 n, BxDF* bxdf);
     BSDF(Vec3 n, Vec3 t, BxDF* bxdf);
 
-    Spectrum f(Vec3 wo, Vec3 wi) const;
-    Float PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All) const;
+    Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const;
+    Float PDF(
+        Vec3 wo,
+        Vec3 wi,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const;
 
-    bool Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All) const;
+    bool Sample_f(
+        BSDFSample* sample,
+        Vec3 wo,
+        Float u0,
+        Point2 u12,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const;
 
     Spectrum rho(Vec3 wo, std::span<const Float> uc, std::span<const Point2> u) const;
     Spectrum rho(std::span<const Point2> u1, std::span<const Float> uc, std::span<const Point2> u2) const;
@@ -46,7 +58,7 @@ inline BSDF::BSDF(Vec3 n, Vec3 t, BxDF* bxdf)
 {
 }
 
-inline Spectrum BSDF::f(Vec3 wo, Vec3 wi) const
+inline Spectrum BSDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     wi = WorldToLocal(wi);
     wo = WorldToLocal(wo);
@@ -56,10 +68,10 @@ inline Spectrum BSDF::f(Vec3 wo, Vec3 wi) const
         return Spectrum::black;
     }
 
-    return bxdf->f(wo, wi);
+    return bxdf->f(wo, wi, direction);
 }
 
-inline Float BSDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
+inline Float BSDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_SamplingFlags flags) const
 {
     wo = WorldToLocal(wo);
     wi = WorldToLocal(wi);
@@ -69,10 +81,12 @@ inline Float BSDF::PDF(Vec3 wo, Vec3 wi, BxDF_SamplingFlags flags) const
         return 0;
     }
 
-    return bxdf->PDF(wo, wi, flags);
+    return bxdf->PDF(wo, wi, direction, flags);
 }
 
-inline bool BSDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, BxDF_SamplingFlags flags) const
+inline bool BSDF::Sample_f(
+    BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, TransportDirection direction, BxDF_SamplingFlags flags
+) const
 {
     BulbitAssert(sample != nullptr);
 
@@ -82,7 +96,7 @@ inline bool BSDF::Sample_f(BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, Bx
         return false;
     }
 
-    if (!bxdf->Sample_f(sample, wo, u0, u12, flags))
+    if (!bxdf->Sample_f(sample, wo, u0, u12, direction, flags))
     {
         return false;
     }

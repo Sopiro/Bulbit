@@ -5,10 +5,11 @@
 namespace bulbit
 {
 
-Spectrum RandomWalkBSSRDF::S(const Intersection& pi, const Vec3& wi) const
+Spectrum RandomWalkBSSRDF::S(const Intersection& pi, const Vec3& wi, TransportDirection direction) const
 {
     BulbitNotUsed(pi);
     BulbitNotUsed(wi);
+    BulbitNotUsed(direction);
     BulbitAssert(false);
 
     return Spectrum::black;
