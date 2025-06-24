@@ -131,8 +131,8 @@ void DielectricBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Flo
                 DielectricBxDF bsdf_i(ior, Spectrum(1), TrowbridgeReitzDistribution(a, a), false);
                 DielectricBxDF bsdf_t(1 / ior, Spectrum(1), TrowbridgeReitzDistribution(a, a), false);
 
-                Float r = bsdf_i.rho(wo, uc, u).Average();
-                Float r_inv = bsdf_t.rho(wo, uc, u).Average();
+                Float r = bsdf_i.rho(wo, uc, u, TransportDirection::ToLight).Average();
+                Float r_inv = bsdf_t.rho(wo, uc, u, TransportDirection::ToLight).Average();
 
                 r_sum += r * cos_theta * d;
                 r_inv_sum += r_inv * cos_theta * d;
