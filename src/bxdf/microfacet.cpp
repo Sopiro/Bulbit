@@ -2,6 +2,7 @@
 #include "bulbit/async_job.h"
 #include "bulbit/bxdfs.h"
 #include "bulbit/image3d.h"
+#include "bulbit/parallel_for.h"
 #include "bulbit/samplers.h"
 #include "bulbit/texture3d.h"
 
@@ -23,8 +24,8 @@ void TrowbridgeReitzDistribution::ComputeReflectanceTexture(int32 texture_size, 
     Image1f image_e_avg(texture_size, 1);
 
     const Float d = 1.0f / texture_size;
-    for (int32 j = 0; j < texture_size; ++j)
-    {
+
+    ParallelFor(0, texture_size, [&](int32 j) {
         Float a = d / 2 + d * j;
 
         Float r_sum = 0;
@@ -45,7 +46,7 @@ void TrowbridgeReitzDistribution::ComputeReflectanceTexture(int32 texture_size, 
         }
 
         image_e_avg(j, 0) = 2 * r_sum;
-    }
+    });
 
 #if WRITE_REFLECTANCE_TEXTURE
     WriteImage(image_e, "E_tr.hdr");
@@ -69,8 +70,7 @@ void CharlieSheenDistribution::ComputeReflectanceTexture(int32 texture_size, std
     Image1f image(texture_size, texture_size);
 
     const Float d = 1.0f / texture_size;
-    for (int32 j = 0; j < texture_size; ++j)
-    {
+    ParallelFor(0, texture_size, [&](int32 j) {
         Float a = d / 2 + d * j;
 
         for (int32 i = 0; i < texture_size; ++i)
@@ -85,7 +85,7 @@ void CharlieSheenDistribution::ComputeReflectanceTexture(int32 texture_size, std
 
             image(i, j) = r;
         }
-    }
+    });
 
 #if WRITE_REFLECTANCE_TEXTURE
     WriteImage(image, "E_cs.hdr");
@@ -108,8 +108,7 @@ void DielectricBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Flo
 
     const Float d = 1.0f / texture_size;
 
-    for (int32 k = 0; k < texture_size; ++k)
-    {
+    ParallelFor(0, texture_size, [&](int32 k) {
         Float f = d / 2 + d * k;
         Float ior = MapF0toIOR(f);
         // std::cout << k << ": " << f << ", " << ior << std::endl;
@@ -144,7 +143,7 @@ void DielectricBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Flo
             image_e_avg(k, j) = 2 * r_sum;
             image_e_inv_avg(k, j) = 2 * r_inv_sum;
         }
-    }
+    });
 
 #if WRITE_REFLECTANCE_TEXTURE
     WriteImage3D(image_e, "E_d.hdr");
@@ -190,24 +189,9 @@ void ComoputeReflectanceTextures()
         }
     }
 
-    std::unique_ptr<AsyncJob<bool>> tr = RunAsync([&]() {
-        TrowbridgeReitzDistribution::ComputeReflectanceTexture(texture_size, uc, u);
-        return true;
-    });
-
-    std::unique_ptr<AsyncJob<bool>> cs = RunAsync([&]() {
-        CharlieSheenDistribution::ComputeReflectanceTexture(texture_size, uc, u);
-        return true;
-    });
-
-    std::unique_ptr<AsyncJob<bool>> d = RunAsync([&]() {
-        DielectricBxDF::ComputeReflectanceTexture(texture_size, uc, u);
-        return true;
-    });
-
-    tr->Wait();
-    cs->Wait();
-    d->Wait();
+    TrowbridgeReitzDistribution::ComputeReflectanceTexture(texture_size, uc, u);
+    CharlieSheenDistribution::ComputeReflectanceTexture(texture_size, uc, u);
+    DielectricBxDF::ComputeReflectanceTexture(texture_size, uc, u);
 }
 
 } // namespace bulbit
