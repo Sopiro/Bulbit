@@ -49,16 +49,8 @@ Spectrum DielectricBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection di
     if (reflect)
     {
         // Compute reflection at rough dielectric interface
-        Spectrum fs = Spectrum(F * mf.D(wm) * mf.G(wo, wi) / std::abs(4 * cos_theta_i * cos_theta_o));
-
-        if (!ms)
-        {
-            return fs;
-        }
-        else
-        {
-            return fs / E(wo, eta);
-        }
+        Spectrum fr(F * mf.D(wm) * mf.G(wo, wi) / std::abs(4 * cos_theta_i * cos_theta_o));
+        return fr;
     }
     else
     {
@@ -72,14 +64,7 @@ Spectrum DielectricBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection di
             ft /= Sqr(eta_p);
         }
 
-        if (!ms)
-        {
-            return r * ft;
-        }
-        else
-        {
-            return r * ft / E(wo, eta);
-        }
+        return r * ft;
     }
 }
 
@@ -235,14 +220,7 @@ bool DielectricBxDF::Sample_f(
             Float pdf = mf.PDF(wo, wm) / (4 * AbsDot(wo, wm)) * pr / (pr + pt);
 
             Spectrum fr(R * mf.D(wm) * mf.G(wo, wi) / (4 * CosTheta(wi) * CosTheta(wo)));
-            if (!ms)
-            {
-                *sample = BSDFSample(fr, wi, pdf, BxDF_Flags::GlossyReflection);
-            }
-            else
-            {
-                *sample = BSDFSample(fr / E(wo, eta), wi, pdf, BxDF_Flags::GlossyReflection);
-            }
+            *sample = BSDFSample(fr, wi, pdf, BxDF_Flags::GlossyReflection);
         }
         else
         {
@@ -272,14 +250,7 @@ bool DielectricBxDF::Sample_f(
                 ft /= Sqr(eta_p);
             }
 
-            if (!ms)
-            {
-                *sample = BSDFSample(r * ft, wi, pdf, BxDF_Flags::GlossyTransmission, eta_p);
-            }
-            else
-            {
-                *sample = BSDFSample(r * ft / E(wo, eta), wi, pdf, BxDF_Flags::GlossyTransmission, eta_p);
-            }
+            *sample = BSDFSample(r * ft, wi, pdf, BxDF_Flags::GlossyTransmission, eta_p);
         }
 
         return true;

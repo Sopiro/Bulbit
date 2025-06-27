@@ -91,10 +91,21 @@ bool ConductorMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec
     Float alpha_x = u_roughness->Evaluate(isect.uv);
     Float alpha_y = v_roughness->Evaluate(isect.uv);
 
-    *bsdf = BSDF(
-        isect.shading.normal, isect.shading.tangent,
-        alloc.new_object<ConductorBxDF>(eta_s, k_s, TrowbridgeReitzDistribution(alpha_x, alpha_y), energy_compensation)
-    );
+    if (energy_compensation)
+    {
+        *bsdf = BSDF(
+            isect.shading.normal, isect.shading.tangent,
+            alloc.new_object<ConductorBxDF>(eta_s, k_s, TrowbridgeReitzDistribution(alpha_x, alpha_y))
+        );
+    }
+    else
+    {
+        *bsdf = BSDF(
+            isect.shading.normal, isect.shading.tangent,
+            alloc.new_object<ConductorBxDF>(eta_s, k_s, TrowbridgeReitzDistribution(alpha_x, alpha_y))
+        );
+    }
+
     return true;
 }
 

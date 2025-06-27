@@ -81,11 +81,10 @@ private:
 class DielectricBxDF : public BxDF
 {
 public:
-    DielectricBxDF(Float eta, Spectrum r, TrowbridgeReitzDistribution mf, bool ms)
+    DielectricBxDF(Float eta, Spectrum r, TrowbridgeReitzDistribution mf)
         : eta{ eta }
         , r{ Sqrt(r) }
         , mf{ mf }
-        , ms{ ms }
     {
     }
 
@@ -162,17 +161,15 @@ private:
 
     Spectrum r;
     TrowbridgeReitzDistribution mf;
-    bool ms;
 };
 
 class ConductorBxDF : public BxDF
 {
 public:
-    ConductorBxDF(Spectrum eta, Spectrum k, TrowbridgeReitzDistribution mf, bool ms)
+    ConductorBxDF(Spectrum eta, Spectrum k, TrowbridgeReitzDistribution mf)
         : mf{ mf }
         , eta{ eta }
         , k{ k }
-        , ms{ ms }
     {
     }
 
@@ -203,7 +200,6 @@ public:
 private:
     TrowbridgeReitzDistribution mf;
     Spectrum eta, k;
-    bool ms;
 };
 
 class ThinDielectricBxDF : public BxDF
