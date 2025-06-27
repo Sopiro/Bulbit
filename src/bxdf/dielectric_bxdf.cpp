@@ -57,7 +57,7 @@ Spectrum DielectricBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection di
         }
         else
         {
-            return fs / E(wo);
+            return fs / E(wo, eta);
         }
     }
     else
@@ -78,7 +78,7 @@ Spectrum DielectricBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection di
         }
         else
         {
-            return r * ft / E(wo);
+            return r * ft / E(wo, eta);
         }
     }
 }
@@ -241,7 +241,7 @@ bool DielectricBxDF::Sample_f(
             }
             else
             {
-                *sample = BSDFSample(fr / E(wo), wi, pdf, BxDF_Flags::GlossyReflection);
+                *sample = BSDFSample(fr / E(wo, eta), wi, pdf, BxDF_Flags::GlossyReflection);
             }
         }
         else
@@ -278,7 +278,7 @@ bool DielectricBxDF::Sample_f(
             }
             else
             {
-                *sample = BSDFSample(r * ft / E(wo), wi, pdf, BxDF_Flags::GlossyTransmission, eta_p);
+                *sample = BSDFSample(r * ft / E(wo, eta), wi, pdf, BxDF_Flags::GlossyTransmission, eta_p);
             }
         }
 

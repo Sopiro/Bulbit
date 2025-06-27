@@ -76,7 +76,7 @@ Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection di
 
         // Add dielectric reflection and metal reflection
         Spectrum rho = T_cc * F * mf.D(wm) * mf.G(wo, wi) / denom;
-        f += (Spectrum(1) + f0 * (1 / mf.rho(wo) - 1)) * rho;
+        f += (Spectrum(1) + f0 * (1 / mf.E(wo) - 1)) * rho;
 #endif
 
         if (sheen > 0)

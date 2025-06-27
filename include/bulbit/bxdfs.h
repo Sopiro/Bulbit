@@ -114,13 +114,13 @@ public:
 
     virtual void Regularize() override;
 
-    Float E(Vec3 wo) const
+    Float E(Vec3 wo, Float eta) const
     {
         BulbitAssert(E_texture != nullptr);
         BulbitAssert(E_inv_texture != nullptr);
 
         Float alpha = std::sqrt(mf.alpha_x * mf.alpha_y);
-        if (eta >= 1.0f)
+        if (eta >= 1)
         {
             Float f0 = MapIORtoF0(eta);
             return E_texture->Evaluate({ f0, std::abs(wo.z), alpha });
@@ -132,31 +132,13 @@ public:
         }
     }
 
-    Float E_inv(Vec3 wi) const
-    {
-        BulbitAssert(E_texture != nullptr);
-        BulbitAssert(E_inv_texture != nullptr);
-
-        Float alpha = std::sqrt(mf.alpha_x * mf.alpha_y);
-        if (eta >= 1.0f)
-        {
-            Float f0 = MapIORtoF0(eta);
-            return E_inv_texture->Evaluate({ f0, std::abs(wi.z), alpha });
-        }
-        else
-        {
-            Float f0 = MapIORtoF0(1 / eta);
-            return E_texture->Evaluate({ f0, std::abs(wi.z), alpha });
-        }
-    }
-
-    Float E_avg() const
+    Float E_avg(Float eta) const
     {
         BulbitAssert(E_avg_texture != nullptr);
         BulbitAssert(E_inv_avg_texture != nullptr);
 
         Float alpha = std::sqrt(mf.alpha_x * mf.alpha_y);
-        if (eta >= 1.0f)
+        if (eta >= 1)
         {
             Float f0 = MapIORtoF0(eta);
             return E_avg_texture->Evaluate({ f0, alpha });
@@ -165,24 +147,6 @@ public:
         {
             Float f0 = MapIORtoF0(1 / eta);
             return E_inv_avg_texture->Evaluate({ f0, alpha });
-        }
-    }
-
-    Float E_avg_inv() const
-    {
-        BulbitAssert(E_avg_texture != nullptr);
-        BulbitAssert(E_inv_avg_texture != nullptr);
-
-        Float alpha = std::sqrt(mf.alpha_x * mf.alpha_y);
-        if (eta >= 1.0f)
-        {
-            Float f0 = MapIORtoF0(eta);
-            return E_inv_avg_texture->Evaluate({ f0, alpha });
-        }
-        else
-        {
-            Float f0 = MapIORtoF0(1 / eta);
-            return E_avg_texture->Evaluate({ f0, alpha });
         }
     }
 
