@@ -94,7 +94,7 @@ void CharlieSheenDistribution::ComputeReflectanceTexture(int32 texture_size, std
     CharlieSheenDistribution::E_texture = std::make_unique<FloatImageTexture>(std::move(image), TexCoordFilter::clamp);
 }
 
-void DielectricBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u)
+void DielectricMultiScatteringBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u)
 {
     if (E_texture && E_inv_texture)
     {
@@ -152,10 +152,10 @@ void DielectricBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Flo
     WriteImage(image_e_inv_avg, "E_inv_avg_d.hdr");
 #endif
 
-    DielectricBxDF::E_texture = std::make_unique<FloatImageTexture3D>(std::move(image_e), TexCoordFilter::clamp);
-    DielectricBxDF::E_inv_texture = std::make_unique<FloatImageTexture3D>(std::move(image_e_inv), TexCoordFilter::clamp);
-    DielectricBxDF::E_avg_texture = std::make_unique<FloatImageTexture>(std::move(image_e_avg), TexCoordFilter::clamp);
-    DielectricBxDF::E_inv_avg_texture = std::make_unique<FloatImageTexture>(std::move(image_e_inv_avg), TexCoordFilter::clamp);
+    E_texture = std::make_unique<FloatImageTexture3D>(std::move(image_e), TexCoordFilter::clamp);
+    E_inv_texture = std::make_unique<FloatImageTexture3D>(std::move(image_e_inv), TexCoordFilter::clamp);
+    E_avg_texture = std::make_unique<FloatImageTexture>(std::move(image_e_avg), TexCoordFilter::clamp);
+    E_inv_avg_texture = std::make_unique<FloatImageTexture>(std::move(image_e_inv_avg), TexCoordFilter::clamp);
 }
 
 void ComoputeReflectanceTextures()
@@ -191,7 +191,7 @@ void ComoputeReflectanceTextures()
 
     TrowbridgeReitzDistribution::ComputeReflectanceTexture(texture_size, uc, u);
     CharlieSheenDistribution::ComputeReflectanceTexture(texture_size, uc, u);
-    DielectricBxDF::ComputeReflectanceTexture(texture_size, uc, u);
+    DielectricMultiScatteringBxDF::ComputeReflectanceTexture(texture_size, uc, u);
 }
 
 } // namespace bulbit

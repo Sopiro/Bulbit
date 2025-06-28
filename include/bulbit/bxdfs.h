@@ -113,6 +113,48 @@ public:
 
     virtual void Regularize() override;
 
+private:
+    Float eta;
+
+    Spectrum r;
+    TrowbridgeReitzDistribution mf;
+};
+
+class DielectricMultiScatteringBxDF : public BxDF
+{
+public:
+    DielectricMultiScatteringBxDF(Float eta, Spectrum r, TrowbridgeReitzDistribution mf)
+        : eta{ eta }
+        , r{ Sqrt(r) }
+        , mf{ mf }
+    {
+    }
+
+    virtual BxDF_Flags Flags() const override
+    {
+        BxDF_Flags flags = (eta == 1) ? BxDF_Flags::Transmission : (BxDF_Flags::Reflection | BxDF_Flags::Transmission);
+        return flags | (mf.EffectivelySmooth() ? BxDF_Flags::Specular : BxDF_Flags::Glossy);
+    }
+
+    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Float PDF(
+        Vec3 wo,
+        Vec3 wi,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
+
+    virtual bool Sample_f(
+        BSDFSample* sample,
+        Vec3 wo,
+        Float u0,
+        Point2 u12,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
+
+    virtual void Regularize() override;
+
     Float E(Vec3 wo, Float eta) const
     {
         BulbitAssert(E_texture != nullptr);
@@ -167,6 +209,45 @@ class ConductorBxDF : public BxDF
 {
 public:
     ConductorBxDF(Spectrum eta, Spectrum k, TrowbridgeReitzDistribution mf)
+        : mf{ mf }
+        , eta{ eta }
+        , k{ k }
+    {
+    }
+
+    virtual BxDF_Flags Flags() const override
+    {
+        return mf.EffectivelySmooth() ? BxDF_Flags::SpecularReflection : BxDF_Flags::GlossyReflection;
+    }
+
+    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Float PDF(
+        Vec3 wo,
+        Vec3 wi,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
+
+    virtual bool Sample_f(
+        BSDFSample* sample,
+        Vec3 wo,
+        Float u0,
+        Point2 u12,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
+
+    virtual void Regularize() override;
+
+private:
+    TrowbridgeReitzDistribution mf;
+    Spectrum eta, k;
+};
+
+class ConductorMultiScatteringBxDF : public BxDF
+{
+public:
+    ConductorMultiScatteringBxDF(Spectrum eta, Spectrum k, TrowbridgeReitzDistribution mf)
         : mf{ mf }
         , eta{ eta }
         , k{ k }
@@ -443,7 +524,8 @@ private:
 
 constexpr size_t max_bxdf_size = std::max(
     { sizeof(LambertianBxDF), sizeof(SpecularReflectionBxDF), sizeof(DielectricBxDF), sizeof(ConductorBxDF),
-      sizeof(ThinDielectricBxDF), sizeof(MetallicRoughnessBxDF), sizeof(PrincipledBxDF), sizeof(NormalizedFresnelBxDF) }
+      sizeof(DielectricMultiScatteringBxDF), sizeof(ConductorMultiScatteringBxDF), sizeof(ThinDielectricBxDF),
+      sizeof(MetallicRoughnessBxDF), sizeof(PrincipledBxDF), sizeof(NormalizedFresnelBxDF) }
 );
 
 } // namespace bulbit

@@ -55,7 +55,7 @@ bool DielectricMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Ve
     {
         *bsdf = BSDF(
             isect.shading.normal, isect.shading.tangent,
-            alloc.new_object<DielectricBxDF>(eta_p, r, TrowbridgeReitzDistribution(alpha_x, alpha_y))
+            alloc.new_object<DielectricMultiScatteringBxDF>(eta_p, r, TrowbridgeReitzDistribution(alpha_x, alpha_y))
         );
     }
     else

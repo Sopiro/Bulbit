@@ -146,7 +146,7 @@ public:
     static void ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
 
 private:
-    friend class DielectricBxDF;
+    friend class DielectricMultiScatteringBxDF;
 
     static inline std::unique_ptr<FloatImageTexture> E_texture = nullptr;
     static inline std::unique_ptr<FloatImageTexture> E_avg_texture = nullptr;

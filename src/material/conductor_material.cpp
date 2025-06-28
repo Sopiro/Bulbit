@@ -95,7 +95,7 @@ bool ConductorMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec
     {
         *bsdf = BSDF(
             isect.shading.normal, isect.shading.tangent,
-            alloc.new_object<ConductorBxDF>(eta_s, k_s, TrowbridgeReitzDistribution(alpha_x, alpha_y))
+            alloc.new_object<ConductorMultiScatteringBxDF>(eta_s, k_s, TrowbridgeReitzDistribution(alpha_x, alpha_y))
         );
     }
     else
