@@ -1,8 +1,6 @@
 #include "bulbit/bxdfs.h"
 #include "bulbit/scattering.h"
 
-#define SIMPLE_FRESNEL 1
-
 namespace bulbit
 {
 
