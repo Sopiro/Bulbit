@@ -160,16 +160,15 @@ public:
         BulbitAssert(E_texture != nullptr);
         BulbitAssert(E_inv_texture != nullptr);
 
-        Float alpha = std::sqrt(mf.alpha_x * mf.alpha_y);
         if (eta >= 1)
         {
             Float f0 = MapIORtoF0(eta);
-            return E_texture->Evaluate({ f0, std::abs(wo.z), alpha });
+            return E_texture->Evaluate({ f0, std::abs(wo.z), mf.GetMeanAlpha() });
         }
         else
         {
             Float f0 = MapIORtoF0(1 / eta);
-            return E_inv_texture->Evaluate({ f0, std::abs(wo.z), alpha });
+            return E_inv_texture->Evaluate({ f0, std::abs(wo.z), mf.GetMeanAlpha() });
         }
     }
 
@@ -178,16 +177,15 @@ public:
         BulbitAssert(E_avg_texture != nullptr);
         BulbitAssert(E_inv_avg_texture != nullptr);
 
-        Float alpha = std::sqrt(mf.alpha_x * mf.alpha_y);
         if (eta >= 1)
         {
             Float f0 = MapIORtoF0(eta);
-            return E_avg_texture->Evaluate({ f0, alpha });
+            return E_avg_texture->Evaluate({ f0, mf.GetMeanAlpha() });
         }
         else
         {
             Float f0 = MapIORtoF0(1 / eta);
-            return E_inv_avg_texture->Evaluate({ f0, alpha });
+            return E_inv_avg_texture->Evaluate({ f0, mf.GetMeanAlpha() });
         }
     }
 

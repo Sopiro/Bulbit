@@ -143,11 +143,24 @@ public:
         return E_avg_texture->Evaluate({ alpha, 0 });
     }
 
+    Float GetAlphaX() const
+    {
+        return alpha_x;
+    }
+
+    Float GetAlphaY() const
+    {
+        return alpha_y;
+    }
+
+    Float GetMeanAlpha() const
+    {
+        return std::sqrt(alpha_x * alpha_y);
+    }
+
     static void ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
 
 private:
-    friend class DielectricMultiScatteringBxDF;
-
     static inline std::unique_ptr<FloatImageTexture> E_texture = nullptr;
     static inline std::unique_ptr<FloatImageTexture> E_avg_texture = nullptr;
 
