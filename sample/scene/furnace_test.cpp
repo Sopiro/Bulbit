@@ -40,11 +40,10 @@ std::unique_ptr<Camera> FurnacePrincipled(Scene& scene)
     outers[4] = CreatePrincipledMaterial(scene, color, metallic, 1.0f, anisotrophy, ior, transmission);
 
     const Material* inners[count];
-    inners[0] = outers[0];
-    inners[1] = outers[1];
-    inners[2] = outers[2];
-    inners[3] = outers[3];
-    inners[4] = outers[4];
+    for (int32 i = 0; i < count; ++i)
+    {
+        inners[i] = outers[i];
+    }
 
     for (int32 j = 0; j < h; ++j)
     {
@@ -124,18 +123,17 @@ std::unique_ptr<Camera> FurnaceDielectric(Scene& scene)
     Float ior = 1.5f;
     bool energy_compensation = true;
 
-    outers[3] = CreateDielectricMaterial(scene, ior, Spectrum(1), 0.0f, energy_compensation);
-    outers[1] = CreateDielectricMaterial(scene, ior, Spectrum(1), 0.25f, energy_compensation);
-    outers[0] = CreateDielectricMaterial(scene, ior, Spectrum(1), 0.5f, energy_compensation);
-    outers[2] = CreateDielectricMaterial(scene, ior, Spectrum(1), 0.75f, energy_compensation);
-    outers[4] = CreateDielectricMaterial(scene, ior, Spectrum(1), 1.0f, energy_compensation);
+    outers[3] = CreateDielectricMaterial(scene, ior, color, 0.0f, energy_compensation);
+    outers[1] = CreateDielectricMaterial(scene, ior, color, 0.25f, energy_compensation);
+    outers[0] = CreateDielectricMaterial(scene, ior, color, 0.5f, energy_compensation);
+    outers[2] = CreateDielectricMaterial(scene, ior, color, 0.75f, energy_compensation);
+    outers[4] = CreateDielectricMaterial(scene, ior, color, 1.0f, energy_compensation);
 
     const Material* inners[count];
-    inners[0] = outers[0];
-    inners[1] = outers[1];
-    inners[2] = outers[2];
-    inners[3] = outers[3];
-    inners[4] = outers[4];
+    for (int32 i = 0; i < count; ++i)
+    {
+        inners[i] = outers[i];
+    }
 
     for (int32 j = 0; j < h; ++j)
     {
@@ -160,7 +158,7 @@ std::unique_ptr<Camera> FurnaceDielectric(Scene& scene)
         }
     }
 
-    // CreateUniformInfiniteLight(scene, Spectrum(1));
+    CreateUniformInfiniteLight(scene, Spectrum(1));
     // CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
 
@@ -210,24 +208,24 @@ std::unique_ptr<Camera> FurnaceConductor(Scene& scene)
     const Material* outers[count];
 
     Spectrum color = { 1.0f, 1.0f, 1.0f };
+    // Spectrum color = { 212 / 255.f, 175 / 255.f, 55 / 255.f };
     Float metallic = 0.0f;
     Float transmission = 1.0f;
     Float anisotrophy = 0.0f;
     Float ior = 1.5f;
     bool energy_compensation = true;
 
-    outers[3] = CreateConductorMaterial(scene, Spectrum(1), 0.0f, energy_compensation);
-    outers[1] = CreateConductorMaterial(scene, Spectrum(1), 0.25f, energy_compensation);
-    outers[0] = CreateConductorMaterial(scene, Spectrum(1), 0.5f, energy_compensation);
-    outers[2] = CreateConductorMaterial(scene, Spectrum(1), 0.75f, energy_compensation);
-    outers[4] = CreateConductorMaterial(scene, Spectrum(1), 1.0f, energy_compensation);
+    outers[3] = CreateConductorMaterial(scene, color, 0.0f, energy_compensation);
+    outers[1] = CreateConductorMaterial(scene, color, 0.25f, energy_compensation);
+    outers[0] = CreateConductorMaterial(scene, color, 0.5f, energy_compensation);
+    outers[2] = CreateConductorMaterial(scene, color, 0.75f, energy_compensation);
+    outers[4] = CreateConductorMaterial(scene, color, 1.0f, energy_compensation);
 
     const Material* inners[count];
-    inners[0] = outers[0];
-    inners[1] = outers[1];
-    inners[2] = outers[2];
-    inners[3] = outers[3];
-    inners[4] = outers[4];
+    for (int32 i = 0; i < count; ++i)
+    {
+        inners[i] = outers[i];
+    }
 
     for (int32 j = 0; j < h; ++j)
     {

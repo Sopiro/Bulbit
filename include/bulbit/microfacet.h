@@ -131,16 +131,14 @@ public:
     {
         BulbitAssert(E_texture != nullptr);
 
-        Float alpha = std::sqrt(alpha_x * alpha_y);
-        return E_texture->Evaluate({ wo.z, alpha });
+        return E_texture->Evaluate({ wo.z, GetMeanAlpha() });
     }
 
     Float E_avg() const
     {
         BulbitAssert(E_avg_texture != nullptr);
 
-        Float alpha = std::sqrt(alpha_x * alpha_y);
-        return E_avg_texture->Evaluate({ alpha, 0 });
+        return E_avg_texture->Evaluate({ GetMeanAlpha(), 0 });
     }
 
     Float GetAlphaX() const
