@@ -189,72 +189,68 @@ bool DielectricMultiScatteringBxDF::Sample_f(
 
         return true;
     }
-    else
+
+    // Sample rough dielectric BSDF
+    Vec3 wm = mf.Sample_Wm(wo, u12);
+
+    Float R = FresnelDielectric(Dot(wo, wm), eta);
+    Float T = 1 - R;
+
+    // Compute sampling probabilities for reflection and transmission
+    Float pr = R;
+    Float pt = T;
+    if (!(flags & BxDF_SamplingFlags::Reflection)) pr = 0;
+    if (!(flags & BxDF_SamplingFlags::Transmission)) pt = 0;
+    if (pr == 0 && pt == 0)
     {
-        // Sample rough dielectric BSDF
-        Vec3 wm = mf.Sample_Wm(wo, u12);
+        return false;
+    }
 
-        Float R = FresnelDielectric(Dot(wo, wm), eta);
-        Float T = 1 - R;
-
-        // Compute sampling probabilities for reflection and transmission
-        Float pr = R;
-        Float pt = T;
-        if (!(flags & BxDF_SamplingFlags::Reflection)) pr = 0;
-        if (!(flags & BxDF_SamplingFlags::Transmission)) pt = 0;
-        if (pr == 0 && pt == 0)
+    if (u0 < pr / (pr + pt))
+    {
+        // Sample reflection at rough dielectric interface
+        Vec3 wi = Reflect(wo, wm);
+        if (!SameHemisphere(wo, wi))
         {
             return false;
         }
 
-        if (u0 < pr / (pr + pt))
-        {
-            // Sample reflection at rough dielectric interface
-            Vec3 wi = Reflect(wo, wm);
-            if (!SameHemisphere(wo, wi))
-            {
-                return false;
-            }
+        // Compute PDF of rough dielectric reflection
+        Float pdf = mf.PDF(wo, wm) / (4 * AbsDot(wo, wm)) * pr / (pr + pt);
 
-            // Compute PDF of rough dielectric reflection
-            Float pdf = mf.PDF(wo, wm) / (4 * AbsDot(wo, wm)) * pr / (pr + pt);
-
-            Spectrum fr(R * mf.D(wm) * mf.G(wo, wi) / (4 * CosTheta(wi) * CosTheta(wo)));
-            *sample = BSDFSample(fr, wi, pdf, BxDF_Flags::GlossyReflection);
-        }
-        else
-        {
-            // Sample transmission at rough dielectric interface
-            Float eta_p;
-            Vec3 wi;
-
-            // Total internal reflection
-            bool tir = !Refract(&wi, wo, wm, eta, &eta_p);
-            if (SameHemisphere(wo, wi) || wi.z == 0 || tir)
-            {
-                return false;
-            }
-
-            // Compute PDF of rough dielectric transmission
-            Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p);
-            Float dwm_dwi = AbsDot(wi, wm) / denom;
-            Float pdf = mf.PDF(wo, wm) * dwm_dwi * pt / (pr + pt);
-
-            Spectrum ft(
-                T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom))
-            );
-
-            // Handle solid angle squeezing
-            if (direction == TransportDirection::ToLight)
-            {
-                ft /= Sqr(eta_p);
-            }
-
-            *sample = BSDFSample(r * ft, wi, pdf, BxDF_Flags::GlossyTransmission, eta_p);
-        }
-
-        return true;
+        Spectrum fr(R * mf.D(wm) * mf.G(wo, wi) / (4 * CosTheta(wi) * CosTheta(wo)));
+        *sample = BSDFSample(fr, wi, pdf, BxDF_Flags::GlossyReflection);
     }
+    else
+    {
+        // Sample transmission at rough dielectric interface
+        Float eta_p;
+        Vec3 wi;
+
+        // Total internal reflection
+        bool tir = !Refract(&wi, wo, wm, eta, &eta_p);
+        if (SameHemisphere(wo, wi) || wi.z == 0 || tir)
+        {
+            return false;
+        }
+
+        // Compute PDF of rough dielectric transmission
+        Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p);
+        Float dwm_dwi = AbsDot(wi, wm) / denom;
+        Float pdf = mf.PDF(wo, wm) * dwm_dwi * pt / (pr + pt);
+
+        Spectrum ft(T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom)));
+
+        // Handle solid angle squeezing
+        if (direction == TransportDirection::ToLight)
+        {
+            ft /= Sqr(eta_p);
+        }
+
+        *sample = BSDFSample(r * ft, wi, pdf, BxDF_Flags::GlossyTransmission, eta_p);
+    }
+
+    return true;
 }
 
 void DielectricMultiScatteringBxDF::Regularize()

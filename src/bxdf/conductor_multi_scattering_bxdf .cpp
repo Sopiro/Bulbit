@@ -83,12 +83,12 @@ bool ConductorMultiScatteringBxDF::Sample_f(
         return true;
     }
 
-    // Sample rough conductor BRDF
     if (wo.z == 0)
     {
         return false;
     }
 
+    // Sample rough conductor BRDF
     Vec3 wm = mf.Sample_Wm(wo, u12);
     Vec3 wi = Reflect(wo, wm);
 
