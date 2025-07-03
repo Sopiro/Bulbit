@@ -257,8 +257,9 @@ bool DielectricMultiScatteringBxDF::Sample_f(
             Float pdf_ms = (1 - ratio) * CosineHemispherePDF(AbsCosTheta(wi));
             Float pdf = Lerp(pdf_ms, pdf_ss, reflectance);
 
-            Spectrum ft_ss =
-                r * T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom));
+            Spectrum ft_ss(
+                T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom))
+            );
             Spectrum ft_ms((1 - ratio) * (1 - E(wi, 1 / eta)) * (1 - E(wo, eta)) / std::fmax(1e-4f, pi * (1 - E_avg(1 / eta))));
 
             // Handle solid angle squeezing
@@ -267,7 +268,7 @@ bool DielectricMultiScatteringBxDF::Sample_f(
                 ft_ss /= Sqr(eta_p);
             }
 
-            *sample = BSDFSample(ft_ss + ft_ms, wi, pdf, BxDF_Flags::GlossyTransmission, eta_p);
+            *sample = BSDFSample(r * (ft_ss + ft_ms), wi, pdf, BxDF_Flags::GlossyTransmission, eta_p);
         }
 
         return true;
@@ -329,8 +330,9 @@ bool DielectricMultiScatteringBxDF::Sample_f(
             Float pdf_ms = CosineHemispherePDF(AbsCosTheta(wi)) * pt / (pr + pt);
             Float pdf = Lerp(pdf_ms, pdf_ss, reflectance);
 
-            Spectrum ft_ss =
-                r * T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom));
+            Spectrum ft_ss(
+                T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom))
+            );
             Spectrum ft_ms((1 - ratio) * (1 - E(wi, 1 / eta)) * (1 - E(wo, eta)) / std::fmax(1e-4f, pi * (1 - E_avg(1 / eta))));
 
             // Handle solid angle squeezing
@@ -339,7 +341,7 @@ bool DielectricMultiScatteringBxDF::Sample_f(
                 ft_ss /= Sqr(eta);
             }
 
-            *sample = BSDFSample(ft_ss + ft_ms, wi, pdf, BxDF_Flags::DiffuseTransmission, eta);
+            *sample = BSDFSample(r * (ft_ss + ft_ms), wi, pdf, BxDF_Flags::DiffuseTransmission, eta);
         }
 
         return true;
