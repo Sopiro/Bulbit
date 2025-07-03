@@ -155,7 +155,7 @@ inline Float FresnelMoment1(Float eta)
 
 inline Float FresnelDielectricAverage(Float eta)
 {
-    // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_sheen.pdf
+    // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_slides_v2.pdf
     // P. 23
 
     if (eta < 1)

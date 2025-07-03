@@ -130,8 +130,8 @@ void DielectricMultiScatteringBxDF::ComputeReflectanceTexture(int32 texture_size
                 DielectricBxDF bsdf_i(ior, Spectrum(1), TrowbridgeReitzDistribution(a, a));
                 DielectricBxDF bsdf_t(1 / ior, Spectrum(1), TrowbridgeReitzDistribution(a, a));
 
-                Float r = bsdf_i.rho(wo, uc, u, TransportDirection::ToLight).Average();
-                Float r_inv = bsdf_t.rho(wo, uc, u, TransportDirection::ToLight).Average();
+                Float r = bsdf_i.rho(wo, uc, u, TransportDirection::ToCamera).Average();
+                Float r_inv = bsdf_t.rho(wo, uc, u, TransportDirection::ToCamera).Average();
 
                 r_sum += r * cos_theta * d;
                 r_inv_sum += r_inv * cos_theta * d;
