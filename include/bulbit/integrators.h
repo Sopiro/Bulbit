@@ -16,7 +16,19 @@ public:
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 };
 
-// This integrator evaluates ambient occlusion
+class RandomWalkIntegrator : public UniDirectionalRayIntegrator
+{
+public:
+    RandomWalkIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces);
+    virtual ~RandomWalkIntegrator() = default;
+
+    virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
+
+private:
+    std::vector<Light*> infinite_lights;
+    int32 max_bounces;
+};
+
 class AmbientOcclusion : public UniDirectionalRayIntegrator
 {
 public:
@@ -42,7 +54,7 @@ private:
     std::vector<Light*> infinite_lights;
 };
 
-// Whitted-style raytracing
+// Whitted-style raytracer
 class WhittedStyle : public UniDirectionalRayIntegrator
 {
 public:
@@ -96,8 +108,9 @@ public:
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 
 private:
-    Spectrum SampleDirectLight(const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler& sampler, const Spectrum& beta)
-        const;
+    Spectrum SampleDirectLight(
+        const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler& sampler, const Spectrum& beta
+    ) const;
 
     std::vector<Light*> infinite_lights;
     std::unordered_map<const Primitive*, AreaLight*> area_lights;
