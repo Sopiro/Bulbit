@@ -151,8 +151,8 @@ std::unique_ptr<Camera> FurnaceDielectric(Scene& scene)
             auto tf = Transform{ p, Quat::FromEuler({ 0, 0, 0 }), Vec3(2.0f) };
             LoadModel(scene, "res/mori_knob/base.obj", tf);
 
-            tf = Transform{ p, Quat::FromEuler({ 0, 0, 0 }), Vec3(2.2f) };
-            // LoadModel(scene, "res/mori_knob/outer.obj", tf);
+            tf = Transform{ p, Quat::FromEuler({ 0, 0, 0 }), Vec3(2.0f) };
+            LoadModel(scene, "res/mori_knob/outer.obj", tf);
             LoadModel(scene, "res/mori_knob/inner.obj", tf);
             // LoadModel(scene, "res/mori_knob/equation.obj", tf);
         }
