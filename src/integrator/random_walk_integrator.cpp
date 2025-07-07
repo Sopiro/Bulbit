@@ -39,15 +39,15 @@ Spectrum RandomWalkIntegrator::Li(const Ray& primary_ray, const Medium* primary_
             break;
         }
 
-        if (bounce++ >= max_bounces)
-        {
-            break;
-        }
-
         Vec3 wo = Normalize(-ray.d);
 
         // Add surface emission
         L += beta * isect.Le(wo);
+
+        if (bounce++ >= max_bounces)
+        {
+            break;
+        }
 
         int8 mem[max_bxdf_size];
         Resource res(mem, sizeof(mem));

@@ -85,7 +85,14 @@ bool Intersection::GetBSSRDF(BSSRDF** bssrdf, const Vec3& wo, Allocator& alloc)
 const Medium* Intersection::GetMedium(const Vec3& w) const
 {
     const MediumInterface* medium_interface = primitive->GetMediumInterface();
-    return front_face == (Dot(w, normal) > 0) ? medium_interface->outside : medium_interface->inside;
+    if (front_face == (Dot(w, normal) > 0))
+    {
+        return medium_interface->outside;
+    }
+    else
+    {
+        return medium_interface->inside;
+    }
 }
 
 } // namespace  bulbit
