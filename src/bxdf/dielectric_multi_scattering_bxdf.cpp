@@ -39,33 +39,43 @@ Spectrum DielectricMultiScatteringBxDF::f(const Vec3& wo, const Vec3& wi, Transp
     }
 
     // Discard backfacing microfacets
-
     if (Dot(wm, wi) * cos_theta_i < 0 || Dot(wm, wo) * cos_theta_o < 0)
     {
         return Spectrum::black;
     }
 
+    Float eta_i = eta >= 1 ? eta : 1 / eta;
+    Float eta_t = 1 / eta_i;
+    Float a = (1 - FresnelDielectricAverage(eta_i)) / (1 - E_avg(eta_t));
+    Float b = Sqr(eta_i) * (1 - FresnelDielectricAverage(eta_t)) / (1 - E_avg(eta_i));
+    Float x = b / (a + b);
+
+    Float ratio = 1 - (eta >= 1 ? x : (1 - x)) * (1 - FresnelDielectricAverage(eta));
+
     Float F = FresnelDielectric(Dot(wo, wm), eta);
     if (reflect)
     {
-        // Compute reflection at rough dielectric interface
-        Spectrum fs = Spectrum(F * mf.D(wm) * mf.G(wo, wi) / std::abs(4 * cos_theta_i * cos_theta_o));
+        Spectrum fr_ss(F * mf.D(wm) * mf.G(wo, wi) / (4 * CosTheta(wi) * CosTheta(wo)));
+        Spectrum fr_ms(ratio * (1 - E(wi, eta)) * (1 - E(wo, eta)) / std::fmax(1e-4f, pi * (1 - E_avg(eta))));
 
-        return fs / E(wo, eta);
+        return fr_ss + fr_ms;
     }
     else
     {
-        // Compute transmission at rough dielectric interface
-        Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p) * cos_theta_i * cos_theta_o;
-        Float ft = (1 - F) * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / denom);
+        Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta);
+
+        Spectrum ft_ss(
+            (1 - F) * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom))
+        );
+        Spectrum ft_ms((1 - ratio) * (1 - E(wi, 1 / eta)) * (1 - E(wo, eta)) / std::fmax(1e-4f, pi * (1 - E_avg(1 / eta))));
 
         // Handle solid angle squeezing
         if (direction == TransportDirection::ToLight)
         {
-            ft /= Sqr(eta_p);
+            ft_ss /= Sqr(eta);
         }
 
-        return r * ft / E(wo, eta);
+        return r * (ft_ss + ft_ms);
     }
 }
 
@@ -122,19 +132,35 @@ Float DielectricMultiScatteringBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection di
         return 0;
     }
 
-    // Return PDF for rough dielectric
+    Float eta_i = eta >= 1 ? eta : 1 / eta;
+    Float eta_t = 1 / eta_i;
+    Float a = (1 - FresnelDielectricAverage(eta_i)) / (1 - E_avg(eta_t));
+    Float b = Sqr(eta_i) * (1 - FresnelDielectricAverage(eta_t)) / (1 - E_avg(eta_i));
+    Float x = b / (a + b);
+
+    Float ratio = 1 - (eta >= 1 ? x : (1 - x)) * (1 - FresnelDielectricAverage(eta));
+
+    Float reflectance = std::fmin(E(wo, eta), 1 - 1e-4f);
+
     Float pdf;
     if (reflect)
     {
         // Compute PDF of rough dielectric reflection
-        pdf = mf.PDF(wo, wm) / (4 * AbsDot(wo, wm)) * pr / (pr + pt);
+        Float pdf_ss = mf.PDF(wo, wm) / (4 * AbsDot(wo, wm)) * pr / (pr + pt);
+        Float pdf_ms = ratio * CosineHemispherePDF(AbsCosTheta(wi));
+
+        pdf = Lerp(pdf_ms, pdf_ss, reflectance);
     }
     else
     {
         // Compute PDF of rough dielectric transmission
         Float dwm_dwi = AbsDot(wi, wm) / Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p);
-        pdf = mf.PDF(wo, wm) * dwm_dwi * pt / (pr + pt);
+        Float pdf_ss = mf.PDF(wo, wm) * dwm_dwi * pt / (pr + pt);
+        Float pdf_ms = (1 - ratio) * CosineHemispherePDF(AbsCosTheta(wi));
+
+        pdf = Lerp(pdf_ms, pdf_ss, reflectance);
     }
+
     return pdf;
 }
 
