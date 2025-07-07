@@ -345,7 +345,7 @@ Spectrum VolPathIntegrator::Li(const Ray& primary_ray, const Medium* primary_med
         if (bounce > min_bounces)
         {
             Spectrum rr = beta * eta_scale / r_u.Average();
-            if (Float p = rr.MaxComponent() < 1)
+            if (Float p = rr.MaxComponent(); p < 1)
             {
                 if (sampler.Next1D() > p)
                 {
