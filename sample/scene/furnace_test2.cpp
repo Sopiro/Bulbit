@@ -125,17 +125,17 @@ std::unique_ptr<Camera> FurnaceDielectric2(Scene& scene)
     Float ior = 1.5f;
     bool energy_compensation = true;
 
-    outers[9] = CreateDielectricMaterial(scene, ior, Spectrum(1), 0.0f, energy_compensation);
-    outers[7] = CreateDielectricMaterial(scene, ior, Spectrum(1), 0.1f, energy_compensation);
-    outers[5] = CreateDielectricMaterial(scene, ior, Spectrum(1), 0.2f, energy_compensation);
-    outers[3] = CreateDielectricMaterial(scene, ior, Spectrum(1), 0.3f, energy_compensation);
-    outers[1] = CreateDielectricMaterial(scene, ior, Spectrum(1), 0.4f, energy_compensation);
-    outers[0] = CreateDielectricMaterial(scene, ior, Spectrum(1), 0.5f, energy_compensation);
-    outers[2] = CreateDielectricMaterial(scene, ior, Spectrum(1), 0.6f, energy_compensation);
-    outers[4] = CreateDielectricMaterial(scene, ior, Spectrum(1), 0.7f, energy_compensation);
-    outers[6] = CreateDielectricMaterial(scene, ior, Spectrum(1), 0.8f, energy_compensation);
-    outers[8] = CreateDielectricMaterial(scene, ior, Spectrum(1), 0.9f, energy_compensation);
-    outers[10] = CreateDielectricMaterial(scene, ior, Spectrum(1), 1.0f, energy_compensation);
+    outers[9] = CreateDielectricMaterial(scene, ior, color, 0.0f, energy_compensation);
+    outers[7] = CreateDielectricMaterial(scene, ior, color, 0.1f, energy_compensation);
+    outers[5] = CreateDielectricMaterial(scene, ior, color, 0.2f, energy_compensation);
+    outers[3] = CreateDielectricMaterial(scene, ior, color, 0.3f, energy_compensation);
+    outers[1] = CreateDielectricMaterial(scene, ior, color, 0.4f, energy_compensation);
+    outers[0] = CreateDielectricMaterial(scene, ior, color, 0.5f, energy_compensation);
+    outers[2] = CreateDielectricMaterial(scene, ior, color, 0.6f, energy_compensation);
+    outers[4] = CreateDielectricMaterial(scene, ior, color, 0.7f, energy_compensation);
+    outers[6] = CreateDielectricMaterial(scene, ior, color, 0.8f, energy_compensation);
+    outers[8] = CreateDielectricMaterial(scene, ior, color, 0.9f, energy_compensation);
+    outers[10] = CreateDielectricMaterial(scene, ior, color, 1.0f, energy_compensation);
 
     const Material* inners[count];
     for (int32 i = 0; i < count; ++i)

@@ -74,6 +74,10 @@ Spectrum DielectricMultiScatteringBxDF::f(const Vec3& wo, const Vec3& wi, Transp
         {
             ft_ss /= Sqr(eta);
         }
+        else
+        {
+            ft_ms *= Sqr(eta);
+        }
 
         return r * (ft_ss + ft_ms);
     }
@@ -293,6 +297,10 @@ bool DielectricMultiScatteringBxDF::Sample_f(
             {
                 ft_ss /= Sqr(eta_p);
             }
+            else
+            {
+                ft_ms *= Sqr(eta_p);
+            }
 
             *sample = BSDFSample(r * (ft_ss + ft_ms), wi, pdf, BxDF_Flags::GlossyTransmission, eta_p);
         }
@@ -365,6 +373,10 @@ bool DielectricMultiScatteringBxDF::Sample_f(
             if (direction == TransportDirection::ToLight)
             {
                 ft_ss /= Sqr(eta);
+            }
+            else
+            {
+                ft_ms *= Sqr(eta);
             }
 
             *sample = BSDFSample(r * (ft_ss + ft_ms), wi, pdf, BxDF_Flags::DiffuseTransmission, eta);
