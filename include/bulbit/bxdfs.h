@@ -315,6 +315,45 @@ private:
     Float eta;
 };
 
+class SheenBxDF : public BxDF
+{
+public:
+    SheenBxDF(Spectrum base, Spectrum sheen, CharlieSheenDistribution mf)
+        : base{ base }
+        , sheen{ sheen }
+        , mf{ mf }
+    {
+    }
+
+    virtual BxDF_Flags Flags() const override
+    {
+        return BxDF_Flags::Diffuse | BxDF_Flags::Reflection;
+    }
+
+    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Float PDF(
+        Vec3 wo,
+        Vec3 wi,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
+
+    virtual bool Sample_f(
+        BSDFSample* sample,
+        Vec3 wo,
+        Float u0,
+        Point2 u12,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
+
+    virtual void Regularize() override {}
+
+private:
+    Spectrum base, sheen;
+    CharlieSheenDistribution mf;
+};
+
 class MetallicRoughnessBxDF : public BxDF
 {
 public:
@@ -522,7 +561,7 @@ private:
 
 constexpr size_t max_bxdf_size = std::max(
     { sizeof(LambertianBxDF), sizeof(SpecularReflectionBxDF), sizeof(DielectricBxDF), sizeof(ConductorBxDF),
-      sizeof(DielectricMultiScatteringBxDF), sizeof(ConductorMultiScatteringBxDF), sizeof(ThinDielectricBxDF),
+      sizeof(DielectricMultiScatteringBxDF), sizeof(ConductorMultiScatteringBxDF), sizeof(ThinDielectricBxDF), sizeof(SheenBxDF),
       sizeof(MetallicRoughnessBxDF), sizeof(PrincipledBxDF), sizeof(NormalizedFresnelBxDF) }
 );
 

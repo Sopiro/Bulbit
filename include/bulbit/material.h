@@ -16,6 +16,7 @@ using Materials = TypePack<
     class MirrorMaterial,
     class DielectricMaterial,
     class ThinDielectricMaterial,
+    class ClothMaterial,
     class ConductorMaterial,
     class MetallicRoughnessMaterial,
     class PrincipledMaterial,

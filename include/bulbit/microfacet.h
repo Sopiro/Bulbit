@@ -175,7 +175,7 @@ public:
     {
     }
 
-    Float D(Vec3& wm) const
+    Float D(const Vec3& wm) const
     {
         // Eq. (2)
         Float inv_r = 1 / alpha;
