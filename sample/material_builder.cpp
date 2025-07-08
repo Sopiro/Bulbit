@@ -100,6 +100,21 @@ ConductorMaterial* CreateConductorMaterial(
     );
 }
 
+ClothMaterial* CreateClothMaterial(
+    Scene& scene,
+    const Spectrum& basecolor,
+    const Spectrum& sheen_color,
+    Float roughness,
+    const SpectrumTexture* normalmap,
+    Float alpha
+)
+{
+    return scene.CreateMaterial<ClothMaterial>(
+        CreateSpectrumConstantTexture(scene, basecolor), CreateSpectrumConstantTexture(scene, sheen_color),
+        CreateFloatConstantTexture(scene, roughness), normalmap, CreateFloatConstantTexture(scene, alpha)
+    );
+}
+
 MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
     Scene& scene,
     const Spectrum& basecolor,

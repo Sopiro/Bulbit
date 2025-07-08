@@ -34,11 +34,11 @@ std::unique_ptr<Camera> ClothTest(Scene& scene)
     Float ior = 1.5f;
     bool energy_compensation = true;
 
-    outers[3] = scene.CreateMaterial<ClothMaterial>(base, sheen, 0.0f);
-    outers[1] = scene.CreateMaterial<ClothMaterial>(base, sheen, 0.25f);
-    outers[0] = scene.CreateMaterial<ClothMaterial>(base, sheen, 0.5f);
-    outers[2] = scene.CreateMaterial<ClothMaterial>(base, sheen, 0.75f);
-    outers[4] = scene.CreateMaterial<ClothMaterial>(base, sheen, 1.0f);
+    outers[3] = CreateClothMaterial(scene, base, sheen, 0.0f);
+    outers[1] = CreateClothMaterial(scene, base, sheen, 0.25f);
+    outers[0] = CreateClothMaterial(scene, base, sheen, 0.5f);
+    outers[2] = CreateClothMaterial(scene, base, sheen, 0.75f);
+    outers[4] = CreateClothMaterial(scene, base, sheen, 1.0f);
 
     const Material* inners[count];
     for (int32 i = 0; i < count; ++i)
@@ -127,17 +127,17 @@ std::unique_ptr<Camera> ClothTest2(Scene& scene)
     Float ior = 1.5f;
     bool energy_compensation = true;
 
-    outers[9] = scene.CreateMaterial<ClothMaterial>(base, sheen, 0.0f);
-    outers[7] = scene.CreateMaterial<ClothMaterial>(base, sheen, 0.1f);
-    outers[5] = scene.CreateMaterial<ClothMaterial>(base, sheen, 0.2f);
-    outers[3] = scene.CreateMaterial<ClothMaterial>(base, sheen, 0.3f);
-    outers[1] = scene.CreateMaterial<ClothMaterial>(base, sheen, 0.4f);
-    outers[0] = scene.CreateMaterial<ClothMaterial>(base, sheen, 0.5f);
-    outers[2] = scene.CreateMaterial<ClothMaterial>(base, sheen, 0.6f);
-    outers[4] = scene.CreateMaterial<ClothMaterial>(base, sheen, 0.7f);
-    outers[6] = scene.CreateMaterial<ClothMaterial>(base, sheen, 0.8f);
-    outers[8] = scene.CreateMaterial<ClothMaterial>(base, sheen, 0.9f);
-    outers[10] = scene.CreateMaterial<ClothMaterial>(base, sheen, 1.0f);
+    outers[9] = CreateClothMaterial(scene, base, sheen, 0.0f);
+    outers[7] = CreateClothMaterial(scene, base, sheen, 0.1f);
+    outers[5] = CreateClothMaterial(scene, base, sheen, 0.2f);
+    outers[3] = CreateClothMaterial(scene, base, sheen, 0.3f);
+    outers[1] = CreateClothMaterial(scene, base, sheen, 0.4f);
+    outers[0] = CreateClothMaterial(scene, base, sheen, 0.5f);
+    outers[2] = CreateClothMaterial(scene, base, sheen, 0.6f);
+    outers[4] = CreateClothMaterial(scene, base, sheen, 0.7f);
+    outers[6] = CreateClothMaterial(scene, base, sheen, 0.8f);
+    outers[8] = CreateClothMaterial(scene, base, sheen, 0.9f);
+    outers[10] = CreateClothMaterial(scene, base, sheen, 1.0f);
 
     const Material* inners[count];
     for (int32 i = 0; i < count; ++i)

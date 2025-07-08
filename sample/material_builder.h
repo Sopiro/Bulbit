@@ -62,6 +62,15 @@ ConductorMaterial* CreateConductorMaterial(
     Float alpha = 1
 );
 
+ClothMaterial* CreateClothMaterial(
+    Scene& scene,
+    const Spectrum& basecolor,
+    const Spectrum& sheen_color,
+    Float roughness,
+    const SpectrumTexture* normalmap = nullptr,
+    Float alpha = 1
+);
+
 MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
     Scene& scene,
     const Spectrum& basecolor,

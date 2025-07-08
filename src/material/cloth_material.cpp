@@ -5,23 +5,37 @@
 namespace bulbit
 {
 
-ClothMaterial::ClothMaterial(Spectrum basecolor, Spectrum sheen_color, Float roughness)
+ClothMaterial::ClothMaterial(
+    const SpectrumTexture* basecolor,
+    const SpectrumTexture* sheen_color,
+    const FloatTexture* roughness,
+    const SpectrumTexture* normalmap,
+    const FloatTexture* alpha
+)
     : Material(TypeIndexOf<ClothMaterial>())
     , basecolor{ basecolor }
     , sheen_color{ sheen_color }
     , roughness{ roughness }
+    , normalmap{ normalmap }
+    , alpha{ alpha }
 {
 }
 
 Float ClothMaterial::GetAlpha(const Intersection& isect) const
 {
-    BulbitNotUsed(isect);
-    return 1;
+    if (alpha)
+    {
+        return alpha->Evaluate(isect.uv);
+    }
+    else
+    {
+        return 1;
+    }
 }
 
 const SpectrumTexture* ClothMaterial::GetNormalMap() const
 {
-    return nullptr;
+    return normalmap;
 }
 
 Spectrum ClothMaterial::Le(const Intersection& isect, const Vec3& wo) const
@@ -34,11 +48,13 @@ Spectrum ClothMaterial::Le(const Intersection& isect, const Vec3& wo) const
 bool ClothMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
 {
     BulbitNotUsed(wo);
-    Float alpha = std::fmax(TrowbridgeReitzDistribution::RoughnessToAlpha(roughness), 1e-3f);
+
+    Spectrum base = basecolor->Evaluate(isect.uv);
+    Spectrum sheen = sheen_color->Evaluate(isect.uv);
+    Float alpha = std::fmax(TrowbridgeReitzDistribution::RoughnessToAlpha(roughness->Evaluate(isect.uv)), 1e-3f);
 
     *bsdf = BSDF(
-        isect.shading.normal, isect.shading.tangent,
-        alloc.new_object<SheenBxDF>(basecolor, sheen_color, CharlieSheenDistribution(alpha))
+        isect.shading.normal, isect.shading.tangent, alloc.new_object<SheenBxDF>(base, sheen, CharlieSheenDistribution(alpha))
     );
     return true;
 }

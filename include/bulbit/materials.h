@@ -97,7 +97,13 @@ private:
 class ClothMaterial : public Material
 {
 public:
-    ClothMaterial(Spectrum basecolor, Spectrum sheen_color, Float roughness);
+    ClothMaterial(
+        const SpectrumTexture* basecolor,
+        const SpectrumTexture* sheen_color,
+        const FloatTexture* roughness,
+        const SpectrumTexture* normalmap = nullptr,
+        const FloatTexture* alpha = nullptr
+    );
 
     Float GetAlpha(const Intersection& isect) const;
     const SpectrumTexture* GetNormalMap() const;
@@ -107,8 +113,12 @@ public:
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
 
 private:
-    Spectrum basecolor, sheen_color;
-    Float roughness;
+    const SpectrumTexture* basecolor;
+    const SpectrumTexture* sheen_color;
+    const FloatTexture* roughness;
+
+    const SpectrumTexture* normalmap;
+    const FloatTexture* alpha;
 };
 
 class ConductorMaterial : public Material
