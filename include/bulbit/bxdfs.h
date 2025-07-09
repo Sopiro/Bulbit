@@ -600,6 +600,70 @@ private:
     bool exact;
 };
 
+template <typename TopBxDF, typename BottomBxDF, bool two_sided>
+class LayeredBxDF : public BxDF
+{
+public:
+    LayeredBxDF() {}
+
+    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override
+    {
+        BulbitNotUsed(wo);
+        BulbitNotUsed(wi);
+        BulbitNotUsed(direction);
+
+        return Spectrum::black;
+    }
+    virtual Float PDF(
+        Vec3 wo,
+        Vec3 wi,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override
+    {
+        BulbitNotUsed(wo);
+        BulbitNotUsed(wi);
+        BulbitNotUsed(direction);
+        BulbitNotUsed(flags);
+
+        return 0;
+    }
+
+    virtual bool Sample_f(
+        BSDFSample* sample,
+        Vec3 wo,
+        Float u0,
+        Point2 u12,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override
+    {
+        BulbitNotUsed(sample);
+        BulbitNotUsed(wo);
+        BulbitNotUsed(u0);
+        BulbitNotUsed(u12);
+        BulbitNotUsed(direction);
+        BulbitNotUsed(flags);
+
+        return false;
+    }
+
+private:
+    static Float Tr(Float dz, Vec3 w)
+    {
+        return std::exp(-std::abs(dz / w.z));
+    }
+
+    TopBxDF top;
+    BottomBxDF bottom;
+
+    Float thickness, g;
+
+    Spectrum albedo;
+
+    int32 max_bounces, samples;
+};
+
 constexpr size_t max_bxdf_size = std::max(
     { sizeof(LambertianBxDF), sizeof(SpecularReflectionBxDF), sizeof(DielectricBxDF), sizeof(ConductorBxDF),
       sizeof(DielectricMultiScatteringBxDF), sizeof(ConductorMultiScatteringBxDF), sizeof(ThinDielectricBxDF), sizeof(SheenBxDF),
