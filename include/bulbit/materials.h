@@ -9,7 +9,10 @@ class DiffuseMaterial : public Material
 {
 public:
     DiffuseMaterial(
-        const SpectrumTexture* reflectance, const SpectrumTexture* normalmap = nullptr, const FloatTexture* alpha = nullptr
+        const SpectrumTexture* reflectance,
+        const FloatTexture* roughness = nullptr,
+        const SpectrumTexture* normalmap = nullptr,
+        const FloatTexture* alpha = nullptr
     );
 
     Float GetAlpha(const Intersection& isect) const;
@@ -21,6 +24,7 @@ public:
 
 public:
     const SpectrumTexture* reflectance;
+    const FloatTexture* roughness;
 
     const SpectrumTexture* normalmap;
     const FloatTexture* alpha;

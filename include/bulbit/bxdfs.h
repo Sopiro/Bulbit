@@ -565,7 +565,7 @@ class EONBxDF : public BxDF
     // EON: APractical Energy-Preserving Rough Diffuse BRDF (Portsmouth et al., 2025)
     // https://jcgt.org/published/0014/01/06/
 public:
-    EONBxDF(const Spectrum& reflectance, Float roughness = 0, bool exact = true)
+    EONBxDF(const Spectrum& reflectance, Float roughness, bool exact = true)
         : rho{ reflectance }
         , r{ roughness }
         , exact{ exact }

@@ -425,9 +425,9 @@ std::unique_ptr<Camera> Alphas(Scene& scene)
     auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
-    outers[0] = CreateDiffuseMaterial(scene, Spectrum(.65f, .05f, .05f), nullptr, 0.4f);
-    outers[1] = CreateDiffuseMaterial(scene, Spectrum(.12f, .45f, .15f), nullptr, 0.2f);
-    outers[2] = CreateDiffuseMaterial(scene, Spectrum(.22f, .23f, .75f), nullptr, 0.6f);
+    outers[0] = CreateDiffuseMaterial(scene, Spectrum(.65f, .05f, .05f), 0, nullptr, 0.4f);
+    outers[1] = CreateDiffuseMaterial(scene, Spectrum(.12f, .45f, .15f), 0, nullptr, 0.2f);
+    outers[2] = CreateDiffuseMaterial(scene, Spectrum(.22f, .23f, .75f), 0, nullptr, 0.6f);
 
     const Material* inners[count];
     inners[0] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 0.66 }, (0), (0));

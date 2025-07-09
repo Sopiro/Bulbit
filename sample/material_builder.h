@@ -7,10 +7,10 @@ namespace bulbit
 {
 
 DiffuseMaterial* CreateDiffuseMaterial(
-    Scene& scene, Float reflectance, const SpectrumTexture* normalmap = nullptr, Float alpha = 1
+    Scene& scene, Float reflectance, Float roughness = 0, const SpectrumTexture* normalmap = nullptr, Float alpha = 1
 );
 DiffuseMaterial* CreateDiffuseMaterial(
-    Scene& scene, const Spectrum& reflectance, const SpectrumTexture* normalmap = nullptr, Float alpha = 1
+    Scene& scene, const Spectrum& reflectance, Float roughness = 0, const SpectrumTexture* normalmap = nullptr, Float alpha = 1
 );
 DiffuseMaterial* CreateDiffuseMaterial(
     Scene& scene, const std::string& filename, const SpectrumTexture* normalmap = nullptr, Float alpha = 1

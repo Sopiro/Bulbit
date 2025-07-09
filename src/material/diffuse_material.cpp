@@ -5,9 +5,12 @@
 namespace bulbit
 {
 
-DiffuseMaterial::DiffuseMaterial(const SpectrumTexture* reflectance, const SpectrumTexture* normalmap, const FloatTexture* alpha)
+DiffuseMaterial::DiffuseMaterial(
+    const SpectrumTexture* reflectance, const FloatTexture* roughness, const SpectrumTexture* normalmap, const FloatTexture* alpha
+)
     : Material(TypeIndexOf<DiffuseMaterial>())
     , reflectance{ reflectance }
+    , roughness{ roughness }
     , normalmap{ normalmap }
     , alpha{ alpha }
 {
@@ -40,7 +43,19 @@ Spectrum DiffuseMaterial::Le(const Intersection& isect, const Vec3& wo) const
 bool DiffuseMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
 {
     BulbitNotUsed(wo);
-    *bsdf = BSDF(isect.shading.normal, isect.shading.tangent, alloc.new_object<LambertianBxDF>(reflectance->Evaluate(isect.uv)));
+
+    Float r = roughness ? roughness->Evaluate(isect.uv) : 0;
+    Spectrum rho = reflectance->Evaluate(isect.uv);
+
+    if (r > 0)
+    {
+        *bsdf = BSDF(isect.shading.normal, isect.shading.tangent, alloc.new_object<EONBxDF>(rho, r));
+    }
+    else
+    {
+        *bsdf = BSDF(isect.shading.normal, isect.shading.tangent, alloc.new_object<LambertianBxDF>(rho));
+    }
+
     return true;
 }
 

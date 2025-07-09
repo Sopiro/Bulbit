@@ -4,23 +4,29 @@
 namespace bulbit
 {
 
-DiffuseMaterial* CreateDiffuseMaterial(Scene& scene, Float reflectance, const SpectrumTexture* normalmap, Float alpha)
+DiffuseMaterial* CreateDiffuseMaterial(
+    Scene& scene, Float reflectance, Float roughness, const SpectrumTexture* normalmap, Float alpha
+)
 {
     return scene.CreateMaterial<DiffuseMaterial>(
-        CreateSpectrumConstantTexture(scene, reflectance), normalmap, CreateFloatConstantTexture(scene, alpha)
+        CreateSpectrumConstantTexture(scene, reflectance), CreateFloatConstantTexture(scene, roughness), normalmap,
+        CreateFloatConstantTexture(scene, alpha)
     );
 }
-DiffuseMaterial* CreateDiffuseMaterial(Scene& scene, const Spectrum& reflectance, const SpectrumTexture* normalmap, Float alpha)
+DiffuseMaterial* CreateDiffuseMaterial(
+    Scene& scene, const Spectrum& reflectance, Float roughness, const SpectrumTexture* normalmap, Float alpha
+)
 {
     return scene.CreateMaterial<DiffuseMaterial>(
-        CreateSpectrumConstantTexture(scene, reflectance), normalmap, CreateFloatConstantTexture(scene, alpha)
+        CreateSpectrumConstantTexture(scene, reflectance), CreateFloatConstantTexture(scene, roughness), normalmap,
+        CreateFloatConstantTexture(scene, alpha)
     );
 }
 
 DiffuseMaterial* CreateDiffuseMaterial(Scene& scene, const std::string& filename, const SpectrumTexture* normalmap, Float alpha)
 {
     return scene.CreateMaterial<DiffuseMaterial>(
-        CreateSpectrumImageTexture(scene, filename), normalmap, CreateFloatConstantTexture(scene, alpha)
+        CreateSpectrumImageTexture(scene, filename), nullptr, normalmap, CreateFloatConstantTexture(scene, alpha)
     );
 }
 
