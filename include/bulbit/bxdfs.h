@@ -559,10 +559,51 @@ private:
     Float eta;
 };
 
+class EONBxDF : public BxDF
+{
+    // Energy-preserving Oren–Nayar BRDF
+    // EON: APractical Energy-Preserving Rough Diffuse BRDF (Portsmouth et al., 2025)
+    // https://jcgt.org/published/0014/01/06/
+public:
+    EONBxDF(const Spectrum& reflectance, Float roughness = 0, bool exact = true)
+        : rho{ reflectance }
+        , r{ roughness }
+        , exact{ exact }
+    {
+    }
+
+    virtual BxDF_Flags Flags() const override
+    {
+        return !rho.IsBlack() ? BxDF_Flags::DiffuseReflection : BxDF_Flags::Unset;
+    }
+
+    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Float PDF(
+        Vec3 wo,
+        Vec3 wi,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
+
+    virtual bool Sample_f(
+        BSDFSample* sample,
+        Vec3 wo,
+        Float u0,
+        Point2 u12,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
+
+private:
+    Spectrum rho;
+    Float r;
+    bool exact;
+};
+
 constexpr size_t max_bxdf_size = std::max(
     { sizeof(LambertianBxDF), sizeof(SpecularReflectionBxDF), sizeof(DielectricBxDF), sizeof(ConductorBxDF),
       sizeof(DielectricMultiScatteringBxDF), sizeof(ConductorMultiScatteringBxDF), sizeof(ThinDielectricBxDF), sizeof(SheenBxDF),
-      sizeof(MetallicRoughnessBxDF), sizeof(PrincipledBxDF), sizeof(NormalizedFresnelBxDF) }
+      sizeof(MetallicRoughnessBxDF), sizeof(PrincipledBxDF), sizeof(NormalizedFresnelBxDF), sizeof(EONBxDF) }
 );
 
 } // namespace bulbit
