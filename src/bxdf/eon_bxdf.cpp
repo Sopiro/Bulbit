@@ -38,7 +38,7 @@ static Float E_FON_approx(Float mu, Float r)
 //  rho = single-scattering albedo
 //  r = roughness in [0,1]
 //  exact = flag to select exact or fast approx. version
-Spectrum EONBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection direction) const
+Spectrum EONBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     BulbitNotUsed(direction);
 

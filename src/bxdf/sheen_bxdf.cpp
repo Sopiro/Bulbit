@@ -3,7 +3,7 @@
 namespace bulbit
 {
 
-Spectrum SheenBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection direction) const
+Spectrum SheenBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     BulbitNotUsed(direction);
 

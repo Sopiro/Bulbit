@@ -4,7 +4,7 @@
 namespace bulbit
 {
 
-Spectrum ConductorMultiScatteringBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection direction) const
+Spectrum ConductorMultiScatteringBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     BulbitNotUsed(direction);
 

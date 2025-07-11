@@ -5,7 +5,7 @@
 namespace bulbit
 {
 
-Spectrum SpecularReflectionBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection direction) const
+Spectrum SpecularReflectionBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     BulbitNotUsed(wo);
     BulbitNotUsed(wi);

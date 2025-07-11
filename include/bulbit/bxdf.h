@@ -93,7 +93,7 @@ class BxDF
 public:
     virtual BxDF_Flags Flags() const = 0;
 
-    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const = 0;
+    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const = 0;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,

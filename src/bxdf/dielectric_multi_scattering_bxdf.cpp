@@ -6,7 +6,7 @@
 namespace bulbit
 {
 
-Spectrum DielectricMultiScatteringBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection direction) const
+Spectrum DielectricMultiScatteringBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     if (eta == 1 || mf.EffectivelySmooth())
     {

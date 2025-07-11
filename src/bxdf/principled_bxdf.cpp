@@ -7,7 +7,7 @@
 namespace bulbit
 {
 
-Spectrum PrincipledBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection direction) const
+Spectrum PrincipledBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     Float cos_theta_o = CosTheta(wo);
     Float cos_theta_i = CosTheta(wi);

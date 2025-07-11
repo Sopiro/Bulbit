@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bxdf.h"
+#include "media.h"
 #include "microfacet.h"
 #include "scattering.h"
 #include "textures3d.h"
@@ -21,7 +22,7 @@ public:
         return !r.IsBlack() ? BxDF_Flags::DiffuseReflection : BxDF_Flags::Unset;
     }
 
-    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -56,7 +57,7 @@ public:
         return !r.IsBlack() ? BxDF_Flags::SpecularReflection : BxDF_Flags::Unset;
     }
 
-    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -94,7 +95,7 @@ public:
         return flags | (mf.EffectivelySmooth() ? BxDF_Flags::Specular : BxDF_Flags::Glossy);
     }
 
-    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -136,7 +137,7 @@ public:
         return flags | (mf.EffectivelySmooth() ? BxDF_Flags::Specular : BxDF_Flags::Glossy);
     }
 
-    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -218,7 +219,7 @@ public:
         return mf.EffectivelySmooth() ? BxDF_Flags::SpecularReflection : BxDF_Flags::GlossyReflection;
     }
 
-    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -257,7 +258,7 @@ public:
         return mf.EffectivelySmooth() ? BxDF_Flags::SpecularReflection : BxDF_Flags::GlossyReflection;
     }
 
-    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -294,7 +295,7 @@ public:
         return BxDF_Flags::Specular | BxDF_Flags::Reflection | BxDF_Flags::Transmission;
     }
 
-    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -330,7 +331,7 @@ public:
         return BxDF_Flags::Diffuse | BxDF_Flags::Reflection;
     }
 
-    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -369,7 +370,7 @@ public:
         return BxDF_Flags::Diffuse | BxDF_Flags::Glossy | BxDF_Flags::Reflection;
     }
 
-    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -454,7 +455,7 @@ public:
         return BxDF_Flags::Diffuse | BxDF_Flags::Glossy | BxDF_Flags::Reflection | BxDF_Flags::Transmission;
     }
 
-    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -536,7 +537,7 @@ public:
         return BxDF_Flags(BxDF_Flags::Diffuse | BxDF_Flags::Reflection);
     }
 
-    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -577,7 +578,7 @@ public:
         return !rho.IsBlack() ? BxDF_Flags::DiffuseReflection : BxDF_Flags::Unset;
     }
 
-    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -600,20 +601,363 @@ private:
     bool exact;
 };
 
+template <typename TopBxDF, typename BottomBxDF>
+class VariantBxDF
+{
+public:
+    VariantBxDF() = default;
+
+    VariantBxDF& operator=(const TopBxDF* bxdf)
+    {
+        top = bxdf;
+        bottom = nullptr;
+        return *this;
+    }
+    VariantBxDF& operator=(const BottomBxDF* bxdf)
+    {
+        bottom = bxdf;
+        top = nullptr;
+        return *this;
+    }
+
+    Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction) const
+    {
+        return top ? top->f(wo, wi, direction) : bottom->f(wo, wi, direction);
+    }
+
+    bool Sample_f(
+        BSDFSample* sample,
+        Vec3 wo,
+        Float u0,
+        Point2 u12,
+        TransportDirection direction,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const
+    {
+        return top ? top->Sample_f(sample, wo, u0, u12, direction, flags)
+                   : bottom->Sample_f(sample, wo, u0, u12, direction, flags);
+    }
+
+    Float PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_SamplingFlags flags = BxDF_SamplingFlags::All) const
+    {
+        return top ? top->PDF(wo, wi, direction, flags) : bottom->PDF(wo, wi, direction, flags);
+    }
+
+    BxDF_Flags Flags() const
+    {
+        return top ? top->Flags() : bottom->Flags();
+    }
+
+private:
+    const TopBxDF* top = nullptr;
+    const BottomBxDF* bottom = nullptr;
+};
+
 template <typename TopBxDF, typename BottomBxDF, bool two_sided>
 class LayeredBxDF : public BxDF
 {
 public:
-    LayeredBxDF() {}
-
-    virtual Spectrum f(const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const override
+    LayeredBxDF(
+        TopBxDF top,
+        BottomBxDF bottom,
+        const Spectrum& albedo,
+        Float thickness,
+        Float g = 0,
+        int32 max_bounces = 8,
+        int32 samples = 1
+    )
+        : top{ top }
+        , bottom{ bottom }
+        , albedo{ albedo }
+        , thickness{ thickness }
+        , g{ g }
+        , max_bounces{ max_bounces }
+        , samples{ samples }
     {
-        BulbitNotUsed(wo);
-        BulbitNotUsed(wi);
-        BulbitNotUsed(direction);
-
-        return Spectrum::black;
     }
+
+    virtual BxDF_Flags Flags() const override
+    {
+        BxDF_Flags top_flags = top.Flags();
+        BxDF_Flags bottom_flags = bottom.Flags();
+
+        BxDF_Flags flags = BxDF_Flags::Reflection;
+
+        if (IsSpecular(top_flags))
+        {
+            flags = flags | BxDF_Flags::Specular;
+        }
+
+        if (IsDiffuse(top_flags) || IsDiffuse(bottom_flags) || albedo != Spectrum::black)
+        {
+            flags = flags | BxDF_Flags::Diffuse;
+        }
+        else if (IsGlossy(top_flags) || IsGlossy(bottom_flags))
+        {
+            flags = flags | BxDF_Flags::Glossy;
+        }
+
+        if (IsTransmissive(top_flags) && IsTransmissive(bottom_flags))
+        {
+            flags = flags | BxDF_Flags::Transmission;
+        }
+
+        return flags;
+    }
+
+    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override
+    {
+        Spectrum f(0);
+
+        if (two_sided && wo.z < 0)
+        {
+            wo.Negate();
+            wi.Negate();
+        }
+
+        VariantBxDF<TopBxDF, BottomBxDF> enter_interface;
+
+        bool entered_top = two_sided || wo.z > 0;
+        if (entered_top)
+        {
+            enter_interface = &top;
+        }
+        else
+        {
+            enter_interface = &bottom;
+        }
+
+        VariantBxDF<TopBxDF, BottomBxDF> exit_interface, non_exit_interface;
+        bool exit_bottom = SameHemisphere(wo, wi) ^ entered_top;
+        if (exit_bottom)
+        {
+            exit_interface = &bottom;
+            non_exit_interface = &top;
+        }
+        else
+        {
+            exit_interface = &top;
+            non_exit_interface = &bottom;
+        }
+
+        Float z_exit = exit_bottom ? 0 : thickness;
+
+        // Part of BSDF is given by reflection
+        if (SameHemisphere(wo, wi))
+        {
+            f = samples * enter_interface.f(wo, wi, direction);
+        }
+
+        // Prepare rng for stochastic BSDF evaluation
+        RNG rng(Hash(wo, wi));
+
+        // Estimate BSDF by random walk process
+        for (int32 s = 0; s < samples; ++s)
+        {
+            // Sample transmission direction through entrance interface conditioned on wo
+            // This is the initial direction of random walk
+            BSDFSample wo_sample;
+            if (!enter_interface.Sample_f(
+                    &wo_sample, wo, rng.NextFloat(), { rng.NextFloat(), rng.NextFloat() }, direction,
+                    BxDF_SamplingFlags::Transmission
+                ))
+            {
+                continue;
+            }
+
+            if (wo_sample.f == Spectrum::black || wo_sample.pdf == 0 || wo_sample.wi.z == 0)
+            {
+                continue;
+            }
+
+            // Sample transmission direction through entrance interface conditioned on wi
+            // This is the virtual light direction used for NEE contribution
+            BSDFSample wi_sample;
+            if (!exit_interface.Sample_f(
+                    &wi_sample, wi, rng.NextFloat(), { rng.NextFloat(), rng.NextFloat() }, !direction,
+                    BxDF_SamplingFlags::Transmission
+                ))
+            {
+                continue;
+            }
+
+            if (wi_sample.f == Spectrum::black || wi_sample.pdf == 0 || wi_sample.wi.z == 0)
+            {
+                continue;
+            }
+
+            // Path states for random walk BSDF evaluation
+            Spectrum beta = wo_sample.f * AbsCosTheta(wo_sample.wi) / wo_sample.pdf;
+            Float z = entered_top ? thickness : 0;
+            Vec3 w = wo_sample.wi;
+            HenyeyGreensteinPhaseFunction phase_function(g);
+
+            constexpr Float rr_min = 0.25f;
+            for (int32 bounce = 0; bounce < max_bounces; ++bounce)
+            {
+                // Possibly terminate random walk with russian roulette
+                if (bounce > 3)
+                {
+                    if (Float p = beta.MaxComponent(); p < rr_min)
+                    {
+                        if (rng.NextFloat() > p)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            beta /= p;
+                        }
+                    }
+                }
+
+                if (albedo == Spectrum::black)
+                {
+                    // No medium scattering, advance to next layer boundary
+                    z = (z == thickness) ? 0 : thickness;
+
+                    // Update beta for transmittance
+                    beta *= Tr(thickness, w);
+                }
+                else
+                {
+                    constexpr Float sigma_t = 1;
+                    Float dz = SampleExponential(rng.NextFloat(), sigma_t / std::abs(w.z));
+
+                    // Sampled position by homogenious medium scattering
+                    Float z_p = w.z > 0 ? (z + dz) : (z - dz);
+
+                    // It's still inside the medium
+                    if (0 < z_p && z_p < thickness)
+                    {
+                        // Add MIS combined NEE contiribution from virtual light through exit interface
+                        Float w_mis = 1;
+                        if (!IsSpecular(exit_interface.Flags()))
+                        {
+                            w_mis = PowerHeuristic(wi_sample.pdf, phase_function.PDF(-w, -wi_sample.wi));
+                        }
+
+                        f += beta * albedo * w_mis * Tr(z_p - z_exit, wi_sample.wi) * phase_function.p(-w, -wi_sample.wi) *
+                             wi_sample.f / wi_sample.pdf;
+
+                        // Sample phase function for next path vertex
+                        PhaseFunctionSample phase_sample;
+                        if (!phase_function.Sample_p(&phase_sample, -w, { rng.NextFloat(), rng.NextFloat() }))
+                        {
+                            continue;
+                        }
+
+                        if (phase_sample.pdf == 0 || phase_sample.wi.z == 0)
+                        {
+                            continue;
+                        }
+
+                        beta *= albedo * phase_sample.p / phase_sample.pdf;
+                        w = phase_sample.wi;
+                        z = z_p;
+
+                        // Add MIS combined phase function contribution
+                        if (!IsSpecular(exit_interface.Flags()))
+                        {
+                            if ((w.z > 0 && z < z_exit) || (w.z < 0 && z > z_exit))
+                            {
+                                // Incorporate contribution from exit interface
+                                Spectrum f_exit = exit_interface.f(-w, wi, direction);
+                                if (f_exit != Spectrum::black)
+                                {
+                                    Float pdf_exit = exit_interface.PDF(-w, wi, direction, BxDF_SamplingFlags::Transmission);
+                                    Float w_mis = PowerHeuristic(phase_sample.pdf, pdf_exit);
+                                    f += beta * w_mis * Tr(z_p - z_exit, phase_sample.wi) * f_exit;
+                                }
+                            }
+                        }
+
+                        // Continue to sample next path vertex
+                        continue;
+                    }
+
+                    // Sampled surface scattering, L_o
+                    z = Clamp(z_p, 0, thickness);
+                }
+
+                // Handle interface sampling
+                if (z == z_exit)
+                {
+                    // No light contribution is added since we are doing NEE
+                    BSDFSample exit_sample;
+                    if (!exit_interface.Sample_f(
+                            &exit_sample, -w, rng.NextFloat(), { rng.NextFloat(), rng.NextFloat() }, direction,
+                            BxDF_SamplingFlags::Reflection
+                        ))
+                    {
+                        break;
+                    }
+
+                    if (exit_sample.f == Spectrum::black || exit_sample.pdf == 0 || exit_sample.wi.z == 0)
+                    {
+                        break;
+                    }
+
+                    beta *= exit_sample.f * AbsCosTheta(exit_sample.wi) / exit_sample.pdf;
+                    w = exit_sample.wi;
+                }
+                else
+                {
+                    if (!IsSpecular(non_exit_interface.Flags()))
+                    {
+                        // Add NEE contribution
+                        Float w_mis = 1;
+                        if (!IsSpecular((exit_interface.Flags())))
+                        {
+                            w_mis = PowerHeuristic(wi_sample.pdf, non_exit_interface.PDF(-w, -wi_sample.wi, direction));
+                        }
+
+                        f += beta * w_mis * non_exit_interface.f(-w, -wi_sample.wi, direction) * AbsCosTheta(wi_sample.wi) *
+                             Tr(thickness, wi_sample.wi) * wi_sample.f / wi_sample.pdf;
+                    }
+
+                    // Sample next reflection direction
+                    BSDFSample ref_sample;
+                    if (!non_exit_interface.Sample_f(
+                            &ref_sample, -w, rng.NextFloat(), { rng.NextFloat(), rng.NextFloat() }, direction,
+                            BxDF_SamplingFlags::Reflection
+                        ))
+                    {
+                        break;
+                    }
+
+                    if (ref_sample.f == Spectrum::black || ref_sample.pdf == 0 || ref_sample.wi.z == 0)
+                    {
+                        break;
+                    }
+
+                    // Update path state
+                    beta *= ref_sample.f * AbsCosTheta(ref_sample.wi) / ref_sample.pdf;
+                    w = ref_sample.wi;
+
+                    if (!IsSpecular(exit_interface.Flags()))
+                    {
+                        // Add light contribution from BSDF sampling
+                        Spectrum f_exit = exit_interface.f(-w, wi, direction);
+                        if (f_exit != Spectrum::black)
+                        {
+                            Float w_mis = 1;
+                            if (!IsSpecular(non_exit_interface.Flags()))
+                            {
+                                Float pdf_exit = exit_interface.PDF(-w, wi, direction, BxDF_SamplingFlags::Transmission);
+                                w_mis = PowerHeuristic(ref_sample.pdf, pdf_exit);
+                            }
+
+                            f += beta * w_mis * Tr(thickness, ref_sample.wi) * f_exit;
+                        }
+                    }
+                }
+            }
+        }
+
+        return f / samples;
+    }
+
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -648,6 +992,12 @@ public:
         return false;
     }
 
+    virtual void Regularize() override
+    {
+        top.Regularize();
+        bottom.Regularize();
+    }
+
 private:
     static Float Tr(Float dz, Vec3 w)
     {
@@ -657,9 +1007,8 @@ private:
     TopBxDF top;
     BottomBxDF bottom;
 
-    Float thickness, g;
-
     Spectrum albedo;
+    Float thickness, g;
 
     int32 max_bounces, samples;
 };

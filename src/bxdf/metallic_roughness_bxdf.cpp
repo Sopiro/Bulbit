@@ -5,7 +5,7 @@
 namespace bulbit
 {
 
-Spectrum MetallicRoughnessBxDF::f(const Vec3& wo, const Vec3& wi, TransportDirection direction) const
+Spectrum MetallicRoughnessBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     BulbitNotUsed(direction);
 
