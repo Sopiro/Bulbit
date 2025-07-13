@@ -138,7 +138,7 @@ Spectrum PathIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium
         }
 
         // Save bsdf pdf for MIS
-        prev_bsdf_pdf = bsdf_sample.pdf;
+        prev_bsdf_pdf = bsdf_sample.is_stochastic ? bsdf.PDF(wo, bsdf_sample.wi) : bsdf_sample.pdf;
         beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
         ray = Ray(isect.point, bsdf_sample.wi);
 

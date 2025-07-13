@@ -291,7 +291,14 @@ Spectrum VolPathIntegrator::Li(const Ray& primary_ray, const Medium* primary_med
 
         beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
         // light sampling PDF at this vertex will be incorporated into r_l when it intersects the light source
-        r_l = r_u / bsdf_sample.pdf;
+        if (bsdf_sample.is_stochastic)
+        {
+            r_l = r_u / bsdf.PDF(wo, bsdf_sample.wi);
+        }
+        else
+        {
+            r_l = r_u / bsdf_sample.pdf;
+        }
 
         ray = Ray(isect.point, bsdf_sample.wi);
         medium = isect.GetMedium(bsdf_sample.wi);
