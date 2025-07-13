@@ -751,7 +751,7 @@ public:
         // Prepare rng for stochastic BSDF evaluation
         RNG rng(Hash(wo, wi));
 
-        // Estimate BSDF by random walk process
+        // Estimate BSDF by unidirectional random walk
         for (int32 s = 0; s < samples; ++s)
         {
             // Sample transmission direction through entrance interface conditioned on wo
@@ -837,7 +837,7 @@ public:
                             w_mis = PowerHeuristic(wi_sample.pdf, phase_function.PDF(-w, -wi_sample.wi));
                         }
 
-                        f += beta * albedo * w_mis * Tr(z_p - z_exit, wi_sample.wi) * phase_function.p(-w, -wi_sample.wi) *
+                        f += beta * w_mis * albedo * phase_function.p(-w, -wi_sample.wi) * Tr(z_p - z_exit, wi_sample.wi) *
                              wi_sample.f / wi_sample.pdf;
 
                         // Sample phase function for next path vertex
@@ -1007,7 +1007,7 @@ private:
     TopBxDF top;
     BottomBxDF bottom;
 
-    Spectrum albedo;
+    Spectrum albedo; // single scattering albedo
     Float thickness, g;
 
     int32 max_bounces, samples;
