@@ -71,39 +71,47 @@ bool ConductorMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec
 {
     BulbitNotUsed(wo);
 
-    Spectrum eta_s, k_s;
-    if (eta)
-    {
-        eta_s = eta->Evaluate(isect.uv);
-        k_s = k->Evaluate(isect.uv);
-    }
-    else
-    {
-        // The reflectance R for a conductor is:
-        // R = \frac{(\eta - 1)^2 + k^2}{(\eta + 1)^2 + k^2}
-        // Assume \eta = 1 and solve for k
-
-        eta_s = Spectrum(1.0f);
-        Spectrum r = Clamp(k->Evaluate(isect.uv), 0, 0.9999);
-        k_s = 2 * Sqrt(r) / Sqrt(Max(Spectrum(1) - r, 0));
-    }
-
     Float alpha_x = u_roughness->Evaluate(isect.uv);
     Float alpha_y = v_roughness->Evaluate(isect.uv);
 
-    if (energy_compensation)
+    if (eta)
     {
-        *bsdf = BSDF(
-            isect.shading.normal, isect.shading.tangent,
-            alloc.new_object<ConductorMultiScatteringBxDF>(eta_s, k_s, TrowbridgeReitzDistribution(alpha_x, alpha_y))
-        );
+        Spectrum k_s = k->Evaluate(isect.uv);
+        Spectrum eta_s = eta->Evaluate(isect.uv);
+
+        if (energy_compensation)
+        {
+            *bsdf = BSDF(
+                isect.shading.normal, isect.shading.tangent,
+                alloc.new_object<ConductorMultiScatteringBxDF>(eta_s, k_s, TrowbridgeReitzDistribution(alpha_x, alpha_y))
+            );
+        }
+        else
+        {
+            *bsdf = BSDF(
+                isect.shading.normal, isect.shading.tangent,
+                alloc.new_object<ConductorBxDF>(eta_s, k_s, TrowbridgeReitzDistribution(alpha_x, alpha_y))
+            );
+        }
     }
     else
     {
-        *bsdf = BSDF(
-            isect.shading.normal, isect.shading.tangent,
-            alloc.new_object<ConductorBxDF>(eta_s, k_s, TrowbridgeReitzDistribution(alpha_x, alpha_y))
-        );
+        Spectrum r = k->Evaluate(isect.uv);
+
+        if (energy_compensation)
+        {
+            *bsdf = BSDF(
+                isect.shading.normal, isect.shading.tangent,
+                alloc.new_object<ConductorMultiScatteringBxDF>(r, TrowbridgeReitzDistribution(alpha_x, alpha_y))
+            );
+        }
+        else
+        {
+            *bsdf = BSDF(
+                isect.shading.normal, isect.shading.tangent,
+                alloc.new_object<ConductorBxDF>(r, TrowbridgeReitzDistribution(alpha_x, alpha_y))
+            );
+        }
     }
 
     return true;

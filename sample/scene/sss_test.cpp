@@ -20,7 +20,7 @@ std::unique_ptr<Camera> SSSTest(Scene& scene)
     {
         // auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
         auto normalmap = nullptr;
-        // auto mat = CreateDiffuseMaterial(scene, Spectrum(0, 163 / 255.0, 108 / 255.0), normalmap);
+        // auto mat = CreateDiffuseMaterial(scene, Spectrum(212 / 255.f, 175 / 255.f, 55 / 255.f), 0, normalmap);
         auto mat = CreateSubsurfaceRandomWalkMaterial(
             scene, Spectrum(255 / 255.0, 195 / 255.0, 170 / 255.0) * 0.6, Spectrum(0.5, 0.25, 0.125) * 0.03, 1.5f, 0.05f
         );

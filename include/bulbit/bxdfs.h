@@ -214,6 +214,18 @@ public:
     {
     }
 
+    ConductorBxDF(Spectrum reflectance, TrowbridgeReitzDistribution mf)
+        : mf{ mf }
+        , eta{ 1 }
+    {
+        // The reflectance R for a conductor is:
+        // R = \frac{(\eta - 1)^2 + k^2}{(\eta + 1)^2 + k^2}
+        // Assume \eta = 1 and solve for k
+
+        Spectrum r = Clamp(reflectance, 0, 1 - 1e-4f);
+        k = 2 * Sqrt(r) / Sqrt(Max(Spectrum(1) - r, 0));
+    }
+
     virtual BxDF_Flags Flags() const override
     {
         return mf.EffectivelySmooth() ? BxDF_Flags::SpecularReflection : BxDF_Flags::GlossyReflection;
@@ -251,6 +263,18 @@ public:
         , eta{ eta }
         , k{ k }
     {
+    }
+
+    ConductorMultiScatteringBxDF(Spectrum reflectance, TrowbridgeReitzDistribution mf)
+        : mf{ mf }
+        , eta{ 1 }
+    {
+        // The reflectance R for a conductor is:
+        // R = \frac{(\eta - 1)^2 + k^2}{(\eta + 1)^2 + k^2}
+        // Assume \eta = 1 and solve for k
+
+        Spectrum r = Clamp(reflectance, 0, 1 - 1e-4f);
+        k = 2 * Sqrt(r) / Sqrt(Max(Spectrum(1) - r, 0));
     }
 
     virtual BxDF_Flags Flags() const override

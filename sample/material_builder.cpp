@@ -13,6 +13,7 @@ DiffuseMaterial* CreateDiffuseMaterial(
         CreateFloatConstantTexture(scene, alpha)
     );
 }
+
 DiffuseMaterial* CreateDiffuseMaterial(
     Scene& scene, const Spectrum& reflectance, Float roughness, const SpectrumTexture* normalmap, Float alpha
 )

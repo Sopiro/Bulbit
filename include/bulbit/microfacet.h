@@ -31,6 +31,11 @@ public:
         return std::max(alpha_x, alpha_y) < 1e-3f;
     }
 
+    TrowbridgeReitzDistribution(Float alpha)
+        : TrowbridgeReitzDistribution(alpha, alpha)
+    {
+    }
+
     Float D(const Vec3& wm) const
     {
         Float tan2_theta = Tan2Theta(wm);
