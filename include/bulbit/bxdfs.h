@@ -687,8 +687,8 @@ public:
         const Spectrum& albedo,
         Float thickness,
         Float g = 0,
-        int32 max_bounces = 64,
-        int32 samples = 64
+        int32 max_bounces = 16,
+        int32 samples = 1
     )
         : top{ top }
         , bottom{ bottom }
@@ -989,12 +989,155 @@ public:
         BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
     ) const override
     {
-        BulbitNotUsed(wo);
-        BulbitNotUsed(wi);
-        BulbitNotUsed(direction);
-        BulbitNotUsed(flags);
+        Float pdf = 0;
 
-        return 0;
+        if (two_sided && wo.z < 0)
+        {
+            wo.Negate();
+            wi.Negate();
+        }
+
+        bool entered_top = two_sided || wo.z > 0;
+        bool reflection = SameHemisphere(wo, wi);
+
+        if (reflection && (flags & BxDF_SamplingFlags::Reflection))
+        {
+            // Add the first R pdf
+            pdf += samples * (entered_top ? top.PDF(wo, wi, direction, BxDF_SamplingFlags::Reflection)
+                                          : bottom.PDF(wo, wi, direction, BxDF_SamplingFlags::Reflection));
+        }
+
+        RNG rng(Hash(wi), Hash(wo));
+
+        for (int32 s = 0; s < samples; ++s)
+        {
+            if (reflection && (flags & BxDF_SamplingFlags::Reflection))
+            {
+                // Estimate the first TRT pdf
+                VariantBxDF<TopBxDF, BottomBxDF> r_interface, t_interface;
+                if (entered_top)
+                {
+                    r_interface = &bottom;
+                    t_interface = &top;
+                }
+                else
+                {
+                    r_interface = &top;
+                    t_interface = &bottom;
+                }
+
+                BSDFSample wo_sample, wi_sample;
+                if (t_interface.Sample_f(
+                        &wo_sample, wo, rng.NextFloat(), { rng.NextFloat(), rng.NextFloat() }, direction,
+                        BxDF_SamplingFlags::Transmission
+                    ) &&
+                    t_interface.Sample_f(
+                        &wi_sample, wi, rng.NextFloat(), { rng.NextFloat(), rng.NextFloat() }, !direction,
+                        BxDF_SamplingFlags::Transmission
+                    ))
+                {
+                    if (wo_sample.f == Spectrum::black || wo_sample.pdf == 0)
+                    {
+                        continue;
+                    }
+
+                    if (wi_sample.f == Spectrum::black || wi_sample.pdf == 0)
+                    {
+                        continue;
+                    }
+
+                    if (IsSpecular(t_interface.Flags()))
+                    {
+                        pdf += r_interface.PDF(-wo_sample.wi, -wi_sample.wi, direction);
+                    }
+                    else
+                    {
+                        BSDFSample r_sample;
+                        if (r_interface.Sample_f(
+                                &r_sample, -wo_sample.wi, rng.NextFloat(), { rng.NextFloat(), rng.NextFloat() }, direction
+                            ))
+                        {
+                            if (r_sample.f == Spectrum::black || r_sample.pdf == 0)
+                            {
+                                continue;
+                            }
+
+                            if (IsSpecular(r_interface.Flags()))
+                            {
+                                pdf += t_interface.PDF(-r_sample.wi, wi, direction);
+                            }
+                            else
+                            {
+                                Float pdf_r = r_interface.PDF(-wo_sample.wi, -wi_sample.wi, direction);
+                                Float w_mis = PowerHeuristic(wi_sample.pdf, pdf_r);
+                                pdf += w_mis * pdf_r;
+
+                                Float pdf_t = t_interface.PDF(-r_sample.wi, wi, direction);
+                                w_mis = PowerHeuristic(r_sample.pdf, pdf_t);
+                                pdf += w_mis * pdf_t;
+                            }
+                        }
+                    }
+                }
+            }
+            else if (!reflection && (flags & BxDF_SamplingFlags::Transmission))
+            {
+                // Estimate the first TT pdf
+                VariantBxDF<TopBxDF, BottomBxDF> to_interface, ti_interface;
+                if (entered_top)
+                {
+                    to_interface = &top;
+                    ti_interface = &bottom;
+                }
+                else
+                {
+                    to_interface = &bottom;
+                    ti_interface = &top;
+                }
+
+                BSDFSample wo_sample;
+                if (!to_interface.Sample_f(&wo_sample, wo, rng.NextFloat(), { rng.NextFloat(), rng.NextFloat() }, direction))
+                {
+                    continue;
+                }
+
+                if (wo_sample.f == Spectrum::black || wo_sample.pdf == 0 || wo_sample.wi.z == 0 || wo_sample.IsReflection())
+                {
+                    continue;
+                }
+
+                BSDFSample wi_sample;
+                if (!ti_interface.Sample_f(&wi_sample, wi, rng.NextFloat(), { rng.NextFloat(), rng.NextFloat() }, !direction))
+                {
+                    continue;
+                }
+
+                if (wi_sample.f == Spectrum::black || wi_sample.pdf == 0 || wi_sample.wi.z == 0 || wi_sample.IsReflection())
+                {
+                    continue;
+                }
+
+                if (IsSpecular(to_interface.Flags()))
+                {
+                    pdf += ti_interface.PDF(-wo_sample.wi, wi, direction);
+                }
+                else if (IsSpecular(ti_interface.Flags()))
+                {
+                    pdf += to_interface.PDF(wo, -wi_sample.wi, direction);
+                }
+                else
+                {
+                    // Combine two sampling strategy with constant weights
+                    Float pdf_ti = ti_interface.PDF(-wo_sample.wi, wi, direction);
+                    Float pdf_to = to_interface.PDF(wo, -wi_sample.wi, direction);
+
+                    pdf += 0.5f * (pdf_to + pdf_ti);
+                }
+            }
+        }
+
+        // Return mixture of two pdfs, uniform sphere pdf approximates diffused multiple scattering
+        return Lerp(0.9f, UniformSpherePDF(), pdf / samples);
     }
 
     virtual bool Sample_f(
