@@ -64,12 +64,13 @@ struct BSDFSample
 {
     BSDFSample() = default;
 
-    BSDFSample(Spectrum f, Vec3 wi, Float pdf, BxDF_Flags flags, Float eta = 1)
+    BSDFSample(Spectrum f, Vec3 wi, Float pdf, BxDF_Flags flags, Float eta = 1, bool is_stochastic = false)
         : f{ f }
         , wi{ wi }
         , pdf{ pdf }
         , flags{ flags }
         , eta{ eta }
+        , is_stochastic{ is_stochastic }
     {
     }
 
@@ -83,9 +84,10 @@ struct BSDFSample
 
     Spectrum f;
     Vec3 wi;
-    Float pdf = 0;
+    Float pdf;
     BxDF_Flags flags;
-    Float eta = 1;
+    Float eta;
+    bool is_stochastic;
 };
 
 class BxDF

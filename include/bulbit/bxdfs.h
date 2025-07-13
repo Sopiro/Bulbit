@@ -663,8 +663,8 @@ public:
         const Spectrum& albedo,
         Float thickness,
         Float g = 0,
-        int32 max_bounces = 8,
-        int32 samples = 1
+        int32 max_bounces = 64,
+        int32 samples = 64
     )
         : top{ top }
         , bottom{ bottom }
@@ -749,7 +749,7 @@ public:
         }
 
         // Prepare rng for stochastic BSDF evaluation
-        RNG rng(Hash(wo, wi));
+        RNG rng(Hash(wo), Hash(wi));
 
         // Estimate BSDF by unidirectional random walk
         for (int32 s = 0; s < samples; ++s)
@@ -872,7 +872,7 @@ public:
                             }
                         }
 
-                        // Continue to sample next path vertex
+                        // Proceed to sample next path vertex
                         continue;
                     }
 
@@ -982,12 +982,177 @@ public:
         BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
     ) const override
     {
-        BulbitNotUsed(sample);
-        BulbitNotUsed(wo);
-        BulbitNotUsed(u0);
-        BulbitNotUsed(u12);
-        BulbitNotUsed(direction);
-        BulbitNotUsed(flags);
+        bool flipped = false;
+        if (two_sided && wo.z < 0)
+        {
+            wo.Negate();
+            flipped = true;
+        }
+
+        // Sample BSDF at entrance interface to get inital direction
+        bool entered_top = two_sided || wo.z > 0;
+
+        bool sampled = false;
+        BSDFSample wo_sample;
+        if (entered_top)
+        {
+            sampled = top.Sample_f(&wo_sample, wo, u0, u12, direction);
+        }
+        else
+        {
+            sampled = bottom.Sample_f(&wo_sample, wo, u0, u12, direction);
+        }
+
+        if (!sampled || wo_sample.f == Spectrum::black || wo_sample.pdf == 0 || wo_sample.wi.z == 0)
+        {
+            return false;
+        }
+
+        if (wo_sample.IsReflection())
+        {
+            wo_sample.is_stochastic = true;
+
+            if (flipped)
+            {
+                wo_sample.wi.Negate();
+            }
+
+            if (!(flags & BxDF_SamplingFlags::Reflection))
+            {
+                return false;
+            }
+
+            *sample = wo_sample;
+            return true;
+        }
+
+        // Initial unidirectional random walk direction
+        Vec3 w = wo_sample.wi;
+        bool was_specular = wo_sample.IsSpecular();
+
+        RNG rng(Hash(wo), Hash(u0, u12));
+
+        // Path states intialized with initial w sample
+        Spectrum f = wo_sample.f * AbsCosTheta(wo_sample.wi);
+        Float pdf = wo_sample.pdf;
+
+        Float z = entered_top ? thickness : 0;
+        HenyeyGreensteinPhaseFunction phase_function(g);
+
+        constexpr Float rr_min = 0.25f;
+        for (int32 bounce = 0; bounce < max_bounces; ++bounce)
+        {
+            // Start random walk
+
+            // Possibly terminate random walk with russian roulette
+            if (bounce > 3)
+            {
+                if (Float beta = f.MaxComponent() / pdf; beta < rr_min)
+                {
+                    if (rng.NextFloat() > beta)
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        pdf /= beta;
+                    }
+                }
+            }
+
+            if (w.z == 0)
+            {
+                return false;
+            }
+
+            if (albedo == Spectrum::black)
+            {
+                // No medium scattering, advance to next layer boundary
+                z = (z == thickness) ? 0 : thickness;
+
+                // Update beta for transmittance
+                f *= Tr(thickness, w);
+            }
+            else
+            {
+                // Sample scattering event and update path states
+                constexpr Float sigma_t = 1;
+                Float dz = SampleExponential(rng.NextFloat(), sigma_t / std::abs(w.z));
+                Float z_p = w.z > 0 ? (z + dz) : (z - dz);
+
+                // Sampled medium scattering
+                if (0 < z_p && z_p < thickness)
+                {
+                    // Sample phase function for next path vertex
+                    PhaseFunctionSample phase_sample;
+                    if (!phase_function.Sample_p(&phase_sample, -w, { rng.NextFloat(), rng.NextFloat() }))
+                    {
+                        return false;
+                    }
+
+                    // Update path states for volume scattering vertex
+                    f *= albedo * phase_sample.p;
+                    pdf *= phase_sample.pdf;
+                    was_specular = false;
+
+                    w = phase_sample.wi;
+                    z = z_p;
+
+                    // Proceed to sample next path vertex
+                    continue;
+                }
+                else // Sampled surface scattering
+                {
+                    z = Clamp(z_p, 0, thickness);
+                }
+            }
+
+            VariantBxDF<TopBxDF, BottomBxDF> interface;
+            if (z == 0)
+            {
+                interface = &bottom;
+            }
+            else
+            {
+                interface = &top;
+            }
+
+            BSDFSample bsdf_sample;
+            if (!interface.Sample_f(&bsdf_sample, -w, rng.NextFloat(), { rng.NextFloat(), rng.NextFloat() }, direction))
+            {
+                return false;
+            }
+
+            if (bsdf_sample.f == Spectrum::black || bsdf_sample.pdf == 0 || bsdf_sample.wi.z == 0)
+            {
+                return false;
+            }
+
+            // Update path states for surface scattering vertex
+            f *= bsdf_sample.f;
+            pdf *= bsdf_sample.pdf;
+            was_specular &= bsdf_sample.IsSpecular();
+            w = bsdf_sample.wi;
+
+            // Stop random walk and return sample if path has left the layers
+            if (bsdf_sample.IsTransmission())
+            {
+                BxDF_Flags flags;
+                flags = SameHemisphere(wo, w) ? BxDF_Flags::Reflection : BxDF_Flags::Transmission;
+                flags |= was_specular ? BxDF_Flags::Specular : BxDF_Flags::Glossy;
+
+                if (flipped)
+                {
+                    w.Negate();
+                }
+
+                *sample = BSDFSample(f, w, pdf, flags, 1, true);
+                return true;
+            }
+
+            // Don't forget the cosine term on surface scattering
+            f *= AbsCosTheta(bsdf_sample.wi);
+        }
 
         return false;
     }
