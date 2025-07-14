@@ -14,6 +14,8 @@ public:
     BSDF(Vec3 n, BxDF* bxdf);
     BSDF(Vec3 n, Vec3 t, BxDF* bxdf);
 
+    BxDF_Flags Flags() const;
+
     Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const;
     Float PDF(
         Vec3 wo,
@@ -46,7 +48,7 @@ public:
 
     void Regularize();
 
-    BxDF_Flags Flags() const;
+    BxDF* GetBxDF();
 
 private:
     Frame frame;
@@ -63,6 +65,11 @@ inline BSDF::BSDF(Vec3 n, Vec3 t, BxDF* bxdf)
     : frame{ Frame::FromXZ(t, n) }
     , bxdf{ bxdf }
 {
+}
+
+inline BxDF_Flags BSDF::Flags() const
+{
+    return bxdf->Flags();
 }
 
 inline Spectrum BSDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
@@ -140,14 +147,14 @@ inline Vec3 BSDF::LocalToWorld(const Vec3& v) const
     return frame.FromLocal(v);
 }
 
-inline BxDF_Flags BSDF::Flags() const
-{
-    return bxdf->Flags();
-}
-
 inline void BSDF::Regularize()
 {
     bxdf->Regularize();
+}
+
+inline BxDF* BSDF::GetBxDF()
+{
+    return bxdf;
 }
 
 } // namespace bulbit

@@ -344,6 +344,45 @@ private:
     const SpectrumTexture* normalmap;
 };
 
+class LayeredMaterial : public Material
+{
+public:
+    LayeredMaterial(
+        const Material* top,
+        const Material* bottom,
+        bool two_sided,
+        const Spectrum& albedo,
+        Float thickness,
+        Float g = 0,
+        int32 max_bounces = 16,
+        int32 samples = 1,
+        const SpectrumTexture* normalmap = nullptr,
+        const FloatTexture* alpha = nullptr
+    );
+
+    Float GetAlpha(const Intersection& isect) const;
+    const SpectrumTexture* GetNormalMap() const;
+
+    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+
+private:
+    const Material* top;
+    const Material* bottom;
+
+    bool two_sided;
+
+    Spectrum albedo;
+
+    Float thickness, g;
+    int32 max_bounces, samples;
+
+    const SpectrumTexture* normalmap;
+    const FloatTexture* alpha;
+};
+
 inline Float Material::GetAlpha(const Intersection& isect) const
 {
     return Dispatch([&](auto mat) { return mat->GetAlpha(isect); });

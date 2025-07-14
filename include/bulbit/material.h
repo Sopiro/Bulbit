@@ -23,7 +23,8 @@ using Materials = TypePack<
     class DiffuseLightMaterial,
     class MixtureMaterial,
     class SubsurfaceDiffusionMaterial,
-    class SubsurfaceRandomWalkMaterial>;
+    class SubsurfaceRandomWalkMaterial,
+    class LayeredMaterial>;
 
 class Material : public DynamicDispatcher<Materials>
 {
@@ -32,7 +33,7 @@ public:
 
 protected:
     Material(int32 type_index)
-        : DynamicDispatcher{ type_index }
+        : DynamicDispatcher(type_index)
     {
     }
 
