@@ -269,6 +269,25 @@ DiffuseLightMaterial* CreateDiffuseLightMaterial(Scene& scene, const Spectrum& e
     );
 }
 
+LayeredMaterial* CreateLayeredMaterial(
+    Scene& scene,
+    const Material* top,
+    const Material* bottom,
+    bool two_sided,
+    const Spectrum& albedo,
+    Float thickness,
+    Float g,
+    int32 max_bounces,
+    int32 samples,
+    const SpectrumTexture* normalmap,
+    Float alpha
+)
+{
+    return scene.CreateMaterial<LayeredMaterial>(
+        top, bottom, two_sided, albedo, thickness, g, max_bounces, samples, normalmap, CreateFloatConstantTexture(scene, alpha)
+    );
+}
+
 const Material* CreateRandomPrincipledMaterial(Scene& scene)
 {
     // clang-format off

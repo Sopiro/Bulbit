@@ -27,7 +27,7 @@ std::unique_ptr<Camera> MaterialTest(Scene& scene)
     const Material* top = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.0f, false);
     const Material* bottom = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.1f);
 
-    const Material* outer = scene.CreateMaterial<LayeredMaterial>(top, bottom, true, Spectrum(0, 0, 0), 1e-4f);
+    const Material* outer = CreateLayeredMaterial(scene, top, bottom, true, Spectrum(0, 0, 0), 1e-4f);
     const Material* inner = CreateDiffuseMaterial(scene, 0.8f, 0.0f);
 
     // SetLoaderFallbackMediumInterface(mi);

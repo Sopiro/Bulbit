@@ -156,6 +156,20 @@ MirrorMaterial* CreateMirrorMaterial(
 DiffuseLightMaterial* CreateDiffuseLightMaterial(Scene& scene, Float emission, bool two_sided = false, Float alpha = 1);
 DiffuseLightMaterial* CreateDiffuseLightMaterial(Scene& scene, const Spectrum& emission, bool two_sided = false, Float alpha = 1);
 
+LayeredMaterial* CreateLayeredMaterial(
+    Scene& scene,
+    const Material* top,
+    const Material* bottom,
+    bool two_sided = true,
+    const Spectrum& albedo = Spectrum(0),
+    Float thickness = 1e-4f,
+    Float g = 0,
+    int32 max_bounces = 16,
+    int32 samples = 1,
+    const SpectrumTexture* normalmap = nullptr,
+    Float alpha = 1
+);
+
 const Material* CreateRandomPrincipledMaterial(Scene& scene);
 
 } // namespace bulbit
