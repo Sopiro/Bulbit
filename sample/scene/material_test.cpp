@@ -1,5 +1,74 @@
 #include "../samples.h"
 
+std::unique_ptr<Camera> MaterialTest(Scene& scene)
+{
+    HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
+    MediumInterface mi(hm, nullptr);
+
+    SetLoaderUseForceFallbackMaterial(true);
+
+    // Floor
+    {
+        auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
+        auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
+        auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
+        SetLoaderFallbackMaterial(floor);
+        LoadModel(scene, "res/background.obj", tf);
+    }
+
+    Float scale = 2.0f;
+
+    Vec3 o(0, 0, 0.4);
+
+    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+
+    // Spectrum(0.9, 0.1, 0.05)
+
+    const Material* top = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.0f, false);
+    const Material* bottom = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.1f);
+
+    const Material* outer = scene.CreateMaterial<LayeredMaterial>(top, bottom, true, Spectrum(0, 0, 0), 1e-4f);
+    const Material* inner = CreateDiffuseMaterial(scene, 0.8f, 0.0f);
+
+    // SetLoaderFallbackMediumInterface(mi);
+
+    // auto tf = Transform{ o, Quat::FromEuler({ 0, pi / 6, 0 }), Vec3(scale) };
+    auto tf = Transform{ o, Quat::FromEuler({ 0, 0, 0 }), Vec3(scale) };
+
+    // https://github.com/lighttransport/lighttransportequation-orb
+    SetLoaderFallbackMaterial(outer);
+    LoadModel(scene, "res/mori_knob/base.obj", tf);
+    LoadModel(scene, "res/mori_knob/outer.obj", tf);
+
+    SetLoaderFallbackMaterial(inner);
+    LoadModel(scene, "res/mori_knob/inner.obj", tf);
+    // LoadModel(scene, "res/mori_knob/equation.obj", tf);
+
+    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
+    CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
+    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
+    // CreateImageInfiniteLight(scene, "res/HDR/scythian_tombs_2_4k.hdr", Transform(Quat(pi, y_axis)));
+    // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(0, y_axis)));
+    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(0, y_axis)));
+    // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr", Transform(Quat(0, y_axis)));
+    // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
+    // CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(-pi, y_axis)));
+    // CreateUniformInfiniteLight(scene, Spectrum(1));
+
+    Float aspect_ratio = 1.0f;
+    int32 width = 1000;
+    int32 height = int32(width / aspect_ratio);
+
+    Point3 lookfrom = Point3{ 0, 1.0, 2.0 };
+    Point3 lookat = Point3{ 0.0, 0.1, 0.0 };
+
+    Float dist_to_focus = Dist(lookfrom, lookat);
+    Float aperture = 0.01f;
+    Float vFov = 30.0;
+
+    return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height));
+}
+
 std::unique_ptr<Camera> MetallicRoughness(Scene& scene)
 {
     HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
@@ -585,7 +654,8 @@ std::unique_ptr<Camera> ColoredDielectrics(Scene& scene)
     return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height));
 }
 
-static int32 sample_index = Sample::Register("material", MetallicRoughness);
+static int32 index0 = Sample::Register("material", MaterialTest);
+static int32 index1 = Sample::Register("material1", MetallicRoughness);
 static int32 index2 = Sample::Register("material2", Dielectrics);
 static int32 index3 = Sample::Register("material3", Skins);
 static int32 index4 = Sample::Register("material4", Mixtures);
