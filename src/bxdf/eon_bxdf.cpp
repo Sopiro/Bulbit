@@ -34,6 +34,75 @@ static Float E_FON_approx(Float mu, Float r)
     return (1.0f + r * GoverPi) / (1.0f + constant1_FON * r);
 }
 
+// Listing 2.
+void ltc_coeffs(Float mu, Float r, Float* a, Float* b, Float* c, Float* d)
+{
+    *a = 1.0f + r * (0.303392f + (-0.518982f + 0.111709f * mu) * mu + (-0.276266f + 0.335918f * mu) * r);
+    *b = r * (-1.16407f + 1.15859f * mu + (0.150815f - 0.150105f * mu) * r) / (mu * mu * mu - 1.43545f);
+    *c = 1.0f + (0.20013f + (-0.506373f + 0.261777f * mu) * mu) * r;
+    *d = ((0.540852f + (-1.01625f + 0.475392f * mu) * mu) * r) / (-1.0743f + mu * (0.0725628f + mu));
+}
+
+// Listing 3.
+Mat3 orthonormal_basis_ltc(Vec3 w)
+{
+
+    Float lenSqr = Length2(Vec2(w.x, w.y));
+    Vec3 X = lenSqr > 0.0f ? Vec3(w.x, w.y, 0.0f) * 1 / std::sqrt(lenSqr) : Vec3(1, 0, 0);
+    Vec3 Y = Vec3(-X.y, X.x, 0.0f); // cross(Z, X)
+
+    return Mat3(X, Y, Vec3(0, 0, 1));
+}
+
+Vec3 cltc_sample(Vec3 wo, Float r, Float u1, Float u2, Float* pdf)
+{
+    Float a, b, c, d;
+    ltc_coeffs(wo.z, r, &a, &b, &c, &d);
+
+    Float R = sqrt(u1);
+    Float phi = two_pi * u2;
+
+    Float x = R * cos(phi);
+    Float y = R * sin(phi);
+
+    Float vz = 1.0f / sqrt(d * d + 1.0f);
+    Float s = 0.5f * (1.0f + vz);
+    x = -Lerp(sqrt(1.0f - y * y), x, s);
+
+    Vec3 wh = Vec3(x, y, sqrt(std::max(1.0f - (x * x + y * y), 0.0f))); // ωH sample via CLTC
+    Float pdf_wh = wh.z / (pi * s);
+
+    Vec3 wi = Vec3(a * wh.x + b * wh.z, c * wh.y, d * wh.x + wh.z);
+    Float len = Length(wi);
+    Float detM = c * (a - b * d);
+    Float pdf_wi = pdf_wh * len * len * len / detM;
+    Mat3 fromLTC = orthonormal_basis_ltc(wo);
+
+    wi = Normalize(Mul(fromLTC, wi));
+
+    *pdf = pdf_wi;
+
+    return wi;
+}
+
+Float cltc_pdf(Vec3 wo_local, Vec3 wi_local, Float r)
+{
+    Mat3 toLTC = orthonormal_basis_ltc(wo_local).GetTranspose();
+    Vec3 wi = Mul(toLTC, wi_local);
+
+    Float a, b, c, d;
+    ltc_coeffs(wo_local.z, r, &a, &b, &c, &d);
+
+    Float detM = c * (a - b * d);
+    Vec3 wh = Vec3(c * (wi.x - b * wi.z), (a - b * d) * wi.y, -c * (d * wi.x - a * wi.z));
+    Float lenSqr = Dot(wh, wh);
+    Float vz = 1.0f / sqrt(d * d + 1.0f);
+    Float s = 0.5f * (1.0f + vz);
+    Float pdf = detM * detM / (lenSqr * lenSqr) * std::max(wh.z, 0.0f) / (pi * s);
+
+    return pdf;
+}
+
 // Evaluates EON BRDF value, given inputs:
 //  rho = single-scattering albedo
 //  r = roughness in [0,1]
@@ -78,14 +147,20 @@ Float EONBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_Sampling
         return 0;
     }
 
-    return CosineHemispherePDF(AbsCosTheta(wi));
+    Float mu = wo.z;
+    Float P_u = pow(r, 0.1f) * (0.162925f + mu * (-0.372058f + (0.538233f - 0.290822f * mu) * mu));
+    Float P_c = 1.0f - P_u;
+
+    Float pdf_c = cltc_pdf(wo, wi, r);
+    Float pdf_u = UniformHemispherePDF();
+
+    return P_u * pdf_u + P_c * pdf_c;
 }
 
 bool EONBxDF::Sample_f(
     BSDFSample* sample, Vec3 wo, Float u0, Point2 u12, TransportDirection direction, BxDF_SamplingFlags flags
 ) const
 {
-    BulbitNotUsed(u0);
     BulbitNotUsed(direction);
 
     if (!(flags & BxDF_SamplingFlags::Reflection))
@@ -93,12 +168,24 @@ bool EONBxDF::Sample_f(
         return false;
     }
 
-    Vec3 wi = SampleCosineHemisphere(u12);
-    Float pdf = CosineHemispherePDF(CosTheta(wi));
-    if (wo.z < 0)
+    Float mu = wo.z;
+    Float P_u = pow(r, 0.1f) * (0.162925f + mu * (-0.372058f + (0.538233f - 0.290822f * mu) * mu));
+    Float P_c = 1.0f - P_u; // probability of CLTC sample
+
+    Vec3 wi;
+    Float pdf_c;
+    if (u0 <= P_u)
     {
-        wi.z = -wi.z;
+        wi = SampleUniformHemisphere(u12); // sample wi from uniform lobe
+        pdf_c = cltc_pdf(wo, wi, r);
     }
+    else
+    {
+        wi = cltc_sample(wo, r, u12[0], u12[1], &pdf_c); // sample wi from CLTC lobe
+    }
+
+    const Float pdf_u = UniformHemispherePDF();
+    Float pdf = P_u * pdf_u + P_c * pdf_c; // MIS PDF of wi
 
     *sample = BSDFSample(f(wo, wi, direction), wi, pdf, BxDF_Flags::DiffuseReflection);
 
