@@ -25,6 +25,8 @@ DielectricMaterial* CreateDielectricMaterial(
     const SpectrumTexture* normalmap = nullptr
 );
 
+ThinDielectricMaterial* CreateThinDielectricMaterial(Scene& scene, Float eta, Spectrum reflectance = Spectrum(1));
+
 ConductorMaterial* CreateConductorMaterial(
     Scene& scene,
     const Spectrum& eta,

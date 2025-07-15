@@ -8,7 +8,7 @@ std::unique_ptr<Camera> GGXVNDFSamplingTest(Scene& scene)
         auto mat = CreateRandomPrincipledMaterial(scene);
         // auto mat = CreateMirrorMaterial(scene, Spectrum(0.7f));
         // auto mat = CreateDielectricMaterial(scene, 1.5f);
-        // auto mat = scene.CreateMaterial<ThinDielectricMaterial>(1.5f);
+        // auto mat = CreateThinDielectricMaterial(scene, 1.5f);
         // auto mat = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.1f, 0.3f);
         // auto mix = scene.CreateMaterial<MixtureMaterial>(mat, mat, 0.1f);
 

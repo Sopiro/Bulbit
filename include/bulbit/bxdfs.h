@@ -329,8 +329,9 @@ private:
 class ThinDielectricBxDF : public BxDF
 {
 public:
-    ThinDielectricBxDF(Float eta)
+    ThinDielectricBxDF(Float eta, Spectrum r)
         : eta{ eta }
+        , r{ Sqrt(r) }
     {
     }
 
@@ -358,6 +359,7 @@ public:
 
 private:
     Float eta;
+    Spectrum r;
 };
 
 class SheenBxDF : public BxDF

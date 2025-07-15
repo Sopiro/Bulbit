@@ -85,7 +85,7 @@ private:
 class ThinDielectricMaterial : public Material
 {
 public:
-    ThinDielectricMaterial(Float eta);
+    ThinDielectricMaterial(Float eta, const SpectrumTexture* reflectance);
 
     Float GetAlpha(const Intersection& isect) const;
     const SpectrumTexture* GetNormalMap() const;
@@ -96,6 +96,7 @@ public:
 
 private:
     Float eta;
+    const SpectrumTexture* reflectance;
 };
 
 class ClothMaterial : public Material

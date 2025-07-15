@@ -41,6 +41,11 @@ DielectricMaterial* CreateDielectricMaterial(
     );
 }
 
+ThinDielectricMaterial* CreateThinDielectricMaterial(Scene& scene, Float eta, Spectrum reflectance)
+{
+    return scene.CreateMaterial<ThinDielectricMaterial>(eta, CreateSpectrumConstantTexture(scene, reflectance));
+}
+
 ConductorMaterial* CreateConductorMaterial(
     Scene& scene,
     const Spectrum& eta,

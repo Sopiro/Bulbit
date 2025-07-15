@@ -61,7 +61,7 @@ bool ThinDielectricBxDF::Sample_f(
         // Sample perfect specular transmission at thin dielectric interface
         Vec3 wi = -wo;
         Spectrum ft(T / AbsCosTheta(wi));
-        *sample = BSDFSample(ft, wi, pt / (pr + pt), BxDF_Flags::SpecularTransmission);
+        *sample = BSDFSample(ft * r, wi, pt / (pr + pt), BxDF_Flags::SpecularTransmission);
     }
 
     return true;

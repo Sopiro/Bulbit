@@ -4,9 +4,10 @@
 namespace bulbit
 {
 
-ThinDielectricMaterial::ThinDielectricMaterial(Float eta)
+ThinDielectricMaterial::ThinDielectricMaterial(Float eta, const SpectrumTexture* reflectance)
     : Material(TypeIndexOf<ThinDielectricMaterial>())
     , eta{ eta }
+    , reflectance{ reflectance }
 {
 }
 
@@ -32,7 +33,8 @@ bool ThinDielectricMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, cons
 {
     BulbitNotUsed(wo);
 
-    *bsdf = BSDF(isect.shading.normal, isect.shading.tangent, alloc.new_object<ThinDielectricBxDF>(eta));
+    Spectrum r = reflectance->Evaluate(isect.uv);
+    *bsdf = BSDF(isect.shading.normal, isect.shading.tangent, alloc.new_object<ThinDielectricBxDF>(eta, r));
     return true;
 }
 

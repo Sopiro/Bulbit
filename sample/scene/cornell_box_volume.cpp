@@ -72,7 +72,7 @@ std::unique_ptr<Camera> CornellBoxVolume(Scene& scene)
         Float hy = 0.14f;
         Float hz = 0.14f;
 
-        // auto mat = scene.CreateMaterial<ThinDielectricMaterial>(1.5f);
+        // auto mat = CreateThinDielectricMaterial(scene, 1.5f);
 
         auto tf = Transform{ 0.66f, hy + Ray::epsilon * 2, -0.33f, Quat(DegToRad(-18.0f), y_axis),
                              Vec3(hx * 2.0f, hy * 2.0f, hz * 2.0f) };
@@ -82,7 +82,7 @@ std::unique_ptr<Camera> CornellBoxVolume(Scene& scene)
     // Right sphere
     {
         // auto mat = CreateDielectricMaterial(scene, 1.5f);
-        // auto mat = scene.CreateMaterial<ThinDielectricMaterial>(1.5f);
+        // auto mat = CreateThinDielectricMaterial(scene, 1.5f);
         // auto mat = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.3f, 0.1f);
         // CreateSphere(scene, Transform(Vec3(0.65f, 0.15f, -0.3f), Quat(DegToRad(0), x_axis)), 0.15f, mat);
         // CreateSphere(scene, Transform(Vec3(0.65f, 0.15f, -0.3f), Quat(DegToRad(45), y_axis)), 0.15f, wakgood_mat);
