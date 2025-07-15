@@ -22,10 +22,10 @@ std::unique_ptr<Camera> MaterialTest(Scene& scene)
     const Material* l0 = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.0f);
     const Material* l1 = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.0f);
 
-    const Material* top = CreateLayeredMaterial(scene, l0, l1, false, Spectrum(0.7, 0, 0), 0.3f);
-    const Material* bottom = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.1f);
+    const Material* l01 = CreateLayeredMaterial(scene, l0, l1, false, Spectrum(0.7, 0, 0), 0.3f);
+    const Material* l2 = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.1f);
 
-    const Material* outer = CreateLayeredMaterial(scene, top, bottom, false, Spectrum(0, 0, 0), 0.01f);
+    const Material* outer = CreateLayeredMaterial(scene, l01, l2, false, Spectrum(0, 0, 0), 0.01f);
     const Material* inner = CreateDiffuseMaterial(scene, 0.8f, 0.0f);
 
     // auto tf = Transform{ o, Quat::FromEuler({ 0, pi / 6, 0 }), Vec3(2) };

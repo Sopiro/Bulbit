@@ -122,20 +122,6 @@ Float DielectricMultiScatteringBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection di
         return 0;
     }
 
-    // Determine Fresnel F of rough dielectric boundary
-    Float R = FresnelDielectric(Dot(wo, wm), eta);
-    Float T = 1 - R;
-
-    // Compute sampling probabilities for reflection and transmission
-    Float pr = R;
-    Float pt = T;
-    if (!(flags & BxDF_SamplingFlags::Reflection)) pr = 0;
-    if (!(flags & BxDF_SamplingFlags::Transmission)) pt = 0;
-    if (pr == 0 && pt == 0)
-    {
-        return 0;
-    }
-
     Float eta_i = eta >= 1 ? eta : 1 / eta;
     Float eta_t = 1 / eta_i;
     Float a = (1 - FresnelDielectricAverage(eta_i)) / (1 - E_avg(eta_t));
@@ -146,12 +132,33 @@ Float DielectricMultiScatteringBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection di
 
     Float reflectance = std::fmin(E(wo, eta), 1 - 1e-4f);
 
+    // Determine Fresnel F of rough dielectric boundary
+    Float R = FresnelDielectric(Dot(wo, wm), eta);
+    Float T = 1 - R;
+
+    // Compute sampling probabilities for reflection and transmission
+    Float pr_ss = R, pt_ss = T;
+    Float pr_ms = ratio, pt_ms = 1 - ratio;
+    if (!(flags & BxDF_SamplingFlags::Reflection)) pr_ss = pr_ms = 0;
+    if (!(flags & BxDF_SamplingFlags::Transmission)) pt_ss = pt_ms = 0;
+    if (pr_ss == 0 && pt_ss == 0 && pr_ms == 0 && pt_ms == 0)
+    {
+        return 0;
+    }
+
+    Float p_ss_sum = pr_ss + pt_ss;
+    Float p_ms_sum = pr_ms + pt_ms;
+    pr_ss /= p_ss_sum;
+    pt_ss /= p_ss_sum;
+    pr_ms /= p_ms_sum;
+    pt_ms /= p_ms_sum;
+
     Float pdf;
     if (reflect)
     {
         // Compute PDF of rough dielectric reflection
-        Float pdf_ss = mf.PDF(wo, wm) / (4 * AbsDot(wo, wm)) * pr / (pr + pt);
-        Float pdf_ms = ratio * CosineHemispherePDF(AbsCosTheta(wi));
+        Float pdf_ss = pr_ss * mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
+        Float pdf_ms = pr_ms * CosineHemispherePDF(AbsCosTheta(wi));
 
         pdf = Lerp(pdf_ms, pdf_ss, reflectance);
     }
@@ -159,8 +166,8 @@ Float DielectricMultiScatteringBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection di
     {
         // Compute PDF of rough dielectric transmission
         Float dwm_dwi = AbsDot(wi, wm) / Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p);
-        Float pdf_ss = mf.PDF(wo, wm) * dwm_dwi * pt / (pr + pt);
-        Float pdf_ms = (1 - ratio) * CosineHemispherePDF(AbsCosTheta(wi));
+        Float pdf_ss = pt_ss * mf.PDF(wo, wm) * dwm_dwi;
+        Float pdf_ms = pt_ms * CosineHemispherePDF(AbsCosTheta(wi));
 
         pdf = Lerp(pdf_ms, pdf_ss, reflectance);
     }
@@ -232,24 +239,36 @@ bool DielectricMultiScatteringBxDF::Sample_f(
     Float reflectance = std::fmin(E(wo, eta), 1 - 1e-4f);
     if (u0 < reflectance)
     {
-        // Sample rough dielectric BSDF
+        // Sample single-scattering rough dielectric BSDF
         Vec3 wm = mf.Sample_Wm(wo, u12);
 
         Float R = FresnelDielectric(Dot(wo, wm), eta);
         Float T = 1 - R;
 
         // Compute sampling probabilities for reflection and transmission
-        Float pr = R;
-        Float pt = T;
-        if (!(flags & BxDF_SamplingFlags::Reflection)) pr = 0;
-        if (!(flags & BxDF_SamplingFlags::Transmission)) pt = 0;
-        if (pr == 0 && pt == 0)
+        Float pr_ss = R, pt_ss = T;
+        if (!(flags & BxDF_SamplingFlags::Reflection)) pr_ss = 0;
+        if (!(flags & BxDF_SamplingFlags::Transmission)) pt_ss = 0;
+        if (pr_ss == 0 && pt_ss)
         {
             return false;
         }
 
-        if (u0 < pr / (pr + pt))
+        Float p_ss_sum = pr_ss + pt_ss;
+        pr_ss /= p_ss_sum;
+        pt_ss /= p_ss_sum;
+
+        // Renormalize
+        u0 /= reflectance;
+        if (u0 < pr_ss)
         {
+            Float pr_ms = ratio, pt_ms = 1 - ratio;
+            if (!(flags & BxDF_SamplingFlags::Reflection)) pr_ms = 0;
+            if (!(flags & BxDF_SamplingFlags::Transmission)) pt_ms = 0;
+            Float p_ms_sum = pr_ms + pt_ms;
+            pr_ms /= p_ms_sum;
+            pt_ms /= p_ms_sum;
+
             // Sample reflection at rough dielectric interface
             Vec3 wi = Reflect(wo, wm);
             if (!SameHemisphere(wo, wi))
@@ -258,8 +277,8 @@ bool DielectricMultiScatteringBxDF::Sample_f(
             }
 
             // Compute PDF of rough dielectric reflection
-            Float pdf_ss = mf.PDF(wo, wm) / (4 * AbsDot(wo, wm)) * pr / (pr + pt);
-            Float pdf_ms = ratio * CosineHemispherePDF(AbsCosTheta(wi));
+            Float pdf_ss = pr_ss * mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
+            Float pdf_ms = pr_ms * CosineHemispherePDF(AbsCosTheta(wi));
             Float pdf = Lerp(pdf_ms, pdf_ss, reflectance);
 
             Spectrum fr_ss(R * mf.D(wm) * mf.G(wo, wi) / (4 * CosTheta(wi) * CosTheta(wo)));
@@ -269,6 +288,13 @@ bool DielectricMultiScatteringBxDF::Sample_f(
         }
         else
         {
+            Float pr_ms = ratio, pt_ms = 1 - ratio;
+            if (!(flags & BxDF_SamplingFlags::Reflection)) pr_ms = 0;
+            if (!(flags & BxDF_SamplingFlags::Transmission)) pt_ms = 0;
+            Float p_ms_sum = pr_ms + pt_ms;
+            pr_ms /= p_ms_sum;
+            pt_ms /= p_ms_sum;
+
             // Sample transmission at rough dielectric interface
             Float eta_p;
             Vec3 wi;
@@ -283,8 +309,8 @@ bool DielectricMultiScatteringBxDF::Sample_f(
             // Compute PDF of rough dielectric transmission
             Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p);
             Float dwm_dwi = AbsDot(wi, wm) / denom;
-            Float pdf_ss = mf.PDF(wo, wm) * dwm_dwi * pt / (pr + pt);
-            Float pdf_ms = (1 - ratio) * CosineHemispherePDF(AbsCosTheta(wi));
+            Float pdf_ss = pt_ss * mf.PDF(wo, wm) * dwm_dwi;
+            Float pdf_ms = pt_ms * CosineHemispherePDF(AbsCosTheta(wi));
             Float pdf = Lerp(pdf_ms, pdf_ss, reflectance);
 
             Spectrum ft_ss(
@@ -311,31 +337,40 @@ bool DielectricMultiScatteringBxDF::Sample_f(
     {
         // Sample multi-scattering lobe
 
-        // Compute sampling probabilities for reflection and transmission of diffuse multi-scattering lobe
-        Float pr = ratio;
-        Float pt = 1 - ratio;
-        if (!(flags & BxDF_SamplingFlags::Reflection)) pr = 0;
-        if (!(flags & BxDF_SamplingFlags::Transmission)) pt = 0;
-        if (pr == 0 && pt == 0)
+        // Compute sampling probabilities for reflection and transmission
+        Float pr_ms = ratio, pt_ms = 1 - ratio;
+        if (!(flags & BxDF_SamplingFlags::Reflection)) pr_ms = 0;
+        if (!(flags & BxDF_SamplingFlags::Transmission)) pt_ms = 0;
+        if (pr_ms == 0 && pt_ms == 0)
         {
             return false;
         }
+
+        Float p_ms_sum = pr_ms + pt_ms;
+        pr_ms /= p_ms_sum;
+        pt_ms /= p_ms_sum;
 
         Vec3 wi = SampleCosineHemisphere(u12);
         Vec3 wm;
 
         // Renormalize
         u0 = (u0 - reflectance) / (1 - reflectance);
-        if (u0 < pr / (pr + pt))
+        if (u0 < pr_ms)
         {
             // Sample diffuse reflection
-
             wm = Normalize(wi + wo);
 
             Float R = FresnelDielectric(Dot(wo, wm), eta);
 
-            Float pdf_ss = R * mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
-            Float pdf_ms = CosineHemispherePDF(AbsCosTheta(wi)) * pr / (pr + pt);
+            Float pr_ss = R, pt_ss = 1 - R;
+            if (!(flags & BxDF_SamplingFlags::Reflection)) pr_ss = 0;
+            if (!(flags & BxDF_SamplingFlags::Transmission)) pt_ss = 0;
+            Float p_ss_sum = pr_ss + pt_ss;
+            pr_ss /= p_ss_sum;
+            pt_ss /= p_ss_sum;
+
+            Float pdf_ss = pr_ss * mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
+            Float pdf_ms = pr_ms * CosineHemispherePDF(AbsCosTheta(wi));
             Float pdf = Lerp(pdf_ms, pdf_ss, reflectance);
 
             Spectrum fr_ss(R * mf.D(wm) * mf.G(wo, wi) / (4 * CosTheta(wi) * CosTheta(wo)));
@@ -355,13 +390,21 @@ bool DielectricMultiScatteringBxDF::Sample_f(
                 wm.Negate();
             }
 
-            Float T = 1 - FresnelDielectric(Dot(wo, wm), eta);
+            Float R = FresnelDielectric(Dot(wo, wm), eta);
+            Float T = 1 - R;
+
+            Float pr_ss = R, pt_ss = 1 - R;
+            if (!(flags & BxDF_SamplingFlags::Reflection)) pr_ss = 0;
+            if (!(flags & BxDF_SamplingFlags::Transmission)) pt_ss = 0;
+            Float p_ss_sum = pr_ss + pt_ss;
+            pr_ss /= p_ss_sum;
+            pt_ss /= p_ss_sum;
 
             Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta);
             Float dwm_dwi = AbsDot(wi, wm) / denom;
 
-            Float pdf_ss = T * mf.PDF(wo, wm) * dwm_dwi;
-            Float pdf_ms = CosineHemispherePDF(AbsCosTheta(wi)) * pt / (pr + pt);
+            Float pdf_ss = pt_ss * mf.PDF(wo, wm) * dwm_dwi;
+            Float pdf_ms = pt_ms * CosineHemispherePDF(AbsCosTheta(wi));
             Float pdf = Lerp(pdf_ms, pdf_ss, reflectance);
 
             Spectrum ft_ss(
