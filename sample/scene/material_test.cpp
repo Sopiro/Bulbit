@@ -4,6 +4,7 @@ std::unique_ptr<Camera> MaterialTest(Scene& scene)
 {
     HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
+    // SetLoaderFallbackMediumInterface(mi);
 
     SetLoaderUseForceFallbackMaterial(true);
 
@@ -16,24 +17,19 @@ std::unique_ptr<Camera> MaterialTest(Scene& scene)
         LoadModel(scene, "res/background.obj", tf);
     }
 
-    Float scale = 2.0f;
-
-    Vec3 o(0, 0, 0.4);
-
     auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
-    // Spectrum(0.9, 0.1, 0.05)
+    const Material* l0 = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.0f);
+    const Material* l1 = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.0f);
 
-    const Material* top = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.0f, false);
+    const Material* top = CreateLayeredMaterial(scene, l0, l1, false, Spectrum(0.7, 0, 0), 0.3f);
     const Material* bottom = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.1f);
 
-    const Material* outer = CreateLayeredMaterial(scene, top, bottom, true, Spectrum(0, 0, 0), 1e-4f);
+    const Material* outer = CreateLayeredMaterial(scene, top, bottom, false, Spectrum(0, 0, 0), 0.01f);
     const Material* inner = CreateDiffuseMaterial(scene, 0.8f, 0.0f);
 
-    // SetLoaderFallbackMediumInterface(mi);
-
-    // auto tf = Transform{ o, Quat::FromEuler({ 0, pi / 6, 0 }), Vec3(scale) };
-    auto tf = Transform{ o, Quat::FromEuler({ 0, 0, 0 }), Vec3(scale) };
+    // auto tf = Transform{ o, Quat::FromEuler({ 0, pi / 6, 0 }), Vec3(2) };
+    auto tf = Transform{ { 0, 0, 0.4 }, Quat::FromEuler({ 0, 0, 0 }), Vec3(2) };
 
     // https://github.com/lighttransport/lighttransportequation-orb
     SetLoaderFallbackMaterial(outer);
