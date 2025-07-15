@@ -62,7 +62,7 @@ void CharlieSheenDistribution::ComputeReflectanceTexture(int32 texture_size, std
 {
     BulbitNotUsed(uc);
 
-    if (CharlieSheenDistribution::E_texture)
+    if (E_texture)
     {
         return;
     }
@@ -94,9 +94,52 @@ void CharlieSheenDistribution::ComputeReflectanceTexture(int32 texture_size, std
     CharlieSheenDistribution::E_texture = std::make_unique<FloatImageTexture>(std::move(image), TexCoordFilter::clamp);
 }
 
-void DielectricMultiScatteringBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u)
+void DielectricBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u)
 {
     if (E_texture && E_inv_texture)
+    {
+        return;
+    }
+
+    Image3D1f image_e(texture_size, texture_size, texture_size);
+    Image3D1f image_e_inv(texture_size, texture_size, texture_size);
+
+    const Float d = 1.0f / texture_size;
+
+    ParallelFor(0, texture_size, [&](int32 k) {
+        Float f = d / 2 + d * k;
+        Float ior = MapF0toIOR(f);
+
+        for (int32 j = 0; j < texture_size; ++j)
+        {
+            Float a = d / 2 + d * j;
+
+            for (int32 i = 0; i < texture_size; ++i)
+            {
+                Float cos_theta = d / 2 + d * i;
+                Float sin_theta = std::sqrt(1 - Sqr(cos_theta));
+
+                Vec3 wo(sin_theta, 0, cos_theta);
+
+                DielectricBxDF bsdf_i(ior, Spectrum(1), TrowbridgeReitzDistribution(a, a));
+                DielectricBxDF bsdf_t(1 / ior, Spectrum(1), TrowbridgeReitzDistribution(a, a));
+
+                Float r = bsdf_i.rho(wo, uc, u, TransportDirection::ToLight).Average();
+                Float r_inv = bsdf_t.rho(wo, uc, u, TransportDirection::ToLight).Average();
+
+                image_e(k, i, j) = r;
+                image_e_inv(k, i, j) = r_inv;
+            }
+        }
+    });
+
+    E_texture = std::make_unique<FloatImageTexture3D>(std::move(image_e), TexCoordFilter::clamp);
+    E_inv_texture = std::make_unique<FloatImageTexture3D>(std::move(image_e_inv), TexCoordFilter::clamp);
+}
+
+void DielectricMultiScatteringBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u)
+{
+    if (E_texture && E_inv_texture && E_avg_texture && E_inv_avg_texture)
     {
         return;
     }
@@ -191,6 +234,7 @@ void ComoputeReflectanceTextures()
 
     TrowbridgeReitzDistribution::ComputeReflectanceTexture(texture_size, uc, u);
     CharlieSheenDistribution::ComputeReflectanceTexture(texture_size, uc, u);
+    DielectricBxDF::ComputeReflectanceTexture(texture_size, uc, u);
     DielectricMultiScatteringBxDF::ComputeReflectanceTexture(texture_size, uc, u);
 }
 

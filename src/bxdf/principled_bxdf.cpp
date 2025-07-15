@@ -102,6 +102,10 @@ Spectrum PrincipledBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
         Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p) * cos_theta_i * cos_theta_o;
         f += transmission * T_cc * T * Sqrt(color) * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / denom);
 
+        // Turquin's albedo normalization
+        // It works but not reciprocal method
+        f /= DielectricBxDF::E(wo, eta, mf.GetMeanAlpha());
+
         // Handle solid angle squeezing
         if (direction == TransportDirection::ToLight)
         {
