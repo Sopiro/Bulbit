@@ -26,7 +26,7 @@ std::unique_ptr<Camera> SSSTest(Scene& scene)
         );
         // auto mat = CreateSubsurfaceDiffusionMaterial(scene, Spectrum(1.0), Spectrum(0.01), 1.0, 0.0);
         // auto mat = CreateConductorMaterial(scene, Spectrum(0.1, 0.2, 1.9), Spectrum(3, 2.5, 2), (0.05f), (0.4f), normalmap);
-        // auto mat = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.1f);
+        // auto mat = CreateDielectricMaterial(scene, 1.5f, 0.1f);
         // auto mat = scene.CreateMaterial<ThinDielectricMaterial>(1.5f);
         // auto mat = CreateMirrorMaterial(scene, Spectrum(0.7f), normalmap);
 

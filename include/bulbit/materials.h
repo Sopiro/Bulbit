@@ -56,9 +56,9 @@ class DielectricMaterial : public Material
 public:
     DielectricMaterial(
         Float eta,
-        const SpectrumTexture* reflectance,
         const FloatTexture* u_roughness,
         const FloatTexture* v_roughness,
+        const SpectrumTexture* reflectance,
         bool energy_compensation,
         const SpectrumTexture* normalmap = nullptr
     );
@@ -73,9 +73,9 @@ public:
 private:
     Float eta;
 
-    const SpectrumTexture* reflectance;
     const FloatTexture* u_roughness;
     const FloatTexture* v_roughness;
+    const SpectrumTexture* reflectance;
 
     bool energy_compensation;
 

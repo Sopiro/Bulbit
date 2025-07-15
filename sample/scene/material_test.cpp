@@ -19,8 +19,8 @@ std::unique_ptr<Camera> MaterialTest(Scene& scene)
 
     auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
-    const Material* l0 = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.0f);
-    const Material* l1 = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.0f);
+    const Material* l0 = CreateDielectricMaterial(scene, 1.5f, 0.0f);
+    const Material* l1 = CreateDielectricMaterial(scene, 1.5f, 0.0f);
 
     const Material* l01 = CreateLayeredMaterial(scene, l0, l1, false, Spectrum(0.7, 0, 0), 0.3f);
     const Material* l2 = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.1f);
@@ -95,7 +95,7 @@ std::unique_ptr<Camera> MetallicRoughness(Scene& scene)
     auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
-    outers[0] = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.08f);
+    outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.08f);
     outers[1] = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.05f, 0.4f, true, normalmap);
     outers[2] = CreateMetallicRoughnessMaterial(scene, { 80 / 255.0, 1.0, 175 / 255.0 }, 0, 0);
 
@@ -190,9 +190,9 @@ std::unique_ptr<Camera> Dielectrics(Scene& scene)
     auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
-    outers[0] = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.02f);
-    outers[1] = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.0f);
-    outers[2] = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.05f);
+    outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.02f);
+    outers[1] = CreateDielectricMaterial(scene, 1.5f, 0.0f);
+    outers[2] = CreateDielectricMaterial(scene, 1.5f, 0.05f);
 
     const Material* inners[count];
     inners[0] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 0.66 }, (0), (0));
@@ -385,7 +385,7 @@ std::unique_ptr<Camera> Mixtures(Scene& scene)
     auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
-    auto a = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.0f);
+    auto a = CreateDielectricMaterial(scene, 1.5f, 0.0f);
     auto b = CreateConductorMaterial(scene, { 0.7, 0.3, 0.2 }, (0.1f));
     auto checker =
         CreateFloatCheckerTexture(scene, CreateFloatConstantTexture(scene, 0), CreateFloatConstantTexture(scene, 1), Point2(20));
@@ -585,9 +585,9 @@ std::unique_ptr<Camera> ColoredDielectrics(Scene& scene)
     auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
-    outers[0] = CreateDielectricMaterial(scene, 1.5f, Sqrt(Spectrum(1.0f, 0.5f, 0.8f)), 0.0f);
-    outers[1] = CreateDielectricMaterial(scene, 1.5f, Spectrum(1.0f), 0.0f);
-    outers[2] = CreateDielectricMaterial(scene, 1.5f, Spectrum(1.0f, 0.5f, 0.8f), 0.0f);
+    outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.0f, Sqrt(Spectrum(1.0f, 0.5f, 0.8f)));
+    outers[1] = CreateDielectricMaterial(scene, 1.5f, 0.0f, Spectrum(1.0f));
+    outers[2] = CreateDielectricMaterial(scene, 1.5f, 0.0f, Spectrum(1.0f, 0.5f, 0.8f));
 
     const Material* inners[count];
     inners[0] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 0.66 }, (0), (0));

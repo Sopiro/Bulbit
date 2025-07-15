@@ -123,11 +123,11 @@ std::unique_ptr<Camera> FurnaceDielectric(Scene& scene)
     Float ior = 1.5f;
     bool energy_compensation = true;
 
-    outers[3] = CreateDielectricMaterial(scene, ior, color, 0.0f, energy_compensation);
-    outers[1] = CreateDielectricMaterial(scene, ior, color, 0.25f, energy_compensation);
-    outers[0] = CreateDielectricMaterial(scene, ior, color, 0.5f, energy_compensation);
-    outers[2] = CreateDielectricMaterial(scene, ior, color, 0.75f, energy_compensation);
-    outers[4] = CreateDielectricMaterial(scene, ior, color, 1.0f, energy_compensation);
+    outers[3] = CreateDielectricMaterial(scene, ior, 0.0f, color, energy_compensation);
+    outers[1] = CreateDielectricMaterial(scene, ior, 0.25f, color, energy_compensation);
+    outers[0] = CreateDielectricMaterial(scene, ior, 0.5f, color, energy_compensation);
+    outers[2] = CreateDielectricMaterial(scene, ior, 0.75f, color, energy_compensation);
+    outers[4] = CreateDielectricMaterial(scene, ior, 1.0f, color, energy_compensation);
 
     const Material* inners[count];
     for (int32 i = 0; i < count; ++i)

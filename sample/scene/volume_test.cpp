@@ -7,7 +7,7 @@ std::unique_ptr<Camera> VolumeTest(Scene& scene)
         Srand(123123);
         // auto mat = CreateRandomPrincipledMaterial(scene);
         // auto mat = CreateMirrorMaterial(scene, Spectrum(0.7f));
-        // auto mat = CreateDielectricMaterial(scene, 1.5f, Spectrum(1), 0.02f);
+        // auto mat = CreateDielectricMaterial(scene, 1.5f, 0.02f);
         auto mat = scene.CreateMaterial<ThinDielectricMaterial>(1.5f);
         // auto mat = CreateConductorMaterial(scene,
         //     CreateSpectrumConstantTexture(scene, 0.1, 0.2, 1.9), CreateSpectrumConstantTexture(scene, 3, 2.5, 2),

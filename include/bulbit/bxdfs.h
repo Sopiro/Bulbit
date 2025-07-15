@@ -82,10 +82,10 @@ private:
 class DielectricBxDF : public BxDF
 {
 public:
-    DielectricBxDF(Float eta, Spectrum r, TrowbridgeReitzDistribution mf)
+    DielectricBxDF(Float eta, TrowbridgeReitzDistribution mf, Spectrum r)
         : eta{ eta }
-        , r{ Sqrt(r) }
         , mf{ mf }
+        , r{ Sqrt(r) }
     {
     }
 
@@ -138,18 +138,17 @@ private:
     static inline std::unique_ptr<FloatImageTexture3D> E_inv_texture = nullptr;
 
     Float eta;
-
-    Spectrum r;
     TrowbridgeReitzDistribution mf;
+    Spectrum r;
 };
 
 class DielectricMultiScatteringBxDF : public BxDF
 {
 public:
-    DielectricMultiScatteringBxDF(Float eta, Spectrum r, TrowbridgeReitzDistribution mf)
+    DielectricMultiScatteringBxDF(Float eta, TrowbridgeReitzDistribution mf, Spectrum r)
         : eta{ eta }
-        , r{ Sqrt(r) }
         , mf{ mf }
+        , r{ Sqrt(r) }
     {
     }
 
@@ -221,9 +220,8 @@ private:
     static inline std::unique_ptr<FloatImageTexture> E_inv_avg_texture = nullptr;
 
     Float eta;
-
-    Spectrum r;
     TrowbridgeReitzDistribution mf;
+    Spectrum r;
 };
 
 class ConductorBxDF : public BxDF

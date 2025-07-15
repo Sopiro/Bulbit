@@ -11,7 +11,7 @@ std::unique_ptr<Camera> SSSTest3(Scene& scene)
     HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(sigma_a, sigma_s, Spectrum(0.0), 0.9f);
     MediumInterface mi(hm, nullptr);
 
-    // auto mat = CreateDielectricMaterial(scene, 1.33f, Spectrum(1), 0.1f);
+    // auto mat = CreateDielectricMaterial(scene, 1.33f, 0.1f);
     auto mat = CreateSubsurfaceDiffusionMaterial(scene, Spectrum(1.0), Spectrum(1) / (sigma_a + sigma_s), 1.33f, 0.0f);
     SetLoaderFallbackMaterial(mat);
     // SetLoaderFallbackMediumInterface(mi);

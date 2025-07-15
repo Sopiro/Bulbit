@@ -7,17 +7,17 @@ namespace bulbit
 
 DielectricMaterial::DielectricMaterial(
     Float eta,
-    const SpectrumTexture* reflectance,
     const FloatTexture* u_roughness,
     const FloatTexture* v_roughness,
+    const SpectrumTexture* reflectance,
     bool energy_compensation,
     const SpectrumTexture* normalmap
 )
     : Material(TypeIndexOf<DielectricMaterial>())
     , eta{ eta }
-    , reflectance{ reflectance }
     , u_roughness{ u_roughness }
     , v_roughness{ v_roughness }
+    , reflectance{ reflectance }
     , energy_compensation{ energy_compensation }
     , normalmap{ normalmap }
 {
@@ -55,14 +55,14 @@ bool DielectricMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Ve
     {
         *bsdf = BSDF(
             isect.shading.normal, isect.shading.tangent,
-            alloc.new_object<DielectricMultiScatteringBxDF>(eta_p, r, TrowbridgeReitzDistribution(alpha_x, alpha_y))
+            alloc.new_object<DielectricMultiScatteringBxDF>(eta_p, TrowbridgeReitzDistribution(alpha_x, alpha_y), r)
         );
     }
     else
     {
         *bsdf = BSDF(
             isect.shading.normal, isect.shading.tangent,
-            alloc.new_object<DielectricBxDF>(eta_p, r, TrowbridgeReitzDistribution(alpha_x, alpha_y))
+            alloc.new_object<DielectricBxDF>(eta_p, TrowbridgeReitzDistribution(alpha_x, alpha_y), r)
         );
     }
 

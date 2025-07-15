@@ -16,6 +16,8 @@ std::unique_ptr<Camera> CornellBox(Scene& scene)
     auto mirror = CreateMirrorMaterial(scene, Spectrum(0.73f));
     auto mix = CreateMixtureMaterial(scene, red, blue, 0.5f);
     auto ss = CreateSubsurfaceDiffusionMaterial(scene, Spectrum(1.0), Spectrum(0.5, 0.25, 0.125) * 0.03, 1.0f, 0.0f);
+    auto glass = CreateDielectricMaterial(scene, 1.5f);
+    auto rough_glass = CreateDielectricMaterial(scene, 1.5f, 0.1f);
 
     // Cornell box
     {
@@ -47,7 +49,7 @@ std::unique_ptr<Camera> CornellBox(Scene& scene)
         Float hz = 0.14f;
 
         auto tf = Transform{ 0.33f, hy, -0.66f, Quat(DegToRad(18.0f), y_axis), Vec3(hx * 2.0f, hy * 2.0f, hz * 2.0f) };
-        CreateBox(scene, tf, box);
+        CreateBox(scene, tf, rough_glass);
     }
 
     // Right block

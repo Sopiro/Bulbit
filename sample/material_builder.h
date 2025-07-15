@@ -19,8 +19,8 @@ DiffuseMaterial* CreateDiffuseMaterial(
 DielectricMaterial* CreateDielectricMaterial(
     Scene& scene,
     Float eta,
-    Spectrum reflectance = Spectrum(1),
     Float roughness = 0,
+    Spectrum reflectance = Spectrum(1),
     bool energy_compensation = true,
     const SpectrumTexture* normalmap = nullptr
 );
