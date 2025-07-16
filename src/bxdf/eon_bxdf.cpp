@@ -59,17 +59,17 @@ Vec3 cltc_sample(Vec3 wo, Float r, Float u1, Float u2, Float* pdf)
     Float a, b, c, d;
     ltc_coeffs(wo.z, r, &a, &b, &c, &d);
 
-    Float R = sqrt(u1);
+    Float R = std::sqrt(u1);
     Float phi = two_pi * u2;
 
-    Float x = R * cos(phi);
-    Float y = R * sin(phi);
+    Float x = R * std::cos(phi);
+    Float y = R * std::sin(phi);
 
-    Float vz = 1.0f / sqrt(d * d + 1.0f);
+    Float vz = 1.0f / std::sqrt(d * d + 1.0f);
     Float s = 0.5f * (1.0f + vz);
-    x = -Lerp(sqrt(1.0f - y * y), x, s);
+    x = -Lerp(std::sqrt(1.0f - y * y), x, s);
 
-    Vec3 wh = Vec3(x, y, sqrt(std::max(1.0f - (x * x + y * y), 0.0f))); // ωH sample via CLTC
+    Vec3 wh = Vec3(x, y, std::sqrt(std::max(1.0f - (x * x + y * y), 0.0f))); // ωH sample via CLTC
     Float pdf_wh = wh.z / (pi * s);
 
     Vec3 wi = Vec3(a * wh.x + b * wh.z, c * wh.y, d * wh.x + wh.z);
@@ -96,7 +96,7 @@ Float cltc_pdf(Vec3 wo_local, Vec3 wi_local, Float r)
     Float detM = c * (a - b * d);
     Vec3 wh = Vec3(c * (wi.x - b * wi.z), (a - b * d) * wi.y, -c * (d * wi.x - a * wi.z));
     Float lenSqr = Dot(wh, wh);
-    Float vz = 1.0f / sqrt(d * d + 1.0f);
+    Float vz = 1.0f / std::sqrt(d * d + 1.0f);
     Float s = 0.5f * (1.0f + vz);
     Float pdf = detM * detM / (lenSqr * lenSqr) * std::max(wh.z, 0.0f) / (pi * s);
 
@@ -148,7 +148,7 @@ Float EONBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_Sampling
     }
 
     Float mu = wo.z;
-    Float P_u = pow(r, 0.1f) * (0.162925f + mu * (-0.372058f + (0.538233f - 0.290822f * mu) * mu));
+    Float P_u = std::pow(r, 0.1f) * (0.162925f + mu * (-0.372058f + (0.538233f - 0.290822f * mu) * mu));
     Float P_c = 1.0f - P_u;
 
     Float pdf_c = cltc_pdf(wo, wi, r);
@@ -169,7 +169,7 @@ bool EONBxDF::Sample_f(
     }
 
     Float mu = wo.z;
-    Float P_u = pow(r, 0.1f) * (0.162925f + mu * (-0.372058f + (0.538233f - 0.290822f * mu) * mu));
+    Float P_u = std::pow(r, 0.1f) * (0.162925f + mu * (-0.372058f + (0.538233f - 0.290822f * mu) * mu));
     Float P_c = 1.0f - P_u; // probability of CLTC sample
 
     Vec3 wi;

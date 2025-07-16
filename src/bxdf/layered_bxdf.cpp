@@ -165,7 +165,7 @@ Spectrum LayeredBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
                             if (f_exit != Spectrum::black)
                             {
                                 Float pdf_exit = exit_interface->PDF(-w, wi, direction, BxDF_SamplingFlags::Transmission);
-                                Float w_mis = PowerHeuristic(phase_sample.pdf, pdf_exit);
+                                w_mis = PowerHeuristic(phase_sample.pdf, pdf_exit);
                                 f += beta * w_mis * Tr(z_p - z_exit, phase_sample.wi) * f_exit;
                             }
                         }
@@ -573,16 +573,16 @@ bool LayeredBxDF::Sample_f(
         // Stop random walk and return sample if path has left the layers
         if (bsdf_sample.IsTransmission())
         {
-            BxDF_Flags flags;
-            flags = SameHemisphere(wo, w) ? BxDF_Flags::Reflection : BxDF_Flags::Transmission;
-            flags |= was_specular ? BxDF_Flags::Specular : BxDF_Flags::Glossy;
+            BxDF_Flags sample_flags;
+            sample_flags = SameHemisphere(wo, w) ? BxDF_Flags::Reflection : BxDF_Flags::Transmission;
+            sample_flags |= was_specular ? BxDF_Flags::Specular : BxDF_Flags::Glossy;
 
             if (flipped)
             {
                 w.Negate();
             }
 
-            *sample = BSDFSample(f, w, pdf, flags, 1, true);
+            *sample = BSDFSample(f, w, pdf, sample_flags, 1, true);
             return true;
         }
 
