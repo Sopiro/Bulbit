@@ -21,31 +21,21 @@ bool RandomWalkBSSRDF::Sample_S(
 {
     BulbitAssert(bsdf_sample.IsTransmission());
 
+    Spectrum beta(1);
+    Spectrum pdf(1);
+
     RNG rng(Hash(po, u0, u12));
 
     Intersection pi;
     Ray ray(po.point, bsdf_sample.wi);
 
-    Float weight = 1;
-    int32 bounce = 0;
-
     const int32 min_bounces = 2;
     const int32 max_bounces = 256;
     const Float rr = 0.995f;
 
+    int32 bounce = 0;
     while (bounce++ < max_bounces)
     {
-        Float l = SampleExponential(rng.NextFloat(), sigma_t[wavelength]);
-
-        bool found_intersection = accel->Intersect(&pi, ray, Ray::epsilon, l);
-        if (found_intersection)
-        {
-            if (pi.primitive->GetMaterial() == po.primitive->GetMaterial())
-            {
-                break;
-            }
-        }
-
         // Stochastically terminate path with russian roulette
         if (bounce > min_bounces)
         {
@@ -53,11 +43,32 @@ bool RandomWalkBSSRDF::Sample_S(
             {
                 return false;
             }
-            weight /= rr;
+            beta /= rr;
+            pdf /= rr;
         }
 
+        Float d = SampleExponential(rng.NextFloat(), sigma_t[wavelength]);
+
+        bool found_intersection = accel->Intersect(&pi, ray, Ray::epsilon, d);
+        if (found_intersection)
+        {
+            // Sampled L_o, escaped medium boundary
+            if (pi.primitive->GetMaterial() == po.primitive->GetMaterial())
+            {
+                Spectrum Tr = Exp(-sigma_t * pi.t);
+
+                beta *= Tr / Tr[wavelength];
+                pdf *= Tr / Tr[wavelength];
+                break;
+            }
+        }
+
+        Spectrum Tr = Exp(-sigma_t * d);
+        beta *= sigma_t * Tr / sigma_t[wavelength] * Tr[wavelength];
+        pdf *= sigma_t * Tr / sigma_t[wavelength] * Tr[wavelength];
+
         // Random walk forward
-        ray.o += l * ray.d;
+        ray.o += d * ray.d;
 
         PhaseFunctionSample sample;
         if (!phase_function.Sample_p(&sample, -ray.d, { rng.NextFloat(), rng.NextFloat() }))
@@ -65,6 +76,10 @@ bool RandomWalkBSSRDF::Sample_S(
             return false;
         }
         ray.d = sample.wi;
+
+        // Evaluate L_s
+        beta *= albedo * sample.p / sample.pdf;
+        pdf *= sample.pdf / sample.pdf;
     }
 
     if (bounce >= max_bounces)
@@ -73,11 +88,8 @@ bool RandomWalkBSSRDF::Sample_S(
     }
 
     bssrdf_sample->pi = pi;
-    bssrdf_sample->Sp = Spectrum(0);
-    bssrdf_sample->Sp[wavelength] = weight * R[wavelength];
-
-    bssrdf_sample->pdf = Spectrum(0);
-    bssrdf_sample->pdf[wavelength] = 1;
+    bssrdf_sample->Sp = beta * R;
+    bssrdf_sample->pdf = pdf;
     bssrdf_sample->p = 1;
 
     Vec3 n = pi.front_face ? pi.shading.normal : -pi.shading.normal;

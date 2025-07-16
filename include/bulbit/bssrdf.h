@@ -98,9 +98,8 @@ public:
     )
         : BSSRDF(po, wo, eta)
         , R{ R }
-        , sigma_a{ sigma_a }
-        , sigma_s{ sigma_s }
         , sigma_t{ sigma_a + sigma_s }
+        , albedo{ sigma_s / (sigma_a + sigma_s) }
         , phase_function{ g }
         , sw{ eta }
     {
@@ -120,7 +119,7 @@ public:
 
 private:
     Spectrum R;
-    Spectrum sigma_a, sigma_s, sigma_t;
+    Spectrum sigma_t, albedo;
     HenyeyGreensteinPhaseFunction phase_function;
     NormalizedFresnelBxDF sw;
 };
