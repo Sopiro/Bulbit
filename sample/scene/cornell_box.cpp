@@ -17,7 +17,12 @@ std::unique_ptr<Camera> CornellBox(Scene& scene)
     auto mix = CreateMixtureMaterial(scene, red, blue, 0.5f);
     auto ss = CreateSubsurfaceDiffusionMaterial(scene, Spectrum(1.0), Spectrum(0.5, 0.25, 0.125) * 0.03, 1.0f, 0.0f);
     auto glass = CreateDielectricMaterial(scene, 1.5f);
-    auto rough_glass = CreateThinDielectricMaterial(scene, 1.5f);
+    auto rough_glass = CreateDielectricMaterial(scene, 1.5f, 0.1f);
+    auto gold = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.1f);
+    auto coated_gold = CreateLayeredMaterial(scene, glass, gold);
+
+    auto left_box = white;
+    auto right_box = white;
 
     // Cornell box
     {
@@ -49,7 +54,7 @@ std::unique_ptr<Camera> CornellBox(Scene& scene)
         Float hz = 0.14f;
 
         auto tf = Transform{ 0.33f, hy, -0.66f, Quat(DegToRad(18.0f), y_axis), Vec3(hx * 2.0f, hy * 2.0f, hz * 2.0f) };
-        CreateBox(scene, tf, rough_glass);
+        CreateBox(scene, tf, left_box);
     }
 
     // Right block
@@ -61,7 +66,7 @@ std::unique_ptr<Camera> CornellBox(Scene& scene)
         // auto mat = CreateThinDielectricMaterial(scene, 1.5f);
 
         auto tf = Transform{ 0.66f, hy, -0.33f, Quat(DegToRad(-18.0f), y_axis), Vec3(hx * 2.0f, hy * 2.0f, hz * 2.0f) };
-        CreateBox(scene, tf, box);
+        CreateBox(scene, tf, right_box);
     }
 
     // Right sphere
