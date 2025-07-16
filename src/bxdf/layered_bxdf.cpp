@@ -411,7 +411,7 @@ Float LayeredBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_Samp
     }
 
     // Return mixture of two pdfs, uniform sphere pdf approximates diffused multiple scattering
-    return Lerp(0.9f, UniformSpherePDF(), pdf / samples);
+    return Lerp(UniformSpherePDF(), pdf / samples, 0.9f);
 }
 
 bool LayeredBxDF::Sample_f(
