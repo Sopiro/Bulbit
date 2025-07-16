@@ -15,7 +15,7 @@ std::unique_ptr<Camera> CornellBox(Scene& scene)
     // auto light = CreateDiffuseLightMaterial(scene, Spectrum(17.0f, 12.0f, 4.0f));
     auto mirror = CreateMirrorMaterial(scene, Spectrum(0.73f));
     auto mix = CreateMixtureMaterial(scene, red, blue, 0.5f);
-    auto ss = CreateSubsurfaceDiffusionMaterial(scene, Spectrum(1.0), Spectrum(0.5, 0.25, 0.125) * 0.03, 1.0f, 0.0f);
+    auto ss = CreateSubsurfaceRandomWalkMaterial(scene, Spectrum(1.0), Spectrum(0.5, 0.25, 0.125) * 0.03, 1.0f, 0.0f);
     auto glass = CreateDielectricMaterial(scene, 1.5f);
     auto rough_glass = CreateDielectricMaterial(scene, 1.5f, 0.1f);
     auto gold = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.1f);

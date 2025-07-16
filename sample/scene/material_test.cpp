@@ -285,14 +285,14 @@ std::unique_ptr<Camera> Skins(Scene& scene)
     auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* skins[count];
-    skins[1] = CreateSubsurfaceDiffusionMaterial(
-        scene, Spectrum(255 / 255.0, 195 / 255.0, 170 / 255.0) * 0.8, Spectrum(0.5, 0.25, 0.125) * 0.05, 1.5f, 0.05f
+    skins[1] = CreateSubsurfaceRandomWalkMaterial(
+        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 1.0, Spectrum(0.5, 0.25, 0.125) * 0.07, 1.38f, 0.1f
     );
-    skins[0] = CreateSubsurfaceDiffusionMaterial(
-        scene, Spectrum(255 / 255.0, 195 / 255.0, 170 / 255.0) * 0.55, Spectrum(0.5, 0.25, 0.125) * 0.05, 1.5f, 0.05f
+    skins[0] = CreateSubsurfaceRandomWalkMaterial(
+        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 0.8, Spectrum(0.5, 0.25, 0.125) * 0.03, 1.38f, 0.1f
     );
-    skins[2] = CreateSubsurfaceDiffusionMaterial(
-        scene, Spectrum(255 / 255.0, 195 / 255.0, 170 / 255.0) * 0.1, Spectrum(0.5, 0.25, 0.125) * 0.05, 1.5f, 0.05f
+    skins[2] = CreateSubsurfaceRandomWalkMaterial(
+        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 0.3, Spectrum(0.5, 0.25, 0.125) * 0.01, 1.38f, 0.1f
     );
 
     for (int32 j = 0; j < h; ++j)
