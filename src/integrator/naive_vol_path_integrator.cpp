@@ -198,7 +198,7 @@ Spectrum NaiveVolPathIntegrator::Li(const Ray& primary_ray, const Medium* primar
             Point2 u12 = sampler.Next2D();
 
             BSSRDFSample bssrdf_sample;
-            if (!bssrdf->Sample_S(&bssrdf_sample, accel, wavelength, u0, u12))
+            if (!bssrdf->Sample_S(&bssrdf_sample, bsdf_sample, accel, wavelength, u0, u12))
             {
                 break;
             }

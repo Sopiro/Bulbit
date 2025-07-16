@@ -29,8 +29,12 @@ Spectrum SeparableBSSRDF::Sp(const Intersection& pi) const
     return Sr(Dist(po.point, pi.point));
 }
 
-bool SeparableBSSRDF::Sample_S(BSSRDFSample* bssrdf_sample, const Intersectable* accel, int32 wavelength, Float u0, Point2 u12)
+bool SeparableBSSRDF::Sample_S(
+    BSSRDFSample* bssrdf_sample, const BSDFSample& bsdf_sample, const Intersectable* accel, int32 wavelength, Float u0, Point2 u12
+)
 {
+    BulbitNotUsed(bsdf_sample);
+
     // Choose projection axis
     Frame f;
     if (u0 < axis_sampling_probabilities[0])

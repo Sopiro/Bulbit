@@ -15,18 +15,16 @@ Spectrum RandomWalkBSSRDF::S(const Intersection& pi, const Vec3& wi, TransportDi
     return Spectrum::black;
 }
 
-bool RandomWalkBSSRDF::Sample_S(BSSRDFSample* bssrdf_sample, const Intersectable* accel, int32 wavelength, Float u0, Point2 u12)
+bool RandomWalkBSSRDF::Sample_S(
+    BSSRDFSample* bssrdf_sample, const BSDFSample& bsdf_sample, const Intersectable* accel, int32 wavelength, Float u0, Point2 u12
+)
 {
+    BulbitAssert(bsdf_sample.IsTransmission());
+
     RNG rng(Hash(po, u0, u12));
 
-    Vec3 n = po.front_face ? po.normal : -po.normal;
-
-    Frame f(n);
-    Vec3 wi = SampleCosineHemisphere({ rng.NextFloat(), rng.NextFloat() });
-    wi = -Normalize(f.FromLocal(wi));
-
     Intersection pi;
-    Ray ray(po.point, wi);
+    Ray ray(po.point, bsdf_sample.wi);
 
     Float weight = 1;
     int32 bounce = 0;
@@ -82,7 +80,7 @@ bool RandomWalkBSSRDF::Sample_S(BSSRDFSample* bssrdf_sample, const Intersectable
     bssrdf_sample->pdf[wavelength] = 1;
     bssrdf_sample->p = 1;
 
-    n = pi.front_face ? pi.shading.normal : -pi.shading.normal;
+    Vec3 n = pi.front_face ? pi.shading.normal : -pi.shading.normal;
     bssrdf_sample->Sw = BSDF(n, &sw);
     bssrdf_sample->wo = n;
     return true;
