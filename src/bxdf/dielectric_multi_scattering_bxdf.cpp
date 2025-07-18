@@ -62,7 +62,7 @@ Spectrum DielectricMultiScatteringBxDF::f(Vec3 wo, Vec3 wi, TransportDirection d
     }
     else
     {
-        Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta);
+        Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p);
 
         Spectrum ft_ss(
             (1 - F) * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom))
@@ -72,11 +72,11 @@ Spectrum DielectricMultiScatteringBxDF::f(Vec3 wo, Vec3 wi, TransportDirection d
         // Handle solid angle squeezing
         if (direction == TransportDirection::ToLight)
         {
-            ft_ss /= Sqr(eta);
+            ft_ss /= Sqr(eta_p);
         }
         else
         {
-            ft_ms *= Sqr(eta);
+            ft_ms *= Sqr(eta_p);
         }
 
         return r * (ft_ss + ft_ms);
@@ -249,7 +249,7 @@ bool DielectricMultiScatteringBxDF::Sample_f(
         Float pr_ss = R, pt_ss = T;
         if (!(flags & BxDF_SamplingFlags::Reflection)) pr_ss = 0;
         if (!(flags & BxDF_SamplingFlags::Transmission)) pt_ss = 0;
-        if (pr_ss == 0 && pt_ss)
+        if (pr_ss == 0 && pt_ss == 0)
         {
             return false;
         }
