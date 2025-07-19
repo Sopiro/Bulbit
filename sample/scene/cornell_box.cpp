@@ -18,7 +18,7 @@ std::unique_ptr<Camera> CornellBox(Scene& scene)
     auto ss = CreateSubsurfaceRandomWalkMaterial(scene, Spectrum(1.0), Spectrum(0.5, 0.25, 0.125) * 0.03, 1.0f, 0.0f);
     auto glass = CreateDielectricMaterial(scene, 1.5f);
     auto rough_glass = CreateDielectricMaterial(scene, 1.5f, 0.1f);
-    auto gold = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.1f);
+    auto gold = CreateConductorMaterial(scene, { 0.161, 0.492, 1.426 }, { 4.08769, 2.32625, 1.846 }, 0.1f);
     auto coated_gold = CreateLayeredMaterial(scene, glass, gold);
 
     auto left_box = white;
