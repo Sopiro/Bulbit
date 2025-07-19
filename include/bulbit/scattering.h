@@ -8,7 +8,7 @@
 namespace bulbit
 {
 
-inline bool Refract(Vec3* wt, Vec3 wi, Vec3 n, Float eta, Float* eta_p)
+inline bool Refract(Vec3* wt, Vec3 wi, Vec3 n, Float eta, Float* eta_p = nullptr)
 {
     Float cos_theta_i = Dot(n, wi);
 

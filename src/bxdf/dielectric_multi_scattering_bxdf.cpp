@@ -25,6 +25,18 @@ Spectrum DielectricMultiScatteringBxDF::f(Vec3 wo, Vec3 wi, TransportDirection d
         eta_p = cos_theta_o > 0 ? eta : (1 / eta);
     }
 
+    Float eta_o, eta_i;
+    if (cos_theta_o > 0)
+    {
+        eta_o = eta;
+        eta_i = 1 / eta;
+    }
+    else
+    {
+        eta_o = 1 / eta;
+        eta_i = eta;
+    }
+
     // Microfacet normal
     Vec3 wm = wi * eta_p + wo;
     if (cos_theta_i == 0 || cos_theta_o == 0 || Length2(wm) == 0)
@@ -44,19 +56,13 @@ Spectrum DielectricMultiScatteringBxDF::f(Vec3 wo, Vec3 wi, TransportDirection d
         return Spectrum::black;
     }
 
-    Float eta_i = eta >= 1 ? eta : 1 / eta;
-    Float eta_t = 1 / eta_i;
-    Float a = (1 - FresnelDielectricAverage(eta_i)) / (1 - E_avg(eta_t));
-    Float b = Sqr(eta_i) * (1 - FresnelDielectricAverage(eta_t)) / (1 - E_avg(eta_i));
-    Float x = b / (a + b);
-
-    Float ratio = 1 - (eta >= 1 ? x : (1 - x)) * (1 - FresnelDielectricAverage(eta));
+    Float ratio = ComputeScatteringRatio(eta_o);
 
     Float F = FresnelDielectric(Dot(wo, wm), eta);
     if (reflect)
     {
         Spectrum fr_ss(F * mf.D(wm) * mf.G(wo, wi) / (4 * CosTheta(wi) * CosTheta(wo)));
-        Spectrum fr_ms(ratio * (1 - E(wi, eta)) * (1 - E(wo, eta)) / std::fmax(1e-4f, pi * (1 - E_avg(eta))));
+        Spectrum fr_ms(ratio * (1 - E(wi, eta_o)) * (1 - E(wo, eta_o)) / std::fmax(1e-4f, pi * (1 - E_avg(eta_o))));
 
         return fr_ss + fr_ms;
     }
@@ -67,7 +73,7 @@ Spectrum DielectricMultiScatteringBxDF::f(Vec3 wo, Vec3 wi, TransportDirection d
         Spectrum ft_ss(
             (1 - F) * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom))
         );
-        Spectrum ft_ms((1 - ratio) * (1 - E(wi, 1 / eta)) * (1 - E(wo, eta)) / std::fmax(1e-4f, pi * (1 - E_avg(1 / eta))));
+        Spectrum ft_ms((1 - ratio) * (1 - E(wi, eta_i)) * (1 - E(wo, eta_o)) / std::fmax(1e-4f, pi * (1 - E_avg(eta_i))));
 
         // Handle solid angle squeezing
         if (direction == TransportDirection::ToLight)
@@ -104,6 +110,16 @@ Float DielectricMultiScatteringBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection di
         eta_p = cos_theta_o > 0 ? eta : (1 / eta);
     }
 
+    Float eta_o;
+    if (cos_theta_o > 0)
+    {
+        eta_o = eta;
+    }
+    else
+    {
+        eta_o = 1 / eta;
+    }
+
     Vec3 wm = wi * eta_p + wo;
     if (cos_theta_i == 0 || cos_theta_o == 0 || Length2(wm) == 0)
     {
@@ -122,13 +138,7 @@ Float DielectricMultiScatteringBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection di
         return 0;
     }
 
-    Float eta_i = eta >= 1 ? eta : 1 / eta;
-    Float eta_t = 1 / eta_i;
-    Float a = (1 - FresnelDielectricAverage(eta_i)) / (1 - E_avg(eta_t));
-    Float b = Sqr(eta_i) * (1 - FresnelDielectricAverage(eta_t)) / (1 - E_avg(eta_i));
-    Float x = b / (a + b);
-
-    Float ratio = 1 - (eta >= 1 ? x : (1 - x)) * (1 - FresnelDielectricAverage(eta));
+    Float ratio = ComputeScatteringRatio(eta_o);
 
     Float reflectance = std::fmin(E(wo, eta), 1 - 1e-4f);
 
@@ -228,13 +238,19 @@ bool DielectricMultiScatteringBxDF::Sample_f(
         return true;
     }
 
-    Float eta_i = eta >= 1 ? eta : 1 / eta;
-    Float eta_t = 1 / eta_i;
-    Float a = (1 - FresnelDielectricAverage(eta_i)) / (1 - E_avg(eta_t));
-    Float b = Sqr(eta_i) * (1 - FresnelDielectricAverage(eta_t)) / (1 - E_avg(eta_i));
-    Float x = b / (a + b);
+    Float eta_o, eta_i;
+    if (CosTheta(wo) > 0)
+    {
+        eta_o = eta;
+        eta_i = 1 / eta;
+    }
+    else
+    {
+        eta_o = 1 / eta;
+        eta_i = eta;
+    }
 
-    Float ratio = 1 - (eta >= 1 ? x : (1 - x)) * (1 - FresnelDielectricAverage(eta));
+    Float ratio = ComputeScatteringRatio(eta_o);
 
     Float reflectance = std::fmin(E(wo, eta), 1 - 1e-4f);
     if (u0 < reflectance)
@@ -242,33 +258,36 @@ bool DielectricMultiScatteringBxDF::Sample_f(
         // Sample single-scattering rough dielectric BSDF
         Vec3 wm = mf.Sample_Wm(wo, u12);
 
+        wm.Normalize();
+        if (Dot(wm, z_axis) < 0)
+        {
+            wm.Negate();
+        }
+
         Float R = FresnelDielectric(Dot(wo, wm), eta);
         Float T = 1 - R;
 
         // Compute sampling probabilities for reflection and transmission
         Float pr_ss = R, pt_ss = T;
-        if (!(flags & BxDF_SamplingFlags::Reflection)) pr_ss = 0;
-        if (!(flags & BxDF_SamplingFlags::Transmission)) pt_ss = 0;
+        Float pr_ms = ratio, pt_ms = 1 - ratio;
+        if (!(flags & BxDF_SamplingFlags::Reflection)) pr_ss = pr_ms = 0;
+        if (!(flags & BxDF_SamplingFlags::Transmission)) pt_ss = pt_ms = 0;
         if (pr_ss == 0 && pt_ss == 0)
         {
             return false;
         }
 
         Float p_ss_sum = pr_ss + pt_ss;
+        Float p_ms_sum = pr_ms + pt_ms;
         pr_ss /= p_ss_sum;
         pt_ss /= p_ss_sum;
+        pr_ms /= p_ms_sum;
+        pt_ms /= p_ms_sum;
 
         // Renormalize
         u0 /= reflectance;
         if (u0 < pr_ss)
         {
-            Float pr_ms = ratio, pt_ms = 1 - ratio;
-            if (!(flags & BxDF_SamplingFlags::Reflection)) pr_ms = 0;
-            if (!(flags & BxDF_SamplingFlags::Transmission)) pt_ms = 0;
-            Float p_ms_sum = pr_ms + pt_ms;
-            pr_ms /= p_ms_sum;
-            pt_ms /= p_ms_sum;
-
             // Sample reflection at rough dielectric interface
             Vec3 wi = Reflect(wo, wm);
             if (!SameHemisphere(wo, wi))
@@ -282,29 +301,21 @@ bool DielectricMultiScatteringBxDF::Sample_f(
             Float pdf = Lerp(pdf_ms, pdf_ss, reflectance);
 
             Spectrum fr_ss(R * mf.D(wm) * mf.G(wo, wi) / (4 * CosTheta(wi) * CosTheta(wo)));
-            Spectrum fr_ms(ratio * (1 - E(wi, eta)) * (1 - E(wo, eta)) / std::fmax(1e-4f, pi * (1 - E_avg(eta))));
+            Spectrum fr_ms(ratio * (1 - E(wi, eta_o)) * (1 - E(wo, eta_o)) / std::fmax(1e-4f, pi * (1 - E_avg(eta_o))));
 
             *sample = BSDFSample(fr_ss + fr_ms, wi, pdf, BxDF_Flags::GlossyReflection);
         }
         else
         {
-            Float pr_ms = ratio, pt_ms = 1 - ratio;
-            if (!(flags & BxDF_SamplingFlags::Reflection)) pr_ms = 0;
-            if (!(flags & BxDF_SamplingFlags::Transmission)) pt_ms = 0;
-            Float p_ms_sum = pr_ms + pt_ms;
-            pr_ms /= p_ms_sum;
-            pt_ms /= p_ms_sum;
-
             // Sample transmission at rough dielectric interface
-            Float eta_p;
             Vec3 wi;
-
-            // Total internal reflection
-            bool tir = !Refract(&wi, wo, wm, eta, &eta_p);
+            bool tir = !Refract(&wi, wo, wm, eta);
             if (SameHemisphere(wo, wi) || wi.z == 0 || tir)
             {
                 return false;
             }
+
+            Float eta_p = CosTheta(wo) > 0 ? eta : (1 / eta);
 
             // Compute PDF of rough dielectric transmission
             Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_p);
@@ -316,7 +327,7 @@ bool DielectricMultiScatteringBxDF::Sample_f(
             Spectrum ft_ss(
                 T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom))
             );
-            Spectrum ft_ms((1 - ratio) * (1 - E(wi, 1 / eta)) * (1 - E(wo, eta)) / std::fmax(1e-4f, pi * (1 - E_avg(1 / eta))));
+            Spectrum ft_ms((1 - ratio) * (1 - E(wi, eta_i)) * (1 - E(wo, eta_o)) / std::fmax(1e-4f, pi * (1 - E_avg(eta_i))));
 
             // Handle solid angle squeezing
             if (direction == TransportDirection::ToLight)
@@ -350,15 +361,18 @@ bool DielectricMultiScatteringBxDF::Sample_f(
         pr_ms /= p_ms_sum;
         pt_ms /= p_ms_sum;
 
-        Vec3 wi = SampleCosineHemisphere(u12);
-        Vec3 wm;
-
         // Renormalize
         u0 = (u0 - reflectance) / (1 - reflectance);
         if (u0 < pr_ms)
         {
             // Sample diffuse reflection
-            wm = Normalize(wi + wo);
+            Vec3 wi = SampleCosineHemisphere(u12);
+            if (CosTheta(wo) < 0)
+            {
+                wi.Negate();
+            }
+
+            Vec3 wm = Normalize(wi + wo);
 
             Float R = FresnelDielectric(Dot(wo, wm), eta);
 
@@ -374,7 +388,7 @@ bool DielectricMultiScatteringBxDF::Sample_f(
             Float pdf = Lerp(pdf_ms, pdf_ss, reflectance);
 
             Spectrum fr_ss(R * mf.D(wm) * mf.G(wo, wi) / (4 * CosTheta(wi) * CosTheta(wo)));
-            Spectrum fr_ms(ratio * (1 - E(wi, eta)) * (1 - E(wo, eta)) / std::fmax(1e-4f, pi * (1 - E_avg(eta))));
+            Spectrum fr_ms(ratio * (1 - E(wi, eta_o)) * (1 - E(wo, eta_o)) / std::fmax(1e-4f, pi * (1 - E_avg(eta_o))));
 
             *sample = BSDFSample(fr_ss + fr_ms, wi, pdf, BxDF_Flags::DiffuseReflection);
         }
@@ -382,10 +396,14 @@ bool DielectricMultiScatteringBxDF::Sample_f(
         {
             // Sample diffuse transmission
 
-            wi.Negate();
+            Vec3 wi = SampleCosineHemisphere(u12);
+            if (CosTheta(wo) > 0)
+            {
+                wi.Negate();
+            }
 
-            wm = Normalize(wi * eta + wo);
-            if (!SameHemisphere(wo, wm))
+            Vec3 wm = Normalize(wi * eta_o + wo);
+            if (Dot(wm, z_axis) < 0)
             {
                 wm.Negate();
             }
@@ -400,7 +418,7 @@ bool DielectricMultiScatteringBxDF::Sample_f(
             pr_ss /= p_ss_sum;
             pt_ss /= p_ss_sum;
 
-            Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta);
+            Float denom = Sqr(Dot(wi, wm) + Dot(wo, wm) / eta_o);
             Float dwm_dwi = AbsDot(wi, wm) / denom;
 
             Float pdf_ss = pt_ss * mf.PDF(wo, wm) * dwm_dwi;
@@ -410,19 +428,19 @@ bool DielectricMultiScatteringBxDF::Sample_f(
             Spectrum ft_ss(
                 T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom))
             );
-            Spectrum ft_ms((1 - ratio) * (1 - E(wi, 1 / eta)) * (1 - E(wo, eta)) / std::fmax(1e-4f, pi * (1 - E_avg(1 / eta))));
+            Spectrum ft_ms((1 - ratio) * (1 - E(wi, eta_i)) * (1 - E(wo, eta_o)) / std::fmax(1e-4f, pi * (1 - E_avg(eta_i))));
 
             // Handle solid angle squeezing
             if (direction == TransportDirection::ToLight)
             {
-                ft_ss /= Sqr(eta);
+                ft_ss /= Sqr(eta_o);
             }
             else
             {
-                ft_ms *= Sqr(eta);
+                ft_ms *= Sqr(eta_o);
             }
 
-            *sample = BSDFSample(r * (ft_ss + ft_ms), wi, pdf, BxDF_Flags::DiffuseTransmission, eta);
+            *sample = BSDFSample(r * (ft_ss + ft_ms), wi, pdf, BxDF_Flags::DiffuseTransmission, eta_o);
         }
 
         return true;

@@ -219,6 +219,28 @@ private:
     static inline std::unique_ptr<FloatImageTexture> E_avg_texture = nullptr;
     static inline std::unique_ptr<FloatImageTexture> E_inv_avg_texture = nullptr;
 
+    Float ComputeScatteringRatio(Float eta_o) const
+    {
+        Float eta_i = eta >= 1 ? eta : 1 / eta;
+        Float eta_t = 1 / eta_i;
+
+        Float a = (1 - FresnelDielectricAverage(eta_i)) / (1 - E_avg(eta_t));
+        Float b = Sqr(eta_i) * (1 - FresnelDielectricAverage(eta_t)) / (1 - E_avg(eta_i));
+        Float x = 1 / (a / b + 1);
+
+        Float ratio;
+        if (eta_o >= 1)
+        {
+            ratio = 1 - x * (1 - FresnelDielectricAverage(eta_o));
+        }
+        else
+        {
+            ratio = 1 - (1 - x) * (1 - FresnelDielectricAverage(eta_o));
+        }
+
+        return ratio;
+    }
+
     Float eta;
     TrowbridgeReitzDistribution mf;
     Spectrum r;
