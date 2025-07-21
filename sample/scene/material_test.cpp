@@ -19,17 +19,16 @@ std::unique_ptr<Camera> MaterialTest(Scene& scene)
 
     auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
+    const Material* white = CreateDiffuseMaterial(scene, 1.0f);
     const Material* air = CreateDielectricMaterial(scene, 1.0f);
+    const Material* glass = CreateDielectricMaterial(scene, 1.5f);
+    const Material* rough_glass = CreateDielectricMaterial(scene, 1.5f, 0.05f);
     const Material* copper = CreateConductorMaterial(scene, { 0.21100, 1.1274, 1.2444 }, { 4.1592, 2.5978, 2.433 }, 0.2f);
     const Material* patina = CreateLayeredMaterial(scene, air, copper, true, { 0.25f, 0.95f, 0.45f }, 0.2, 0.1f);
+    const Material* gold = CreateConductorMaterial(scene, { 0.161, 0.492, 1.426 }, { 4.08769, 2.32625, 1.846 }, 0.1f);
+    const Material* platinum = CreateConductorMaterial(scene, { 0.49745, 0.48267, 0.60399 }, { 6.9266, 4.8444, 3.8895 }, 0.1f);
 
-    const Material* l0 = CreateDielectricMaterial(scene, 1.5f, 0.0f);
-    const Material* l1 = CreateDielectricMaterial(scene, 1.5f, 0.0f);
-
-    const Material* l01 = CreateLayeredMaterial(scene, l0, l1, false, Spectrum(0.7, 0, 0), 0.3f);
-    const Material* l2 = CreateConductorMaterial(scene, { 0.161, 0.492, 1.426 }, { 4.08769, 2.32625, 1.846 }, 0.1f);
-
-    const Material* outer = CreateLayeredMaterial(scene, l01, l2, false, Spectrum(0, 0, 0), 0.01f);
+    const Material* outer = CreateLayeredMaterial(scene, glass, platinum, true, Spectrum(0.7, 0, 0), 0.2f);
     const Material* inner = CreateDiffuseMaterial(scene, 0.8f, 0.0f);
 
     // auto tf = Transform{ o, Quat::FromEuler({ 0, pi / 6, 0 }), Vec3(2) };
