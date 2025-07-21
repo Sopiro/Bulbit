@@ -140,7 +140,7 @@ Float DielectricMultiScatteringBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection di
 
     Float ratio = ComputeScatteringRatio(eta_o);
 
-    Float reflectance = std::fmin(E(wo, eta), 1 - 1e-4f);
+    Float E_o = Clamp(E(wo, eta_o), 1e-4f, 1 - 1e-4f);
 
     // Determine Fresnel F of rough dielectric boundary
     Float R = FresnelDielectric(Dot(wo, wm), eta);
@@ -170,7 +170,7 @@ Float DielectricMultiScatteringBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection di
         Float pdf_ss = pr_ss * mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
         Float pdf_ms = pr_ms * CosineHemispherePDF(AbsCosTheta(wi));
 
-        pdf = Lerp(pdf_ms, pdf_ss, reflectance);
+        pdf = Lerp(pdf_ms, pdf_ss, E_o);
     }
     else
     {
@@ -179,7 +179,7 @@ Float DielectricMultiScatteringBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection di
         Float pdf_ss = pt_ss * mf.PDF(wo, wm) * dwm_dwi;
         Float pdf_ms = pt_ms * CosineHemispherePDF(AbsCosTheta(wi));
 
-        pdf = Lerp(pdf_ms, pdf_ss, reflectance);
+        pdf = Lerp(pdf_ms, pdf_ss, E_o);
     }
 
     return pdf;
@@ -252,8 +252,8 @@ bool DielectricMultiScatteringBxDF::Sample_f(
 
     Float ratio = ComputeScatteringRatio(eta_o);
 
-    Float reflectance = std::fmin(E(wo, eta), 1 - 1e-4f);
-    if (u0 < reflectance)
+    Float E_o = Clamp(E(wo, eta_o), 1e-4f, 1 - 1e-4f);
+    if (u0 < E_o)
     {
         // Sample single-scattering rough dielectric BSDF
         Vec3 wm = mf.Sample_Wm(wo, u12);
@@ -285,7 +285,7 @@ bool DielectricMultiScatteringBxDF::Sample_f(
         pt_ms /= p_ms_sum;
 
         // Renormalize
-        u0 /= reflectance;
+        u0 /= E_o;
         if (u0 < pr_ss)
         {
             // Sample reflection at rough dielectric interface
@@ -298,7 +298,7 @@ bool DielectricMultiScatteringBxDF::Sample_f(
             // Compute PDF of rough dielectric reflection
             Float pdf_ss = pr_ss * mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
             Float pdf_ms = pr_ms * CosineHemispherePDF(AbsCosTheta(wi));
-            Float pdf = Lerp(pdf_ms, pdf_ss, reflectance);
+            Float pdf = Lerp(pdf_ms, pdf_ss, E_o);
 
             Spectrum fr_ss(R * mf.D(wm) * mf.G(wo, wi) / (4 * CosTheta(wi) * CosTheta(wo)));
             Spectrum fr_ms(ratio * (1 - E(wi, eta_o)) * (1 - E(wo, eta_o)) / std::fmax(1e-4f, pi * (1 - E_avg(eta_o))));
@@ -322,7 +322,7 @@ bool DielectricMultiScatteringBxDF::Sample_f(
             Float dwm_dwi = AbsDot(wi, wm) / denom;
             Float pdf_ss = pt_ss * mf.PDF(wo, wm) * dwm_dwi;
             Float pdf_ms = pt_ms * CosineHemispherePDF(AbsCosTheta(wi));
-            Float pdf = Lerp(pdf_ms, pdf_ss, reflectance);
+            Float pdf = Lerp(pdf_ms, pdf_ss, E_o);
 
             Spectrum ft_ss(
                 T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom))
@@ -362,7 +362,7 @@ bool DielectricMultiScatteringBxDF::Sample_f(
         pt_ms /= p_ms_sum;
 
         // Renormalize
-        u0 = (u0 - reflectance) / (1 - reflectance);
+        u0 = (u0 - E_o) / (1 - E_o);
         if (u0 < pr_ms)
         {
             // Sample diffuse reflection
@@ -385,7 +385,7 @@ bool DielectricMultiScatteringBxDF::Sample_f(
 
             Float pdf_ss = pr_ss * mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
             Float pdf_ms = pr_ms * CosineHemispherePDF(AbsCosTheta(wi));
-            Float pdf = Lerp(pdf_ms, pdf_ss, reflectance);
+            Float pdf = Lerp(pdf_ms, pdf_ss, E_o);
 
             Spectrum fr_ss(R * mf.D(wm) * mf.G(wo, wi) / (4 * CosTheta(wi) * CosTheta(wo)));
             Spectrum fr_ms(ratio * (1 - E(wi, eta_o)) * (1 - E(wo, eta_o)) / std::fmax(1e-4f, pi * (1 - E_avg(eta_o))));
@@ -423,7 +423,7 @@ bool DielectricMultiScatteringBxDF::Sample_f(
 
             Float pdf_ss = pt_ss * mf.PDF(wo, wm) * dwm_dwi;
             Float pdf_ms = pt_ms * CosineHemispherePDF(AbsCosTheta(wi));
-            Float pdf = Lerp(pdf_ms, pdf_ss, reflectance);
+            Float pdf = Lerp(pdf_ms, pdf_ss, E_o);
 
             Spectrum ft_ss(
                 T * mf.D(wm) * mf.G(wo, wi) * std::abs(Dot(wi, wm) * Dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom))
