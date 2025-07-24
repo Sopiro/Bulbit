@@ -76,7 +76,7 @@ std::unique_ptr<Camera> FurnacePrincipled(Scene& scene)
     // Float aspect_ratio = 3.f / 2.f;
     // Float aspect_ratio = 4.f / 3.f;
     // Float aspect_ratio = 1.f;
-    int32 width = 1000;
+    int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
     Point3 lookfrom = Point3{ 0, 1.0, 2.28 };
@@ -124,10 +124,10 @@ std::unique_ptr<Camera> FurnaceDielectric(Scene& scene)
     bool energy_compensation = true;
 
     outers[3] = CreateDielectricMaterial(scene, ior, 0.0f, color, energy_compensation);
-    outers[1] = CreateDielectricMaterial(scene, ior, 0.25f, color, energy_compensation);
-    outers[0] = CreateDielectricMaterial(scene, ior, 0.5f, color, energy_compensation);
-    outers[2] = CreateDielectricMaterial(scene, ior, 0.75f, color, energy_compensation);
-    outers[4] = CreateDielectricMaterial(scene, ior, 1.0f, color, energy_compensation);
+    outers[1] = CreateDielectricMaterial(scene, ior, 0.01f, color, energy_compensation);
+    outers[0] = CreateDielectricMaterial(scene, ior, 0.05f, color, energy_compensation);
+    outers[2] = CreateDielectricMaterial(scene, ior, 0.1f, color, energy_compensation);
+    outers[4] = CreateDielectricMaterial(scene, ior, 0.2f, color, energy_compensation);
 
     const Material* inners[count];
     for (int32 i = 0; i < count; ++i)
@@ -158,8 +158,8 @@ std::unique_ptr<Camera> FurnaceDielectric(Scene& scene)
         }
     }
 
-    CreateUniformInfiniteLight(scene, Spectrum(1));
-    // CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
+    // CreateUniformInfiniteLight(scene, Spectrum(1));
+    CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
 
     Float aspect_ratio = 4.f / 1.f;
@@ -167,7 +167,7 @@ std::unique_ptr<Camera> FurnaceDielectric(Scene& scene)
     // Float aspect_ratio = 3.f / 2.f;
     // Float aspect_ratio = 4.f / 3.f;
     // Float aspect_ratio = 1.f;
-    int32 width = 1000;
+    int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
     Point3 lookfrom = Point3{ 0, 1.0, 2.28 };
@@ -259,7 +259,7 @@ std::unique_ptr<Camera> FurnaceConductor(Scene& scene)
     // Float aspect_ratio = 3.f / 2.f;
     // Float aspect_ratio = 4.f / 3.f;
     // Float aspect_ratio = 1.f;
-    int32 width = 1000;
+    int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
     Point3 lookfrom = Point3{ 0, 1.0, 2.28 };
