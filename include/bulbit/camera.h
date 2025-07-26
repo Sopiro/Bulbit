@@ -13,12 +13,24 @@ class Medium;
 struct CameraSampleWi
 {
     CameraSampleWi() = default;
+    CameraSampleWi(Spectrum Wi, Vec3 wi, Float pdf, Point2 p_raster, Point3 p_aperture, Vec3 normal, const Medium* medium)
+        : Wi{ Wi }
+        , wi{ wi }
+        , pdf{ pdf }
+        , p_raster{ p_raster }
+        , p_aperture{ p_aperture }
+        , normal{ normal }
+        , medium{ medium }
+    {
+    }
 
     Spectrum Wi;
     Vec3 wi;
     Float pdf;
     Point2 p_raster;
-    Intersection p_aperture;
+    Point3 p_aperture;
+    Vec3 normal;
+    const Medium* medium;
 };
 
 class Camera
@@ -40,7 +52,7 @@ public:
     // Image measurement importance functions
     virtual Spectrum We(const Ray& ray, Point2* p_raster = nullptr) const;
     virtual void PDF_We(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
-    virtual CameraSampleWi SampleWi(const Intersection& ref, Point2 u) const;
+    virtual bool SampleWi(CameraSampleWi* sample, const Intersection& ref, Point2 u) const;
 
     const Point2i& GetScreenResolution() const;
     const Medium* GetMedium() const;
@@ -83,12 +95,13 @@ inline void Camera::PDF_We(Float* pdf_p, Float* pdf_w, const Ray& ray) const
     BulbitNotUsed(ray);
 }
 
-inline CameraSampleWi Camera::SampleWi(const Intersection& ref, Point2 u) const
+inline bool Camera::SampleWi(CameraSampleWi* sample, const Intersection& ref, Point2 u) const
 {
     BulbitAssert(false && "Not implemented");
+    BulbitNotUsed(sample);
     BulbitNotUsed(ref);
     BulbitNotUsed(u);
-    return {};
+    return false;
 }
 
 } // namespace bulbit
