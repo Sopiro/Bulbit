@@ -35,6 +35,9 @@ PerspectiveCamera::PerspectiveCamera(
     lower_left = origin - horizontal / 2 - vertical / 2 - focus_distance * w;
 
     lens_radius = aperture / 2;
+
+    A_viewport = viewport_width * viewport_height;
+    A_lens = lens_radius != 0 ? (pi * Sqr(lens_radius)) : 1;
 }
 
 Float PerspectiveCamera::SampleRay(Ray* ray, const Point2i& pixel, Point2 u0, Point2 u1) const
@@ -61,7 +64,7 @@ Spectrum PerspectiveCamera::We(const Ray& ray, Point2* p_raster) const
         return Spectrum::black;
     }
 
-    Point3 p_focus = ray.At(lens_radius > 0 ? focus_distance : 1) / cos_theta;
+    Point3 p_focus = ray.At(focus_distance / cos_theta);
 
     Vec3 ll2p = p_focus - lower_left;
     Float w2 = Length2(horizontal);
@@ -80,10 +83,7 @@ Spectrum PerspectiveCamera::We(const Ray& ray, Point2* p_raster) const
         return Spectrum::black;
     }
 
-    Float lens_area = lens_radius != 0 ? (pi * Sqr(lens_radius)) : 1;
-    Float film_area = std::sqrt(w2 * h2);
-
-    return Spectrum(1 / (film_area * lens_area * Sqr(Sqr(cos_theta))));
+    return Spectrum(1 / (A_viewport * A_lens * Sqr(Sqr(cos_theta))));
 }
 
 void PerspectiveCamera::PDF_We(Float* pdf_p, Float* pdf_w, const Ray& ray) const
@@ -96,7 +96,7 @@ void PerspectiveCamera::PDF_We(Float* pdf_p, Float* pdf_w, const Ray& ray) const
         return;
     }
 
-    Point3 p_focus = ray.At(lens_radius > 0 ? focus_distance : 1) / cos_theta;
+    Point3 p_focus = ray.At(focus_distance / cos_theta);
 
     Vec3 ll2p = p_focus - lower_left;
     Float w2 = Length2(horizontal);
@@ -112,11 +112,8 @@ void PerspectiveCamera::PDF_We(Float* pdf_p, Float* pdf_w, const Ray& ray) const
         return;
     }
 
-    Float lens_area = lens_radius != 0 ? (pi * Sqr(lens_radius)) : 1;
-    Float film_area = std::sqrt(w2 * h2);
-
-    *pdf_p = 1 / lens_area;
-    *pdf_w = 1 / (film_area * cos_theta * cos_theta * cos_theta);
+    *pdf_p = 1 / A_lens;
+    *pdf_w = 1 / (A_viewport * cos_theta * cos_theta * cos_theta);
 }
 
 bool PerspectiveCamera::SampleWi(CameraSampleWi* sample, const Intersection& ref, Point2 u0) const

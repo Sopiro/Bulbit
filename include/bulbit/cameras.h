@@ -58,6 +58,8 @@ private:
     Float lens_radius;
     Float focus_distance;
 
+    Float A_viewport, A_lens;
+
     // Local coordinate frame
     Vec3 u, v, w;
 };
