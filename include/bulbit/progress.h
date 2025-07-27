@@ -77,6 +77,7 @@ public:
 
 private:
     friend class UniDirectionalRayIntegrator;
+    friend class BiDirectionalRayIntegrator;
 
     Point2i resolution;
     int32 tile_size;

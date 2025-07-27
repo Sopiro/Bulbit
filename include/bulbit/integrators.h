@@ -169,4 +169,27 @@ private:
     bool regularize_bsdf;
 };
 
+class BiDirectionalPathIntegrator : public BiDirectionalRayIntegrator
+{
+public:
+    BiDirectionalPathIntegrator(
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        int32 max_bounces,
+        bool regularize_bsdf = false
+    );
+    virtual ~BiDirectionalPathIntegrator() = default;
+
+    virtual BiDirectionalRaySample L(const Camera& camera, const Ray& ray, const Medium* medium, Sampler& sampler) const override;
+
+private:
+    std::vector<Light*> infinite_lights;
+    std::unordered_map<const Primitive*, AreaLight*> area_lights;
+    UniformLightSampler light_sampler;
+
+    int32 max_bounces;
+    bool regularize_bsdf;
+};
+
 } // namespace bulbit
