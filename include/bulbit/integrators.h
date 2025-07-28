@@ -169,6 +169,7 @@ private:
     bool regularize_bsdf;
 };
 
+// Light/Particle tracing integrator
 class LightPathIntegrator : public BiDirectionalRayIntegrator
 {
 public:
