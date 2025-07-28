@@ -7,61 +7,123 @@ namespace bulbit
 {
 
 BiDirectionalPathIntegrator::BiDirectionalPathIntegrator(
-    const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces, bool regularize_bsdf
+    const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces
 )
     : BiDirectionalRayIntegrator(accel, std::move(lights), sampler)
     , light_sampler{ all_lights }
     , max_bounces{ max_bounces }
-    , regularize_bsdf{ regularize_bsdf }
 {
-    for (Light* light : all_lights)
-    {
-        switch (light->type_index)
-        {
-        case Light::TypeIndexOf<UniformInfiniteLight>():
-        case Light::TypeIndexOf<ImageInfiniteLight>():
-        {
-            infinite_lights.push_back(light);
-        }
-        break;
-        case Light::TypeIndexOf<AreaLight>():
-        {
-            AreaLight* area_light = light->Cast<AreaLight>();
-            area_lights.emplace(area_light->GetPrimitive(), area_light);
-        }
-        break;
-        default:
-            break;
-        }
-    }
 }
 
-BiDirectionalRaySample BiDirectionalPathIntegrator::L(
-    const Camera& camera, const Ray& primary_ray, const Medium* primary_medium, Sampler& sampler
+Spectrum BiDirectionalPathIntegrator::L(
+    Film& film, const Camera& camera, const Ray& primary_ray, const Medium* primary_medium, Sampler& sampler
 ) const
 {
-    BulbitNotUsed(camera);
     BulbitNotUsed(primary_ray);
     BulbitNotUsed(primary_medium);
-    BulbitNotUsed(sampler);
-
-    BiDirectionalRaySample l;
 
     Intersection isect;
-    if (!Intersect(&isect, primary_ray, Ray::epsilon, infinity))
+
+    // Sample light to start light tracing
+    SampledLight sampled_light;
+    if (!light_sampler.Sample(&sampled_light, isect, sampler.Next1D()))
     {
-        l.Li = Spectrum::black;
-        return l;
+        return Spectrum::black;
     }
 
-    // const Material* mat = isect.primitive->GetMaterial();
+    // Sample point and direction from sampled light
+    LightSampleLe light_sample = sampled_light.light->Sample_Le(sampler.Next2D(), sampler.Next2D());
 
-    // Vec3 wi = Normalize(primary_ray.d);
-    // Vec3 wo = Normalize(Reflect(wi, isect.normal));
+    isect.point = light_sample.ray.o;
 
-    // return Spectrum(1 / (1 + isect.t));
-    l.Li = Spectrum(isect.shading.normal) * 0.5 + Spectrum(0.5);
-    return l;
+    CameraSampleWi camera_sample;
+    if (!camera.SampleWi(&camera_sample, isect, sampler.Next2D()))
+    {
+        return Spectrum::black;
+    }
+
+    // Add bounce 0 light contribution to film
+    if (V(light_sample.ray.o, camera_sample.p_aperture))
+    {
+        Spectrum L = sampled_light.weight * light_sample.Le * AbsDot(light_sample.normal, camera_sample.wi) *
+                     AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi / (camera_sample.pdf * light_sample.pdf_p);
+
+        film.AddSplat(camera_sample.p_raster, L);
+    }
+
+    int32 bounce = 0;
+    Ray ray = light_sample.ray;
+    Spectrum beta =
+        light_sample.Le * AbsDot(light_sample.normal, ray.d) * sampled_light.weight / (light_sample.pdf_p * light_sample.pdf_w);
+
+    // Trace light path
+    while (true)
+    {
+        bool found_intersection = Intersect(&isect, ray, Ray::epsilon, infinity);
+        if (!found_intersection)
+        {
+            break;
+        }
+
+        Vec3 wo = Normalize(-ray.d);
+
+        int8 mem[max_bxdf_size];
+        Resource res(mem, sizeof(mem));
+        Allocator alloc(&res);
+        BSDF bsdf;
+        if (!isect.GetBSDF(&bsdf, wo, alloc))
+        {
+            ray = Ray(isect.point, -wo);
+            --bounce;
+            continue;
+        }
+
+        if (bounce++ >= max_bounces)
+        {
+            break;
+        }
+
+        if (camera.SampleWi(&camera_sample, isect, sampler.Next2D()))
+        {
+            Vec3 wi = camera_sample.wi;
+
+            if (V(isect.point, camera_sample.p_aperture))
+            {
+                Spectrum L = beta * camera_sample.Wi * bsdf.f(wo, wi, TransportDirection::ToCamera) *
+                             AbsDot(isect.shading.normal, wi) / camera_sample.pdf;
+
+                film.AddSplat(camera_sample.p_raster, L);
+            }
+        }
+
+        BSDFSample bsdf_sample;
+        if (!bsdf.Sample_f(&bsdf_sample, wo, sampler.Next1D(), sampler.Next2D(), TransportDirection::ToCamera))
+        {
+            break;
+        }
+
+        beta *= bsdf_sample.f * AbsDot(bsdf_sample.wi, isect.shading.normal) / bsdf_sample.pdf;
+        ray = Ray(isect.point, bsdf_sample.wi);
+
+        // Terminate path with russian roulette
+        constexpr int32 min_bounces = 2;
+        if (bounce > min_bounces)
+        {
+            if (Float p = beta.MaxComponent(); p < 1)
+            {
+                if (sampler.Next1D() > p)
+                {
+                    break;
+                }
+                else
+                {
+                    beta /= p;
+                }
+            }
+        }
+    }
+
+    return Spectrum::black;
 }
 
 } // namespace bulbit

@@ -14,6 +14,10 @@ public:
     Film(const Point2i& resolution);
 
     void AddSample(const Point2i& pixel, const Spectrum& L, Float weight);
+    void AddSplat(const Point2i& pixel, const Spectrum& L);
+
+    void WeightSplats(Float weight);
+
     Image3 GetRenderedImage() const;
     Image1 GetVarianceImage() const;
 
@@ -22,6 +26,8 @@ public:
 private:
     std::unique_ptr<Spectrum[]> samples;
     std::unique_ptr<int32[]> sample_counts;
+
+    std::unique_ptr<std::atomic<Float>[]> splats;
 
     // luminance moments (l, l^2)
     std::unique_ptr<Point2[]> moments;
@@ -35,9 +41,13 @@ inline Film::Film(const Point2i& resolution)
     sample_counts = std::make_unique<int32[]>(size);
     moments = std::make_unique<Point2[]>(size);
 
+    splats = std::make_unique<std::atomic<Float>[]>(Spectrum::num_spectral_samples * size);
+
     memset((void*)samples.get(), 0, sizeof(Spectrum) * size);
     memset((void*)sample_counts.get(), 0, sizeof(int32) * size);
     memset((void*)moments.get(), 0, sizeof(Point2) * size);
+
+    ParallelFor(0, Spectrum::num_spectral_samples * size, [&](int32 i) { splats[i].store(0); });
 }
 
 inline void Film::AddSample(const Point2i& pixel, const Spectrum& L, Float w)
@@ -52,13 +62,49 @@ inline void Film::AddSample(const Point2i& pixel, const Spectrum& L, Float w)
     moments[index] = Lerp(moments[index], Point2(l, l * l), alpha);
 }
 
+inline void Film::AddSplat(const Point2i& pixel, const Spectrum& L)
+{
+    // TODO:
+    // Properly apply camera filter weights; currently using a naive box filter..
+    const int32 index = Spectrum::num_spectral_samples * (pixel.y * resolution.x + pixel.x);
+
+    for (int32 i = 0; i < Spectrum::num_spectral_samples; ++i)
+    {
+        splats[index + i].fetch_add(L[i]);
+    }
+}
+
+inline void Film::WeightSplats(Float weight)
+{
+    int32 size = Spectrum::num_spectral_samples * resolution.x * resolution.y;
+
+    ParallelFor(0, size, [&](int32 i) {
+        Float value = splats[i].load();
+        value *= weight;
+
+        splats[i].store(value);
+    });
+}
+
 inline Image3 Film::GetRenderedImage() const
 {
     int32 width = resolution.x;
     int32 height = resolution.y;
     Image3 image(width, height);
 
-    ParallelFor(0, width * height, [&](int32 i) { image[i] = samples[i] / sample_counts[i]; });
+    ParallelFor(0, width * height, [&](int32 i) {
+        image[i] = samples[i] / sample_counts[i];
+
+        int32 index = Spectrum::num_spectral_samples * i;
+
+        Spectrum splat;
+        for (int32 s = 0; s < Spectrum::num_spectral_samples; ++s)
+        {
+            splat[s] = splats[index + s].load();
+        }
+
+        image[i] += splat;
+    });
 
     return image;
 }

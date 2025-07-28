@@ -173,23 +173,23 @@ class BiDirectionalPathIntegrator : public BiDirectionalRayIntegrator
 {
 public:
     BiDirectionalPathIntegrator(
-        const Intersectable* accel,
-        std::vector<Light*> lights,
-        const Sampler* sampler,
-        int32 max_bounces,
-        bool regularize_bsdf = false
+        const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces
     );
     virtual ~BiDirectionalPathIntegrator() = default;
 
-    virtual BiDirectionalRaySample L(const Camera& camera, const Ray& ray, const Medium* medium, Sampler& sampler) const override;
+    virtual Spectrum L(Film& film, const Camera& camera, const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 
 private:
-    std::vector<Light*> infinite_lights;
-    std::unordered_map<const Primitive*, AreaLight*> area_lights;
-    UniformLightSampler light_sampler;
+    bool V(const Point3 p1, const Point3 p2) const
+    {
+        Vec3 d = p2 - p1;
+        Float dist = d.Normalize();
+        Ray ray(p1, d);
+        return !accel->IntersectAny(ray, Ray::epsilon, dist);
+    }
 
+    UniformLightSampler light_sampler;
     int32 max_bounces;
-    bool regularize_bsdf;
 };
 
 } // namespace bulbit

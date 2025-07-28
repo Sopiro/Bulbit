@@ -52,17 +52,6 @@ private:
     const Sampler* sampler_prototype;
 };
 
-struct BiDirectionalRaySample
-{
-    Spectrum Li;
-
-    struct
-    {
-        Point2 p;
-        Spectrum Li;
-    } raster;
-};
-
 class BiDirectionalRayIntegrator : public Integrator
 {
 public:
@@ -71,7 +60,7 @@ public:
 
     virtual std::unique_ptr<RenderingProgress> Render(const Camera& camera) override;
 
-    virtual BiDirectionalRaySample L(const Camera& camera, const Ray& ray, const Medium* medium, Sampler& sampler) const = 0;
+    virtual Spectrum L(Film& film, const Camera& camera, const Ray& ray, const Medium* medium, Sampler& sampler) const = 0;
 
 private:
     const Sampler* sampler_prototype;

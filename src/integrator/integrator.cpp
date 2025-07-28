@@ -98,11 +98,11 @@ std::unique_ptr<RenderingProgress> BiDirectionalRayIntegrator::Render(const Came
                         Ray ray;
                         Float weight = camera.SampleRay(&ray, pixel, sampler->Next2D(), sampler->Next2D());
 
-                        BiDirectionalRaySample L_sample = L(camera, ray, camera.GetMedium(), *sampler);
+                        Spectrum Li = L(progress->film, camera, ray, camera.GetMedium(), *sampler);
 
-                        if (!L_sample.Li.IsNullish())
+                        if (!Li.IsNullish())
                         {
-                            progress->film.AddSample(pixel, weight * L_sample.Li, 1);
+                            progress->film.AddSample(pixel, weight * Li, 1);
                         }
                     }
                 }
@@ -112,6 +112,7 @@ std::unique_ptr<RenderingProgress> BiDirectionalRayIntegrator::Render(const Came
             tile_size
         );
 
+        progress->film.WeightSplats(1.0f / spp);
         progress->done = true;
         return true;
     });

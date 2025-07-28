@@ -47,6 +47,7 @@ LightSampleLe PointLight::Sample_Le(Point2 u0, Point2 u1) const
     LightSampleLe sample;
     Vec3 w = SampleUniformSphere(u1);
 
+    sample.Le = intensity;
     sample.ray = Ray(position, w);
     sample.normal = w;
     sample.pdf_p = 1;
