@@ -6,7 +6,7 @@
 namespace bulbit
 {
 
-BiDirectionalPathIntegrator::BiDirectionalPathIntegrator(
+LightPathIntegrator::LightPathIntegrator(
     const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces
 )
     : BiDirectionalRayIntegrator(accel, std::move(lights), sampler)
@@ -15,7 +15,7 @@ BiDirectionalPathIntegrator::BiDirectionalPathIntegrator(
 {
 }
 
-Spectrum BiDirectionalPathIntegrator::L(
+Spectrum LightPathIntegrator::L(
     Film& film, const Camera& camera, const Ray& primary_ray, const Medium* primary_medium, Sampler& sampler
 ) const
 {
@@ -96,12 +96,14 @@ Spectrum BiDirectionalPathIntegrator::L(
             }
         }
 
+        // Sample bsdf to find next vertex
         BSDFSample bsdf_sample;
         if (!bsdf.Sample_f(&bsdf_sample, wo, sampler.Next1D(), sampler.Next2D(), TransportDirection::ToCamera))
         {
             break;
         }
 
+        // Update path state
         beta *= bsdf_sample.f * AbsDot(bsdf_sample.wi, isect.shading.normal) / bsdf_sample.pdf;
         ray = Ray(isect.point, bsdf_sample.wi);
 

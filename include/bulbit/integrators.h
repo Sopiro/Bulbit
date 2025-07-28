@@ -169,13 +169,11 @@ private:
     bool regularize_bsdf;
 };
 
-class BiDirectionalPathIntegrator : public BiDirectionalRayIntegrator
+class LightPathIntegrator : public BiDirectionalRayIntegrator
 {
 public:
-    BiDirectionalPathIntegrator(
-        const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces
-    );
-    virtual ~BiDirectionalPathIntegrator() = default;
+    LightPathIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces);
+    virtual ~LightPathIntegrator() = default;
 
     virtual Spectrum L(Film& film, const Camera& camera, const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 
