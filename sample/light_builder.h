@@ -6,8 +6,8 @@
 namespace bulbit
 {
 
-PointLight* CreatePointLight(Scene& scene, const Point3& position, const Spectrum& intensity);
-PointLight* CreatePointLight(Scene& scene, const Point3& position, Float intensity);
+PointLight* CreatePointLight(Scene& scene, const Point3& position, const Spectrum& intensity, const Medium* medium = nullptr);
+PointLight* CreatePointLight(Scene& scene, const Point3& position, Float intensity, const Medium* medium = nullptr);
 
 DirectionalLight* CreateDirectionalLight(
     Scene& scene, const Vec3& direction, const Spectrum& intensity, Float visible_radius = 0

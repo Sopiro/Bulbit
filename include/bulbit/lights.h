@@ -13,7 +13,7 @@ namespace bulbit
 class PointLight : public Light
 {
 public:
-    PointLight(const Point3& position, const Spectrum& intensity);
+    PointLight(const Point3& position, const Spectrum& intensity, const Medium* medium);
     void Destroy() {}
 
     Spectrum Le(const Ray& ray) const;
@@ -28,6 +28,7 @@ public:
 private:
     Point3 position;
     Spectrum intensity; // radiance
+    const Medium* medium;
 };
 
 class DirectionalLight : public Light

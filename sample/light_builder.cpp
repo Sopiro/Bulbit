@@ -4,14 +4,14 @@
 namespace bulbit
 {
 
-PointLight* CreatePointLight(Scene& scene, const Point3& position, const Spectrum& intensity)
+PointLight* CreatePointLight(Scene& scene, const Point3& position, const Spectrum& intensity, const Medium* medium)
 {
-    return scene.CreateLight<PointLight>(position, intensity);
+    return scene.CreateLight<PointLight>(position, intensity, medium);
 }
 
-PointLight* CreatePointLight(Scene& scene, const Point3& position, Float intensity)
+PointLight* CreatePointLight(Scene& scene, const Point3& position, Float intensity, const Medium* medium)
 {
-    return scene.CreateLight<PointLight>(position, Spectrum{ intensity });
+    return scene.CreateLight<PointLight>(position, Spectrum{ intensity }, medium);
 }
 
 DirectionalLight* CreateDirectionalLight(Scene& scene, const Vec3& direction, const Spectrum& intensity, Float visible_radius)

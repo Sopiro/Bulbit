@@ -3,10 +3,11 @@
 namespace bulbit
 {
 
-PointLight::PointLight(const Point3& position, const Spectrum& intensity)
+PointLight::PointLight(const Point3& position, const Spectrum& intensity, const Medium* medium)
     : Light(TypeIndexOf<PointLight>())
     , position{ position }
     , intensity{ intensity }
+    , medium{ medium }
 {
 }
 
@@ -50,6 +51,7 @@ bool PointLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
     sample->normal = w;
     sample->pdf_p = 1;
     sample->pdf_w = UniformSpherePDF();
+    sample->medium = medium;
 
     return true;
 }
