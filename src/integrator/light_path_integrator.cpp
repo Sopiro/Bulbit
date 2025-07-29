@@ -16,7 +16,7 @@ LightPathIntegrator::LightPathIntegrator(
 }
 
 Spectrum LightPathIntegrator::L(
-    Film& film, const Camera& camera, const Ray& primary_ray, const Medium* primary_medium, Sampler& sampler
+    const Ray& primary_ray, const Medium* primary_medium, const Camera* camera, Film& film, Sampler& sampler
 ) const
 {
     BulbitNotUsed(primary_ray);
@@ -37,7 +37,7 @@ Spectrum LightPathIntegrator::L(
     isect.point = light_sample.ray.o;
 
     CameraSampleWi camera_sample;
-    if (!camera.SampleWi(&camera_sample, isect, sampler.Next2D()))
+    if (!camera->SampleWi(&camera_sample, isect, sampler.Next2D()))
     {
         return Spectrum::black;
     }
@@ -51,7 +51,7 @@ Spectrum LightPathIntegrator::L(
             Spectrum L = sampled_light.weight * light_sample.Le * AbsDot(light_sample.normal, camera_sample.wi) *
                          AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi / pdf;
 
-            film.AddSplat(camera.GetFilter(), camera_sample.p_raster, L);
+            film.AddSplat(camera_sample.p_raster, L);
         }
     }
 
@@ -93,7 +93,7 @@ Spectrum LightPathIntegrator::L(
             break;
         }
 
-        if (camera.SampleWi(&camera_sample, isect, sampler.Next2D()))
+        if (camera->SampleWi(&camera_sample, isect, sampler.Next2D()))
         {
             Vec3 wi = camera_sample.wi;
 
@@ -102,7 +102,7 @@ Spectrum LightPathIntegrator::L(
                 Spectrum L = beta * camera_sample.Wi * bsdf.f(wo, wi, TransportDirection::ToCamera) *
                              AbsDot(isect.shading.normal, wi) / camera_sample.pdf;
 
-                film.AddSplat(camera.GetFilter(), camera_sample.p_raster, L);
+                film.AddSplat(camera_sample.p_raster, L);
             }
         }
 

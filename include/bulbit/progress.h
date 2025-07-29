@@ -8,15 +8,16 @@ namespace bulbit
 class RenderingProgress
 {
 public:
-    RenderingProgress(const Point2i& resolution, int32 tile_size)
-        : resolution{ resolution }
+    RenderingProgress(const Camera* camera, int32 tile_size)
+        : camera{ camera }
+        , film(camera)
         , tile_size{ tile_size }
         , tile_done{ 0 }
         , done{ false }
-        , film(resolution)
     {
-        int32 num_tiles_x = (resolution.x + tile_size - 1) / tile_size;
-        int32 num_tiles_y = (resolution.y + tile_size - 1) / tile_size;
+        Point2i res = camera->GetScreenResolution();
+        int32 num_tiles_x = (res.x + tile_size - 1) / tile_size;
+        int32 num_tiles_y = (res.y + tile_size - 1) / tile_size;
 
         tile_count = num_tiles_x * num_tiles_y;
     }
@@ -43,11 +44,6 @@ public:
 
         BulbitAssert(done);
         return film;
-    }
-
-    const Point2i& GetResolution() const
-    {
-        return resolution;
     }
 
     int32 GetTileCount() const
@@ -79,14 +75,15 @@ private:
     friend class UniDirectionalRayIntegrator;
     friend class BiDirectionalRayIntegrator;
 
-    Point2i resolution;
+    const Camera* camera;
+    Film film;
+
     int32 tile_size;
     int32 tile_count;
 
     std::atomic<int32> tile_done;
     std::atomic<bool> done;
 
-    Film film;
     std::unique_ptr<AsyncJob<bool>> job;
 };
 

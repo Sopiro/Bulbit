@@ -15,18 +15,18 @@ UniDirectionalRayIntegrator::UniDirectionalRayIntegrator(
 {
 }
 
-std::unique_ptr<RenderingProgress> UniDirectionalRayIntegrator::Render(const Camera& camera)
+std::unique_ptr<RenderingProgress> UniDirectionalRayIntegrator::Render(const Camera* camera)
 {
     ComoputeReflectanceTextures();
 
-    Point2i resolution = camera.GetScreenResolution();
+    Point2i resolution = camera->GetScreenResolution();
 
     const int32 spp = sampler_prototype->samples_per_pixel;
     const int32 tile_size = 16;
 
-    std::unique_ptr<RenderingProgress> progress = std::make_unique<RenderingProgress>(resolution, tile_size);
+    std::unique_ptr<RenderingProgress> progress = std::make_unique<RenderingProgress>(camera, tile_size);
 
-    progress->job = RunAsync([=, this, &progress, &camera]() {
+    progress->job = RunAsync([=, this, &progress]() {
         ParallelFor2D(
             resolution,
             [&](AABB2i tile) {
@@ -40,9 +40,9 @@ std::unique_ptr<RenderingProgress> UniDirectionalRayIntegrator::Render(const Cam
                         sampler->StartPixelSample(pixel, sample);
 
                         Ray ray;
-                        Float weight = camera.SampleRay(&ray, pixel, sampler->Next2D(), sampler->Next2D());
+                        Float weight = camera->SampleRay(&ray, pixel, sampler->Next2D(), sampler->Next2D());
 
-                        Spectrum L = Li(ray, camera.GetMedium(), *sampler);
+                        Spectrum L = Li(ray, camera->GetMedium(), *sampler);
 
                         if (!L.IsNullish())
                         {
@@ -71,18 +71,18 @@ BiDirectionalRayIntegrator::BiDirectionalRayIntegrator(
 {
 }
 
-std::unique_ptr<RenderingProgress> BiDirectionalRayIntegrator::Render(const Camera& camera)
+std::unique_ptr<RenderingProgress> BiDirectionalRayIntegrator::Render(const Camera* camera)
 {
     ComoputeReflectanceTextures();
 
-    Point2i resolution = camera.GetScreenResolution();
+    Point2i resolution = camera->GetScreenResolution();
 
     const int32 spp = sampler_prototype->samples_per_pixel;
     const int32 tile_size = 16;
 
-    std::unique_ptr<RenderingProgress> progress = std::make_unique<RenderingProgress>(resolution, tile_size);
+    std::unique_ptr<RenderingProgress> progress = std::make_unique<RenderingProgress>(camera, tile_size);
 
-    progress->job = RunAsync([=, this, &progress, &camera]() {
+    progress->job = RunAsync([=, this, &progress]() {
         ParallelFor2D(
             resolution,
             [&](AABB2i tile) {
@@ -96,9 +96,9 @@ std::unique_ptr<RenderingProgress> BiDirectionalRayIntegrator::Render(const Came
                         sampler->StartPixelSample(pixel, sample);
 
                         Ray ray;
-                        Float weight = camera.SampleRay(&ray, pixel, sampler->Next2D(), sampler->Next2D());
+                        Float weight = camera->SampleRay(&ray, pixel, sampler->Next2D(), sampler->Next2D());
 
-                        Spectrum Li = L(progress->film, camera, ray, camera.GetMedium(), *sampler);
+                        Spectrum Li = L(ray, camera->GetMedium(), camera, progress->film, *sampler);
 
                         if (!Li.IsNullish())
                         {

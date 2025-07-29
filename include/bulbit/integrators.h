@@ -176,7 +176,7 @@ public:
     LightPathIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces);
     virtual ~LightPathIntegrator() = default;
 
-    virtual Spectrum L(Film& film, const Camera& camera, const Ray& ray, const Medium* medium, Sampler& sampler) const override;
+    virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
 
 private:
     bool V(const Point3 p1, const Point3 p2) const

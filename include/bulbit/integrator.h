@@ -15,7 +15,7 @@ class Integrator
 public:
     virtual ~Integrator() = default;
 
-    virtual std::unique_ptr<RenderingProgress> Render(const Camera& camera) = 0;
+    virtual std::unique_ptr<RenderingProgress> Render(const Camera* camera) = 0;
 
 protected:
     Integrator(const Intersectable* accel, std::vector<Light*> lights)
@@ -44,7 +44,7 @@ public:
     UniDirectionalRayIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler);
     virtual ~UniDirectionalRayIntegrator() = default;
 
-    virtual std::unique_ptr<RenderingProgress> Render(const Camera& camera) override;
+    virtual std::unique_ptr<RenderingProgress> Render(const Camera* camera) override;
 
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const = 0;
 
@@ -58,9 +58,9 @@ public:
     BiDirectionalRayIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler);
     virtual ~BiDirectionalRayIntegrator() = default;
 
-    virtual std::unique_ptr<RenderingProgress> Render(const Camera& camera) override;
+    virtual std::unique_ptr<RenderingProgress> Render(const Camera* camera) override;
 
-    virtual Spectrum L(Film& film, const Camera& camera, const Ray& ray, const Medium* medium, Sampler& sampler) const = 0;
+    virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const = 0;
 
 private:
     const Sampler* sampler_prototype;

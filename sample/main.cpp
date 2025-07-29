@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
     // AlbedoIntegrator renderer(&accel, scene.GetLights(), &sampler);
     // WhittedStyle renderer(&accel, scene.GetLights(), &sampler, max_bounces);
 
-    std::unique_ptr<RenderingProgress> rendering = renderer.Render(*camera);
+    std::unique_ptr<RenderingProgress> rendering = renderer.Render(camera.get());
     const Film& film = rendering->WaitAndLogProgress();
 
     timer.Mark();
