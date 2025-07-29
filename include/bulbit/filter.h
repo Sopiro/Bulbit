@@ -9,8 +9,8 @@ namespace bulbit
 class Filter
 {
 public:
-    Filter(Float radius)
-        : radius{ radius }
+    Filter(Float extent)
+        : extent{ extent }
     {
     }
     virtual ~Filter() = default;
@@ -18,7 +18,7 @@ public:
     virtual Float Evaluate(Point2 p) const = 0;
     virtual Point2 Sample(Point2 u) const = 0;
 
-    const Float radius;
+    const Float extent;
 };
 
 } // namespace bulbit

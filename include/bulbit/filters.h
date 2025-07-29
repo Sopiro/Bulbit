@@ -10,14 +10,15 @@ class BoxFilter : public Filter
 {
 public:
     BoxFilter(Float extent)
-        : Filter(extent / 2)
+        : Filter(extent)
         , inv_area{ 1 / Sqr(extent) }
     {
     }
 
     virtual Float Evaluate(Point2 p) const override
     {
-        if (std::abs(p.x) <= radius && std::abs(p.y) <= radius)
+        Float half_extent = extent / 2;
+        if (std::abs(p.x) <= half_extent && std::abs(p.y) <= half_extent)
         {
             return inv_area;
         }
@@ -27,8 +28,8 @@ public:
 
     virtual Point2 Sample(Point2 u) const override
     {
-        // Remap [0, 1]^2 to [-radius, radius]^2
-        return (2 * u - 1) * radius;
+        // Remap [0, 1]^2 to [-half_extent, half_extent]^2
+        return (2 * u - 1) * extent / 2;
     }
 
 private:
@@ -39,28 +40,30 @@ class TentFilter : public Filter
 {
 public:
     TentFilter(Float extent)
-        : Filter(extent / 2)
-        , extent{ extent }
+        : Filter(extent)
     {
     }
 
     virtual Float Evaluate(Point2 p) const override
     {
+        Float half_extent = extent / 2;
         Float dist_x = std::abs(p.x);
         Float dist_y = std::abs(p.y);
-        if (dist_x > radius || dist_y > radius)
+
+        if (dist_x > half_extent || dist_y > half_extent)
         {
             return 0;
         }
 
-        Float inv_r = 1 / radius;
-        return (radius - dist_x) * (radius - dist_y) * (Sqr(Sqr(inv_r)));
+        Float inv_r = 1 / half_extent;
+        return (half_extent - dist_x) * (half_extent - dist_y) * (Sqr(Sqr(inv_r)));
     }
 
     virtual Point2 Sample(Point2 u) const override
     {
-        Float x = u[0] < Float(0.5) ? radius * (sqrt(2 * u[0]) - 1) : radius * (1 - sqrt(1 - 2 * (u[0] - Float(0.5))));
-        Float y = u[1] < Float(0.5) ? radius * (sqrt(2 * u[1]) - 1) : radius * (1 - sqrt(1 - 2 * (u[1] - Float(0.5))));
+        Float half_extent = extent / 2;
+        Float x = u[0] < 0.5f ? half_extent * (sqrt(2 * u[0]) - 1) : half_extent * (1 - sqrt(1 - 2 * (u[0] - 0.5f)));
+        Float y = u[1] < 0.5f ? half_extent * (sqrt(2 * u[1]) - 1) : half_extent * (1 - sqrt(1 - 2 * (u[1] - 0.5f)));
 
         return Point2(x, y);
     }
@@ -73,18 +76,18 @@ class GaussianFilter : public Filter
 {
 public:
     GaussianFilter(Float sigma, Float extent = 3)
-        : Filter(extent / 2)
-        , extent{ extent }
+        : Filter(extent)
         , sigma{ sigma }
     {
         const int32 samples = 32;
         Float values[samples * samples];
 
+        Float half_extent = extent / 2;
         for (int32 y = 0; y < samples; ++y)
         {
             for (int32 x = 0; x < samples; ++x)
             {
-                Point2 p = (Point2(x, y) + 0.5f) / samples * extent - radius;
+                Point2 p = (Point2(x, y) + 0.5f) / samples * extent - half_extent;
 
                 values[y * samples + x] = Gaussian(p.x, 0, sigma) * Gaussian(p.y, 0, sigma);
             }
@@ -95,7 +98,8 @@ public:
 
     virtual Float Evaluate(Point2 p) const override
     {
-        if (std::abs(p.x) > radius || std::abs(p.y) > radius)
+        Float half_extent = extent / 2;
+        if (std::abs(p.x) > half_extent || std::abs(p.y) > half_extent)
         {
             return 0;
         }
@@ -105,12 +109,11 @@ public:
 
     virtual Point2 Sample(Point2 u) const override
     {
-        return dist->SampleContinuous(u) * extent - radius;
+        return dist->SampleContinuous(u) * extent - extent / 2;
     }
 
 private:
     std::unique_ptr<Distribution2D> dist;
-    Float extent;
     Float sigma;
 };
 

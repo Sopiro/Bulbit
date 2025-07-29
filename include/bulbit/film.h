@@ -67,10 +67,10 @@ inline void Film::AddSample(const Point2i& pixel, const Spectrum& L)
 inline void Film::AddSplat(const Point2& pixel, const Spectrum& L)
 {
     const Filter* filter = camera->GetFilter();
-    Float r = filter->radius;
+    Float half_extent = filter->extent / 2;
 
-    Point2i lower(std::floor(pixel.x - r), std::floor(pixel.y - r));
-    Point2i upper(std::floor(pixel.x + r) + 1, std::floor(pixel.y + r) + 1);
+    Point2i lower(std::floor(pixel.x - half_extent), std::floor(pixel.y - half_extent));
+    Point2i upper(std::floor(pixel.x + half_extent) + 1, std::floor(pixel.y + half_extent) + 1);
     AABB2i bounds(lower, upper);
 
     // Compute the pixel bounds affected by this splat
