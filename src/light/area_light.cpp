@@ -74,6 +74,7 @@ bool AreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
     }
     else
     {
+        front_face = true;
         w = SampleCosineHemisphere(u1);
         pdf_w = CosineHemispherePDF(w.z);
     }

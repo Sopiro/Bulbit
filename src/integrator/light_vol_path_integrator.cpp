@@ -17,6 +17,8 @@ LightVolPathIntegrator::LightVolPathIntegrator(
 
 Float LightVolPathIntegrator::Tr(const Point3 p1, const Point3 p2) const
 {
+    BulbitNotUsed(p1);
+    BulbitNotUsed(p2);
     return 0;
 }
 
