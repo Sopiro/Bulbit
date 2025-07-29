@@ -100,13 +100,12 @@ public:
             return 0;
         }
 
-        return dist->Pdf(p / extent + Point2(0.5f)) / Sqr(extent);
+        return dist->PDF(p / extent + Point2(0.5f)) / Sqr(extent);
     }
 
     virtual Point2 Sample(Point2 u) const override
     {
-        Float pdf;
-        return dist->SampleContinuous(&pdf, u) * extent - radius;
+        return dist->SampleContinuous(u) * extent - radius;
     }
 
 private:

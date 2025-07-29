@@ -357,7 +357,7 @@ struct Distribution1D
         }
     }
 
-    Float SampleContinuous(Float* pdf, Float u, int32* off = nullptr) const
+    Float SampleContinuous(Float u, Float* pdf = nullptr, int32* off = nullptr) const
     {
         // Find the starting offset of cdf
         int32 offset = FindInterval((int32)cdf.size(), [&](int32 index) { return cdf[index] <= u; });
@@ -428,19 +428,23 @@ public:
         marginal.reset(new Distribution1D(&marginal_func[0], nv));
     }
 
-    Point2 SampleContinuous(Float* pdf, Point2 u) const
+    Point2 SampleContinuous(Point2 u, Float* pdf = nullptr) const
     {
         Float pdfs[2];
         int32 v;
 
-        Float d1 = marginal->SampleContinuous(&pdfs[1], u[1], &v);
-        Float d0 = conditional_v[v]->SampleContinuous(&pdfs[0], u[0]);
+        Float d1 = marginal->SampleContinuous(u[1], &pdfs[1], &v);
+        Float d0 = conditional_v[v]->SampleContinuous(u[0], &pdfs[0]);
 
-        *pdf = pdfs[0] * pdfs[1];
+        if (pdf)
+        {
+            *pdf = pdfs[0] * pdfs[1];
+        }
+
         return Point2(d0, d1);
     }
 
-    Float Pdf(const Point2& p) const
+    Float PDF(const Point2& p) const
     {
         int32 w = conditional_v[0]->Count();
         int32 h = marginal->Count();
