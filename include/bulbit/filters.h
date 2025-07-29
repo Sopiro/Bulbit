@@ -11,7 +11,6 @@ class BoxFilter : public Filter
 public:
     BoxFilter(Float extent)
         : Filter(extent)
-        , inv_area{ 1 / Sqr(extent) }
     {
     }
 
@@ -20,7 +19,7 @@ public:
         Float half_extent = extent / 2;
         if (std::abs(p.x) <= half_extent && std::abs(p.y) <= half_extent)
         {
-            return inv_area;
+            return 1 / Sqr(extent);
         }
 
         return 0;
@@ -31,9 +30,6 @@ public:
         // Remap [0, 1]^2 to [-half_extent, half_extent]^2
         return (2 * u - 1) * extent / 2;
     }
-
-private:
-    Float inv_area;
 };
 
 class TentFilter : public Filter
@@ -67,9 +63,6 @@ public:
 
         return Point2(x, y);
     }
-
-private:
-    Float extent;
 };
 
 class GaussianFilter : public Filter
@@ -112,9 +105,10 @@ public:
         return dist->SampleContinuous(u) * extent - extent / 2;
     }
 
+    const Float sigma;
+
 private:
     std::unique_ptr<Distribution2D> dist;
-    Float sigma;
 };
 
 } // namespace bulbit

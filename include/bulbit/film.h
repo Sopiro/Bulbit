@@ -69,8 +69,8 @@ inline void Film::AddSplat(const Point2& pixel, const Spectrum& L)
     const Filter* filter = camera->GetFilter();
     Float half_extent = filter->extent / 2;
 
-    Point2i lower(std::floor(pixel.x - half_extent), std::floor(pixel.y - half_extent));
-    Point2i upper(std::floor(pixel.x + half_extent) + 1, std::floor(pixel.y + half_extent) + 1);
+    Point2i lower(int32(std::floor(pixel.x - half_extent)), int32(std::floor(pixel.y - half_extent)));
+    Point2i upper(int32(std::floor(pixel.x + half_extent)) + 1, int32(std::floor(pixel.y + half_extent)) + 1);
     AABB2i bounds(lower, upper);
 
     // Compute the pixel bounds affected by this splat
