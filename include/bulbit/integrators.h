@@ -179,6 +179,21 @@ public:
     virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
 
 private:
+    bool V(const Point3 p1, const Point3 p2) const;
+
+    UniformLightSampler light_sampler;
+    int32 max_bounces;
+};
+
+class LightVolPathIntegrator : public BiDirectionalRayIntegrator
+{
+public:
+    LightVolPathIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces);
+    virtual ~LightVolPathIntegrator() = default;
+
+    virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
+
+private:
     bool V(const Point3 p1, const Point3 p2) const
     {
         Vec3 d = p2 - p1;
