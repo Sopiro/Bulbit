@@ -33,6 +33,12 @@ struct CameraSampleWi
     const Medium* medium;
 };
 
+struct PrimaryRay
+{
+    Ray ray;
+    Float weight;
+};
+
 class Camera
 {
 public:
@@ -47,7 +53,7 @@ public:
     virtual ~Camera() = default;
 
     // Sample a primary ray by importance sampling a reconstruction filter
-    virtual Float SampleRay(Ray* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const = 0;
+    virtual void SampleRay(PrimaryRay* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const = 0;
 
     // Image measurement importance functions
     virtual Spectrum We(const Ray& ray, Point2* p_raster = nullptr) const;

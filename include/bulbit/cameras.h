@@ -18,7 +18,7 @@ public:
         const Filter* pixel_filter = Camera::default_filter.get()
     );
 
-    virtual Float SampleRay(Ray* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const override;
+    virtual void SampleRay(PrimaryRay* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const override;
 
 private:
     Point3 origin;
@@ -44,7 +44,7 @@ public:
         const Filter* pixel_filter = Camera::default_filter.get()
     );
 
-    virtual Float SampleRay(Ray* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const override;
+    virtual void SampleRay(PrimaryRay* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const override;
 
     virtual Spectrum We(const Ray& ray, Point2* p_raster = nullptr) const override;
     virtual void PDF_We(Float* pdf_p, Float* pdf_w, const Ray& ray) const override;
@@ -74,7 +74,7 @@ public:
         const Filter* pixel_filter = Camera::default_filter.get()
     );
 
-    virtual Float SampleRay(Ray* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const override;
+    virtual void SampleRay(PrimaryRay* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const override;
 
 private:
     Point3 origin;

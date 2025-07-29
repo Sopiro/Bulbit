@@ -39,14 +39,13 @@ std::unique_ptr<RenderingProgress> UniDirectionalRayIntegrator::Render(const Cam
                     {
                         sampler->StartPixelSample(pixel, sample);
 
-                        Ray ray;
-                        Float weight = camera->SampleRay(&ray, pixel, sampler->Next2D(), sampler->Next2D());
+                        PrimaryRay primary_ray;
+                        camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
 
-                        Spectrum L = Li(ray, camera->GetMedium(), *sampler);
-
+                        Spectrum L = Li(primary_ray.ray, camera->GetMedium(), *sampler);
                         if (!L.IsNullish())
                         {
-                            progress->film.AddSample(pixel, weight * L, 1);
+                            progress->film.AddSample(pixel, primary_ray.weight * L);
                         }
                     }
                 }
@@ -95,14 +94,13 @@ std::unique_ptr<RenderingProgress> BiDirectionalRayIntegrator::Render(const Came
                     {
                         sampler->StartPixelSample(pixel, sample);
 
-                        Ray ray;
-                        Float weight = camera->SampleRay(&ray, pixel, sampler->Next2D(), sampler->Next2D());
+                        PrimaryRay primary_ray;
+                        camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
 
-                        Spectrum Li = L(ray, camera->GetMedium(), camera, progress->film, *sampler);
-
+                        Spectrum Li = L(primary_ray.ray, camera->GetMedium(), camera, progress->film, *sampler);
                         if (!Li.IsNullish())
                         {
-                            progress->film.AddSample(pixel, weight * Li, 1);
+                            progress->film.AddSample(pixel, primary_ray.weight * Li);
                         }
                     }
                 }

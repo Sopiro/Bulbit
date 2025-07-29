@@ -40,20 +40,18 @@ PerspectiveCamera::PerspectiveCamera(
     A_lens = lens_radius != 0 ? (pi * Sqr(lens_radius)) : 1;
 }
 
-Float PerspectiveCamera::SampleRay(Ray* ray, const Point2i& pixel, Point2 u0, Point2 u1) const
+void PerspectiveCamera::SampleRay(PrimaryRay* ray, const Point2i& pixel, Point2 u0, Point2 u1) const
 {
     Point2 pixel_offset = filter->Sample(u0) + Point2(Float(0.5), Float(0.5));
     Point3 pixel_center = lower_left + horizontal * (pixel.x + pixel_offset.x) / resolution.x +
                           vertical * (pixel.y + pixel_offset.y) / resolution.y;
 
     Point2 aperture_sample = lens_radius * SampleUniformUnitDiskConcentric(u1);
-    Point3 camera_offset = u * aperture_sample.x + v * aperture_sample.y;
-    Point3 camera_center = origin + camera_offset;
+    Point3 offset = u * aperture_sample.x + v * aperture_sample.y;
+    Point3 ray_origin = origin + offset;
 
-    ray->o = camera_center;
-    ray->d = Normalize(pixel_center - camera_center);
-
-    return 1;
+    ray->ray = Ray(ray_origin, Normalize(pixel_center - ray_origin));
+    ray->weight = 1;
 }
 
 Spectrum PerspectiveCamera::We(const Ray& ray, Point2* p_raster) const

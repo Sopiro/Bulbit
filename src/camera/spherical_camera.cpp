@@ -12,7 +12,7 @@ SphericalCamera::SphericalCamera(
 {
 }
 
-Float SphericalCamera::SampleRay(Ray* ray, const Point2i& pixel, Point2 u0, Point2 u1) const
+void SphericalCamera::SampleRay(PrimaryRay* ray, const Point2i& pixel, Point2 u0, Point2 u1) const
 {
     BulbitNotUsed(pixel);
     BulbitNotUsed(u1);
@@ -20,10 +20,8 @@ Float SphericalCamera::SampleRay(Ray* ray, const Point2i& pixel, Point2 u0, Poin
     Float theta = (1 - u0[1] / Float(resolution.y)) * pi;
     Float phi = u0[0] / Float(resolution.x) * two_pi;
 
-    ray->o = origin;
-    ray->d = SphericalDirection(theta, phi);
-
-    return 1;
+    ray->ray = Ray(origin, SphericalDirection(theta, phi));
+    ray->weight = 1;
 }
 
 } // namespace bulbit

@@ -26,18 +26,16 @@ OrthographicCamera::OrthographicCamera(
     lower_left = origin - horizontal / 2 - vertical / 2;
 }
 
-Float OrthographicCamera::SampleRay(Ray* ray, const Point2i& pixel, Point2 u0, Point2 u1) const
+void OrthographicCamera::SampleRay(PrimaryRay* ray, const Point2i& pixel, Point2 u0, Point2 u1) const
 {
     BulbitNotUsed(u1);
 
     Point2 pixel_offset = filter->Sample(u0) + Point2(Float(0.5), Float(0.5));
-    Point3 pixel_center = lower_left + horizontal * (pixel.x + pixel_offset.x) / resolution.x +
-                          vertical * (pixel.y + pixel_offset.y) / resolution.y;
+    Point3 origin = lower_left + horizontal * (pixel.x + pixel_offset.x) / resolution.x +
+                    vertical * (pixel.y + pixel_offset.y) / resolution.y;
 
-    ray->o = pixel_center;
-    ray->d = -w;
-
-    return 1;
+    ray->ray = Ray(origin, -w);
+    ray->weight = 1;
 }
 
 } // namespace bulbit

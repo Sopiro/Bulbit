@@ -13,7 +13,7 @@ class Film
 public:
     Film(const Camera* camera);
 
-    void AddSample(const Point2i& pixel, const Spectrum& L, Float weight);
+    void AddSample(const Point2i& pixel, const Spectrum& L);
     void AddSplat(const Point2& pixel, const Spectrum& L);
 
     void WeightSplats(Float weight);
@@ -51,11 +51,11 @@ inline Film::Film(const Camera* camera)
     ParallelFor(0, Spectrum::num_spectral_samples * size, [&](int32 i) { splats[i].store(0); });
 }
 
-inline void Film::AddSample(const Point2i& pixel, const Spectrum& L, Float w)
+inline void Film::AddSample(const Point2i& pixel, const Spectrum& L)
 {
     Point2i res = camera->GetScreenResolution();
     int32 index = pixel.y * res.x + pixel.x;
-    samples[index] += L * w;
+    samples[index] += L;
     sample_counts[index] += 1;
 
     Float l = L.Luminance();
