@@ -15,7 +15,7 @@ UniDirectionalRayIntegrator::UniDirectionalRayIntegrator(
 {
 }
 
-std::unique_ptr<RenderingProgress> UniDirectionalRayIntegrator::Render(const Camera* camera)
+std::unique_ptr<Rendering> UniDirectionalRayIntegrator::Render(const Camera* camera)
 {
     ComoputeReflectanceTextures();
 
@@ -24,7 +24,7 @@ std::unique_ptr<RenderingProgress> UniDirectionalRayIntegrator::Render(const Cam
     const int32 spp = sampler_prototype->samples_per_pixel;
     const int32 tile_size = 16;
 
-    std::unique_ptr<RenderingProgress> progress = std::make_unique<RenderingProgress>(camera, tile_size);
+    std::unique_ptr<Rendering> progress = std::make_unique<Rendering>(camera, tile_size);
 
     progress->job = RunAsync([=, this, &progress]() {
         ParallelFor2D(
@@ -70,7 +70,7 @@ BiDirectionalRayIntegrator::BiDirectionalRayIntegrator(
 {
 }
 
-std::unique_ptr<RenderingProgress> BiDirectionalRayIntegrator::Render(const Camera* camera)
+std::unique_ptr<Rendering> BiDirectionalRayIntegrator::Render(const Camera* camera)
 {
     ComoputeReflectanceTextures();
 
@@ -79,7 +79,7 @@ std::unique_ptr<RenderingProgress> BiDirectionalRayIntegrator::Render(const Came
     const int32 spp = sampler_prototype->samples_per_pixel;
     const int32 tile_size = 16;
 
-    std::unique_ptr<RenderingProgress> progress = std::make_unique<RenderingProgress>(camera, tile_size);
+    std::unique_ptr<Rendering> progress = std::make_unique<Rendering>(camera, tile_size);
 
     progress->job = RunAsync([=, this, &progress]() {
         ParallelFor2D(

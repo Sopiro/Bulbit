@@ -5,10 +5,10 @@
 namespace bulbit
 {
 
-class RenderingProgress
+class Rendering
 {
 public:
-    RenderingProgress(const Camera* camera, int32 tile_size)
+    Rendering(const Camera* camera, int32 tile_size)
         : camera{ camera }
         , film(camera)
         , tile_size{ tile_size }
@@ -22,28 +22,31 @@ public:
         tile_count = num_tiles_x * num_tiles_y;
     }
 
-    ~RenderingProgress() = default;
+    ~Rendering() = default;
 
-    const Film& Wait() const
+    void Wait() const
     {
         job->Wait();
-        return film;
     }
 
-    const Film& WaitAndLogProgress() const
+    void WaitAndLogProgress() const
     {
         while (!IsDone())
         {
-            using namespace std::chrono_literals;
+            LogProgress();
 
-            int32 t = tile_done.load();
-            float p = 100.0f * t / tile_count;
-            std::fprintf(stdout, "\rRendering.. %.2f%% [%d/%d]", p, t, tile_count);
+            using namespace std::chrono_literals;
             std::this_thread::sleep_for(50ms);
         }
 
         BulbitAssert(done);
-        return film;
+    }
+
+    void LogProgress() const
+    {
+        int32 t = tile_done.load();
+        float p = 100.0f * t / tile_count;
+        std::fprintf(stdout, "\rRendering.. %.2f%% [%d/%d]", p, t, tile_count);
     }
 
     int32 GetTileCount() const
