@@ -8,6 +8,7 @@ namespace bulbit
 {
 
 struct Intersection;
+class Medium;
 
 struct LightSampleLi
 {
