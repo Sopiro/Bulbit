@@ -35,6 +35,7 @@ struct LightSampleLe
     Vec3 normal;
     Float pdf_p, pdf_w;
     Spectrum Le;
+    const Medium* medium;
 };
 
 using Lights =

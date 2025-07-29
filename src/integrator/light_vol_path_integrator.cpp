@@ -15,6 +15,11 @@ LightVolPathIntegrator::LightVolPathIntegrator(
 {
 }
 
+Float LightVolPathIntegrator::Tr(const Point3 p1, const Point3 p2) const
+{
+    return 0;
+}
+
 Spectrum LightVolPathIntegrator::L(
     const Ray& primary_ray, const Medium* primary_medium, const Camera* camera, Film& film, Sampler& sampler
 ) const
@@ -47,7 +52,7 @@ Spectrum LightVolPathIntegrator::L(
     }
 
     // Add bounce 0 light contribution to film
-    if (V(light_sample.ray.o, camera_sample.p_aperture))
+    if (Float tr = Tr(light_sample.ray.o, camera_sample.p_aperture); tr > 0)
     {
         Spectrum L = sampled_light.weight * light_sample.Le * AbsDot(light_sample.normal, camera_sample.wi) *
                      AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi / (camera_sample.pdf * light_sample.pdf_p);
@@ -91,7 +96,7 @@ Spectrum LightVolPathIntegrator::L(
         {
             Vec3 wi = camera_sample.wi;
 
-            if (V(isect.point, camera_sample.p_aperture))
+            if (Float tr = Tr(light_sample.ray.o, camera_sample.p_aperture); tr > 0)
             {
                 Spectrum L = beta * camera_sample.Wi * bsdf.f(wo, wi, TransportDirection::ToCamera) *
                              AbsDot(isect.shading.normal, wi) / camera_sample.pdf;

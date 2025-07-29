@@ -80,7 +80,7 @@ public:
         {
             for (int32 x = 0; x < samples; ++x)
             {
-                Point2 p = (Point2(x, y) + 0.5f) / samples * extent - half_extent;
+                Point2 p = (Point2i(x, y) + Point2(0.5f)) / samples * extent - half_extent;
 
                 values[y * samples + x] = Gaussian(p.x, 0, sigma) * Gaussian(p.y, 0, sigma);
             }

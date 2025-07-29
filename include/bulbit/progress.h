@@ -74,11 +74,12 @@ public:
         return film;
     }
 
+    const Camera* camera;
+
 private:
     friend class UniDirectionalRayIntegrator;
     friend class BiDirectionalRayIntegrator;
 
-    const Camera* camera;
     Film film;
 
     int32 tile_size;

@@ -194,13 +194,7 @@ public:
     virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
 
 private:
-    bool V(const Point3 p1, const Point3 p2) const
-    {
-        Vec3 d = p2 - p1;
-        Float dist = d.Normalize();
-        Ray ray(p1, d);
-        return !accel->IntersectAny(ray, Ray::epsilon, dist);
-    }
+    Float Tr(const Point3 p1, const Point3 p2) const;
 
     UniformLightSampler light_sampler;
     int32 max_bounces;

@@ -54,16 +54,19 @@ bool AreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 
     Vec3 w;
     Float pdf_w;
+    bool front_face;
     if (two_sided)
     {
         if (u1[0] < 0.5f)
         {
             u1[0] = std::min(2 * u1[0], 1 - epsilon);
+            front_face = true;
         }
         else
         {
             u1[0] = std::min(2 * (u1[0] - 0.5f), 1 - epsilon);
             sample->normal.Negate();
+            front_face = false;
         }
 
         w = SampleCosineHemisphere(u1);
@@ -87,8 +90,11 @@ bool AreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 
     Intersection isect;
     isect.point = shape_sample.point;
-    isect.front_face = true;
+    isect.front_face = front_face;
     sample->Le = primitive->GetMaterial()->Le(isect, -w);
+
+    const MediumInterface* medium_interface = primitive->GetMediumInterface();
+    sample->medium = front_face ? medium_interface->outside : medium_interface->inside;
 
     sample->ray = Ray(shape_sample.point, w);
 
