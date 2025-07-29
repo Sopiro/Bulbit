@@ -19,17 +19,16 @@ Spectrum DirectionalLight::Le(const Ray& ray) const
     return Spectrum::black;
 }
 
-LightSampleLi DirectionalLight::Sample_Li(const Intersection& ref, Point2 u) const
+bool DirectionalLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
 {
     BulbitNotUsed(ref);
 
-    LightSampleLi light_sample;
-    light_sample.wi = -dir + SampleInsideUnitSphere(u) * radius;
-    light_sample.pdf = 1;
-    light_sample.visibility = infinity;
-    light_sample.Li = intensity;
+    sample->wi = -dir + SampleInsideUnitSphere(u) * radius;
+    sample->pdf = 1;
+    sample->visibility = infinity;
+    sample->Li = intensity;
 
-    return light_sample;
+    return true;
 }
 
 Float DirectionalLight::EvaluatePDF_Li(const Ray& ray) const
@@ -39,11 +38,12 @@ Float DirectionalLight::EvaluatePDF_Li(const Ray& ray) const
     return 0;
 }
 
-LightSampleLe DirectionalLight::Sample_Le(Point2 u0, Point2 u1) const
+bool DirectionalLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 {
+    BulbitNotUsed(sample);
     BulbitNotUsed(u0);
     BulbitNotUsed(u1);
-    return {};
+    return false;
 }
 
 void DirectionalLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const

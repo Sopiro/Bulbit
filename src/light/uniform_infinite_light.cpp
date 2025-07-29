@@ -16,17 +16,16 @@ Spectrum UniformInfiniteLight::Le(const Ray& ray) const
     return scale * l;
 }
 
-LightSampleLi UniformInfiniteLight::Sample_Li(const Intersection& ref, Point2 u) const
+bool UniformInfiniteLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
 {
     BulbitNotUsed(ref);
 
-    LightSampleLi light_sample;
-    light_sample.wi = SampleUniformSphere(u);
-    light_sample.pdf = UniformSpherePDF();
-    light_sample.visibility = infinity;
-    light_sample.Li = scale * l;
+    sample->wi = SampleUniformSphere(u);
+    sample->pdf = UniformSpherePDF();
+    sample->visibility = infinity;
+    sample->Li = scale * l;
 
-    return light_sample;
+    return true;
 }
 
 Float UniformInfiniteLight::EvaluatePDF_Li(const Ray& ray) const
@@ -35,11 +34,12 @@ Float UniformInfiniteLight::EvaluatePDF_Li(const Ray& ray) const
     return UniformSpherePDF();
 }
 
-LightSampleLe UniformInfiniteLight::Sample_Le(Point2 u0, Point2 u1) const
+bool UniformInfiniteLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 {
+    BulbitNotUsed(sample);
     BulbitNotUsed(u0);
     BulbitNotUsed(u1);
-    return {};
+    return false;
 }
 
 void UniformInfiniteLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const

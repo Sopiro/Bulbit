@@ -45,7 +45,7 @@ Spectrum ImageInfiniteLight::Le(const Ray& ray) const
     return l_scale * l_map->Evaluate(uv);
 }
 
-LightSampleLi ImageInfiniteLight::Sample_Li(const Intersection& ref, Point2 u) const
+bool ImageInfiniteLight::Sample_Li(LightSampleLi* light_sample, const Intersection& ref, Point2 u) const
 {
     BulbitNotUsed(ref);
 
@@ -54,7 +54,7 @@ LightSampleLi ImageInfiniteLight::Sample_Li(const Intersection& ref, Point2 u) c
 
     if (map_pdf == 0)
     {
-        return LightSampleLi{ Vec3::zero, 0, 0, Spectrum::black };
+        return false;
     }
 
     Float theta = (1 - uv[1]) * pi;
@@ -63,22 +63,21 @@ LightSampleLi ImageInfiniteLight::Sample_Li(const Intersection& ref, Point2 u) c
     Float cos_theta = std::cos(theta), sin_theta = std::sin(theta);
     Float sin_phi = std::sin(phi), cos_phi = std::cos(phi);
 
-    LightSampleLi light_sample;
-    light_sample.wi = Mul(transform, SphericalDirection(sin_theta, cos_theta, sin_phi, cos_phi));
+    light_sample->wi = Mul(transform, SphericalDirection(sin_theta, cos_theta, sin_phi, cos_phi));
 
     if (sin_theta == 0)
     {
-        light_sample.pdf = 0;
+        return false;
     }
     else
     {
-        light_sample.pdf = map_pdf / (2 * pi * pi * sin_theta);
+        light_sample->pdf = map_pdf / (2 * pi * pi * sin_theta);
     }
 
-    light_sample.visibility = infinity;
-    light_sample.Li = l_scale * l_map->Evaluate(uv);
+    light_sample->visibility = infinity;
+    light_sample->Li = l_scale * l_map->Evaluate(uv);
 
-    return light_sample;
+    return true;
 }
 
 Float ImageInfiniteLight::EvaluatePDF_Li(const Ray& ray) const
@@ -95,11 +94,12 @@ Float ImageInfiniteLight::EvaluatePDF_Li(const Ray& ray) const
     return distribution->Pdf(uv) / (2 * pi * pi * sin_theta);
 }
 
-LightSampleLe ImageInfiniteLight::Sample_Le(Point2 u0, Point2 u1) const
+bool ImageInfiniteLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 {
+    BulbitNotUsed(sample);
     BulbitNotUsed(u0);
     BulbitNotUsed(u1);
-    return {};
+    return false;
 }
 
 void ImageInfiniteLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const

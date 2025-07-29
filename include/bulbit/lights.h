@@ -18,10 +18,10 @@ public:
 
     Spectrum Le(const Ray& ray) const;
 
-    LightSampleLi Sample_Li(const Intersection& ref, Point2 u) const;
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
-    LightSampleLe Sample_Le(Point2 u0, Point2 u1) const;
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
@@ -38,10 +38,10 @@ public:
 
     Spectrum Le(const Ray& ray) const;
 
-    LightSampleLi Sample_Li(const Intersection& ref, Point2 u) const;
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
-    LightSampleLe Sample_Le(Point2 u0, Point2 u1) const;
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
@@ -59,10 +59,10 @@ public:
 
     Spectrum Le(const Ray& ray) const;
 
-    LightSampleLi Sample_Li(const Intersection& ref, Point2 u) const;
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
-    LightSampleLe Sample_Le(Point2 u0, Point2 u1) const;
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
@@ -84,10 +84,10 @@ public:
 
     Spectrum Le(const Ray& ray) const;
 
-    LightSampleLi Sample_Li(const Intersection& ref, Point2 u) const;
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
-    LightSampleLe Sample_Le(Point2 u0, Point2 u1) const;
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
@@ -108,10 +108,10 @@ public:
 
     Spectrum Le(const Ray& ray) const;
 
-    LightSampleLi Sample_Li(const Intersection& ref, Point2 u) const;
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
-    LightSampleLe Sample_Le(Point2 u0, Point2 u1) const;
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
@@ -130,9 +130,9 @@ inline Spectrum Light::Le(const Ray& ray) const
     return Dispatch([&](auto light) { return light->Le(ray); });
 }
 
-inline LightSampleLi Light::Sample_Li(const Intersection& ref, Point2 u) const
+inline bool Light::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
 {
-    return Dispatch([&](auto light) { return light->Sample_Li(ref, u); });
+    return Dispatch([&](auto light) { return light->Sample_Li(sample, ref, u); });
 }
 
 inline Float Light::EvaluatePDF_Li(const Ray& ray) const
@@ -140,9 +140,9 @@ inline Float Light::EvaluatePDF_Li(const Ray& ray) const
     return Dispatch([&](auto light) { return light->EvaluatePDF_Li(ray); });
 }
 
-inline LightSampleLe Light::Sample_Le(Point2 u0, Point2 u1) const
+inline bool Light::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 {
-    return Dispatch([&](auto light) { return light->Sample_Le(u0, u1); });
+    return Dispatch([&](auto light) { return light->Sample_Le(sample, u0, u1); });
 }
 
 inline void Light::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const

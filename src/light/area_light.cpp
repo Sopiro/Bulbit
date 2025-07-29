@@ -24,22 +24,21 @@ Spectrum AreaLight::Le(const Ray& ray) const
     return primitive->GetMaterial()->Le(isect, -ray.d);
 }
 
-LightSampleLi AreaLight::Sample_Li(const Intersection& ref, Point2 u) const
+bool AreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
 {
     ShapeSample shape_sample = primitive->GetShape()->Sample(ref.point, u);
     Vec3 ref2p = shape_sample.point - ref.point;
 
-    LightSampleLi light_sample;
-    light_sample.visibility = ref2p.Normalize() - Ray::epsilon;
-    light_sample.wi = ref2p;
-    light_sample.pdf = shape_sample.pdf;
+    sample->visibility = ref2p.Normalize() - Ray::epsilon;
+    sample->wi = ref2p;
+    sample->pdf = shape_sample.pdf;
 
     Intersection isect;
     isect.point = shape_sample.point;
     isect.front_face = Dot(shape_sample.normal, ref2p) < 0;
-    light_sample.Li = primitive->GetMaterial()->Le(isect, ref2p);
+    sample->Li = primitive->GetMaterial()->Le(isect, ref2p);
 
-    return light_sample;
+    return true;
 }
 
 Float AreaLight::EvaluatePDF_Li(const Ray& ray) const
@@ -47,48 +46,53 @@ Float AreaLight::EvaluatePDF_Li(const Ray& ray) const
     return primitive->GetShape()->EvaluatePDF(ray);
 }
 
-LightSampleLe AreaLight::Sample_Le(Point2 u0, Point2 u1) const
+bool AreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 {
-    LightSampleLe light_sample;
-
     ShapeSample shape_sample = primitive->GetShape()->Sample(u0);
-    light_sample.pdf_p = shape_sample.pdf;
-    light_sample.normal = shape_sample.normal;
+    sample->pdf_p = shape_sample.pdf;
+    sample->normal = shape_sample.normal;
 
     Vec3 w;
-    Point2 u = u1;
+    Float pdf_w;
     if (two_sided)
     {
-        if (u[0] < 0.5f)
+        if (u1[0] < 0.5f)
         {
-            u[0] = std::min(2 * u[0], 1 - epsilon);
+            u1[0] = std::min(2 * u1[0], 1 - epsilon);
         }
         else
         {
-            u[0] = std::min(2 * (u[0] - 0.5f), 1 - epsilon);
-            light_sample.normal.Negate();
+            u1[0] = std::min(2 * (u1[0] - 0.5f), 1 - epsilon);
+            sample->normal.Negate();
         }
 
-        w = SampleCosineHemisphere(u);
-        light_sample.pdf_w = 0.5f * CosineHemispherePDF(w.z);
+        w = SampleCosineHemisphere(u1);
+        pdf_w = 0.5f * CosineHemispherePDF(w.z);
     }
     else
     {
-        w = SampleCosineHemisphere(u);
-        light_sample.pdf_w = CosineHemispherePDF(w.z);
+        w = SampleCosineHemisphere(u1);
+        pdf_w = CosineHemispherePDF(w.z);
     }
 
-    Frame f(light_sample.normal);
+    if (pdf_w == 0)
+    {
+        return false;
+    }
+
+    sample->pdf_w = pdf_w;
+
+    Frame f(sample->normal);
     w = f.FromLocal(w);
 
     Intersection isect;
     isect.point = shape_sample.point;
     isect.front_face = true;
-    light_sample.Le = primitive->GetMaterial()->Le(isect, -w);
+    sample->Le = primitive->GetMaterial()->Le(isect, -w);
 
-    light_sample.ray = Ray(shape_sample.point, w);
+    sample->ray = Ray(shape_sample.point, w);
 
-    return light_sample;
+    return true;
 }
 
 void AreaLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const

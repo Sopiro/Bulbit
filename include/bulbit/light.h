@@ -56,10 +56,10 @@ public:
 
     Spectrum Le(const Ray& ray) const;
 
-    LightSampleLi Sample_Li(const Intersection& ref, Point2 u) const;
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
-    LightSampleLe Sample_Le(Point2 u0, Point2 u1) const;
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 

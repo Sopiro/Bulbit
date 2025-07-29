@@ -32,7 +32,11 @@ Spectrum LightPathIntegrator::L(
     }
 
     // Sample point and direction from sampled light
-    LightSampleLe light_sample = sampled_light.light->Sample_Le(sampler.Next2D(), sampler.Next2D());
+    LightSampleLe light_sample;
+    if (!sampled_light.light->Sample_Le(&light_sample, sampler.Next2D(), sampler.Next2D()))
+    {
+        return Spectrum::black;
+    }
 
     isect.point = light_sample.ray.o;
 
@@ -45,32 +49,22 @@ Spectrum LightPathIntegrator::L(
     // Add bounce 0 light contribution to film
     if (V(light_sample.ray.o, camera_sample.p_aperture))
     {
-        Float pdf = camera_sample.pdf * light_sample.pdf_p;
-        if (pdf != 0)
-        {
-            Spectrum L = sampled_light.weight * light_sample.Le * AbsDot(light_sample.normal, camera_sample.wi) *
-                         AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi / pdf;
+        Spectrum L = sampled_light.weight * light_sample.Le * AbsDot(light_sample.normal, camera_sample.wi) *
+                     AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi / (camera_sample.pdf * light_sample.pdf_p);
 
-            film.AddSplat(camera_sample.p_raster, L);
-        }
+        film.AddSplat(camera_sample.p_raster, L);
     }
 
     int32 bounce = 0;
     Ray ray = light_sample.ray;
 
-    Float pdf_light = light_sample.pdf_p * light_sample.pdf_w / sampled_light.weight;
-    if (pdf_light == 0)
-    {
-        return Spectrum::black;
-    }
-
-    Spectrum beta = light_sample.Le * AbsDot(light_sample.normal, ray.d) / pdf_light;
+    Spectrum beta =
+        light_sample.Le * AbsDot(light_sample.normal, ray.d) * sampled_light.weight / (light_sample.pdf_p * light_sample.pdf_w);
 
     // Trace light path
     while (true)
     {
-        bool found_intersection = Intersect(&isect, ray, Ray::epsilon, infinity);
-        if (!found_intersection)
+        if (!Intersect(&isect, ray, Ray::epsilon, infinity))
         {
             break;
         }

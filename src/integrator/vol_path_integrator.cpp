@@ -389,7 +389,12 @@ Spectrum VolPathIntegrator::SampleDirectLight(
         return Spectrum::black;
     }
 
-    LightSampleLi light_sample = sampled_light.light->Sample_Li(isect, u12);
+    LightSampleLi light_sample;
+    if (!sampled_light.light->Sample_Li(&light_sample, isect, u12))
+    {
+        return Spectrum::black;
+    }
+
     if (light_sample.Li.IsBlack() || light_sample.pdf == 0)
     {
         return Spectrum::black;

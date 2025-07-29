@@ -17,20 +17,19 @@ Spectrum PointLight::Le(const Ray& ray) const
     return Spectrum::black;
 }
 
-LightSampleLi PointLight::Sample_Li(const Intersection& ref, Point2 u) const
+bool PointLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
 {
     BulbitNotUsed(u);
 
     Vec3 d = position - ref.point;
     Float distance = d.Normalize();
 
-    LightSampleLi light_sample;
-    light_sample.wi = d;
-    light_sample.visibility = distance;
-    light_sample.pdf = 1;
-    light_sample.Li = intensity / (distance * distance);
+    sample->wi = d;
+    sample->visibility = distance;
+    sample->pdf = 1;
+    sample->Li = intensity / (distance * distance);
 
-    return light_sample;
+    return true;
 }
 
 Float PointLight::EvaluatePDF_Li(const Ray& ray) const
@@ -40,20 +39,19 @@ Float PointLight::EvaluatePDF_Li(const Ray& ray) const
     return 0;
 }
 
-LightSampleLe PointLight::Sample_Le(Point2 u0, Point2 u1) const
+bool PointLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 {
     BulbitNotUsed(u0);
 
-    LightSampleLe sample;
     Vec3 w = SampleUniformSphere(u1);
 
-    sample.Le = intensity;
-    sample.ray = Ray(position, w);
-    sample.normal = w;
-    sample.pdf_p = 1;
-    sample.pdf_w = UniformSpherePDF();
+    sample->Le = intensity;
+    sample->ray = Ray(position, w);
+    sample->normal = w;
+    sample->pdf_p = 1;
+    sample->pdf_w = UniformSpherePDF();
 
-    return sample;
+    return true;
 }
 
 void PointLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const
