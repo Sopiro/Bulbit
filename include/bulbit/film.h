@@ -14,7 +14,7 @@ public:
     Film(const Point2i& resolution);
 
     void AddSample(const Point2i& pixel, const Spectrum& L, Float weight);
-    void AddSplat(const Point2i& pixel, const Spectrum& L);
+    void AddSplat(const Filter* filter, const Point2& pixel, const Spectrum& L);
 
     void WeightSplats(Float weight);
 
@@ -62,15 +62,29 @@ inline void Film::AddSample(const Point2i& pixel, const Spectrum& L, Float w)
     moments[index] = Lerp(moments[index], Point2(l, l * l), alpha);
 }
 
-inline void Film::AddSplat(const Point2i& pixel, const Spectrum& L)
+inline void Film::AddSplat(const Filter* filter, const Point2& pixel, const Spectrum& L)
 {
-    // TODO:
-    // Properly apply camera filter weights; currently using a naive box filter..
-    const int32 index = Spectrum::num_spectral_samples * (pixel.y * resolution.x + pixel.x);
+    Float r = filter->radius;
 
-    for (int32 i = 0; i < Spectrum::num_spectral_samples; ++i)
+    Point2i lower(std::floor(pixel.x - r), std::floor(pixel.y - r));
+    Point2i upper(std::floor(pixel.x + r) + 1, std::floor(pixel.y + r) + 1);
+    AABB2i bounds(lower, upper);
+
+    // Compute the pixel bounds affected by this splat
+    bounds = AABB2i::Intersection(AABB2i(Point2i(0), resolution), bounds);
+
+    for (Point2i pi : bounds)
     {
-        splats[index + i].fetch_add(L[i]);
+        Float weight = filter->Evaluate(pixel - (Point2(pi) + Point2(0.5f)));
+        if (weight > 0)
+        {
+            const int32 index = Spectrum::num_spectral_samples * (pi.y * resolution.x + pi.x);
+            for (int32 s = 0; s < Spectrum::num_spectral_samples; ++s)
+            {
+                Float old = splats[index + s].load();
+                splats[index + s].store(old + weight * L[s]);
+            }
+        }
     }
 }
 

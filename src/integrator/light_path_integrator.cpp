@@ -45,16 +45,26 @@ Spectrum LightPathIntegrator::L(
     // Add bounce 0 light contribution to film
     if (V(light_sample.ray.o, camera_sample.p_aperture))
     {
-        Spectrum L = sampled_light.weight * light_sample.Le * AbsDot(light_sample.normal, camera_sample.wi) *
-                     AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi / (camera_sample.pdf * light_sample.pdf_p);
+        Float pdf = camera_sample.pdf * light_sample.pdf_p;
+        if (pdf != 0)
+        {
+            Spectrum L = sampled_light.weight * light_sample.Le * AbsDot(light_sample.normal, camera_sample.wi) *
+                         AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi / pdf;
 
-        film.AddSplat(camera_sample.p_raster, L);
+            film.AddSplat(camera.GetFilter(), camera_sample.p_raster, L);
+        }
     }
 
     int32 bounce = 0;
     Ray ray = light_sample.ray;
-    Spectrum beta =
-        light_sample.Le * AbsDot(light_sample.normal, ray.d) * sampled_light.weight / (light_sample.pdf_p * light_sample.pdf_w);
+
+    Float pdf_light = light_sample.pdf_p * light_sample.pdf_w / sampled_light.weight;
+    if (pdf_light == 0)
+    {
+        return Spectrum::black;
+    }
+
+    Spectrum beta = light_sample.Le * AbsDot(light_sample.normal, ray.d) / pdf_light;
 
     // Trace light path
     while (true)
@@ -92,7 +102,7 @@ Spectrum LightPathIntegrator::L(
                 Spectrum L = beta * camera_sample.Wi * bsdf.f(wo, wi, TransportDirection::ToCamera) *
                              AbsDot(isect.shading.normal, wi) / camera_sample.pdf;
 
-                film.AddSplat(camera_sample.p_raster, L);
+                film.AddSplat(camera.GetFilter(), camera_sample.p_raster, L);
             }
         }
 

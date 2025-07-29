@@ -49,6 +49,7 @@ struct BoundingBox2
 
     static BoundingBox2 Union(const BoundingBox2& b1, const BoundingBox2& b2);
     static BoundingBox2 Union(const BoundingBox2& aabb, const Vector2<T>& p);
+    static BoundingBox2 Intersection(const BoundingBox2& b1, const BoundingBox2& b2);
 };
 
 template <typename T>
@@ -65,6 +66,15 @@ inline BoundingBox2<T> BoundingBox2<T>::Union(const BoundingBox2& aabb, const Ve
 {
     Vector2<T> min = Min(aabb.min, point);
     Vector2<T> max = Max(aabb.max, point);
+
+    return BoundingBox2{ min, max };
+}
+
+template <typename T>
+inline BoundingBox2<T> BoundingBox2<T>::Intersection(const BoundingBox2& aabb1, const BoundingBox2& aabb2)
+{
+    Vector2<T> min = Max(aabb1.min, aabb2.min);
+    Vector2<T> max = Min(aabb1.max, aabb2.max);
 
     return BoundingBox2{ min, max };
 }
@@ -279,6 +289,7 @@ struct BoundingBox3
 
     static BoundingBox3 Union(const BoundingBox3& b1, const BoundingBox3& b2);
     static BoundingBox3 Union(const BoundingBox3& aabb, const Vector3<T>& p);
+    static BoundingBox3 Intersection(const BoundingBox3& b1, const BoundingBox3& b2);
 };
 
 template <typename T>
@@ -295,6 +306,15 @@ inline BoundingBox3<T> BoundingBox3<T>::Union(const BoundingBox3& aabb, const Ve
 {
     Vector3<T> min = Min(aabb.min, point);
     Vector3<T> max = Max(aabb.max, point);
+
+    return BoundingBox3{ min, max };
+}
+
+template <typename T>
+inline BoundingBox3<T> BoundingBox3<T>::Intersection(const BoundingBox3& aabb1, const BoundingBox3& aabb2)
+{
+    Vector3<T> min = Max(aabb1.min, aabb2.min);
+    Vector3<T> max = Min(aabb1.max, aabb2.max);
 
     return BoundingBox3{ min, max };
 }

@@ -7,6 +7,20 @@
 namespace bulbit
 {
 
+inline Float Gaussian(Float x, Float mu = 0, Float sigma = 1)
+{
+    return 1 / std::sqrt(two_pi * sigma * sigma) * std::exp(-Sqr(x - mu) / (2 * sigma * sigma));
+}
+
+inline Point2 SampleGaussian(Point2 u, Float sigma = 1)
+{
+    // Box Muller transform
+    Float r = sigma * std::sqrt(-2 * std::log(std::max<Float>(u[0], Float(1e-8))));
+    Float theta = two_pi * u[1];
+
+    return Point2{ r * std::cos(theta), r * std::sin(theta) };
+}
+
 // Heuristic functions for MIS
 inline Float BalanceHeuristic(Float pdf_f, Float pdf_g)
 {
@@ -110,12 +124,12 @@ inline Point2 SampleUniformUnitDiskConcentric(Point2 u)
     if (std::abs(uo.x) > std::abs(uo.y))
     {
         r = uo.x;
-        theta = (4 / pi) * (uo.y / uo.x);
+        theta = (pi / 4) * (uo.y / uo.x);
     }
     else
     {
         r = uo.y;
-        theta = (2 / pi) - (4 / pi) * (uo.x / uo.y);
+        theta = (pi / 2) - (pi / 4) * (uo.x / uo.y);
     }
     return r * Point2(std::cos(theta), std::sin(theta));
 }
