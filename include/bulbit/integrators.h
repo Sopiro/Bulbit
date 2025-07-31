@@ -194,7 +194,7 @@ public:
     virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
 
 private:
-    Float Tr(const Point3 p1, const Point3 p2) const;
+    Spectrum Tr(const Point3 p1, const Point3 p2, const Medium* medium, int32 wavelength) const;
 
     UniformLightSampler light_sampler;
     int32 max_bounces;
