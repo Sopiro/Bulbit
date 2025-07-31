@@ -12,10 +12,13 @@ std::unique_ptr<Camera> CornellBoxFog(Scene& scene)
     auto mirror = CreateMirrorMaterial(scene, Spectrum(0.73f));
     auto mix = CreateMixtureMaterial(scene, red, blue, 0.5f);
 
+    auto left = glass;
+    auto right = white;
+
     Spectrum sigma_a(0);
     Spectrum sigma_s(1.0f);
 
-    HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(sigma_a, sigma_s, Spectrum(0.0), -0.5f);
+    HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(sigma_a, sigma_s, Spectrum(0.0), 0.0f);
 
     MediumInterface mi_outside(nullptr, hm);
     MediumInterface mi_inside(hm, nullptr);
@@ -53,7 +56,7 @@ std::unique_ptr<Camera> CornellBoxFog(Scene& scene)
         Float r = 1.0f / 3 / 2;
 
         auto tf = Transform{ 0.33f, 0.75f - r, -0.66f };
-        CreateSphere(scene, tf, r, glass, mi_outside);
+        CreateSphere(scene, tf, r, left, mi_outside);
     }
 
     // Right block
@@ -64,13 +67,15 @@ std::unique_ptr<Camera> CornellBoxFog(Scene& scene)
 
         auto tf = Transform{ 0.66f, hy + Ray::epsilon * 2, -0.33f, Quat(DegToRad(-18.0f), y_axis),
                              Vec3(hx * 2.0f, hy * 2.0f, hz * 2.0f) };
-        CreateBox(scene, tf, white, mi_outside);
+        CreateBox(scene, tf, right, mi_outside);
     }
 
     // Lights
     {
         auto tf = Transform{ 0.5f, 0.995f, -0.5f, Quat(pi, x_axis), Vec3(0.25f) };
         CreateRectXZ(scene, tf, light, mi_two_sided);
+
+        // CreatePointLight(scene, Point3(0.5f, 0.9f, -0.5f), Spectrum(0.25f));
     }
 
     int32 width = 1024;

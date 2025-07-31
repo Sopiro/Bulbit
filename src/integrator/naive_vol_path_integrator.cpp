@@ -116,8 +116,15 @@ Spectrum NaiveVolPathIntegrator::Li(const Ray& primary_ray, const Medium* primar
                         Spectrum sigma_n = Max(sigma_maj - ms.sigma_a - ms.sigma_s, 0);
 
                         Float pdf = T_maj[wavelength] * sigma_n[wavelength];
-                        beta *= T_maj * sigma_n / pdf;
-                        if (pdf == 0) beta = Spectrum::black;
+                        if (pdf == 0)
+                        {
+                            beta = Spectrum::black;
+                        }
+                        else
+                        {
+                            beta *= T_maj * sigma_n / pdf;
+                        }
+
                         r_u *= T_maj * sigma_n / pdf;
 
                         return !beta.IsBlack() && !r_u.IsBlack();
@@ -132,15 +139,15 @@ Spectrum NaiveVolPathIntegrator::Li(const Ray& primary_ray, const Medium* primar
 
             beta *= T_maj / T_maj[wavelength];
             r_u *= T_maj / T_maj[wavelength];
-        }
 
-        if (terminated)
-        {
-            break;
-        }
-        if (scattered)
-        {
-            continue;
+            if (terminated)
+            {
+                break;
+            }
+            if (scattered)
+            {
+                continue;
+            }
         }
 
         if (!found_intersection)
