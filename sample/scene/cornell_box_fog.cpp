@@ -24,6 +24,9 @@ std::unique_ptr<Camera> CornellBoxFog(Scene& scene)
     MediumInterface mi_inside(hm, nullptr);
     MediumInterface mi_two_sided(hm, hm);
 
+    Point3 p_light(0.5f, 0.9f, -0.5f);
+    Point3 p_corner(0, 0, -1);
+
     // Cornell box
     {
         // front
@@ -55,7 +58,8 @@ std::unique_ptr<Camera> CornellBoxFog(Scene& scene)
     {
         Float r = 1.0f / 3 / 2;
 
-        auto tf = Transform{ 0.33f, 0.75f - r, -0.66f };
+        Vec3 w = Normalize(p_corner - p_light);
+        auto tf = Transform{ p_light + w * 2 * r };
         CreateSphere(scene, tf, r, left, mi_outside);
     }
 
