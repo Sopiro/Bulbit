@@ -43,6 +43,8 @@ Spectrum LightPathIntegrator::L(
     BulbitNotUsed(primary_ray);
     BulbitNotUsed(primary_medium);
 
+    Float eta_scale = 1;
+
     Intersection isect;
 
     // Sample light to start light tracing
@@ -128,6 +130,11 @@ Spectrum LightPathIntegrator::L(
             break;
         }
 
+        if (bsdf_sample.IsTransmission())
+        {
+            eta_scale *= Sqr(bsdf_sample.eta);
+        }
+
         // Update path state
         beta *= bsdf_sample.f * AbsDot(bsdf_sample.wi, isect.shading.normal) / bsdf_sample.pdf;
         ray = Ray(isect.point, bsdf_sample.wi);
@@ -136,7 +143,7 @@ Spectrum LightPathIntegrator::L(
         constexpr int32 min_bounces = 2;
         if (bounce > min_bounces)
         {
-            if (Float p = beta.MaxComponent(); p < 1)
+            if (Float p = beta.MaxComponent() * eta_scale; p < 1)
             {
                 if (sampler.Next1D() > p)
                 {

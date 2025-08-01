@@ -89,6 +89,7 @@ Spectrum LightVolPathIntegrator::L(
     BulbitNotUsed(primary_medium);
 
     int32 wavelength = std::min<int32>(int32(sampler.Next1D() * 3), 2);
+    Float eta_scale = 1;
     Intersection isect;
 
     // Sample light to start light tracing
@@ -317,6 +318,11 @@ Spectrum LightVolPathIntegrator::L(
             break;
         }
 
+        if (bsdf_sample.IsTransmission())
+        {
+            eta_scale *= Sqr(bsdf_sample.eta);
+        }
+
         // Update path state
         beta *= bsdf_sample.f * AbsDot(bsdf_sample.wi, isect.shading.normal) / bsdf_sample.pdf;
         ray = Ray(isect.point, bsdf_sample.wi);
@@ -326,7 +332,7 @@ Spectrum LightVolPathIntegrator::L(
         constexpr int32 min_bounces = 2;
         if (bounce > min_bounces)
         {
-            Spectrum rr = beta / r_u.Average();
+            Spectrum rr = beta * eta_scale / r_u.Average();
             if (Float p = rr.MaxComponent(); p < 1)
             {
                 if (sampler.Next1D() > p)

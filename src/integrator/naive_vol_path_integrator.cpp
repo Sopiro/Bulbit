@@ -231,7 +231,8 @@ Spectrum NaiveVolPathIntegrator::Li(const Ray& primary_ray, const Medium* primar
         constexpr int32 min_bounces = 2;
         if (bounce > min_bounces)
         {
-            if (Float p = beta.MaxComponent() * eta_scale; p < 1)
+            Spectrum rr = beta * eta_scale / r_u.Average();
+            if (Float p = rr.MaxComponent(); p < 1)
             {
                 if (sampler.Next1D() > p)
                 {
