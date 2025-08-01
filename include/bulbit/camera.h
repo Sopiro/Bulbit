@@ -42,7 +42,7 @@ struct PrimaryRay
 class Camera
 {
 public:
-    static inline std::unique_ptr<Filter> default_filter = std::make_unique<GaussianFilter>(0.5f);
+    static inline std::unique_ptr<Filter> default_filter = std::make_unique<GaussianFilter>();
 
     Camera(const Point2i& resolution, const Medium* medium, const Filter* pixel_filter)
         : resolution{ resolution }
