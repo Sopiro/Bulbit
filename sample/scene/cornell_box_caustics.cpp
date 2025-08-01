@@ -11,13 +11,12 @@ std::unique_ptr<Camera> CornellBoxCaustics(Scene& scene)
     auto white = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
     auto box = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
     auto light = CreateDiffuseLightMaterial(scene, Spectrum(1000000.0f));
-    // auto light = CreateDiffuseLightMaterial(scene, Spectrum(17.0f, 12.0f, 4.0f));
     auto mirror = CreateMirrorMaterial(scene, Spectrum(0.73f));
     auto mix = CreateMixtureMaterial(scene, red, blue, 0.5f);
     auto ss = CreateSubsurfaceRandomWalkMaterial(scene, Spectrum(1.0), Spectrum(0.5, 0.25, 0.125) * 0.03, 1.0f, 0.0f);
     auto glass = CreateDielectricMaterial(scene, 1.5f);
     auto water = CreateDielectricMaterial(scene, 1.333f);
-    auto rough_glass = CreateDielectricMaterial(scene, 1.5f, 0.1f);
+    auto rough_glass = CreateDielectricMaterial(scene, 1.5f, 0.2f);
     auto gold = CreateConductorMaterial(scene, { 0.161, 0.492, 1.426 }, { 4.08769, 2.32625, 1.846 }, 0.1f);
     auto coated_gold = CreateLayeredMaterial(scene, glass, gold);
 
@@ -92,11 +91,8 @@ std::unique_ptr<Camera> CornellBoxCaustics(Scene& scene)
         auto tf = Transform{ 0.5f, 0.995f, -0.5f, Quat(pi, x_axis), Vec3(0.001f) };
         CreateRectXZ(scene, tf, light);
 
-        // CreateSphere(scene, Vec3(0.5f, 0.9f, -0.5f), 0.05f, light);
         // CreatePointLight(scene, Point3(0.5f, 0.99f, -0.5f), Spectrum(0.25f));
     }
-
-    // std::cout << "Lights: " << scene.GetLights().size() << std::endl;
 
     int32 width = 500;
 
