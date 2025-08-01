@@ -15,14 +15,7 @@ DiffuseLightMaterial::DiffuseLightMaterial(const SpectrumTexture* emission, bool
 
 Float DiffuseLightMaterial::GetAlpha(const Intersection& isect) const
 {
-    if (alpha)
-    {
-        return alpha->Evaluate(isect.uv);
-    }
-    else
-    {
-        return true;
-    }
+    return alpha ? alpha->Evaluate(isect.uv) : 1;
 }
 
 const SpectrumTexture* DiffuseLightMaterial::GetNormalMap() const

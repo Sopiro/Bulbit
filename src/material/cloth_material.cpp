@@ -23,14 +23,7 @@ ClothMaterial::ClothMaterial(
 
 Float ClothMaterial::GetAlpha(const Intersection& isect) const
 {
-    if (alpha)
-    {
-        return alpha->Evaluate(isect.uv);
-    }
-    else
-    {
-        return 1;
-    }
+    return alpha ? alpha->Evaluate(isect.uv) : 1;
 }
 
 const SpectrumTexture* ClothMaterial::GetNormalMap() const
