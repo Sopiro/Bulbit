@@ -53,7 +53,6 @@ public:
 private:
     Vec3 dir;
     Spectrum intensity; // radiance
-    Float visible_radius;
 
     Point3 world_center;
     Float world_radius;
