@@ -36,6 +36,11 @@ void ImageInfiniteLight::Destroy()
     distribution.reset();
 }
 
+void ImageInfiniteLight::Preprocess(const AABB& world_bounds)
+{
+    world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
+}
+
 Spectrum ImageInfiniteLight::Le(const Ray& ray) const
 {
     Vec3 w = MulT(transform, Normalize(ray.d));
@@ -74,7 +79,7 @@ bool ImageInfiniteLight::Sample_Li(LightSampleLi* light_sample, const Intersecti
         light_sample->pdf = map_pdf / (2 * pi * pi * sin_theta);
     }
 
-    light_sample->visibility = infinity;
+    light_sample->visibility = 2 * world_radius;
     light_sample->Li = l_scale * l_map->Evaluate(uv);
 
     return true;

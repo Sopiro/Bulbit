@@ -11,6 +11,11 @@ PointLight::PointLight(const Point3& position, const Spectrum& intensity, const 
 {
 }
 
+void PointLight::Preprocess(const AABB& world_bounds)
+{
+    BulbitNotUsed(world_bounds);
+}
+
 Spectrum PointLight::Le(const Ray& ray) const
 {
     BulbitAssert(false);

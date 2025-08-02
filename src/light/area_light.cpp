@@ -11,6 +11,11 @@ AreaLight::AreaLight(const Primitive* primitive, bool two_sided)
 {
 }
 
+void AreaLight::Preprocess(const AABB& world_bounds)
+{
+    BulbitNotUsed(world_bounds);
+}
+
 Spectrum AreaLight::Le(const Ray& ray) const
 {
     BulbitAssert(false);

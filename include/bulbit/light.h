@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bounding_box.h"
 #include "dynamic_dispatcher.h"
 #include "ray.h"
 #include "spectrum.h"
@@ -55,6 +56,8 @@ protected:
 
 public:
     ~Light();
+
+    void Preprocess(const AABB& world_bounds);
 
     Spectrum Le(const Ray& ray) const;
 

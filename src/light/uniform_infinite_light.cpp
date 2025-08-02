@@ -10,6 +10,11 @@ UniformInfiniteLight::UniformInfiniteLight(const Spectrum& l, Float scale)
 {
 }
 
+void UniformInfiniteLight::Preprocess(const AABB& world_bounds)
+{
+    world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
+}
+
 Spectrum UniformInfiniteLight::Le(const Ray& ray) const
 {
     BulbitNotUsed(ray);
@@ -22,7 +27,7 @@ bool UniformInfiniteLight::Sample_Li(LightSampleLi* sample, const Intersection& 
 
     sample->wi = SampleUniformSphere(u);
     sample->pdf = UniformSpherePDF();
-    sample->visibility = infinity;
+    sample->visibility = 2 * world_radius;
     sample->Li = scale * l;
 
     return true;

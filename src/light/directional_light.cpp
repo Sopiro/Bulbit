@@ -8,8 +8,13 @@ DirectionalLight::DirectionalLight(const Vec3& direction, const Spectrum& intens
     : Light(TypeIndexOf<DirectionalLight>())
     , dir{ Normalize(direction) }
     , intensity{ intensity }
-    , radius{ visible_radius }
+    , visible_radius{ visible_radius }
 {
+}
+
+void DirectionalLight::Preprocess(const AABB& world_bounds)
+{
+    world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
 }
 
 Spectrum DirectionalLight::Le(const Ray& ray) const
@@ -23,9 +28,9 @@ bool DirectionalLight::Sample_Li(LightSampleLi* sample, const Intersection& ref,
 {
     BulbitNotUsed(ref);
 
-    sample->wi = -dir + SampleInsideUnitSphere(u) * radius;
+    sample->wi = -dir + SampleInsideUnitSphere(u) * visible_radius;
     sample->pdf = 1;
-    sample->visibility = infinity;
+    sample->visibility = 2 * world_radius;
     sample->Li = intensity;
 
     return true;
