@@ -14,14 +14,14 @@ PointLight* CreatePointLight(Scene& scene, const Point3& position, Float intensi
     return scene.CreateLight<PointLight>(position, Spectrum{ intensity }, medium);
 }
 
-DirectionalLight* CreateDirectionalLight(Scene& scene, const Vec3& direction, const Spectrum& intensity, Float visible_radius)
+DirectionalLight* CreateDirectionalLight(Scene& scene, const Vec3& direction, const Spectrum& intensity)
 {
-    return scene.CreateLight<DirectionalLight>(direction, intensity, visible_radius);
+    return scene.CreateLight<DirectionalLight>(direction, intensity);
 }
 
-DirectionalLight* CreateDirectionalLight(Scene& scene, const Vec3& direction, Float intensity, Float visible_radius)
+DirectionalLight* CreateDirectionalLight(Scene& scene, const Vec3& direction, Float intensity)
 {
-    return scene.CreateLight<DirectionalLight>(direction, Spectrum{ intensity }, visible_radius);
+    return scene.CreateLight<DirectionalLight>(direction, Spectrum{ intensity });
 }
 
 UniformInfiniteLight* CreateUniformInfiniteLight(Scene& scene, const Spectrum& l, Float scale)

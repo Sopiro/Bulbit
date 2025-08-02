@@ -4,11 +4,10 @@
 namespace bulbit
 {
 
-DirectionalLight::DirectionalLight(const Vec3& direction, const Spectrum& intensity, Float visible_radius)
+DirectionalLight::DirectionalLight(const Vec3& direction, const Spectrum& intensity)
     : Light(TypeIndexOf<DirectionalLight>())
     , dir{ Normalize(direction) }
     , intensity{ intensity }
-    , visible_radius{ visible_radius }
 {
 }
 
@@ -27,8 +26,9 @@ Spectrum DirectionalLight::Le(const Ray& ray) const
 bool DirectionalLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
 {
     BulbitNotUsed(ref);
+    BulbitNotUsed(u);
 
-    sample->wi = -dir + SampleInsideUnitSphere(u) * visible_radius;
+    sample->wi = -dir;
     sample->pdf = 1;
     sample->visibility = 2 * world_radius;
     sample->Li = intensity;
@@ -45,17 +45,29 @@ Float DirectionalLight::EvaluatePDF_Li(const Ray& ray) const
 
 bool DirectionalLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 {
-    BulbitNotUsed(sample);
-    BulbitNotUsed(u0);
     BulbitNotUsed(u1);
-    return false;
+
+    Frame frame(dir);
+
+    Point2 u_disk = SampleUniformUnitDiskConcentric(u0);
+    Point3 p_disk = world_center + world_radius * frame.FromLocal(Point3(u_disk, 0));
+
+    sample->ray = Ray(p_disk - world_radius * dir, dir);
+    sample->normal = dir;
+    sample->pdf_p = 1 / (pi * Sqr(world_radius));
+    sample->pdf_w = 1;
+    sample->Le = intensity;
+    sample->medium = nullptr;
+
+    return true;
 }
 
 void DirectionalLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const
 {
-    BulbitNotUsed(pdf_p);
-    BulbitNotUsed(pdf_w);
     BulbitNotUsed(ray);
+
+    *pdf_p = 1 / (pi * Sqr(world_radius));
+    *pdf_w = 0;
 }
 
 void DirectionalLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const

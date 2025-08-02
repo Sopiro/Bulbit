@@ -36,7 +36,7 @@ private:
 class DirectionalLight : public Light
 {
 public:
-    DirectionalLight(const Vec3& direction, const Spectrum& intensity, Float visible_radius);
+    DirectionalLight(const Vec3& direction, const Spectrum& intensity);
 
     void Destroy() {}
     void Preprocess(const AABB& world_bounds);

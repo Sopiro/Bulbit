@@ -110,21 +110,19 @@ Spectrum LightVolPathIntegrator::L(
     isect.point = light_sample.ray.o;
 
     CameraSampleWi camera_sample;
-    if (!camera->SampleWi(&camera_sample, isect, sampler.Next2D()))
+    if (camera->SampleWi(&camera_sample, isect, sampler.Next2D()))
     {
-        return Spectrum::black;
-    }
-
-    // Add bounce 0 light to film while ignoring point light contribution
-    if (light_sample.pdf_p != 1)
-    {
-        if (Spectrum V = Tr(light_sample.ray.o, camera_sample.p_aperture, medium, wavelength); !V.IsBlack())
+        // Add bounce 0 light to film while ignoring delta light contribution
+        if (light_sample.pdf_p != 1 && light_sample.pdf_w != 1)
         {
-            Spectrum L = sampled_light.weight * V * light_sample.Le * AbsDot(light_sample.normal, camera_sample.wi) *
-                         AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi /
-                         (camera_sample.pdf * light_sample.pdf_p);
+            if (Spectrum V = Tr(light_sample.ray.o, camera_sample.p_aperture, medium, wavelength); !V.IsBlack())
+            {
+                Spectrum L = sampled_light.weight * V * light_sample.Le * AbsDot(light_sample.normal, camera_sample.wi) *
+                             AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi /
+                             (camera_sample.pdf * light_sample.pdf_p);
 
-            film.AddSplat(camera_sample.p_raster, L);
+                film.AddSplat(camera_sample.p_raster, L);
+            }
         }
     }
 

@@ -22,6 +22,11 @@ protected:
         : accel{ accel }
         , all_lights{ std::move(lights) }
     {
+        AABB world_bounds = accel->GetAABB();
+        for (size_t i = 0; i < all_lights.size(); i++)
+        {
+            all_lights[i]->Preprocess(world_bounds);
+        }
     }
 
     bool Intersect(Intersection* out_isect, const Ray& ray, Float t_min, Float t_max) const

@@ -56,6 +56,7 @@ std::unique_ptr<Camera> RaytracigInOneWeekend(Scene& scene)
     auto material3 = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.01f);
     CreateSphere(scene, Transform(Vec3(4, 1, 0), Quat(DegToRad(0), Normalize(Vec3(1, 0, 0)))), 1.0f, material3, mi_outside);
 
+    // CreateDirectionalLight(scene, -Normalize(Vec3(1, 1, 1)), 5.0f);
     // CreateImageInfiniteLight(scene, "res/HDR/kloppenheim_07_puresky_1k.hdr");
     // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr");
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr");

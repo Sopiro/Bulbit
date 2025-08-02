@@ -9,10 +9,8 @@ namespace bulbit
 PointLight* CreatePointLight(Scene& scene, const Point3& position, const Spectrum& intensity, const Medium* medium = nullptr);
 PointLight* CreatePointLight(Scene& scene, const Point3& position, Float intensity, const Medium* medium = nullptr);
 
-DirectionalLight* CreateDirectionalLight(
-    Scene& scene, const Vec3& direction, const Spectrum& intensity, Float visible_radius = 0
-);
-DirectionalLight* CreateDirectionalLight(Scene& scene, const Vec3& direction, Float intensity, Float visible_radius = 0);
+DirectionalLight* CreateDirectionalLight(Scene& scene, const Vec3& direction, const Spectrum& intensity);
+DirectionalLight* CreateDirectionalLight(Scene& scene, const Vec3& direction, Float intensity);
 
 UniformInfiniteLight* CreateUniformInfiniteLight(Scene& scene, const Spectrum& l, Float scale = 1);
 UniformInfiniteLight* CreateUniformInfiniteLight(Scene& scene, Float l, Float scale = 1);

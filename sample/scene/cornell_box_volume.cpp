@@ -95,7 +95,7 @@ std::unique_ptr<Camera> CornellBoxVolume(Scene& scene)
 
         // CreateSphere(scene, Vec3(0.5f, 0.9f, -0.5f), 0.05f, light);
         // CreatePointLight(scene, Point3(0.5f, 0.9f, -0.5f), Spectrum(0.25f));
-        // CreateDirectionalLight(scene,  Normalize(-Vec3(1, 1, 1)), Vec3(5.0f), 0.05f);
+        // CreateDirectionalLight(scene,  Normalize(-Vec3(1, 1, 1)), Vec3(5.0f));
         // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr");
         // CreateImageInfiniteLight(scene, "res/solitude_night_4k/solitude_night_4k.hdr");
         // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
