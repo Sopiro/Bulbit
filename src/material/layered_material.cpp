@@ -14,7 +14,7 @@ LayeredMaterial::LayeredMaterial(
     Float g,
     int32 max_bounces,
     int32 samples,
-    const SpectrumTexture* normalmap,
+    const SpectrumTexture* normal,
     const FloatTexture* alpha
 )
     : Material(TypeIndexOf<LayeredMaterial>())
@@ -26,7 +26,7 @@ LayeredMaterial::LayeredMaterial(
     , g{ g }
     , max_bounces{ max_bounces }
     , samples{ samples }
-    , normalmap{ normalmap }
+    , normal{ normal }
     , alpha{ alpha }
 {
     BulbitAssert(top != nullptr);
@@ -36,11 +36,6 @@ LayeredMaterial::LayeredMaterial(
 Float LayeredMaterial::GetAlpha(const Intersection& isect) const
 {
     return alpha ? alpha->Evaluate(isect.uv) : 1;
-}
-
-const SpectrumTexture* LayeredMaterial::GetNormalMap() const
-{
-    return normalmap;
 }
 
 Spectrum LayeredMaterial::Le(const Intersection& isect, const Vec3& wo) const
@@ -76,6 +71,11 @@ bool LayeredMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, cons
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const SpectrumTexture* LayeredMaterial::GetNormalTexture() const
+{
+    return normal;
 }
 
 } // namespace bulbit

@@ -18,7 +18,7 @@ PrincipledMaterial::PrincipledMaterial(
     const FloatTexture* sheen_roughness,
     const SpectrumTexture* sheen_color,
     const SpectrumTexture* emissive,
-    const SpectrumTexture* normalmap,
+    const SpectrumTexture* normal,
     const FloatTexture* alpha
 
 )
@@ -36,7 +36,7 @@ PrincipledMaterial::PrincipledMaterial(
     , sheen_roughness{ sheen_roughness }
     , sheen_color{ sheen_color }
     , emissive{ emissive }
-    , normalmap{ normalmap }
+    , normal{ normal }
     , alpha{ alpha }
 {
 }
@@ -44,11 +44,6 @@ PrincipledMaterial::PrincipledMaterial(
 Float PrincipledMaterial::GetAlpha(const Intersection& isect) const
 {
     return alpha ? alpha->Evaluate(isect.uv) : 1;
-}
-
-const SpectrumTexture* PrincipledMaterial::GetNormalMap() const
-{
-    return normalmap;
 }
 
 Spectrum PrincipledMaterial::Le(const Intersection& isect, const Vec3& wo) const
@@ -101,6 +96,11 @@ bool PrincipledMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, c
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const SpectrumTexture* PrincipledMaterial::GetNormalTexture() const
+{
+    return normal;
 }
 
 } // namespace bulbit

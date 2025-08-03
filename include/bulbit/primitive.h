@@ -20,7 +20,7 @@ public:
 
     const Shape* GetShape() const;
     const Material* GetMaterial() const;
-    const MediumInterface* GetMediumInterface() const;
+    MediumInterface GetMediumInterface() const;
 
 private:
     const Shape* shape;
@@ -89,9 +89,9 @@ inline const Material* Primitive::GetMaterial() const
     return material;
 }
 
-inline const MediumInterface* Primitive::GetMediumInterface() const
+inline MediumInterface Primitive::GetMediumInterface() const
 {
-    return &medium_interface;
+    return medium_interface;
 }
 
 } // namespace bulbit

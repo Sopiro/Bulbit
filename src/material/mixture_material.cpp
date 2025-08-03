@@ -27,12 +27,6 @@ Float MixtureMaterial::GetAlpha(const Intersection& isect) const
     }
 }
 
-const SpectrumTexture* MixtureMaterial::GetNormalMap() const
-{
-    BulbitAssert(false);
-    return nullptr;
-}
-
 Spectrum MixtureMaterial::Le(const Intersection& isect, const Vec3& wo) const
 {
     BulbitAssert(false);
@@ -85,6 +79,12 @@ bool MixtureMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, cons
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const SpectrumTexture* MixtureMaterial::GetNormalTexture() const
+{
+    BulbitAssert(false);
+    return nullptr;
 }
 
 } // namespace bulbit

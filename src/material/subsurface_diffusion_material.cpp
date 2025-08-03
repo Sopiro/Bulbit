@@ -12,7 +12,7 @@ SubsurfaceDiffusionMaterial::SubsurfaceDiffusionMaterial(
     Float eta,
     const FloatTexture* u_roughness,
     const FloatTexture* v_roughness,
-    const SpectrumTexture* normalmap
+    const SpectrumTexture* normal
 )
     : Material(TypeIndexOf<SubsurfaceDiffusionMaterial>())
     , reflectance{ reflectance }
@@ -20,7 +20,7 @@ SubsurfaceDiffusionMaterial::SubsurfaceDiffusionMaterial(
     , eta{ eta }
     , u_roughness{ u_roughness }
     , v_roughness{ v_roughness }
-    , normalmap{ normalmap }
+    , normal{ normal }
 {
 }
 
@@ -28,10 +28,6 @@ Float SubsurfaceDiffusionMaterial::GetAlpha(const Intersection& isect) const
 {
     BulbitNotUsed(isect);
     return 1;
-}
-const SpectrumTexture* SubsurfaceDiffusionMaterial::GetNormalMap() const
-{
-    return normalmap;
 }
 
 Spectrum SubsurfaceDiffusionMaterial::Le(const Intersection& isect, const Vec3& wo) const
@@ -66,6 +62,11 @@ bool SubsurfaceDiffusionMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection&
 
     *bssrdf = alloc.new_object<DisneyBSSRDF>(R, d, isect, wo, eta);
     return true;
+}
+
+const SpectrumTexture* SubsurfaceDiffusionMaterial::GetNormalTexture() const
+{
+    return normal;
 }
 
 } // namespace bulbit

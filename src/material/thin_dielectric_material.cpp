@@ -17,11 +17,6 @@ Float ThinDielectricMaterial::GetAlpha(const Intersection& isect) const
     return 1;
 }
 
-const SpectrumTexture* ThinDielectricMaterial::GetNormalMap() const
-{
-    return nullptr;
-}
-
 Spectrum ThinDielectricMaterial::Le(const Intersection& isect, const Vec3& wo) const
 {
     BulbitNotUsed(isect);
@@ -45,6 +40,11 @@ bool ThinDielectricMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isec
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const SpectrumTexture* ThinDielectricMaterial::GetNormalTexture() const
+{
+    return nullptr;
 }
 
 } // namespace bulbit

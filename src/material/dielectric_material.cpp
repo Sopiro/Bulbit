@@ -11,7 +11,7 @@ DielectricMaterial::DielectricMaterial(
     const FloatTexture* v_roughness,
     const SpectrumTexture* reflectance,
     bool energy_compensation,
-    const SpectrumTexture* normalmap
+    const SpectrumTexture* normal
 )
     : Material(TypeIndexOf<DielectricMaterial>())
     , eta{ eta }
@@ -19,7 +19,7 @@ DielectricMaterial::DielectricMaterial(
     , v_roughness{ v_roughness }
     , reflectance{ reflectance }
     , energy_compensation{ energy_compensation }
-    , normalmap{ normalmap }
+    , normal{ normal }
 {
 }
 
@@ -27,11 +27,6 @@ Float DielectricMaterial::GetAlpha(const Intersection& isect) const
 {
     BulbitNotUsed(isect);
     return 1;
-}
-
-const SpectrumTexture* DielectricMaterial::GetNormalMap() const
-{
-    return normalmap;
 }
 
 Spectrum DielectricMaterial::Le(const Intersection& isect, const Vec3& wo) const
@@ -76,6 +71,11 @@ bool DielectricMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, c
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const SpectrumTexture* DielectricMaterial::GetNormalTexture() const
+{
+    return normal;
 }
 
 } // namespace bulbit

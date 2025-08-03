@@ -11,6 +11,7 @@ struct ShapeSample
 {
     Point3 point;
     Vec3 normal;
+    Point2 uv;
     Float pdf;
 };
 

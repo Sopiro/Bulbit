@@ -96,7 +96,7 @@ ShapeSample Sphere::Sample(Point2 u) const
 
     Float area = four_pi * radius * radius;
     sample.pdf = 1 / area;
-    // sample.uv = ComputeTexCoord(sample.normal);
+    sample.uv = ComputeTexCoord(sample.normal);
 
     return sample;
 }
@@ -130,6 +130,7 @@ ShapeSample Sphere::Sample(const Point3& ref, Point2 u) const
     sample.point = ref + ref2p;
     sample.normal = Normalize(sample.point - transform.p);
     sample.pdf = 1 / solid_angle;
+    sample.uv = ComputeTexCoord(sample.normal);
 
     return sample;
 }

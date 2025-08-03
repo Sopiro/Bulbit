@@ -134,8 +134,9 @@ ShapeSample Triangle::Sample(Point2 u0) const
     Float area = sample.normal.Normalize() * 0.5f;
     sample.pdf = 1 / area;
 
-    // Float w = 1 - u - v;
-    // sample.uv = GetTexCoord(u, v, w);
+    Float w = 1 - u - v;
+    sample.uv = GetTexCoord(u, v, w);
+
     return sample;
 #else
     Float u1 = u0[0];
@@ -152,8 +153,9 @@ ShapeSample Triangle::Sample(Point2 u0) const
     Float area = sample.normal.Normalize() * 0.5f;
     sample.pdf = 1 / area;
 
-    // Float w = 1 - u - v;
-    // sample.uv = GetTexCoord(u, v, w);
+    Float w = 1 - u - v;
+    sample.uv = GetTexCoord(u, v, w);
+
     return sample;
 #endif
 }

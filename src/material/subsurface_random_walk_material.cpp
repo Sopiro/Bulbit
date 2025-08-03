@@ -13,7 +13,7 @@ SubsurfaceRandomWalkMaterial::SubsurfaceRandomWalkMaterial(
     const FloatTexture* u_roughness,
     const FloatTexture* v_roughness,
     Float g,
-    const SpectrumTexture* normalmap
+    const SpectrumTexture* normal
 )
     : Material(TypeIndexOf<SubsurfaceRandomWalkMaterial>())
     , reflectance{ reflectance }
@@ -22,7 +22,7 @@ SubsurfaceRandomWalkMaterial::SubsurfaceRandomWalkMaterial(
     , u_roughness{ u_roughness }
     , v_roughness{ v_roughness }
     , g{ g }
-    , normalmap{ normalmap }
+    , normal{ normal }
 {
 }
 
@@ -30,10 +30,6 @@ Float SubsurfaceRandomWalkMaterial::GetAlpha(const Intersection& isect) const
 {
     BulbitNotUsed(isect);
     return 1;
-}
-const SpectrumTexture* SubsurfaceRandomWalkMaterial::GetNormalMap() const
-{
-    return normalmap;
 }
 
 Spectrum SubsurfaceRandomWalkMaterial::Le(const Intersection& isect, const Vec3& wo) const
@@ -67,6 +63,11 @@ bool SubsurfaceRandomWalkMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection
 
     *bssrdf = alloc.new_object<RandomWalkBSSRDF>(R, Spectrum(0), sigma_t, isect, wo, eta, g);
     return true;
+}
+
+const SpectrumTexture* SubsurfaceRandomWalkMaterial::GetNormalTexture() const
+{
+    return normal;
 }
 
 } // namespace bulbit

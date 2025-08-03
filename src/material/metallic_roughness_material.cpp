@@ -10,7 +10,7 @@ MetallicRoughnessMaterial::MetallicRoughnessMaterial(
     const FloatTexture* u_roughness,
     const FloatTexture* v_roughness,
     const SpectrumTexture* emissive,
-    const SpectrumTexture* normalmap,
+    const SpectrumTexture* normal,
     const FloatTexture* alpha
 
 )
@@ -20,7 +20,7 @@ MetallicRoughnessMaterial::MetallicRoughnessMaterial(
     , u_roughness{ u_roughness }
     , v_roughness{ v_roughness }
     , emissive{ emissive }
-    , normalmap{ normalmap }
+    , normal{ normal }
     , alpha{ alpha }
 {
 }
@@ -28,11 +28,6 @@ MetallicRoughnessMaterial::MetallicRoughnessMaterial(
 Float MetallicRoughnessMaterial::GetAlpha(const Intersection& isect) const
 {
     return alpha ? alpha->Evaluate(isect.uv) : 1;
-}
-
-const SpectrumTexture* MetallicRoughnessMaterial::GetNormalMap() const
-{
-    return normalmap;
 }
 
 Spectrum MetallicRoughnessMaterial::Le(const Intersection& isect, const Vec3& wo) const
@@ -68,6 +63,11 @@ bool MetallicRoughnessMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& i
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const SpectrumTexture* MetallicRoughnessMaterial::GetNormalTexture() const
+{
+    return normal;
 }
 
 } // namespace bulbit

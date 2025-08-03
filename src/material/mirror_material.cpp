@@ -5,10 +5,10 @@
 namespace bulbit
 {
 
-MirrorMaterial::MirrorMaterial(const SpectrumTexture* reflectance, const SpectrumTexture* normalmap, const FloatTexture* alpha)
+MirrorMaterial::MirrorMaterial(const SpectrumTexture* reflectance, const SpectrumTexture* normal, const FloatTexture* alpha)
     : Material(TypeIndexOf<MirrorMaterial>())
     , reflectance{ reflectance }
-    , normalmap{ normalmap }
+    , normal{ normal }
     , alpha{ alpha }
 {
 }
@@ -16,11 +16,6 @@ MirrorMaterial::MirrorMaterial(const SpectrumTexture* reflectance, const Spectru
 Float MirrorMaterial::GetAlpha(const Intersection& isect) const
 {
     return alpha ? alpha->Evaluate(isect.uv) : 1;
-}
-
-const SpectrumTexture* MirrorMaterial::GetNormalMap() const
-{
-    return normalmap;
 }
 
 Spectrum MirrorMaterial::Le(const Intersection& isect, const Vec3& wo) const
@@ -47,6 +42,11 @@ bool MirrorMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const SpectrumTexture* MirrorMaterial::GetNormalTexture() const
+{
+    return normal;
 }
 
 } // namespace bulbit

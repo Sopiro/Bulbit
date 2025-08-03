@@ -71,13 +71,13 @@ struct MediumInterface
     {
     }
 
-    MediumInterface(Medium* medium)
+    MediumInterface(const Medium* medium)
         : inside{ medium }
         , outside{ medium }
     {
     }
 
-    MediumInterface(Medium* inside, Medium* outside)
+    MediumInterface(const Medium* inside, const Medium* outside)
         : inside{ inside }
         , outside{ outside }
     {
@@ -88,8 +88,8 @@ struct MediumInterface
         return inside != outside;
     }
 
-    Medium* inside;
-    Medium* outside;
+    const Medium* inside;
+    const Medium* outside;
 };
 
 template <typename F>

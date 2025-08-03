@@ -34,7 +34,7 @@ void CreateSphere(
     if (area_light || (g_create_area_light_source && material && material->Is<DiffuseLightMaterial>()))
     {
         const DiffuseLightMaterial* m = material->Cast<DiffuseLightMaterial>();
-        scene.CreateLight<AreaLight>(primitive, m->two_sided);
+        scene.CreateLight<AreaLight>(primitive, m->IsTwoSided());
     }
 }
 
@@ -50,7 +50,7 @@ void CreateTriangles(
         if (area_light || (g_create_area_light_source && material && material->Is<DiffuseLightMaterial>()))
         {
             const DiffuseLightMaterial* m = material->Cast<DiffuseLightMaterial>();
-            scene.CreateLight<AreaLight>(primitive, m->two_sided);
+            scene.CreateLight<AreaLight>(primitive, m->IsTwoSided());
         }
     }
 }

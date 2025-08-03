@@ -7,20 +7,15 @@ namespace bulbit
 
 DiffuseLightMaterial::DiffuseLightMaterial(const SpectrumTexture* emission, bool two_sided, const FloatTexture* alpha)
     : Material(TypeIndexOf<DiffuseLightMaterial>())
-    , two_sided{ two_sided }
     , emission{ emission }
     , alpha{ alpha }
+    , two_sided{ two_sided }
 {
 }
 
 Float DiffuseLightMaterial::GetAlpha(const Intersection& isect) const
 {
     return alpha ? alpha->Evaluate(isect.uv) : 1;
-}
-
-const SpectrumTexture* DiffuseLightMaterial::GetNormalMap() const
-{
-    return nullptr;
 }
 
 Spectrum DiffuseLightMaterial::Le(const Intersection& isect, const Vec3& wo) const
@@ -58,6 +53,16 @@ bool DiffuseLightMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect,
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+bool DiffuseLightMaterial::IsTwoSided() const
+{
+    return two_sided;
+}
+
+const SpectrumTexture* DiffuseLightMaterial::GetNormalTexture() const
+{
+    return nullptr;
 }
 
 } // namespace bulbit

@@ -51,10 +51,10 @@ bool Intersection::GetBSDF(BSDF* bsdf, const Vec3& wo, Allocator& alloc)
         mat = ((MixtureMaterial*)mat)->ChooseMaterial(*this, wo);
     }
 
-    const SpectrumTexture* normalmap = mat->GetNormalMap();
-    if (normalmap)
+    const SpectrumTexture* normal = mat->GetNormalTexture();
+    if (normal)
     {
-        NormalMapping(this, normalmap);
+        NormalMapping(this, normal);
     }
 
     return mat->GetBSDF(bsdf, *this, wo, alloc);
@@ -73,7 +73,7 @@ bool Intersection::GetBSSRDF(BSSRDF** bssrdf, const Vec3& wo, Allocator& alloc)
         return false;
     }
 
-    const SpectrumTexture* normalmap = mat->GetNormalMap();
+    const SpectrumTexture* normalmap = mat->GetNormalTexture();
     if (normalmap)
     {
         NormalMapping(this, normalmap);
@@ -84,14 +84,14 @@ bool Intersection::GetBSSRDF(BSSRDF** bssrdf, const Vec3& wo, Allocator& alloc)
 
 const Medium* Intersection::GetMedium(const Vec3& w) const
 {
-    const MediumInterface* medium_interface = primitive->GetMediumInterface();
+    MediumInterface medium_interface = primitive->GetMediumInterface();
     if (front_face == (Dot(w, normal) > 0))
     {
-        return medium_interface->outside;
+        return medium_interface.outside;
     }
     else
     {
-        return medium_interface->inside;
+        return medium_interface.inside;
     }
 }
 

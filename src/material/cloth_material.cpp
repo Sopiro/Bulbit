@@ -9,14 +9,14 @@ ClothMaterial::ClothMaterial(
     const SpectrumTexture* basecolor,
     const SpectrumTexture* sheen_color,
     const FloatTexture* roughness,
-    const SpectrumTexture* normalmap,
+    const SpectrumTexture* normal,
     const FloatTexture* alpha
 )
     : Material(TypeIndexOf<ClothMaterial>())
     , basecolor{ basecolor }
     , sheen_color{ sheen_color }
     , roughness{ roughness }
-    , normalmap{ normalmap }
+    , normal{ normal }
     , alpha{ alpha }
 {
 }
@@ -24,11 +24,6 @@ ClothMaterial::ClothMaterial(
 Float ClothMaterial::GetAlpha(const Intersection& isect) const
 {
     return alpha ? alpha->Evaluate(isect.uv) : 1;
-}
-
-const SpectrumTexture* ClothMaterial::GetNormalMap() const
-{
-    return normalmap;
 }
 
 Spectrum ClothMaterial::Le(const Intersection& isect, const Vec3& wo) const
@@ -59,6 +54,11 @@ bool ClothMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const 
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const SpectrumTexture* ClothMaterial::GetNormalTexture() const
+{
+    return normal;
 }
 
 } // namespace bulbit

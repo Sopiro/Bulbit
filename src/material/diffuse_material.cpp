@@ -6,12 +6,12 @@ namespace bulbit
 {
 
 DiffuseMaterial::DiffuseMaterial(
-    const SpectrumTexture* reflectance, const FloatTexture* roughness, const SpectrumTexture* normalmap, const FloatTexture* alpha
+    const SpectrumTexture* reflectance, const FloatTexture* roughness, const SpectrumTexture* normal, const FloatTexture* alpha
 )
     : Material(TypeIndexOf<DiffuseMaterial>())
     , reflectance{ reflectance }
     , roughness{ roughness }
-    , normalmap{ normalmap }
+    , normal{ normal }
     , alpha{ alpha }
 {
 }
@@ -19,11 +19,6 @@ DiffuseMaterial::DiffuseMaterial(
 Float DiffuseMaterial::GetAlpha(const Intersection& isect) const
 {
     return alpha ? alpha->Evaluate(isect.uv) : 1;
-}
-
-const SpectrumTexture* DiffuseMaterial::GetNormalMap() const
-{
-    return normalmap;
 }
 
 Spectrum DiffuseMaterial::Le(const Intersection& isect, const Vec3& wo) const
@@ -59,6 +54,11 @@ bool DiffuseMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, cons
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const SpectrumTexture* DiffuseMaterial::GetNormalTexture() const
+{
+    return normal;
 }
 
 } // namespace bulbit

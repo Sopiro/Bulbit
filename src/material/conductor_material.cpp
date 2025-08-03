@@ -10,7 +10,7 @@ ConductorMaterial::ConductorMaterial(
     const FloatTexture* u_roughness,
     const FloatTexture* v_roughness,
     bool energy_compensation,
-    const SpectrumTexture* normalmap,
+    const SpectrumTexture* normal,
     const FloatTexture* alpha
 )
     : Material(TypeIndexOf<ConductorMaterial>())
@@ -19,7 +19,7 @@ ConductorMaterial::ConductorMaterial(
     , u_roughness{ u_roughness }
     , v_roughness{ v_roughness }
     , energy_compensation{ energy_compensation }
-    , normalmap{ normalmap }
+    , normal{ normal }
     , alpha{ alpha }
 {
 }
@@ -29,7 +29,7 @@ ConductorMaterial::ConductorMaterial(
     const FloatTexture* u_roughness,
     const FloatTexture* v_roughness,
     bool energy_compensation,
-    const SpectrumTexture* normalmap,
+    const SpectrumTexture* normal,
     const FloatTexture* alpha
 )
     : Material(TypeIndexOf<ConductorMaterial>())
@@ -38,7 +38,7 @@ ConductorMaterial::ConductorMaterial(
     , u_roughness{ u_roughness }
     , v_roughness{ v_roughness }
     , energy_compensation{ energy_compensation }
-    , normalmap{ normalmap }
+    , normal{ normal }
     , alpha{ alpha }
 {
 }
@@ -46,11 +46,6 @@ ConductorMaterial::ConductorMaterial(
 Float ConductorMaterial::GetAlpha(const Intersection& isect) const
 {
     return alpha ? alpha->Evaluate(isect.uv) : 1;
-}
-
-const SpectrumTexture* ConductorMaterial::GetNormalMap() const
-{
-    return normalmap;
 }
 
 Spectrum ConductorMaterial::Le(const Intersection& isect, const Vec3& wo) const
@@ -117,6 +112,11 @@ bool ConductorMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, co
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const SpectrumTexture* ConductorMaterial::GetNormalTexture() const
+{
+    return normal;
 }
 
 } // namespace bulbit
