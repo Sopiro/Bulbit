@@ -76,7 +76,7 @@ bool ImageInfiniteLight::Sample_Li(LightSampleLi* light_sample, const Intersecti
     }
     else
     {
-        light_sample->pdf = map_pdf / (2 * pi * pi * sin_theta);
+        light_sample->pdf = map_pdf / (2 * Sqr(pi) * sin_theta);
     }
 
     light_sample->visibility = 2 * world_radius;
@@ -96,27 +96,63 @@ Float ImageInfiniteLight::EvaluatePDF_Li(const Ray& ray) const
     }
 
     Point2 uv(phi * inv_two_pi, 1 - theta * inv_pi);
-    return distribution->PDF(uv) / (2 * pi * pi * sin_theta);
+    return distribution->PDF(uv) / (2 * Sqr(pi) * sin_theta);
 }
 
 bool ImageInfiniteLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 {
-    BulbitNotUsed(sample);
-    BulbitNotUsed(u0);
-    BulbitNotUsed(u1);
-    return false;
+    Float map_pdf;
+    Point2 uv = distribution->SampleContinuous(u1, &map_pdf);
+
+    if (map_pdf == 0)
+    {
+        return false;
+    }
+
+    Float theta = (1 - uv[1]) * pi;
+    Float phi = uv[0] * two_pi;
+
+    Float cos_theta = std::cos(theta), sin_theta = std::sin(theta);
+    Float sin_phi = std::sin(phi), cos_phi = std::cos(phi);
+
+    Vec3 wo = -Mul(transform, SphericalDirection(sin_theta, cos_theta, sin_phi, cos_phi));
+
+    Frame frame(wo);
+
+    Point2 u_disk = SampleUniformUnitDiskConcentric(u0);
+    Point3 p_disk = world_center + world_radius * frame.FromLocal(Point3(u_disk, 0));
+
+    sample->ray = Ray(p_disk - world_radius * wo, wo);
+    sample->normal = wo;
+    sample->pdf_p = 1 / (pi * Sqr(world_radius));
+    sample->pdf_w = map_pdf / (2 * Sqr(pi) * sin_theta);
+    sample->Le = l_scale * l_map->Evaluate(uv);
+    sample->medium = nullptr;
+
+    return true;
 }
 
 void ImageInfiniteLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const
 {
-    BulbitNotUsed(pdf_p);
-    BulbitNotUsed(pdf_w);
-    BulbitNotUsed(ray);
+    Vec3 w = -MulT(transform, Normalize(ray.d));
+    Float theta = SphericalTheta(w), phi = SphericalPhi(w);
+    Float sin_theta = std::sin(theta);
+    if (sin_theta == 0)
+    {
+        *pdf_w = 0;
+    }
+    else
+    {
+        Point2 uv(phi * inv_two_pi, 1 - theta * inv_pi);
+        *pdf_w = distribution->PDF(uv) / (2 * Sqr(pi) * sin_theta);
+    }
+
+    *pdf_p = 1 / (pi * Sqr(world_radius));
 }
 
 void ImageInfiniteLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const
 {
-    // This functions should be called by AreaLight only
+    // This function should be called by AreaLight only
     BulbitNotUsed(pdf_p);
     BulbitNotUsed(pdf_w);
     BulbitNotUsed(isect);
