@@ -109,16 +109,10 @@ bool AreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 
 void AreaLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const
 {
-    Intersection isect;
-    if (!primitive->Intersect(&isect, ray, epsilon, infinity))
-    {
-        *pdf_p = 0;
-        *pdf_w = 0;
-    }
-    else
-    {
-        PDF_Le(pdf_p, pdf_w, isect, -ray.d);
-    }
+    // This function shouldn't be called by AreaLight
+    BulbitNotUsed(pdf_p);
+    BulbitNotUsed(pdf_w);
+    BulbitNotUsed(ray);
 }
 
 void AreaLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const
