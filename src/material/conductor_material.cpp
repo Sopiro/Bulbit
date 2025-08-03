@@ -43,11 +43,6 @@ ConductorMaterial::ConductorMaterial(
 {
 }
 
-Float ConductorMaterial::GetAlpha(const Intersection& isect) const
-{
-    return alpha ? alpha->Evaluate(isect.uv) : 1;
-}
-
 Spectrum ConductorMaterial::Le(const Intersection& isect, const Vec3& wo) const
 {
     BulbitNotUsed(isect);
@@ -112,6 +107,16 @@ bool ConductorMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, co
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const FloatTexture* ConductorMaterial::GetAlphaTexture() const
+{
+    return alpha;
+}
+
+const SpectrumTexture* ConductorMaterial::GetEmissionTexture() const
+{
+    return nullptr;
 }
 
 const SpectrumTexture* ConductorMaterial::GetNormalTexture() const

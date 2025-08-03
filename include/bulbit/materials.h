@@ -15,12 +15,12 @@ public:
         const FloatTexture* alpha = nullptr
     );
 
-    Float GetAlpha(const Intersection& isect) const;
-
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
 
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetEmissionTexture() const;
     const SpectrumTexture* GetNormalTexture() const;
 
 public:
@@ -38,12 +38,12 @@ public:
         const SpectrumTexture* reflectance, const SpectrumTexture* normal = nullptr, const FloatTexture* alpha = nullptr
     );
 
-    Float GetAlpha(const Intersection& isect) const;
-
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
 
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetEmissionTexture() const;
     const SpectrumTexture* GetNormalTexture() const;
 
 public:
@@ -65,12 +65,12 @@ public:
         const SpectrumTexture* normal = nullptr
     );
 
-    Float GetAlpha(const Intersection& isect) const;
-
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
 
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetEmissionTexture() const;
     const SpectrumTexture* GetNormalTexture() const;
 
 private:
@@ -90,12 +90,12 @@ class ThinDielectricMaterial : public Material
 public:
     ThinDielectricMaterial(Float eta, const SpectrumTexture* reflectance);
 
-    Float GetAlpha(const Intersection& isect) const;
-
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
 
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetEmissionTexture() const;
     const SpectrumTexture* GetNormalTexture() const;
 
 private:
@@ -114,12 +114,12 @@ public:
         const FloatTexture* alpha = nullptr
     );
 
-    Float GetAlpha(const Intersection& isect) const;
-
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
 
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetEmissionTexture() const;
     const SpectrumTexture* GetNormalTexture() const;
 
 private:
@@ -152,12 +152,12 @@ public:
         const FloatTexture* alpha = nullptr
     );
 
-    Float GetAlpha(const Intersection& isect) const;
-
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
 
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetEmissionTexture() const;
     const SpectrumTexture* GetNormalTexture() const;
 
 private:
@@ -186,12 +186,12 @@ public:
         const FloatTexture* alpha = nullptr
     );
 
-    Float GetAlpha(const Intersection& isect) const;
-
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
 
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetEmissionTexture() const;
     const SpectrumTexture* GetNormalTexture() const;
 
 private:
@@ -226,12 +226,12 @@ public:
         const FloatTexture* alpha = nullptr
     );
 
-    Float GetAlpha(const Intersection& isect) const;
-
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
 
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetEmissionTexture() const;
     const SpectrumTexture* GetNormalTexture() const;
 
 private:
@@ -258,12 +258,12 @@ class DiffuseLightMaterial : public Material
 public:
     DiffuseLightMaterial(const SpectrumTexture* emission, bool two_sided = false, const FloatTexture* alpha = nullptr);
 
-    Float GetAlpha(const Intersection& isect) const;
-
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
 
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetEmissionTexture() const;
     const SpectrumTexture* GetNormalTexture() const;
 
     bool IsTwoSided() const;
@@ -278,14 +278,16 @@ private:
 class MixtureMaterial : public Material
 {
 public:
-    MixtureMaterial(const Material* material1, const Material* material2, const FloatTexture* mix);
-
-    Float GetAlpha(const Intersection& isect) const;
+    MixtureMaterial(
+        const Material* material1, const Material* material2, const FloatTexture* mix, const FloatTexture* alpha = nullptr
+    );
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
 
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetEmissionTexture() const;
     const SpectrumTexture* GetNormalTexture() const;
 
     const Material* ChooseMaterial(const Intersection& isect, const Vec3& wo) const;
@@ -293,6 +295,8 @@ public:
 private:
     const Material* materials[2];
     const FloatTexture* mixture_amount;
+
+    const FloatTexture* alpha;
 };
 
 class SubsurfaceDiffusionMaterial : public Material
@@ -307,12 +311,12 @@ public:
         const SpectrumTexture* normal = nullptr
     );
 
-    Float GetAlpha(const Intersection& isect) const;
-
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
 
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetEmissionTexture() const;
     const SpectrumTexture* GetNormalTexture() const;
 
 private:
@@ -340,12 +344,12 @@ public:
         const SpectrumTexture* normal = nullptr
     );
 
-    Float GetAlpha(const Intersection& isect) const;
-
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
 
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetEmissionTexture() const;
     const SpectrumTexture* GetNormalTexture() const;
 
 private:
@@ -375,12 +379,12 @@ public:
         const FloatTexture* alpha = nullptr
     );
 
-    Float GetAlpha(const Intersection& isect) const;
-
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
 
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetEmissionTexture() const;
     const SpectrumTexture* GetNormalTexture() const;
 
 private:
@@ -398,16 +402,6 @@ private:
     const FloatTexture* alpha;
 };
 
-inline Float Material::GetAlpha(const Intersection& isect) const
-{
-    return Dispatch([&](auto mat) { return mat->GetAlpha(isect); });
-}
-
-inline const SpectrumTexture* Material::GetNormalTexture() const
-{
-    return Dispatch([](auto mat) { return mat->GetNormalTexture(); });
-}
-
 inline Spectrum Material::Le(const Intersection& isect, const Vec3& wo) const
 {
     return Dispatch([&](auto mat) { return mat->Le(isect, wo); });
@@ -421,6 +415,21 @@ inline bool Material::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3&
 inline bool Material::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
 {
     return Dispatch([&](auto mat) { return mat->GetBSSRDF(bssrdf, isect, wo, alloc); });
+}
+
+inline const FloatTexture* Material::GetAlphaTexture() const
+{
+    return Dispatch([&](auto mat) { return mat->GetAlphaTexture(); });
+}
+
+inline const SpectrumTexture* Material::GetEmissionTexture() const
+{
+    return Dispatch([](auto mat) { return mat->GetEmissionTexture(); });
+}
+
+inline const SpectrumTexture* Material::GetNormalTexture() const
+{
+    return Dispatch([](auto mat) { return mat->GetNormalTexture(); });
 }
 
 } // namespace bulbit

@@ -33,11 +33,6 @@ LayeredMaterial::LayeredMaterial(
     BulbitAssert(bottom != nullptr);
 }
 
-Float LayeredMaterial::GetAlpha(const Intersection& isect) const
-{
-    return alpha ? alpha->Evaluate(isect.uv) : 1;
-}
-
 Spectrum LayeredMaterial::Le(const Intersection& isect, const Vec3& wo) const
 {
     BulbitNotUsed(isect);
@@ -71,6 +66,16 @@ bool LayeredMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, cons
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const FloatTexture* LayeredMaterial::GetAlphaTexture() const
+{
+    return alpha;
+}
+
+const SpectrumTexture* LayeredMaterial::GetEmissionTexture() const
+{
+    return nullptr;
 }
 
 const SpectrumTexture* LayeredMaterial::GetNormalTexture() const

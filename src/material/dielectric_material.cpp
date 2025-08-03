@@ -23,12 +23,6 @@ DielectricMaterial::DielectricMaterial(
 {
 }
 
-Float DielectricMaterial::GetAlpha(const Intersection& isect) const
-{
-    BulbitNotUsed(isect);
-    return 1;
-}
-
 Spectrum DielectricMaterial::Le(const Intersection& isect, const Vec3& wo) const
 {
     BulbitNotUsed(isect);
@@ -71,6 +65,16 @@ bool DielectricMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, c
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const FloatTexture* DielectricMaterial::GetAlphaTexture() const
+{
+    return nullptr;
+}
+
+const SpectrumTexture* DielectricMaterial::GetEmissionTexture() const
+{
+    return nullptr;
 }
 
 const SpectrumTexture* DielectricMaterial::GetNormalTexture() const

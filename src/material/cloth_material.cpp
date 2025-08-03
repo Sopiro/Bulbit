@@ -21,11 +21,6 @@ ClothMaterial::ClothMaterial(
 {
 }
 
-Float ClothMaterial::GetAlpha(const Intersection& isect) const
-{
-    return alpha ? alpha->Evaluate(isect.uv) : 1;
-}
-
 Spectrum ClothMaterial::Le(const Intersection& isect, const Vec3& wo) const
 {
     BulbitNotUsed(isect);
@@ -54,6 +49,16 @@ bool ClothMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const 
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const FloatTexture* ClothMaterial::GetAlphaTexture() const
+{
+    return alpha;
+}
+
+const SpectrumTexture* ClothMaterial::GetEmissionTexture() const
+{
+    return nullptr;
 }
 
 const SpectrumTexture* ClothMaterial::GetNormalTexture() const

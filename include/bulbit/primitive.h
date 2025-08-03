@@ -55,7 +55,8 @@ inline bool Primitive::Intersect(Intersection* isect, const Ray& ray, Float t_mi
     }
 
     // Alpha testing
-    Float alpha = material->GetAlpha(*isect);
+    const FloatTexture* alpha_texture = material->GetAlphaTexture();
+    Float alpha = alpha_texture ? alpha_texture->Evaluate(isect->uv) : 1;
     if (alpha < 1)
     {
         // Avoid hash call as far as possible

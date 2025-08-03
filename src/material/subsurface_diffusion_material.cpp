@@ -24,12 +24,6 @@ SubsurfaceDiffusionMaterial::SubsurfaceDiffusionMaterial(
 {
 }
 
-Float SubsurfaceDiffusionMaterial::GetAlpha(const Intersection& isect) const
-{
-    BulbitNotUsed(isect);
-    return 1;
-}
-
 Spectrum SubsurfaceDiffusionMaterial::Le(const Intersection& isect, const Vec3& wo) const
 {
     BulbitNotUsed(isect);
@@ -62,6 +56,16 @@ bool SubsurfaceDiffusionMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection&
 
     *bssrdf = alloc.new_object<DisneyBSSRDF>(R, d, isect, wo, eta);
     return true;
+}
+
+const FloatTexture* SubsurfaceDiffusionMaterial::GetAlphaTexture() const
+{
+    return nullptr;
+}
+
+const SpectrumTexture* SubsurfaceDiffusionMaterial::GetEmissionTexture() const
+{
+    return nullptr;
 }
 
 const SpectrumTexture* SubsurfaceDiffusionMaterial::GetNormalTexture() const

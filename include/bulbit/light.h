@@ -33,6 +33,16 @@ struct LightSampleLe
 {
     LightSampleLe() = default;
 
+    LightSampleLe(Ray ray, Vec3 normal, Float pdf_p, Float pdf_w, Spectrum Le, const Medium* medium)
+        : ray{ ray }
+        , normal{ normal }
+        , pdf_p{ pdf_p }
+        , pdf_w{ pdf_w }
+        , Le{ Le }
+        , medium{ medium }
+    {
+    }
+
     Ray ray;
     Vec3 normal;
     Float pdf_p, pdf_w;

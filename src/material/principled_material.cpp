@@ -41,11 +41,6 @@ PrincipledMaterial::PrincipledMaterial(
 {
 }
 
-Float PrincipledMaterial::GetAlpha(const Intersection& isect) const
-{
-    return alpha ? alpha->Evaluate(isect.uv) : 1;
-}
-
 Spectrum PrincipledMaterial::Le(const Intersection& isect, const Vec3& wo) const
 {
     BulbitNotUsed(wo);
@@ -96,6 +91,16 @@ bool PrincipledMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, c
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const FloatTexture* PrincipledMaterial::GetAlphaTexture() const
+{
+    return alpha;
+}
+
+const SpectrumTexture* PrincipledMaterial::GetEmissionTexture() const
+{
+    return nullptr;
 }
 
 const SpectrumTexture* PrincipledMaterial::GetNormalTexture() const

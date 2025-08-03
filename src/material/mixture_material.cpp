@@ -5,26 +5,17 @@
 namespace bulbit
 {
 
-MixtureMaterial::MixtureMaterial(const Material* material1, const Material* material2, const FloatTexture* amount)
+MixtureMaterial::MixtureMaterial(
+    const Material* material1, const Material* material2, const FloatTexture* amount, const FloatTexture* alpha
+)
     : Material(TypeIndexOf<MixtureMaterial>())
     , mixture_amount{ amount }
+    , alpha{ alpha }
 {
     BulbitAssert(material1 != nullptr);
     BulbitAssert(material2 != nullptr);
     materials[0] = material1;
     materials[1] = material2;
-}
-
-Float MixtureMaterial::GetAlpha(const Intersection& isect) const
-{
-    if (HashFloat(isect.t, isect.point, isect.normal) > mixture_amount->Evaluate(isect.uv))
-    {
-        return materials[0]->GetAlpha(isect);
-    }
-    else
-    {
-        return materials[1]->GetAlpha(isect);
-    }
 }
 
 Spectrum MixtureMaterial::Le(const Intersection& isect, const Vec3& wo) const
@@ -79,6 +70,16 @@ bool MixtureMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, cons
     BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
+}
+
+const FloatTexture* MixtureMaterial::GetAlphaTexture() const
+{
+    return alpha;
+}
+
+const SpectrumTexture* MixtureMaterial::GetEmissionTexture() const
+{
+    return nullptr;
 }
 
 const SpectrumTexture* MixtureMaterial::GetNormalTexture() const
