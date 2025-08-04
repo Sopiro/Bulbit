@@ -37,7 +37,7 @@ Mesh::Mesh(
     triangle_count = int32(indices.size() / 3);
 }
 
-Mesh::Mesh(const std::vector<Vertex>& vertices, std::vector<int32> _indices, const Mat4& transform)
+Mesh::Mesh(const std::vector<MeshVertex>& vertices, std::vector<int32> _indices, const Mat4& transform)
     : indices{ std::move(_indices) }
 {
     size_t count = vertices.size();

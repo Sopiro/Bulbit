@@ -118,13 +118,15 @@ void AreaLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const
 void AreaLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const
 {
     *pdf_p = primitive->GetShape()->PDF(isect);
-    *pdf_w = two_sided ? (0.5f * CosineHemispherePDF(AbsDot(isect.normal, w))) : CosineHemispherePDF(Dot(isect.normal, w));
+    *pdf_w = CosineHemispherePDF(AbsDot(isect.normal, w)) * (two_sided ? 0.5f : 1);
 }
 
 Spectrum AreaLight::Phi() const
 {
     const SpectrumTexture* emission = primitive->GetMaterial()->GetEmissionTexture();
-    return emission->Average() * primitive->GetShape()->Area() * pi * (two_sided ? 2 : 1);
+    const Shape* shape = primitive->GetShape();
+
+    return emission->Average() * shape->Area() * pi * (two_sided ? 2 : 1);
 }
 
 } // namespace bulbit
