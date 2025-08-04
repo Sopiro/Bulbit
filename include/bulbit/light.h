@@ -65,8 +65,6 @@ protected:
     }
 
 public:
-    ~Light();
-
     void Preprocess(const AABB& world_bounds);
 
     Spectrum Le(const Ray& ray) const;

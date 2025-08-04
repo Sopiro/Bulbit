@@ -31,8 +31,6 @@ ImageInfiniteLight::ImageInfiniteLight(const SpectrumImageTexture* l_map, const 
     distribution = Distribution2D(image.get(), width, height);
 }
 
-void ImageInfiniteLight::Destroy() {}
-
 void ImageInfiniteLight::Preprocess(const AABB& world_bounds)
 {
     world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
