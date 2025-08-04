@@ -3,6 +3,26 @@
 namespace bulbit
 {
 
+Triangle::Triangle(const Mesh* mesh, size_t tri_index)
+    : mesh{ mesh }
+{
+    v = &mesh->indices[tri_index * 3];
+}
+
+AABB Triangle::GetAABB() const
+{
+    const Vec3 aabb_offset{ epsilon * 10 };
+
+    const Point3& p0 = mesh->positions[v[0]];
+    const Point3& p1 = mesh->positions[v[1]];
+    const Point3& p2 = mesh->positions[v[2]];
+
+    Vec3 min = Min(Min(p0, p1), p2) - aabb_offset;
+    Vec3 max = Max(Max(p0, p1), p2) + aabb_offset;
+
+    return AABB(min, max);
+}
+
 // Möller-Trumbore algorithm
 bool Triangle::Intersect(Intersection* isect, const Ray& ray, Float t_min, Float t_max) const
 {
@@ -160,6 +180,13 @@ ShapeSample Triangle::Sample(Point2 u0) const
 #endif
 }
 
+Float Triangle::PDF(const Intersection& isect) const
+{
+    BulbitNotUsed(isect);
+
+    return 1 / Area();
+}
+
 ShapeSample Triangle::Sample(const Point3& ref, Point2 u) const
 {
     ShapeSample sample = Sample(u);
@@ -176,6 +203,37 @@ ShapeSample Triangle::Sample(const Point3& ref, Point2 u) const
     sample.pdf *= distance_squared / cosine; // Convert to solid angle measure
 
     return sample;
+}
+
+Float Triangle::EvaluatePDF(const Ray& ray) const
+{
+    Intersection isect;
+    if (Intersect(&isect, ray, Ray::epsilon, infinity) == false)
+    {
+        return 0;
+    }
+
+    return PDF(isect, ray);
+}
+
+Float Triangle::PDF(const Intersection& isect, const Ray& isect_ray) const
+{
+    Float distance_squared = isect.t * isect.t * Length2(isect_ray.d);
+    Float cosine = std::fabs(Dot(isect_ray.d, isect.normal) / Length(isect_ray.d));
+
+    return distance_squared / (cosine * Area());
+}
+
+Float Triangle::Area() const
+{
+    const Point3& p0 = mesh->positions[v[0]];
+    const Point3& p1 = mesh->positions[v[1]];
+    const Point3& p2 = mesh->positions[v[2]];
+
+    Vec3 e1 = p1 - p0;
+    Vec3 e2 = p2 - p0;
+
+    return 0.5f * Length(Cross(e1, e2));
 }
 
 } // namespace bulbit

@@ -6,6 +6,32 @@
 namespace bulbit
 {
 
+static Point2 ComputeTexCoord(const Vec3& v)
+{
+    Float theta = std::acos(Clamp(v.y, -1, 1));
+    Float r = std::atan2(v.z, v.x);
+    Float phi = r < 0 ? r + two_pi : r;
+
+    return Point2(phi * inv_two_pi, 1 - theta * inv_pi);
+}
+
+Sphere::Sphere(const Point3& center, Float radius)
+    : transform{ center, identity }
+    , radius{ radius }
+{
+}
+
+Sphere::Sphere(const Transform& transform, Float radius)
+    : transform{ transform }
+    , radius{ radius }
+{
+}
+
+AABB Sphere::GetAABB() const
+{
+    return AABB(transform.p - Vec3(radius), transform.p + Vec3(radius));
+}
+
 bool Sphere::Intersect(Intersection* isect, const Ray& ray, Float t_min, Float t_max) const
 {
     Ray r = MulT(transform, ray);
@@ -101,6 +127,13 @@ ShapeSample Sphere::Sample(Point2 u) const
     return sample;
 }
 
+Float Sphere::PDF(const Intersection& isect) const
+{
+    BulbitNotUsed(isect);
+
+    return 1 / (four_pi * radius * radius);
+}
+
 ShapeSample Sphere::Sample(const Point3& ref, Point2 u) const
 {
     Vec3 direction = transform.p - ref;
@@ -133,6 +166,33 @@ ShapeSample Sphere::Sample(const Point3& ref, Point2 u) const
     sample.uv = ComputeTexCoord(sample.normal);
 
     return sample;
+}
+
+Float Sphere::EvaluatePDF(const Ray& ray) const
+{
+    Intersection isect;
+    if (Intersect(&isect, ray, Ray::epsilon, infinity) == false)
+    {
+        return 0.0f;
+    }
+
+    return PDF(isect, ray);
+}
+
+Float Sphere::PDF(const Intersection& isect, const Ray& isect_ray) const
+{
+    BulbitNotUsed(isect);
+
+    Float distance_squared = Length2(transform.p - isect_ray.o);
+    Float cos_theta_max = std::sqrt(1 - radius * radius / distance_squared);
+    Float solid_angle = two_pi * (1 - cos_theta_max);
+
+    return 1 / solid_angle;
+}
+
+Float Sphere::Area() const
+{
+    return four_pi * Sqr(radius);
 }
 
 } // namespace bulbit
