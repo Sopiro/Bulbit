@@ -24,7 +24,7 @@ public:
     virtual Float EvaluatePMF(const Light* light) const override;
 
 private:
-    std::unique_ptr<Distribution1D> distribution;
+    Distribution1D distribution;
     std::unordered_map<const Light*, int32> light_to_index;
 };
 

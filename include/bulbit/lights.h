@@ -114,7 +114,7 @@ private:
     const SpectrumImageTexture* l_map; // Environment(Radiance) map
     Float l_scale;
 
-    std::unique_ptr<Distribution2D> distribution;
+    Distribution2D distribution;
 
     Transform transform;
 

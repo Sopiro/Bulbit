@@ -23,7 +23,7 @@ GaussianFilter::GaussianFilter(Float sigma, Float extent)
         }
     }
 
-    dist = std::make_unique<Distribution2D>(values, samples, samples);
+    dist = Distribution2D(values, samples, samples);
 }
 
 Float GaussianFilter::Evaluate(Point2 p) const
@@ -35,12 +35,12 @@ Float GaussianFilter::Evaluate(Point2 p) const
     }
 
     Float normalization = 1 / Sqr(extent);
-    return dist->PDF(p / extent + Point2(0.5f)) * normalization;
+    return dist.PDF(p / extent + Point2(0.5f)) * normalization;
 }
 
 Point2 GaussianFilter::Sample(Point2 u) const
 {
-    return dist->SampleContinuous(u) * extent - extent / 2;
+    return dist.SampleContinuous(u) * extent - extent / 2;
 }
 
 } // namespace bulbit

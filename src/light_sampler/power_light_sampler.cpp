@@ -18,7 +18,7 @@ PowerLightSampler::PowerLightSampler(std::span<Light*> lights)
         light_to_index[light] = int32(i);
     }
 
-    distribution = std::make_unique<Distribution1D>(&powers[0], light_count);
+    distribution = Distribution1D(&powers[0], light_count);
 }
 
 bool PowerLightSampler::Sample(SampledLight* sampled_light, const Intersection& isect, Float u) const
@@ -28,7 +28,7 @@ bool PowerLightSampler::Sample(SampledLight* sampled_light, const Intersection& 
     // Sample light based on light's radient intensity
 
     Float pmf;
-    int32 index = distribution->SampleDiscrete(u, &pmf);
+    int32 index = distribution.SampleDiscrete(u, &pmf);
 
     sampled_light->light = lights[index];
     sampled_light->weight = 1 / pmf;
@@ -38,7 +38,7 @@ bool PowerLightSampler::Sample(SampledLight* sampled_light, const Intersection& 
 
 Float PowerLightSampler::EvaluatePMF(const Light* light) const
 {
-    return distribution->DiscretePDF(light_to_index.at(light));
+    return distribution.DiscretePDF(light_to_index.at(light));
 }
 
 } // namespace bulbit

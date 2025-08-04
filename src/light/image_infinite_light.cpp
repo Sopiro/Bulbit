@@ -28,13 +28,10 @@ ImageInfiniteLight::ImageInfiniteLight(const SpectrumImageTexture* l_map, const 
         }
     }
 
-    distribution = std::make_unique<Distribution2D>(image.get(), width, height);
+    distribution = Distribution2D(image.get(), width, height);
 }
 
-void ImageInfiniteLight::Destroy()
-{
-    distribution.reset();
-}
+void ImageInfiniteLight::Destroy() {}
 
 void ImageInfiniteLight::Preprocess(const AABB& world_bounds)
 {
@@ -55,7 +52,7 @@ bool ImageInfiniteLight::Sample_Li(LightSampleLi* light_sample, const Intersecti
     BulbitNotUsed(ref);
 
     Float map_pdf;
-    Point2 uv = distribution->SampleContinuous(u, &map_pdf);
+    Point2 uv = distribution.SampleContinuous(u, &map_pdf);
 
     if (map_pdf == 0)
     {
@@ -96,13 +93,13 @@ Float ImageInfiniteLight::EvaluatePDF_Li(const Ray& ray) const
     }
 
     Point2 uv(phi * inv_two_pi, 1 - theta * inv_pi);
-    return distribution->PDF(uv) / (2 * Sqr(pi) * sin_theta);
+    return distribution.PDF(uv) / (2 * Sqr(pi) * sin_theta);
 }
 
 bool ImageInfiniteLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 {
     Float map_pdf;
-    Point2 uv = distribution->SampleContinuous(u1, &map_pdf);
+    Point2 uv = distribution.SampleContinuous(u1, &map_pdf);
 
     if (map_pdf == 0)
     {
@@ -144,7 +141,7 @@ void ImageInfiniteLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& r
     else
     {
         Point2 uv(phi * inv_two_pi, 1 - theta * inv_pi);
-        *pdf_w = distribution->PDF(uv) / (2 * Sqr(pi) * sin_theta);
+        *pdf_w = distribution.PDF(uv) / (2 * Sqr(pi) * sin_theta);
     }
 
     *pdf_p = 1 / (pi * Sqr(world_radius));

@@ -41,7 +41,7 @@ public:
     const Float sigma;
 
 private:
-    std::unique_ptr<Distribution2D> dist;
+    Distribution2D dist;
 };
 
 } // namespace bulbit

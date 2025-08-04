@@ -329,6 +329,8 @@ inline int32 SampleDiscrete(std::span<const Float> weights, Float u, Float* pmf 
 
 struct Distribution1D
 {
+    Distribution1D() = default;
+
     Distribution1D(const Float* f, int32 n)
         : func(f, f + n)
         , cdf(n + 1)
@@ -411,21 +413,23 @@ struct Distribution1D
 class Distribution2D
 {
 public:
+    Distribution2D() = default;
+
     Distribution2D(const Float* func, int32 nu, int32 nv)
     {
         conditional_v.reserve(nv);
         for (int32 v = 0; v < nv; ++v)
         {
-            conditional_v.emplace_back(new Distribution1D(&func[v * nu], nu));
+            conditional_v.emplace_back(&func[v * nu], nu);
         }
 
         std::vector<Float> marginal_func(nv);
         for (int32 v = 0; v < nv; ++v)
         {
-            marginal_func[v] = conditional_v[v]->func_integral;
+            marginal_func[v] = conditional_v[v].func_integral;
         }
 
-        marginal.reset(new Distribution1D(&marginal_func[0], nv));
+        marginal = Distribution1D(&marginal_func[0], nv);
     }
 
     Point2 SampleContinuous(Point2 u, Float* pdf = nullptr) const
@@ -433,8 +437,8 @@ public:
         Float pdfs[2];
         int32 v;
 
-        Float d1 = marginal->SampleContinuous(u[1], &pdfs[1], &v);
-        Float d0 = conditional_v[v]->SampleContinuous(u[0], &pdfs[0]);
+        Float d1 = marginal.SampleContinuous(u[1], &pdfs[1], &v);
+        Float d0 = conditional_v[v].SampleContinuous(u[0], &pdfs[0]);
 
         if (pdf)
         {
@@ -446,18 +450,18 @@ public:
 
     Float PDF(const Point2& p) const
     {
-        int32 w = conditional_v[0]->Count();
-        int32 h = marginal->Count();
+        int32 w = conditional_v[0].Count();
+        int32 h = marginal.Count();
 
         int32 iu = Clamp(int32(p[0] * w), 0, w - 1);
         int32 iv = Clamp(int32(p[1] * h), 0, h - 1);
 
-        return conditional_v[iv]->func[iu] / marginal->func_integral;
+        return conditional_v[iv].func[iu] / marginal.func_integral;
     }
 
 private:
-    std::vector<std::unique_ptr<Distribution1D>> conditional_v; // p(u|v)
-    std::unique_ptr<Distribution1D> marginal;
+    std::vector<Distribution1D> conditional_v; // p(u|v)
+    Distribution1D marginal;
 };
 
 // https://sopiro.github.io/posts/wrs/
