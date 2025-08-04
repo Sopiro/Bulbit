@@ -123,7 +123,8 @@ void AreaLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, co
 
 Spectrum AreaLight::Phi() const
 {
-    return Spectrum::black;
+    const SpectrumTexture* emission = primitive->GetMaterial()->GetEmissionTexture();
+    return emission->Average() * primitive->GetShape()->Area() * pi * (two_sided ? 2 : 1);
 }
 
 } // namespace bulbit

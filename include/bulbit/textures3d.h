@@ -88,6 +88,24 @@ public:
 #endif
     }
 
+    T Average() const
+    {
+        T sum(0);
+
+        for (int32 z = 0; z < image.dim_z; ++z)
+        {
+            for (int32 y = 0; y < image.dim_y; ++y)
+            {
+                for (int32 x = 0; x < image.dim_x; ++x)
+                {
+                    sum += image(x, y, z);
+                }
+            }
+        }
+
+        return sum / (image.dim_x * image.dim_y * image.dim_z);
+    }
+
 private:
     Image3D<T> image;
     TexCoordFilter texcoord_filter;
@@ -117,6 +135,11 @@ public:
         {
             return b->Evaluate(uvw);
         }
+    }
+
+    virtual T Average() const
+    {
+        return 0.5f * (a->Average() + b->Average());
     }
 
 private:

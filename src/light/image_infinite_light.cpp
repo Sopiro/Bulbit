@@ -162,7 +162,7 @@ void ImageInfiniteLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& 
 
 Spectrum ImageInfiniteLight::Phi() const
 {
-    return Spectrum::black;
+    return l_scale * l_map->Average() * four_pi * pi * Sqr(world_radius);
 }
 
 } // namespace bulbit

@@ -24,6 +24,8 @@ public:
     virtual Float EvaluatePDF(const Ray& ray) const override;
     virtual Float PDF(const Intersection& isect, const Ray& isect_ray) const override;
 
+    virtual Float Area() const override;
+
     Transform transform;
     Float radius;
 
@@ -77,6 +79,11 @@ inline Float Sphere::PDF(const Intersection& isect, const Ray& isect_ray) const
     return 1 / solid_angle;
 }
 
+inline Float Sphere::Area() const
+{
+    return four_pi * Sqr(radius);
+}
+
 inline Point2 Sphere::ComputeTexCoord(const Vec3& v)
 {
     Float theta = std::acos(Clamp(v.y, -1, 1));
@@ -101,6 +108,8 @@ public:
     virtual ShapeSample Sample(const Point3& ref, Point2 u) const override;
     virtual Float EvaluatePDF(const Ray& ray) const override;
     virtual Float PDF(const Intersection& isect, const Ray& isect_ray) const override;
+
+    virtual Float Area() const override;
 
 private:
     friend class Scene;
@@ -137,15 +146,7 @@ inline Float Triangle::PDF(const Intersection& isect) const
 {
     BulbitNotUsed(isect);
 
-    const Point3& p0 = mesh->positions[v[0]];
-    const Point3& p1 = mesh->positions[v[1]];
-    const Point3& p2 = mesh->positions[v[2]];
-
-    Vec3 e1 = p1 - p0;
-    Vec3 e2 = p2 - p0;
-
-    Float area = 0.5f * Length(Cross(e1, e2));
-    return 1 / area;
+    return 1 / Area();
 }
 
 inline Float Triangle::EvaluatePDF(const Ray& ray) const
@@ -164,6 +165,11 @@ inline Float Triangle::PDF(const Intersection& isect, const Ray& isect_ray) cons
     Float distance_squared = isect.t * isect.t * Length2(isect_ray.d);
     Float cosine = std::fabs(Dot(isect_ray.d, isect.normal) / Length(isect_ray.d));
 
+    return distance_squared / (cosine * Area());
+}
+
+inline Float Triangle::Area() const
+{
     const Point3& p0 = mesh->positions[v[0]];
     const Point3& p1 = mesh->positions[v[1]];
     const Point3& p2 = mesh->positions[v[2]];
@@ -171,9 +177,7 @@ inline Float Triangle::PDF(const Intersection& isect, const Ray& isect_ray) cons
     Vec3 e1 = p1 - p0;
     Vec3 e2 = p2 - p0;
 
-    Float area = 0.5f * Length(Cross(e1, e2));
-
-    return distance_squared / (cosine * area);
+    return 0.5f * Length(Cross(e1, e2));
 }
 
 inline Vec3 Triangle::GetNormal(Float tu, Float tv, Float tw) const

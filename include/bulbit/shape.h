@@ -27,6 +27,8 @@ public:
     virtual Float EvaluatePDF(const Ray& ray) const = 0;
     virtual Float PDF(const Intersection& isect, const Ray& isect_ray) const = 0;
 
+    virtual Float Area() const = 0;
+
 protected:
     static void SetFaceNormal(
         Intersection* isect, const Vec3& wi, const Vec3& outward_normal, const Vec3& shading_normal, const Vec3& shading_tangent

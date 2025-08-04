@@ -9,7 +9,9 @@ template <typename T>
 struct Texture3D
 {
     virtual ~Texture3D() = default;
+
     virtual T Evaluate(const Point3& uvw) const = 0;
+    virtual T Average() const = 0;
 };
 
 using FloatTexture3D = Texture3D<Float>;

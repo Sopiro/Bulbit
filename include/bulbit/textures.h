@@ -2,6 +2,7 @@
 
 #include "hash.h"
 #include "image.h"
+#include "parallel_for.h"
 #include "pool.h"
 #include "texture.h"
 
@@ -20,6 +21,11 @@ public:
     T Evaluate(const Point2& uv) const
     {
         BulbitNotUsed(uv);
+        return value;
+    }
+
+    T Average() const
+    {
         return value;
     }
 
@@ -84,6 +90,21 @@ public:
 #endif
     }
 
+    T Average() const
+    {
+        T sum(0);
+
+        for (int32 y = 0; y < image.height; ++y)
+        {
+            for (int32 x = 0; x < image.width; ++x)
+            {
+                sum += image(x, y);
+            }
+        }
+
+        return sum / (image.width * image.height);
+    }
+
 private:
     Image<T> image;
     TexCoordFilter texcoord_filter;
@@ -113,6 +134,12 @@ public:
         {
             return b->Evaluate(uv);
         }
+    }
+
+    virtual T Average() const override
+    {
+        // Yes, it's not correct
+        return 0.5f * (a->Average() + b->Average());
     }
 
 private:
