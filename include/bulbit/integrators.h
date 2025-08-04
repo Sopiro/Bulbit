@@ -114,7 +114,7 @@ private:
 
     std::vector<Light*> infinite_lights;
     std::unordered_map<const Primitive*, AreaLight*> area_lights;
-    UniformLightSampler light_sampler;
+    PowerLightSampler light_sampler;
 
     int32 max_bounces;
     bool regularize_bsdf;
@@ -163,7 +163,7 @@ private:
 
     std::vector<Light*> infinite_lights;
     std::unordered_map<const Primitive*, AreaLight*> area_lights;
-    UniformLightSampler light_sampler;
+    PowerLightSampler light_sampler;
 
     int32 max_bounces;
     bool regularize_bsdf;
@@ -181,7 +181,7 @@ public:
 private:
     bool V(const Point3 p1, const Point3 p2) const;
 
-    UniformLightSampler light_sampler;
+    PowerLightSampler light_sampler;
     int32 max_bounces;
 };
 
@@ -196,7 +196,7 @@ public:
 private:
     Spectrum Tr(const Point3 p1, const Point3 p2, const Medium* medium, int32 wavelength) const;
 
-    UniformLightSampler light_sampler;
+    PowerLightSampler light_sampler;
     int32 max_bounces;
 };
 
