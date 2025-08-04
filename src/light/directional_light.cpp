@@ -80,4 +80,9 @@ void DirectionalLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& is
     BulbitAssert(false);
 }
 
+Spectrum DirectionalLight::Phi() const
+{
+    return intensity * pi * Sqr(world_radius);
+}
+
 } // namespace bulbit

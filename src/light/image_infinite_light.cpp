@@ -160,4 +160,9 @@ void ImageInfiniteLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& 
     BulbitAssert(false);
 }
 
+Spectrum ImageInfiniteLight::Phi() const
+{
+    return Spectrum::black;
+}
+
 } // namespace bulbit

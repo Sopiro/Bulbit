@@ -78,4 +78,9 @@ void PointLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, c
     BulbitAssert(false);
 }
 
+Spectrum PointLight::Phi() const
+{
+    return four_pi * intensity;
+}
+
 } // namespace bulbit

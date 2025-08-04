@@ -76,4 +76,9 @@ void UniformInfiniteLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection
     BulbitAssert(false);
 }
 
+Spectrum UniformInfiniteLight::Phi() const
+{
+    return Spectrum::black;
+}
+
 } // namespace bulbit

@@ -27,6 +27,8 @@ public:
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
+    Spectrum Phi() const;
+
 private:
     Point3 position;
     Spectrum intensity; // radiance
@@ -49,6 +51,8 @@ public:
     bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
+
+    Spectrum Phi() const;
 
 private:
     Vec3 dir;
@@ -74,6 +78,8 @@ public:
     bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
+
+    Spectrum Phi() const;
 
     const Primitive* GetPrimitive() const
     {
@@ -101,6 +107,8 @@ public:
     bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
+
+    Spectrum Phi() const;
 
 private:
     const SpectrumImageTexture* l_map; // Environment(Radiance) map
@@ -130,6 +138,8 @@ public:
     bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
+
+    Spectrum Phi() const;
 
 private:
     Spectrum l;
@@ -177,6 +187,16 @@ inline void Light::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) co
 inline void Light::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const
 {
     Dispatch([&](auto light) { light->PDF_Le(pdf_p, pdf_w, isect, w); });
+}
+
+inline Spectrum Light::Phi() const
+{
+    return Dispatch([&](auto light) { return light->Phi(); });
+}
+
+inline bool Light::IsDeltaLight() const
+{
+    return Is<PointLight>() || Is<DirectionalLight>();
 }
 
 } // namespace bulbit

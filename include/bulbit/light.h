@@ -78,10 +78,8 @@ public:
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
-    bool IsDeltaLight() const
-    {
-        return Is<PointLight>() || Is<DirectionalLight>();
-    }
+    Spectrum Phi() const;
+    bool IsDeltaLight() const;
 };
 
 } // namespace bulbit

@@ -121,4 +121,9 @@ void AreaLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, co
     *pdf_w = two_sided ? (0.5f * CosineHemispherePDF(AbsDot(isect.normal, w))) : CosineHemispherePDF(Dot(isect.normal, w));
 }
 
+Spectrum AreaLight::Phi() const
+{
+    return Spectrum::black;
+}
+
 } // namespace bulbit
