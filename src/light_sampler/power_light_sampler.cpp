@@ -8,14 +8,14 @@ namespace bulbit
 PowerLightSampler::PowerLightSampler(std::span<Light*> lights)
     : LightSampler(lights)
 {
-    size_t light_count = lights.size();
+    int32 light_count = int32(lights.size());
     std::vector<Float> powers(light_count);
 
-    for (size_t i = 0; i < light_count; ++i)
+    for (int32 i = 0; i < light_count; ++i)
     {
         Light* light = lights[i];
         powers[i] = light->Phi().Average();
-        light_to_index[light] = int32(i);
+        light_to_index[light] = i;
     }
 
     distribution = Distribution1D(&powers[0], light_count);
