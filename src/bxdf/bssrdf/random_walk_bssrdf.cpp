@@ -87,9 +87,14 @@ bool RandomWalkBSSRDF::Sample_S(
         return false;
     }
 
+    if (pdf == Spectrum::black)
+    {
+        return false;
+    }
+
     bssrdf_sample->pi = pi;
-    bssrdf_sample->Sp = beta * R;
-    bssrdf_sample->pdf = pdf;
+    bssrdf_sample->Sp = beta * R / pdf.Average();
+    bssrdf_sample->pdf = pdf / pdf.Average();
     bssrdf_sample->p = 1;
 
     Vec3 n = pi.front_face ? pi.shading.normal : -pi.shading.normal;
