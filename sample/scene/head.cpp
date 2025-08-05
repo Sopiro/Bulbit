@@ -6,9 +6,14 @@ std::unique_ptr<Camera> Head(Scene& scene)
     // Head
     {
         auto head_albedo = CreateSpectrumImageTexture(scene, "res/head/lambertian.jpg");
+
         auto mat =
             CreateSubsurfaceRandomWalkMaterial(scene, head_albedo, Spectrum(0.0012953, 0.00095238, 0.00067114), 1.33f, 0.1f);
-        // auto mat = scene.CreateMaterial<DiffuseMaterial>(head_albedo);
+
+        // auto l0 = CreateDielectricMaterial(scene, 1.33, 0.1f);
+        // auto l1 = scene.CreateMaterial<DiffuseMaterial>(head_albedo);
+        // auto mat = CreateLayeredMaterial(scene, l0, l1);
+
         SetLoaderFallbackMaterial(mat);
 
         auto tf = Transform{ Vec3(0.0f, 0.05f, 0.0f), Quat(DegToRad(0.0f), y_axis), Vec3(1.5f) };

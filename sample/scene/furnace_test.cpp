@@ -158,8 +158,8 @@ std::unique_ptr<Camera> FurnaceDielectric(Scene& scene)
         }
     }
 
-    // CreateUniformInfiniteLight(scene, Spectrum(1));
-    CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
+    CreateUniformInfiniteLight(scene, Spectrum(1));
+    // CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
 
     Float aspect_ratio = 4.f / 1.f;
