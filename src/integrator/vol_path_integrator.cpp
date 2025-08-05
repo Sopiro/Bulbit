@@ -400,7 +400,7 @@ Spectrum VolPathIntegrator::SampleDirectLight(
         return Spectrum::black;
     }
 
-    Float light_pdf = light_sample.pdf / sampled_light.weight;
+    Float light_pdf = sampled_light.pmf * light_sample.pdf;
 
     Spectrum scattering_f;
     Float scattering_pdf;

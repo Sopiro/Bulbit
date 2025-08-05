@@ -21,7 +21,7 @@ bool UniformLightSampler::Sample(SampledLight* sl, const Intersection& isect, Fl
     size_t index = std::min(size_t(u * count), count - 1);
 
     sl->light = lights[index];
-    sl->weight = Float(count);
+    sl->pmf = 1 / Float(count);
 
     return true;
 }

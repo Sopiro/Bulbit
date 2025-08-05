@@ -71,9 +71,9 @@ Spectrum LightPathIntegrator::L(
         {
             if (V(light_sample.ray.o, camera_sample.p_aperture))
             {
-                Spectrum L = sampled_light.weight * light_sample.Le * AbsDot(light_sample.normal, camera_sample.wi) *
+                Spectrum L = light_sample.Le * AbsDot(light_sample.normal, camera_sample.wi) *
                              AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi /
-                             (camera_sample.pdf * light_sample.pdf_p);
+                             (sampled_light.pmf * camera_sample.pdf * light_sample.pdf_p);
 
                 film.AddSplat(camera_sample.p_raster, L);
             }
@@ -84,7 +84,7 @@ Spectrum LightPathIntegrator::L(
     Ray ray = light_sample.ray;
 
     Spectrum beta =
-        light_sample.Le * AbsDot(light_sample.normal, ray.d) * sampled_light.weight / (light_sample.pdf_p * light_sample.pdf_w);
+        light_sample.Le * AbsDot(light_sample.normal, ray.d) / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
 
     // Trace light path
     while (true)

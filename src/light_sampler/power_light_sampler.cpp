@@ -14,24 +14,23 @@ PowerLightSampler::PowerLightSampler(std::span<Light*> lights)
     for (int32 i = 0; i < light_count; ++i)
     {
         Light* light = lights[i];
-        powers[i] = light->Phi().Average();
+        powers[i] = light->Phi().Luminance();
         light_to_index[light] = i;
     }
 
     distribution = Distribution1D(&powers[0], light_count);
 }
 
+// Sample light based on light's radient intensity
 bool PowerLightSampler::Sample(SampledLight* sampled_light, const Intersection& isect, Float u) const
 {
     BulbitNotUsed(isect);
-
-    // Sample light based on light's radient intensity
 
     Float pmf;
     int32 index = distribution.SampleDiscrete(u, &pmf);
 
     sampled_light->light = lights[index];
-    sampled_light->weight = 1 / pmf;
+    sampled_light->pmf = pmf;
 
     return true;
 }

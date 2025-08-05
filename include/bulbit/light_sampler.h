@@ -9,7 +9,7 @@ namespace bulbit
 struct SampledLight
 {
     const Light* light;
-    Float weight;
+    Float pmf;
 };
 
 class LightSampler

@@ -193,7 +193,7 @@ Spectrum PathIntegrator::SampleDirectLight(
         return Spectrum::black;
     }
 
-    Float light_pdf = light_sample.pdf / sampled_light.weight;
+    Float light_pdf = sampled_light.pmf * light_sample.pdf;
     Spectrum f_cos = bsdf->f(wo, light_sample.wi) * AbsDot(isect.shading.normal, light_sample.wi);
 
     if (sampled_light.light->IsDeltaLight())
