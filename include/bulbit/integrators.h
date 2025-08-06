@@ -189,6 +189,54 @@ private:
     int32 max_bounces;
 };
 
+struct SurfaceVertex
+{
+    const Primitive* primitive;
+    BSDF bsdf;
+};
+
+struct MediumVertex
+{
+    const PhaseFunction* phase;
+};
+
+struct CameraVertex
+{
+    const Camera* camera;
+};
+
+struct LightVertex
+{
+    const Light* light;
+};
+
+enum VertexType
+{
+    surface = 0,
+    medium,
+    camera,
+    light,
+};
+
+struct Vertex
+{
+    VertexType type;
+
+    union
+    {
+        SurfaceVertex sv;
+        MediumVertex mv;
+        CameraVertex cv;
+        LightVertex lv;
+    };
+
+    Vec3 wo;
+    Point3 point;
+    Vec3 normal;
+    Spectrum beta;
+    bool delta;
+};
+
 class BiDirectionalPathIntegrator : public BiDirectionalRayIntegrator
 {
 public:
