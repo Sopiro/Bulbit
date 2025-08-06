@@ -44,10 +44,11 @@ int main(int argc, char* argv[])
     // IndependentSampler sampler(samples_per_pixel);
     StratifiedSampler sampler(std::sqrt(samples_per_pixel), std::sqrt(samples_per_pixel), true);
 
-    PathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
+    // PathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
     // VolPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
     // LightPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
     // LightVolPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
+    BiDirectionalPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
     // DebugIntegrator renderer(&accel, scene.GetLights(), &sampler);
     // AmbientOcclusion renderer(&accel, scene.GetLights(), &sampler, 0.5f);
     // AlbedoIntegrator renderer(&accel, scene.GetLights(), &sampler);

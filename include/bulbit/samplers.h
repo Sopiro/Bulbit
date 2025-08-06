@@ -27,6 +27,7 @@ class StratifiedSampler : public Sampler
 {
 public:
     StratifiedSampler(int32 x_samples, int32 y_samples, bool jitter, int32 seed = 0);
+
     virtual void StartPixelSample(const Point2i& pixel, int32 sample_index) override;
 
     virtual Float Next1D() override;

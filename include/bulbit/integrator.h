@@ -47,7 +47,6 @@ class UniDirectionalRayIntegrator : public Integrator
 {
 public:
     UniDirectionalRayIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler);
-    virtual ~UniDirectionalRayIntegrator() = default;
 
     virtual std::unique_ptr<Rendering> Render(const Camera* camera) override;
 
@@ -61,7 +60,6 @@ class BiDirectionalRayIntegrator : public Integrator
 {
 public:
     BiDirectionalRayIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler);
-    virtual ~BiDirectionalRayIntegrator() = default;
 
     virtual std::unique_ptr<Rendering> Render(const Camera* camera) override;
 

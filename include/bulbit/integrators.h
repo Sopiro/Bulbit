@@ -11,7 +11,6 @@ class DebugIntegrator : public UniDirectionalRayIntegrator
 {
 public:
     DebugIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler);
-    virtual ~DebugIntegrator() = default;
 
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 };
@@ -20,7 +19,6 @@ class RandomWalkIntegrator : public UniDirectionalRayIntegrator
 {
 public:
     RandomWalkIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces);
-    virtual ~RandomWalkIntegrator() = default;
 
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 
@@ -33,7 +31,6 @@ class AmbientOcclusion : public UniDirectionalRayIntegrator
 {
 public:
     AmbientOcclusion(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, Float ao_range);
-    virtual ~AmbientOcclusion() = default;
 
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 
@@ -46,7 +43,6 @@ class AlbedoIntegrator : public UniDirectionalRayIntegrator
 {
 public:
     AlbedoIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler);
-    virtual ~AlbedoIntegrator() = default;
 
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 
@@ -59,7 +55,6 @@ class WhittedStyle : public UniDirectionalRayIntegrator
 {
 public:
     WhittedStyle(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_depth);
-    virtual ~WhittedStyle() = default;
 
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override
     {
@@ -80,7 +75,6 @@ class NaivePathIntegrator : public UniDirectionalRayIntegrator
 {
 public:
     NaivePathIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces);
-    virtual ~NaivePathIntegrator() = default;
 
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 
@@ -103,7 +97,6 @@ public:
         int32 max_bounces,
         bool regularize_bsdf = false
     );
-    virtual ~PathIntegrator() = default;
 
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 
@@ -124,7 +117,6 @@ class NaiveVolPathIntegrator : public UniDirectionalRayIntegrator
 {
 public:
     NaiveVolPathIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces);
-    virtual ~NaiveVolPathIntegrator() = default;
 
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 
@@ -144,7 +136,6 @@ public:
         int32 max_bounces,
         bool regularize_bsdf = false
     );
-    virtual ~VolPathIntegrator() = default;
 
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 
@@ -174,7 +165,6 @@ class LightPathIntegrator : public BiDirectionalRayIntegrator
 {
 public:
     LightPathIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces);
-    virtual ~LightPathIntegrator() = default;
 
     virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
 
@@ -189,7 +179,6 @@ class LightVolPathIntegrator : public BiDirectionalRayIntegrator
 {
 public:
     LightVolPathIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces);
-    virtual ~LightVolPathIntegrator() = default;
 
     virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
 
@@ -200,4 +189,19 @@ private:
     int32 max_bounces;
 };
 
+class BiDirectionalPathIntegrator : public BiDirectionalRayIntegrator
+{
+public:
+    BiDirectionalPathIntegrator(
+        const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces
+    );
+
+    virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
+
+private:
+    bool V(const Point3 p1, const Point3 p2) const;
+
+    PowerLightSampler light_sampler;
+    int32 max_bounces;
+};
 } // namespace bulbit
