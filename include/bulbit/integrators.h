@@ -230,11 +230,19 @@ struct Vertex
         LightVertex lv;
     };
 
-    Vec3 wo;
     Point3 point;
     Vec3 normal;
+    Vec3 wo;
     Spectrum beta;
     bool delta;
+
+    Vertex(VertexType type)
+        : type{ type }
+        , point{ 0 }
+        , normal{ 0 }
+        , wo{ 0 }
+        , beta{ 0 }
+        , delta{ false } {};
 };
 
 class BiDirectionalPathIntegrator : public BiDirectionalRayIntegrator
@@ -248,6 +256,17 @@ public:
 
 private:
     bool V(const Point3 p1, const Point3 p2) const;
+    int32 SampleCameraPath(Vertex* path, const Ray& ray, const Camera* camera, Sampler& sampler) const;
+    int32 SampleLightPath(Vertex* path, Sampler& sampler) const;
+    int32 RandomWalk(
+        Vertex* path,
+        const Ray& ray,
+        const Spectrum& beta,
+        Float pdf,
+        int32 bounces,
+        TransportDirection direction,
+        Sampler& sampler
+    ) const;
 
     PowerLightSampler light_sampler;
     int32 max_bounces;
