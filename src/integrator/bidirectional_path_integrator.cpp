@@ -13,6 +13,26 @@ BiDirectionalPathIntegrator::BiDirectionalPathIntegrator(
     , light_sampler{ all_lights }
     , max_bounces{ max_bounces }
 {
+    for (Light* light : all_lights)
+    {
+        switch (light->type_index)
+        {
+        case Light::TypeIndexOf<UniformInfiniteLight>():
+        case Light::TypeIndexOf<ImageInfiniteLight>():
+        {
+            infinite_lights.push_back(light);
+        }
+        break;
+        case Light::TypeIndexOf<AreaLight>():
+        {
+            AreaLight* area_light = light->Cast<AreaLight>();
+            area_lights.emplace(area_light->GetPrimitive(), area_light);
+        }
+        break;
+        default:
+            break;
+        }
+    }
 }
 
 bool BiDirectionalPathIntegrator::V(const Point3 p1, const Point3 p2) const
@@ -36,20 +56,18 @@ bool BiDirectionalPathIntegrator::V(const Point3 p1, const Point3 p2) const
     return true;
 }
 
-int32 BiDirectionalPathIntegrator::SampleCameraPath(Vertex* path, const Ray& ray, const Camera* camera, Sampler& sampler) const
+int32 BiDirectionalPathIntegrator::SampleCameraPath(
+    Vertex* path, const Ray& ray, const Camera* camera, Sampler& sampler, Allocator& alloc
+) const
 {
-    if (max_bounces == 0)
-    {
-        return 0;
-    }
-
     Spectrum beta(1);
     Float pdf_p, pdf_w;
     camera->PDF_We(&pdf_p, &pdf_w, ray);
 
     // Camera vertex
     {
-        Vertex v{ VertexType::camera };
+        Vertex v;
+        v.type = VertexType::camera;
         v.cv.camera = camera;
         v.beta = Spectrum(1);
         v.point = ray.o;
@@ -57,16 +75,11 @@ int32 BiDirectionalPathIntegrator::SampleCameraPath(Vertex* path, const Ray& ray
         path[0] = v;
     }
 
-    return 1 + RandomWalk(path + 1, ray, beta, pdf_w, max_bounces - 1, TransportDirection::ToLight, sampler);
+    return 1 + RandomWalk(path + 1, ray, beta, pdf_w, max_bounces + 1, TransportDirection::ToLight, sampler, alloc);
 }
 
-int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sampler) const
+int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sampler, Allocator& alloc) const
 {
-    if (max_bounces == 0)
-    {
-        return 0;
-    }
-
     Intersection isect;
     SampledLight sl;
     if (!light_sampler.Sample(&sl, isect, sampler.Next1D()))
@@ -82,7 +95,8 @@ int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sample
 
     // Light vertex
     {
-        Vertex v{ VertexType::light };
+        Vertex v;
+        v.type = VertexType::light;
         v.lv.light = sl.light;
         v.beta = light_sample.Le / (sl.pmf * light_sample.pdf_p);
         v.point = light_sample.ray.o;
@@ -93,23 +107,124 @@ int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sample
     Spectrum beta =
         light_sample.Le * AbsDot(light_sample.normal, light_sample.ray.d) / (sl.pmf * light_sample.pdf_p * light_sample.pdf_w);
 
-    return 1 + RandomWalk(
-                   path + 1, light_sample.ray, beta, light_sample.pdf_w, max_bounces - 1, TransportDirection::ToCamera, sampler
-               );
+    return 1 +
+           RandomWalk(
+               path + 1, light_sample.ray, beta, light_sample.pdf_w, max_bounces + 1, TransportDirection::ToCamera, sampler, alloc
+           );
 }
 
 int32 BiDirectionalPathIntegrator::RandomWalk(
-    Vertex* path, const Ray& ray, const Spectrum& beta, Float pdf, int32 bounces, TransportDirection direction, Sampler& sampler
+    Vertex* path,
+    Ray ray,
+    Spectrum beta,
+    Float pdf,
+    int32 max_bounces,
+    TransportDirection direction,
+    Sampler& sampler,
+    Allocator& alloc
 ) const
 {
-    BulbitNotUsed(path);
-    BulbitNotUsed(ray);
-    BulbitNotUsed(beta);
-    BulbitNotUsed(pdf);
-    BulbitNotUsed(bounces);
-    BulbitNotUsed(direction);
+    if (max_bounces == 0)
+    {
+        return 0;
+    }
+
+    int32 bounce = 0;
+    while (true)
+    {
+        Vertex& vertex = path[bounce];
+        Vertex& prev = path[bounce - 1];
+
+        Intersection isect;
+        bool found_intersection = Intersect(&isect, ray, Ray::epsilon, infinity);
+        if (!found_intersection)
+        {
+            // Don't handle infinite light for now..
+            break;
+        }
+
+        Vec3 wo = -ray.d;
+
+        BSDF bsdf;
+        if (!isect.GetBSDF(&bsdf, wo, alloc))
+        {
+            ray = Ray(isect.point, -wo);
+            continue;
+        }
+
+        // Create surface vertex
+        {
+            vertex.type = VertexType::surface;
+            vertex.sv.primitive = isect.primitive;
+            vertex.sv.area_light = area_lights.contains(isect.primitive) ? area_lights.at(isect.primitive) : nullptr;
+            vertex.sv.front_face = isect.front_face;
+            vertex.sv.bsdf = bsdf;
+
+            vertex.point = isect.point;
+            vertex.normal = isect.normal;
+            vertex.wo = wo;
+            vertex.beta = beta;
+            vertex.pdf_fwd = prev.ConvertDensity(pdf, vertex);
+        }
+
+        if (bounce++ >= max_bounces)
+        {
+            break;
+        }
+
+        BSDFSample bsdf_sample;
+        if (!bsdf.Sample_f(&bsdf_sample, wo, sampler.Next1D(), sampler.Next2D(), direction))
+        {
+            break;
+        }
+
+        pdf = bsdf_sample.is_stochastic ? bsdf.PDF(wo, bsdf_sample.wi, direction) : bsdf_sample.pdf;
+        beta *= bsdf_sample.f * AbsDot(isect.normal, bsdf_sample.wi) / bsdf_sample.pdf;
+        ray = Ray(isect.point, bsdf_sample.wi);
+
+        Float pdf_rev = bsdf.PDF(bsdf_sample.wi, wo, !direction);
+        if (bsdf_sample.IsSpecular())
+        {
+            vertex.delta = true;
+            pdf = 0;
+            pdf_rev = 0;
+        }
+
+        prev.pdf_rev = vertex.ConvertDensity(pdf_rev, prev);
+
+        if (beta == Spectrum::black)
+        {
+            break;
+        }
+    }
+
+    return bounce;
+}
+
+Spectrum BiDirectionalPathIntegrator::ConnectPaths(
+    Vertex* light_path, Vertex* camera_path, int32 s, int32 t, const Camera* camera, Film& film, Sampler& sampler
+) const
+{
+    BulbitNotUsed(light_path);
+    BulbitNotUsed(camera_path);
+    BulbitNotUsed(s);
+    BulbitNotUsed(t);
+    BulbitNotUsed(camera);
+    BulbitNotUsed(film);
     BulbitNotUsed(sampler);
-    return 0;
+
+    Spectrum L(0);
+
+    if (s == 0)
+    {
+        // Interpret the camera path as a complete path
+        const Vertex& v = camera_path[t - 1];
+        L = v.beta * v.Le(camera_path[t - 2]);
+    }
+
+    Float mis_weight = 1;
+
+    return mis_weight * L;
 }
 
 Spectrum BiDirectionalPathIntegrator::L(
@@ -117,20 +232,39 @@ Spectrum BiDirectionalPathIntegrator::L(
 ) const
 {
     BulbitNotUsed(primary_medium);
-    BulbitNotUsed(film);
 
-    BufferResource buffer(2 * sizeof(Vertex) * (max_bounces + 2));
-    Allocator alloc(&buffer);
-    Vertex* camera_path = (Vertex*)alloc.allocate(sizeof(Vertex) * (max_bounces + 2));
-    Vertex* light_path = (Vertex*)alloc.allocate(sizeof(Vertex) * (max_bounces + 2));
+    BufferResource path_buffer(2 * sizeof(Vertex) * (max_bounces + 2));
+    BufferResource vertex_buffer(2 * max_bxdf_size * (max_bounces + 2));
+    Allocator path_alloc(&path_buffer);
+    Allocator vertex_alloc(&vertex_buffer);
 
-    int32 n_camera = SampleCameraPath(camera_path, primary_ray, camera, sampler);
-    int32 n_light = SampleLightPath(light_path, sampler);
+    Vertex* camera_path = (Vertex*)path_alloc.allocate(sizeof(Vertex) * (max_bounces + 2));
+    Vertex* light_path = (Vertex*)path_alloc.allocate(sizeof(Vertex) * (max_bounces + 2));
 
-    BulbitNotUsed(n_camera);
-    BulbitNotUsed(n_light);
+    int32 num_camera_vertices = SampleCameraPath(camera_path, primary_ray, camera, sampler, vertex_alloc);
+    int32 num_light_vertces = SampleLightPath(light_path, sampler, vertex_alloc);
 
-    return Spectrum::black;
+    Spectrum L(0);
+
+    for (int32 t = 1; t <= num_camera_vertices; ++t)
+    {
+        for (int32 s = 0; s <= num_light_vertces; ++s)
+        {
+            int32 bounce = t + s - 2;
+            if ((s == 1 && t == 1) || bounce < 0 || bounce > max_bounces)
+            {
+                continue;
+            }
+
+            Spectrum L_path = ConnectPaths(light_path, camera_path, s, t, camera, film, sampler);
+            if (t != 1)
+            {
+                L += L_path;
+            }
+        }
+    }
+
+    return L;
 }
 
 } // namespace bulbit
