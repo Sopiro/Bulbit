@@ -42,7 +42,7 @@ public:
     const std::vector<Light*>& GetLights() const;
 
 private:
-    BufferResource resource;
+    BufferResource buffer;
     PoolResource pool;
     Allocator allocator;
 
@@ -59,8 +59,8 @@ private:
 };
 
 inline Scene::Scene()
-    : resource{ 64 * 1024 }
-    , pool{ &resource }
+    : buffer{ 64 * 1024 }
+    , pool{ &buffer }
     , allocator{ &pool }
 {
 }

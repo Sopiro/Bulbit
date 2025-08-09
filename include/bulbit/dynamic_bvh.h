@@ -41,9 +41,6 @@ public:
     DynamicBVH(const DynamicBVH&) = delete;
     DynamicBVH& operator=(const DynamicBVH&) = delete;
 
-    DynamicBVH(DynamicBVH&&) noexcept;
-    DynamicBVH& operator=(DynamicBVH&&) noexcept;
-
     virtual AABB GetAABB() const override;
     virtual bool Intersect(Intersection* out_isect, const Ray& ray, Float t_min, Float t_max) const override;
     virtual bool IntersectAny(const Ray& ray, Float t_min, Float t_max) const override;

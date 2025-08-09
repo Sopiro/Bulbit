@@ -22,10 +22,10 @@ BVH::BVH(const std::vector<Primitive*>& _primitives)
     std::atomic<int32> total_nodes(0);
     std::atomic<int32> ordered_prims_offset(0);
 
-    std::vector<std::unique_ptr<BufferResource>> thread_buffer_resources;
-    ThreadLocal<Allocator> thread_allocators([&thread_buffer_resources]() {
-        thread_buffer_resources.push_back(std::make_unique<BufferResource>());
-        BufferResource* ptr = thread_buffer_resources.back().get();
+    std::vector<std::unique_ptr<BufferResource>> thread_buffers;
+    ThreadLocal<Allocator> thread_allocators([&thread_buffers]() {
+        thread_buffers.push_back(std::make_unique<BufferResource>());
+        BufferResource* ptr = thread_buffers.back().get();
         return Allocator(ptr);
     });
 

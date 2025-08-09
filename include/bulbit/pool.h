@@ -21,7 +21,7 @@ public:
     int32 PoolCount() const;
 
 private:
-    std::pmr::monotonic_buffer_resource resource;
+    std::pmr::monotonic_buffer_resource buffer;
     std::pmr::polymorphic_allocator<std::byte> allocator;
 
     int32 count = 0;
@@ -30,8 +30,8 @@ private:
 
 template <typename Key, typename Type, typename Hash>
 inline Pool<Key, Type, Hash>::Pool()
-    : resource{}
-    , allocator{ &resource }
+    : buffer{}
+    , allocator{ &buffer }
 {
 }
 

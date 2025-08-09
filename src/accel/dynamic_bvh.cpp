@@ -43,62 +43,6 @@ DynamicBVH::~DynamicBVH() noexcept
     nodeCount = 0;
 }
 
-DynamicBVH::DynamicBVH(DynamicBVH&& other) noexcept
-{
-    // Steal resources
-    {
-        root = other.root;
-
-        nodes = other.nodes;
-        nodeCount = other.nodeCount;
-        nodeCapacity = other.nodeCapacity;
-
-        freeList = other.freeList;
-    }
-
-    // Clear moved object
-    {
-        other.root = null_node;
-
-        other.nodes = nullptr;
-        other.nodeCount = 0;
-        other.nodeCapacity = 0;
-
-        other.freeList = null_node;
-    }
-}
-
-DynamicBVH& DynamicBVH::operator=(DynamicBVH&& other) noexcept
-{
-    BulbitAssert(this != &other);
-
-    free(nodes);
-
-    // Steal resources
-    {
-        root = other.root;
-
-        nodes = other.nodes;
-        nodeCount = other.nodeCount;
-        nodeCapacity = other.nodeCapacity;
-
-        freeList = other.freeList;
-    }
-
-    // Clear moved object
-    {
-        other.root = null_node;
-
-        other.nodes = nullptr;
-        other.nodeCount = 0;
-        other.nodeCapacity = 0;
-
-        other.freeList = null_node;
-    }
-
-    return *this;
-}
-
 AABB DynamicBVH::GetAABB() const
 {
     if (nodeCount == 0)
