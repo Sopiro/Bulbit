@@ -42,7 +42,7 @@ public:
     const std::vector<Light*>& GetLights() const;
 
 private:
-    Resource resource;
+    BufferResource resource;
     PoolResource pool;
     Allocator allocator;
 

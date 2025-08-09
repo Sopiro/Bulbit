@@ -172,7 +172,7 @@ Spectrum NaiveVolPathIntegrator::Li(const Ray& primary_ray, const Medium* primar
         }
 
         int8 mem[std::max(max_bxdf_size, max_bssrdf_size)];
-        Resource res(mem, sizeof(mem));
+        BufferResource res(mem, sizeof(mem));
         Allocator alloc(&res);
         BSDF bsdf;
         if (!isect.GetBSDF(&bsdf, wo, alloc))

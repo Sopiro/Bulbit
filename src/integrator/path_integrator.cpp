@@ -102,7 +102,7 @@ Spectrum PathIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium
         }
 
         int8 mem[max_bxdf_size];
-        Resource res(mem, sizeof(mem));
+        BufferResource res(mem, sizeof(mem));
         Allocator alloc(&res);
         BSDF bsdf;
         if (!isect.GetBSDF(&bsdf, wo, alloc))
