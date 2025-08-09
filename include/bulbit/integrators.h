@@ -306,14 +306,8 @@ struct Vertex
         }
     }
 
-    Spectrum f(const Vertex& next, TransportDirection mode) const
+    Spectrum f(const Vec3& wi, TransportDirection mode) const
     {
-        Vec3 wi = next.point - point;
-        if (wi.Normalize() == 0)
-        {
-            return Spectrum::black;
-        }
-
         switch (type)
         {
         case VertexType::surface:
@@ -324,6 +318,17 @@ struct Vertex
             BulbitAssert(false);
             return Spectrum::black;
         }
+    }
+
+    Spectrum f(const Vertex& next, TransportDirection mode) const
+    {
+        Vec3 wi = next.point - point;
+        if (wi.Normalize() == 0)
+        {
+            return Spectrum::black;
+        }
+
+        return f(wi, mode);
     }
 
     Float ConvertDensity(Float pdf, const Vertex& next) const

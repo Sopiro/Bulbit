@@ -64,15 +64,13 @@ int32 BiDirectionalPathIntegrator::SampleCameraPath(
     Float pdf_p, pdf_w;
     camera->PDF_We(&pdf_p, &pdf_w, ray);
 
-    // Camera vertex
+    // Create camera vertex
     {
-        Vertex v;
+        Vertex& v = path[0];
         v.type = VertexType::camera;
         v.cv.camera = camera;
         v.beta = Spectrum(1);
         v.point = ray.o;
-
-        path[0] = v;
     }
 
     return 1 + RandomWalk(path + 1, ray, beta, pdf_w, max_bounces + 1, TransportDirection::ToLight, sampler, alloc);
@@ -93,24 +91,22 @@ int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sample
         return 0;
     }
 
-    // Light vertex
+    // Create light vertex
     {
-        Vertex v;
+        Vertex& v = path[0];
         v.type = VertexType::light;
         v.lv.light = sl.light;
-        v.beta = light_sample.Le / (sl.pmf * light_sample.pdf_p);
         v.point = light_sample.ray.o;
         v.normal = light_sample.normal;
-        path[0] = v;
+        v.pdf_fwd = sl.pmf * light_sample.pdf_p;
     }
 
     Spectrum beta =
         light_sample.Le * AbsDot(light_sample.normal, light_sample.ray.d) / (sl.pmf * light_sample.pdf_p * light_sample.pdf_w);
 
-    return 1 +
-           RandomWalk(
-               path + 1, light_sample.ray, beta, light_sample.pdf_w, max_bounces + 1, TransportDirection::ToCamera, sampler, alloc
-           );
+    return 1 + RandomWalk(
+                   path + 1, light_sample.ray, beta, light_sample.pdf_w, max_bounces, TransportDirection::ToCamera, sampler, alloc
+               );
 }
 
 int32 BiDirectionalPathIntegrator::RandomWalk(
@@ -205,24 +201,45 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
     Vertex* light_path, Vertex* camera_path, int32 s, int32 t, const Camera* camera, Film& film, Sampler& sampler
 ) const
 {
-    BulbitNotUsed(light_path);
-    BulbitNotUsed(camera_path);
-    BulbitNotUsed(s);
-    BulbitNotUsed(t);
-    BulbitNotUsed(camera);
-    BulbitNotUsed(film);
-    BulbitNotUsed(sampler);
-
     Spectrum L(0);
+    Float mis_weight = 0.5f;
 
     if (s == 0)
     {
+        if (t == 2)
+        {
+            mis_weight = 1;
+        }
+
         // Interpret the camera path as a complete path
         const Vertex& v = camera_path[t - 1];
         L = v.beta * v.Le(camera_path[t - 2]);
     }
+    else if (t == 1)
+    {
+        // Sample camera sample and connect it to the light subpath
+        const Vertex& v = light_path[s - 1];
+        if (v.IsConnectible())
+        {
+            CameraSampleWi camera_sample;
+            Intersection ref{ .point = v.point };
+            if (camera->SampleWi(&camera_sample, ref, sampler.Next2D()))
+            {
+                if (V(v.point, camera_sample.p_aperture))
+                {
+                    Spectrum L =
+                        v.beta * camera_sample.Wi * v.f(camera_sample.wi, TransportDirection::ToCamera) / camera_sample.pdf;
 
-    Float mis_weight = 1;
+                    if (v.IsOnSurface())
+                    {
+                        L *= AbsDot(v.normal, camera_sample.wi);
+                    }
+
+                    film.AddSplat(camera_sample.p_raster, mis_weight * L);
+                }
+            }
+        }
+    }
 
     return mis_weight * L;
 }
@@ -250,8 +267,8 @@ Spectrum BiDirectionalPathIntegrator::L(
     {
         for (int32 s = 0; s <= num_light_vertces; ++s)
         {
-            int32 bounce = t + s - 2;
-            if ((s == 1 && t == 1) || bounce < 0 || bounce > max_bounces)
+            int32 bounces = t + s - 2;
+            if ((s == 1 && t == 1) || bounces < 0 || bounces > max_bounces)
             {
                 continue;
             }
