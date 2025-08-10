@@ -238,54 +238,65 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
     {
         // Sample camera sample and connect it to the light subpath
         const Vertex& v = light_path[s - 1];
-        if (v.IsConnectible())
+        if (!v.IsConnectible())
         {
-            CameraSampleWi camera_sample;
-            Intersection ref{ .point = v.point };
-            if (camera->SampleWi(&camera_sample, ref, sampler.Next2D()))
-            {
-                if (V(v.point, camera_sample.p_aperture))
-                {
-                    Spectrum Li =
-                        v.beta * camera_sample.Wi * v.f(camera_sample.wi, TransportDirection::ToCamera) / camera_sample.pdf;
-
-                    if (v.IsOnSurface())
-                    {
-                        Li *= AbsDot(v.normal, camera_sample.wi);
-                    }
-
-                    film.AddSplat(camera_sample.p_raster, mis_weight * Li);
-                }
-            }
+            return Spectrum::black;
         }
+
+        CameraSampleWi camera_sample;
+        Intersection ref{ .point = v.point };
+        if (!camera->SampleWi(&camera_sample, ref, sampler.Next2D()))
+        {
+            return Spectrum::black;
+        }
+
+        if (!V(v.point, camera_sample.p_aperture))
+        {
+            return Spectrum::black;
+        }
+
+        L = v.beta * camera_sample.Wi * v.f(camera_sample.wi, TransportDirection::ToCamera) / camera_sample.pdf;
+
+        if (v.IsOnSurface())
+        {
+            L *= AbsDot(v.normal, camera_sample.wi);
+        }
+
+        film.AddSplat(camera_sample.p_raster, mis_weight * L);
+        return Spectrum::black;
     }
     else if (s == 1)
     {
         // Sample light sample and connect it to the camera subpath
         const Vertex& v = camera_path[t - 1];
-        if (v.IsConnectible())
+        if (!v.IsConnectible())
         {
-            SampledLight sl;
-            Intersection isect{ .point = v.point };
-            if (light_sampler.Sample(&sl, isect, sampler.Next1D()))
-            {
-                LightSampleLi light_sample;
-                if (sl.light->Sample_Li(&light_sample, isect, sampler.Next2D()))
-                {
-                    L = v.beta * v.f(light_sample.wi, TransportDirection::ToLight) * light_sample.Li /
-                        (sl.pmf * light_sample.pdf);
+            return Spectrum::black;
+        }
 
-                    if (v.IsOnSurface())
-                    {
-                        L *= AbsDot(v.normal, light_sample.wi);
-                    }
+        SampledLight sampled_light;
+        Intersection isect{ .point = v.point };
+        if (!light_sampler.Sample(&sampled_light, isect, sampler.Next1D()))
+        {
+            return Spectrum::black;
+        }
 
-                    if (!L.IsBlack() && IntersectAny(Ray(v.point, light_sample.wi), Ray::epsilon, light_sample.visibility))
-                    {
-                        L = Spectrum::black;
-                    }
-                }
-            }
+        LightSampleLi light_sample;
+        if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler.Next2D()))
+        {
+            return Spectrum::black;
+        }
+
+        L = v.beta * v.f(light_sample.wi, TransportDirection::ToLight) * light_sample.Li / (sampled_light.pmf * light_sample.pdf);
+
+        if (v.IsOnSurface())
+        {
+            L *= AbsDot(v.normal, light_sample.wi);
+        }
+
+        if (!L.IsBlack() && IntersectAny(Ray(v.point, light_sample.wi), Ray::epsilon, light_sample.visibility))
+        {
+            return Spectrum::black;
         }
     }
     else
@@ -296,11 +307,11 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
         if (vl.IsConnectible() && vc.IsConnectible())
         {
             L = vc.beta * vc.f(vl, TransportDirection::ToLight) * vl.f(vc, TransportDirection::ToCamera) * vl.beta;
+        }
 
-            if (!L.IsBlack())
-            {
-                L *= G(vl, vc);
-            }
+        if (!L.IsBlack())
+        {
+            L *= G(vl, vc);
         }
     }
 
