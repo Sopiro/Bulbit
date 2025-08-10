@@ -202,7 +202,6 @@ public:
 
 private:
     bool V(const Point3 p1, const Point3 p2) const;
-    Float G(const Vertex& v0, const Vertex& v1) const;
     int32 SampleCameraPath(Vertex* path, const Ray& ray, const Camera* camera, Sampler& sampler, Allocator& alloc) const;
     int32 SampleLightPath(Vertex* path, Sampler& sampler, Allocator& alloc) const;
     int32 RandomWalk(

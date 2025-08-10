@@ -56,29 +56,6 @@ bool BiDirectionalPathIntegrator::V(const Point3 p1, const Point3 p2) const
     return true;
 }
 
-Float BiDirectionalPathIntegrator::G(const Vertex& v0, const Vertex& v1) const
-{
-    if (!V(v0.point, v1.point))
-    {
-        return 0;
-    }
-
-    Vec3 d = v0.point - v1.point;
-    Float g = 1 / d.Normalize();
-
-    if (v0.IsOnSurface())
-    {
-        g *= AbsDot(v0.normal, d);
-    }
-
-    if (v1.IsOnSurface())
-    {
-        g *= AbsDot(v1.normal, d);
-    }
-
-    return g;
-}
-
 int32 BiDirectionalPathIntegrator::SampleCameraPath(
     Vertex* path, const Ray& ray, const Camera* camera, Sampler& sampler, Allocator& alloc
 ) const
@@ -304,15 +281,39 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
         // Join two paths in the middle
         const Vertex& vl = light_path[s - 1];
         const Vertex& vc = camera_path[t - 1];
-        if (vl.IsConnectible() && vc.IsConnectible())
+        if (!vl.IsConnectible() || !vc.IsConnectible())
         {
-            L = vc.beta * vc.f(vl, TransportDirection::ToLight) * vl.f(vc, TransportDirection::ToCamera) * vl.beta;
+            return Spectrum::black;
         }
 
-        if (!L.IsBlack())
+        L = vc.beta * vc.f(vl, TransportDirection::ToLight) * vl.f(vc, TransportDirection::ToCamera) * vl.beta;
+
+        if (L.IsBlack())
         {
-            L *= G(vl, vc);
+            return Spectrum::black;
         }
+
+        // Incorporate generalized geometry term
+        if (!V(vl.point, vc.point))
+        {
+            return Spectrum::black;
+        }
+
+        Vec3 d = vl.point - vc.point;
+        Float G = 1 / Length2(d);
+        d *= std::sqrt(G);
+
+        if (vl.IsOnSurface())
+        {
+            G *= AbsDot(vl.normal, d);
+        }
+
+        if (vc.IsOnSurface())
+        {
+            G *= AbsDot(vc.normal, d);
+        }
+
+        L *= G;
     }
 
     return mis_weight * L;
