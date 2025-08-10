@@ -56,6 +56,29 @@ bool BiDirectionalPathIntegrator::V(const Point3 p1, const Point3 p2) const
     return true;
 }
 
+Float BiDirectionalPathIntegrator::G(const Vertex& v0, const Vertex& v1) const
+{
+    if (!V(v0.point, v1.point))
+    {
+        return 0;
+    }
+
+    Vec3 d = v0.point - v1.point;
+    Float g = 1 / d.Normalize();
+
+    if (v0.IsOnSurface())
+    {
+        g *= AbsDot(v0.normal, d);
+    }
+
+    if (v1.IsOnSurface())
+    {
+        g *= AbsDot(v1.normal, d);
+    }
+
+    return g;
+}
+
 int32 BiDirectionalPathIntegrator::SampleCameraPath(
     Vertex* path, const Ray& ray, const Camera* camera, Sampler& sampler, Allocator& alloc
 ) const
@@ -104,6 +127,7 @@ int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sample
     Spectrum beta =
         light_sample.Le * AbsDot(light_sample.normal, light_sample.ray.d) / (sl.pmf * light_sample.pdf_p * light_sample.pdf_w);
 
+    // Note light paths sample one fewer vertex than the target path length
     return 1 + RandomWalk(
                    path + 1, light_sample.ray, beta, light_sample.pdf_w, max_bounces, TransportDirection::ToCamera, sampler, alloc
                );
@@ -125,11 +149,11 @@ int32 BiDirectionalPathIntegrator::RandomWalk(
         return 0;
     }
 
-    int32 bounce = 0;
+    int32 bounces = 0;
     while (true)
     {
-        Vertex& vertex = path[bounce];
-        Vertex& prev = path[bounce - 1];
+        Vertex& vertex = path[bounces];
+        Vertex& prev = path[bounces - 1];
 
         Intersection isect;
         bool found_intersection = Intersect(&isect, ray, Ray::epsilon, infinity);
@@ -163,7 +187,7 @@ int32 BiDirectionalPathIntegrator::RandomWalk(
             vertex.pdf_fwd = prev.ConvertDensity(pdf, vertex);
         }
 
-        if (bounce++ >= max_bounces)
+        if (++bounces >= max_bounces)
         {
             break;
         }
@@ -194,7 +218,7 @@ int32 BiDirectionalPathIntegrator::RandomWalk(
         }
     }
 
-    return bounce;
+    return bounces;
 }
 
 Spectrum BiDirectionalPathIntegrator::ConnectPaths(
@@ -202,15 +226,10 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
 ) const
 {
     Spectrum L(0);
-    Float mis_weight = 0.5f;
+    Float mis_weight = (s + t == 2) ? 1.0f : 1.0f / (s + t);
 
     if (s == 0)
     {
-        if (t == 2)
-        {
-            mis_weight = 1;
-        }
-
         // Interpret the camera path as a complete path
         const Vertex& v = camera_path[t - 1];
         L = v.beta * v.Le(camera_path[t - 2]);
@@ -237,6 +256,50 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
 
                     film.AddSplat(camera_sample.p_raster, mis_weight * Li);
                 }
+            }
+        }
+    }
+    else if (s == 1)
+    {
+        // Sample light sample and connect it to the camera subpath
+        const Vertex& v = camera_path[t - 1];
+        if (v.IsConnectible())
+        {
+            SampledLight sl;
+            Intersection isect{ .point = v.point };
+            if (light_sampler.Sample(&sl, isect, sampler.Next1D()))
+            {
+                LightSampleLi light_sample;
+                if (sl.light->Sample_Li(&light_sample, isect, sampler.Next2D()))
+                {
+                    L = v.beta * v.f(light_sample.wi, TransportDirection::ToLight) * light_sample.Li /
+                        (sl.pmf * light_sample.pdf);
+
+                    if (v.IsOnSurface())
+                    {
+                        L *= AbsDot(v.normal, light_sample.wi);
+                    }
+
+                    if (!L.IsBlack() && IntersectAny(Ray(v.point, light_sample.wi), Ray::epsilon, light_sample.visibility))
+                    {
+                        L = Spectrum::black;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        // Join two paths in the middle
+        const Vertex& vl = light_path[s - 1];
+        const Vertex& vc = camera_path[t - 1];
+        if (vl.IsConnectible() && vc.IsConnectible())
+        {
+            L = vc.beta * vc.f(vl, TransportDirection::ToLight) * vl.f(vc, TransportDirection::ToCamera) * vl.beta;
+
+            if (!L.IsBlack())
+            {
+                L *= G(vl, vc);
             }
         }
     }
