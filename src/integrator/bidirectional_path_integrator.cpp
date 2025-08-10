@@ -1,7 +1,7 @@
 #include "bulbit/bxdfs.h"
 #include "bulbit/integrators.h"
-#include "bulbit/lights.h"
 #include "bulbit/material.h"
+#include "bulbit/path.h"
 
 namespace bulbit
 {
@@ -227,15 +227,15 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
             {
                 if (V(v.point, camera_sample.p_aperture))
                 {
-                    Spectrum L =
+                    Spectrum Li =
                         v.beta * camera_sample.Wi * v.f(camera_sample.wi, TransportDirection::ToCamera) / camera_sample.pdf;
 
                     if (v.IsOnSurface())
                     {
-                        L *= AbsDot(v.normal, camera_sample.wi);
+                        Li *= AbsDot(v.normal, camera_sample.wi);
                     }
 
-                    film.AddSplat(camera_sample.p_raster, mis_weight * L);
+                    film.AddSplat(camera_sample.p_raster, mis_weight * Li);
                 }
             }
         }
