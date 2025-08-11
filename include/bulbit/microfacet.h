@@ -1,10 +1,8 @@
 #pragma once
 
 #include "common.h"
-#include "frame.h"
 #include "image.h"
 #include "sampling.h"
-#include "spectrum.h"
 #include "textures.h"
 
 namespace bulbit

@@ -1,7 +1,11 @@
+#include "bulbit/bsdf.h"
 #include "bulbit/bxdfs.h"
+#include "bulbit/camera.h"
+#include "bulbit/film.h"
 #include "bulbit/integrators.h"
 #include "bulbit/material.h"
 #include "bulbit/path.h"
+#include "bulbit/sampler.h"
 
 namespace bulbit
 {

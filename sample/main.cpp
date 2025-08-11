@@ -5,8 +5,6 @@
 #include "bulbit/bulbit.h"
 #include "samples.h"
 
-#include <format>
-
 int main(int argc, char* argv[])
 {
 #if defined(_WIN32) && defined(_DEBUG)

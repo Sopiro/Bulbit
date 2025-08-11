@@ -1,8 +1,13 @@
 #include "bulbit/integrators.h"
 
 #include "bulbit/async_job.h"
+#include "bulbit/camera.h"
+#include "bulbit/film.h"
+#include "bulbit/media.h"
+#include "bulbit/microfacet.h"
 #include "bulbit/parallel_for.h"
 #include "bulbit/progress.h"
+#include "bulbit/sampler.h"
 
 namespace bulbit
 {

@@ -1,10 +1,12 @@
 #pragma once
 
 #include "common.h"
-#include "light.h"
 
 namespace bulbit
 {
+
+struct Intersection;
+class Light;
 
 struct SampledLight
 {

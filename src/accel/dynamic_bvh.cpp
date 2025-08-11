@@ -1,8 +1,6 @@
 #include "bulbit/dynamic_bvh.h"
 #include "bulbit/intersectable.h"
 
-#include <algorithm>
-
 namespace bulbit
 {
 

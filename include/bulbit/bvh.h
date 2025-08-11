@@ -1,6 +1,7 @@
 #pragma once
 
 #include "growable_array.h"
+#include "medium.h"
 #include "parallel.h"
 #include "primitive.h"
 

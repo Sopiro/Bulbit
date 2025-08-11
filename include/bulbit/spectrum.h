@@ -2,8 +2,6 @@
 
 #include "vectors.h"
 
-#include <format>
-
 namespace bulbit
 {
 

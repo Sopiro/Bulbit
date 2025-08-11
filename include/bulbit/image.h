@@ -1,11 +1,9 @@
 #pragma once
 
 #include "color.h"
-#include "math.h"
+#include "common.h"
 #include "spectrum.h"
 #include "tone_mapping.h"
-
-#include <filesystem>
 
 namespace bulbit
 {

@@ -1,3 +1,4 @@
+#include "bulbit/bsdf.h"
 #include "bulbit/bssrdfs.h"
 #include "bulbit/bxdfs.h"
 #include "bulbit/materials.h"

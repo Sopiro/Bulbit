@@ -2,7 +2,6 @@
 
 #include "hash.h"
 #include "image.h"
-#include "parallel_for.h"
 #include "pool.h"
 #include "texture.h"
 

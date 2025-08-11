@@ -1,4 +1,6 @@
+#include "bulbit/bsdf.h"
 #include "bulbit/bxdfs.h"
+#include "bulbit/intersectable.h"
 #include "bulbit/materials.h"
 
 namespace bulbit

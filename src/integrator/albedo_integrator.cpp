@@ -1,3 +1,4 @@
+#include "bulbit/bsdf.h"
 #include "bulbit/bxdfs.h"
 #include "bulbit/frame.h"
 #include "bulbit/integrators.h"

@@ -4,7 +4,6 @@
 #include "bxdfs.h"
 #include "intersectable.h"
 #include "media.h"
-#include "scattering.h"
 
 namespace bulbit
 {

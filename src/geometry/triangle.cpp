@@ -1,3 +1,4 @@
+#include "bulbit/mesh.h"
 #include "bulbit/shapes.h"
 
 namespace bulbit
@@ -7,6 +8,33 @@ Triangle::Triangle(const Mesh* mesh, size_t tri_index)
     : mesh{ mesh }
 {
     v = &mesh->indices[tri_index * 3];
+}
+
+Vec3 Triangle::GetNormal(Float tu, Float tv, Float tw) const
+{
+    const Vec3& n0 = mesh->normals[v[0]];
+    const Vec3& n1 = mesh->normals[v[1]];
+    const Vec3& n2 = mesh->normals[v[2]];
+
+    return Normalize(tw * n0 + tu * n1 + tv * n2);
+}
+
+Vec3 Triangle::GetTangent(Float tu, Float tv, Float tw) const
+{
+    const Vec3& t0 = mesh->tangents[v[0]];
+    const Vec3& t1 = mesh->tangents[v[1]];
+    const Vec3& t2 = mesh->tangents[v[2]];
+
+    return Normalize(tw * t0 + tu * t1 + tv * t2);
+}
+
+Point2 Triangle::GetTexCoord(Float tu, Float tv, Float tw) const
+{
+    Point2 u0 = mesh->texCoords[v[0]];
+    Point2 u1 = mesh->texCoords[v[1]];
+    Point2 u2 = mesh->texCoords[v[2]];
+
+    return tw * u0 + tu * u1 + tv * u2;
 }
 
 AABB Triangle::GetAABB() const

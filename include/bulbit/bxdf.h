@@ -2,8 +2,6 @@
 
 #include "spectrum.h"
 
-#include <span>
-
 namespace bulbit
 {
 

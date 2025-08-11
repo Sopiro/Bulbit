@@ -4,6 +4,7 @@
 #include "bulbit/material.h"
 #include "bulbit/media.h"
 #include "bulbit/random.h"
+#include "bulbit/sampler.h"
 
 namespace bulbit
 {

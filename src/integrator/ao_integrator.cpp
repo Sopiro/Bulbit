@@ -1,5 +1,6 @@
 #include "bulbit/frame.h"
 #include "bulbit/integrators.h"
+#include "bulbit/sampler.h"
 
 namespace bulbit
 {

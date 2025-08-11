@@ -1,6 +1,5 @@
 #pragma once
 
-#include "bounding_box.h"
 #include "intersectable.h"
 #include "ray.h"
 

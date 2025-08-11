@@ -1,7 +1,5 @@
 #include "../samples.h"
 
-#include <typeinfo>
-
 std::unique_ptr<Camera> CornellBoxVolume2(Scene& scene)
 {
     // Materials

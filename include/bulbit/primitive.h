@@ -3,11 +3,12 @@
 #include "hash.h"
 #include "intersectable.h"
 #include "materials.h"
-#include "medium.h"
 #include "shape.h"
 
 namespace bulbit
 {
+
+class Medium;
 
 class Primitive : public Intersectable
 {

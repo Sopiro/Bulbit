@@ -1,5 +1,8 @@
 #include "bulbit/lights.h"
 #include "bulbit/materials.h"
+#include "bulbit/medium.h"
+#include "bulbit/primitive.h"
+#include "bulbit/sampling.h"
 
 namespace bulbit
 {

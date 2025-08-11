@@ -1,4 +1,5 @@
 #include "bulbit/mesh.h"
+#include "bulbit/matrix.h"
 #include "bulbit/shapes.h"
 
 namespace bulbit

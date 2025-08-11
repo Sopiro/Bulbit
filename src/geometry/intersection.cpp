@@ -1,5 +1,6 @@
 #include "bulbit/bsdf.h"
 #include "bulbit/materials.h"
+#include "bulbit/medium.h"
 #include "bulbit/primitive.h"
 
 namespace bulbit

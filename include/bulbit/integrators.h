@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bxdf.h"
 #include "integrator.h"
 #include "light_samplers.h"
 #include "lights.h"

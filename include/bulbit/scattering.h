@@ -3,8 +3,6 @@
 #include "common.h"
 #include "spectrum.h"
 
-#include <complex>
-
 namespace bulbit
 {
 

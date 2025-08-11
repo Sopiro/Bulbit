@@ -1,11 +1,13 @@
 #pragma once
 
-#include "camera.h"
-#include "lights.h"
-#include "primitive.h"
+#include "bsdf.h"
+#include "intersectable.h"
 
 namespace bulbit
 {
+
+class Primitive;
+class AreaLight;
 
 struct SurfaceVertex
 {

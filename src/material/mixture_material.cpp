@@ -1,4 +1,6 @@
+#include "bulbit/bsdf.h"
 #include "bulbit/hash.h"
+#include "bulbit/intersectable.h"
 #include "bulbit/materials.h"
 #include "bulbit/textures.h"
 

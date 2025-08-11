@@ -1,4 +1,7 @@
+#include "bulbit/bsdf.h"
+#include "bulbit/bxdfs.h"
 #include "bulbit/integrators.h"
+#include "bulbit/sampler.h"
 
 namespace bulbit
 {

@@ -1,7 +1,7 @@
 #include "bulbit/frame.h"
 #include "bulbit/lights.h"
-
-#include <memory>
+#include "bulbit/sampling.h"
+#include "bulbit/textures.h"
 
 namespace bulbit
 {

@@ -1,8 +1,5 @@
 #pragma once
 
-#include "camera.h"
-#include "film.h"
-#include "sampler.h"
 #include "scene.h"
 
 namespace bulbit
@@ -10,6 +7,9 @@ namespace bulbit
 
 class Rendering;
 class Medium;
+class Camera;
+class Film;
+class Sampler;
 
 class Integrator
 {

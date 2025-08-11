@@ -1,15 +1,14 @@
 #pragma once
 
-#include "bsdf.h"
-#include "bssrdf.h"
 #include "dynamic_dispatcher.h"
-#include "intersectable.h"
 #include "texture.h"
 
 namespace bulbit
 {
 
 struct Intersection;
+class BSDF;
+class BSSRDF;
 
 using Materials = TypePack<
     class DiffuseMaterial,

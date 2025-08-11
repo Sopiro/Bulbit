@@ -2,13 +2,15 @@
 
 #include "intersectable.h"
 #include "light.h"
-#include "primitive.h"
+#include "sampling.h"
 #include "spectrum.h"
 #include "textures.h"
 #include "transform.h"
 
 namespace bulbit
 {
+
+class Primitive;
 
 class PointLight : public Light
 {

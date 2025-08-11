@@ -8,8 +8,6 @@
 #include "scene_builder.h"
 #include "texture_builder.h"
 
-#include <unordered_map>
-
 using namespace bulbit;
 
 struct Sample

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "async_job.h"
+#include "camera.h"
+#include "film.h"
 
 namespace bulbit
 {

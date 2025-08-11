@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common.h"
 #include "vectors.h"
 
 namespace bulbit

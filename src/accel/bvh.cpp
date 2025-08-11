@@ -2,8 +2,6 @@
 #include "bulbit/intersectable.h"
 #include "bulbit/parallel_for.h"
 
-#include <algorithm>
-
 namespace bulbit
 {
 

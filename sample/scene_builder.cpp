@@ -7,8 +7,6 @@
 
 #include "scene_builder.h"
 
-#include <filesystem>
-
 namespace bulbit
 {
 

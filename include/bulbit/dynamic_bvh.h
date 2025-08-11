@@ -2,6 +2,7 @@
 
 #include "bounding_box.h"
 #include "growable_array.h"
+#include "medium.h"
 #include "primitive.h"
 
 namespace bulbit
