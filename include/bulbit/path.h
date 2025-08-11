@@ -1,13 +1,13 @@
 #pragma once
 
 #include "bsdf.h"
-#include "intersectable.h"
+#include "camera.h"
+#include "lights.h"
+#include "media.h"
+#include "primitive.h"
 
 namespace bulbit
 {
-
-class Primitive;
-class AreaLight;
 
 struct SurfaceVertex
 {
@@ -107,26 +107,14 @@ struct Vertex
 
     Spectrum Le(const Vertex& v) const
     {
-        if (!IsLight())
-        {
-            return Spectrum::black;
-        }
-
         Vec3 w = v.point - point;
         if (w.Normalize() == 0)
         {
             return Spectrum::black;
         }
 
-        if (sv.area_light)
-        {
-            Intersection isect{ .normal = normal, .front_face = sv.front_face };
-            return sv.primitive->GetMaterial()->Le(isect, w);
-        }
-        else
-        {
-            return Spectrum::black;
-        }
+        Intersection isect{ .normal = normal, .front_face = sv.front_face };
+        return sv.primitive->GetMaterial()->Le(isect, w);
     }
 
     Spectrum f(const Vec3& wi, TransportDirection mode) const
