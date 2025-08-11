@@ -55,7 +55,7 @@ public:
     Spectrum Phi() const;
 
 private:
-    Vec3 dir;
+    Vec3 wo;
     Spectrum intensity; // radiance
 
     Point3 world_center;

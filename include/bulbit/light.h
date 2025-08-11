@@ -15,33 +15,19 @@ struct LightSampleLi
 {
     LightSampleLi() = default;
 
-    LightSampleLi(Vec3 wi, Float pdf, Float visibility, Spectrum Li)
-        : wi{ wi }
-        , pdf{ pdf }
-        , visibility{ visibility }
-        , Li{ Li }
-    {
-    }
+    Point3 point;
+    Vec3 normal;
 
     Vec3 wi;
-    Float pdf;
     Float visibility;
+
     Spectrum Li;
+    Float pdf;
 };
 
 struct LightSampleLe
 {
     LightSampleLe() = default;
-
-    LightSampleLe(Ray ray, Vec3 normal, Float pdf_p, Float pdf_w, Spectrum Le, const Medium* medium)
-        : ray{ ray }
-        , normal{ normal }
-        , pdf_p{ pdf_p }
-        , pdf_w{ pdf_w }
-        , Le{ Le }
-        , medium{ medium }
-    {
-    }
 
     Ray ray;
     Vec3 normal;

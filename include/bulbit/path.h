@@ -77,7 +77,7 @@ struct Vertex
         return normal != Vec3::zero;
     }
 
-    bool IsConnectible() const
+    bool IsConnectable() const
     {
         switch (type)
         {

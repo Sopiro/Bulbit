@@ -35,16 +35,19 @@ Spectrum AreaLight::Le(const Ray& ray) const
 bool AreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
 {
     ShapeSample shape_sample = primitive->GetShape()->Sample(ref.point, u);
-    Vec3 ref2p = shape_sample.point - ref.point;
+    Vec3 wi = shape_sample.point - ref.point;
 
-    sample->visibility = ref2p.Normalize() - Ray::epsilon;
-    sample->wi = ref2p;
+    sample->point = shape_sample.point;
+    sample->normal = shape_sample.normal;
+
+    sample->visibility = wi.Normalize() - Ray::epsilon;
+    sample->wi = wi;
     sample->pdf = shape_sample.pdf;
 
     Intersection isect;
     isect.point = shape_sample.point;
-    isect.front_face = Dot(shape_sample.normal, ref2p) < 0;
-    sample->Li = primitive->GetMaterial()->Le(isect, ref2p);
+    isect.front_face = Dot(shape_sample.normal, wi) < 0;
+    sample->Li = primitive->GetMaterial()->Le(isect, wi);
 
     return true;
 }

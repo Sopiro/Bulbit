@@ -47,8 +47,6 @@ Spectrum ImageInfiniteLight::Le(const Ray& ray) const
 
 bool ImageInfiniteLight::Sample_Li(LightSampleLi* light_sample, const Intersection& ref, Point2 u) const
 {
-    BulbitNotUsed(ref);
-
     Float map_pdf;
     Point2 uv = distribution.SampleContinuous(u, &map_pdf);
 
@@ -63,7 +61,10 @@ bool ImageInfiniteLight::Sample_Li(LightSampleLi* light_sample, const Intersecti
     Float cos_theta = std::cos(theta), sin_theta = std::sin(theta);
     Float sin_phi = std::sin(phi), cos_phi = std::cos(phi);
 
-    light_sample->wi = Mul(transform, SphericalDirection(sin_theta, cos_theta, sin_phi, cos_phi));
+    Vec3 wi = Mul(transform, SphericalDirection(sin_theta, cos_theta, sin_phi, cos_phi));
+    light_sample->wi = wi;
+    light_sample->normal = -wi;
+    light_sample->point = ref.point + wi * 2 * world_radius;
 
     if (sin_theta == 0)
     {

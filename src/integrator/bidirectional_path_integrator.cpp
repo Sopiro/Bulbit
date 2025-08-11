@@ -182,11 +182,12 @@ int32 BiDirectionalPathIntegrator::RandomWalk(
 }
 
 Spectrum BiDirectionalPathIntegrator::ConnectPaths(
-    Vertex* light_path, Vertex* camera_path, int32 s, int32 t, const Camera* camera, Film& film, Sampler& sampler
+    Vertex* light_path, Vertex* camera_path, int32 s, int32 t, const Camera* camera, Sampler& sampler, Point2* p_raster
 ) const
 {
     Spectrum L(0);
-    Float mis_weight = (s + t == 2) ? 1.0f : 1.0f / (s + t);
+
+    Vertex ve;
 
     if (s == 0)
     {
@@ -198,7 +199,7 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
     {
         // Sample camera sample and connect it to the light subpath
         const Vertex& v = light_path[s - 1];
-        if (!v.IsConnectible())
+        if (!v.IsConnectable())
         {
             return Spectrum::black;
         }
@@ -210,26 +211,33 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
             return Spectrum::black;
         }
 
+        // Sample new camera vertex
+        {
+            ve.type = VertexType::camera;
+            ve.cv.camera = camera;
+            ve.point = camera_sample.p_aperture;
+            ve.beta = camera_sample.Wi / camera_sample.pdf;
+        }
+
         if (!V(v.point, camera_sample.p_aperture))
         {
             return Spectrum::black;
         }
 
-        L = v.beta * camera_sample.Wi * v.f(camera_sample.wi, TransportDirection::ToCamera) / camera_sample.pdf;
+        L = ve.beta * v.f(camera_sample.wi, TransportDirection::ToCamera) * v.beta;
 
         if (v.IsOnSurface())
         {
             L *= AbsDot(v.normal, camera_sample.wi);
         }
 
-        film.AddSplat(camera_sample.p_raster, mis_weight * L);
-        return Spectrum::black;
+        *p_raster = camera_sample.p_raster;
     }
     else if (s == 1)
     {
         // Sample light sample and connect it to the camera subpath
         const Vertex& v = camera_path[t - 1];
-        if (!v.IsConnectible())
+        if (!v.IsConnectable())
         {
             return Spectrum::black;
         }
@@ -247,7 +255,22 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
             return Spectrum::black;
         }
 
-        L = v.beta * v.f(light_sample.wi, TransportDirection::ToLight) * light_sample.Li / (sampled_light.pmf * light_sample.pdf);
+        // Sample new light vertex
+        {
+            ve.type = VertexType::light;
+            ve.lv.light = sampled_light.light;
+            ve.point = v.point + light_sample.wi * light_sample.visibility;
+            ve.beta = light_sample.Li / (sampled_light.pmf * light_sample.pdf);
+
+            isect.point = light_sample.point;
+            isect.normal = light_sample.normal;
+
+            Float pdf_p, pdf_w;
+            sampled_light.light->PDF_Le(&pdf_p, &pdf_w, isect, -light_sample.wi);
+            ve.pdf_fwd = light_sampler.EvaluatePMF(sampled_light.light) * pdf_p;
+        }
+
+        L = v.beta * v.f(light_sample.wi, TransportDirection::ToLight) * ve.beta;
 
         if (v.IsOnSurface())
         {
@@ -264,7 +287,7 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
         // Join two paths in the middle
         const Vertex& vl = light_path[s - 1];
         const Vertex& vc = camera_path[t - 1];
-        if (!vl.IsConnectible() || !vc.IsConnectible())
+        if (!vl.IsConnectable() || !vc.IsConnectable())
         {
             return Spectrum::black;
         }
@@ -299,7 +322,42 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
         L *= G;
     }
 
+    if (L.IsBlack())
+    {
+        return L;
+    }
+
+    // Temporally swap end vertex
+    if (t == 1)
+    {
+        std::swap(camera_path[0], ve);
+    }
+    else if (s == 1)
+    {
+        std::swap(light_path[0], ve);
+    }
+
+    Float mis_weight = WeightMIS(light_path, camera_path, s, t);
+
+    // Reswap
+    if (t == 1)
+    {
+        std::swap(camera_path[0], ve);
+    }
+    else if (s == 1)
+    {
+        std::swap(light_path[0], ve);
+    }
+
     return mis_weight * L;
+}
+
+Float BiDirectionalPathIntegrator::WeightMIS(Vertex* light_path, Vertex* camera_path, int32 s, int32 t) const
+{
+    BulbitNotUsed(light_path);
+    BulbitNotUsed(camera_path);
+
+    return (s + t == 2) ? 1.0f : 1.0f / (s + t);
 }
 
 Spectrum BiDirectionalPathIntegrator::L(
@@ -319,7 +377,7 @@ Spectrum BiDirectionalPathIntegrator::L(
     int32 num_camera_vertices = SampleCameraPath(camera_path, primary_ray, camera, sampler, vertex_alloc);
     int32 num_light_vertces = SampleLightPath(light_path, sampler, vertex_alloc);
 
-    Spectrum L(0);
+    Spectrum Li(0);
 
     for (int32 t = 1; t <= num_camera_vertices; ++t)
     {
@@ -331,15 +389,21 @@ Spectrum BiDirectionalPathIntegrator::L(
                 continue;
             }
 
-            Spectrum L_path = ConnectPaths(light_path, camera_path, s, t, camera, film, sampler);
-            if (t != 1)
+            Point2 p_raster;
+            Spectrum L_path = ConnectPaths(light_path, camera_path, s, t, camera, sampler, &p_raster);
+
+            if (t == 1)
             {
-                L += L_path;
+                film.AddSplat(p_raster, L_path);
+            }
+            else
+            {
+                Li += L_path;
             }
         }
     }
 
-    return L;
+    return Li;
 }
 
 } // namespace bulbit

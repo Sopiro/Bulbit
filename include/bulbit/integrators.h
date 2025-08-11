@@ -212,8 +212,9 @@ private:
     ) const;
 
     Spectrum ConnectPaths(
-        Vertex* light_path, Vertex* camera_path, int32 s, int32 t, const Camera* camera, Film& film, Sampler& sampler
+        Vertex* light_path, Vertex* camera_path, int32 s, int32 t, const Camera* camera, Sampler& sampler, Point2* p_raster
     ) const;
+    Float WeightMIS(Vertex* light_path, Vertex* camera_path, int32 s, int32 t) const;
 
     std::vector<Light*> infinite_lights;
     std::unordered_map<const Primitive*, AreaLight*> area_lights;

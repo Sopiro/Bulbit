@@ -26,7 +26,7 @@ Integrator::Integrator(const Intersectable* accel, std::vector<Light*> lights)
 bool Integrator::V(const Point3 p1, const Point3 p2) const
 {
     Vec3 d = p2 - p1;
-    Float visibility = d.Normalize();
+    Float visibility = d.Normalize() - Ray::epsilon;
     Ray ray(p1, d);
 
     Intersection isect;

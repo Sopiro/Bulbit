@@ -28,10 +28,13 @@ bool PointLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point
 {
     BulbitNotUsed(u);
 
-    Vec3 d = position - ref.point;
-    Float distance = d.Normalize();
+    Vec3 wi = position - ref.point;
+    Float distance = wi.Normalize();
 
-    sample->wi = d;
+    sample->point = position;
+    sample->normal = -wi;
+
+    sample->wi = wi;
     sample->visibility = distance;
     sample->pdf = 1;
     sample->Li = intensity / (distance * distance);

@@ -24,9 +24,11 @@ Spectrum UniformInfiniteLight::Le(const Ray& ray) const
 
 bool UniformInfiniteLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
 {
-    BulbitNotUsed(ref);
+    Vec3 wi = SampleUniformSphere(u);
+    sample->wi = wi;
+    sample->normal = -wi;
+    sample->point = ref.point + wi * 2 * world_radius;
 
-    sample->wi = SampleUniformSphere(u);
     sample->pdf = UniformSpherePDF();
     sample->visibility = 2 * world_radius;
     sample->Li = scale * l;
