@@ -1,5 +1,6 @@
 #pragma once
 
+#include "asserts.h"
 #include "types.h"
 
 #ifdef BULBIT_DOUBLE_PRECISION
@@ -23,6 +24,7 @@ constexpr Float max_float = std::numeric_limits<Float>::max();
 
 inline bool IsNullish(int32 v)
 {
+    BulbitNotUsed(v);
     return false;
 }
 
