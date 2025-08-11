@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
     std::cout << "Acceleration structure build: " << t << "s" << std::endl;
 
     int32 samples_per_pixel = 64;
-    int32 max_bounces = 100;
+    int32 max_bounces = 8;
 
     // IndependentSampler sampler(samples_per_pixel);
     StratifiedSampler sampler(std::sqrt(samples_per_pixel), std::sqrt(samples_per_pixel), true);

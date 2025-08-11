@@ -169,8 +169,6 @@ public:
     virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
 
 private:
-    bool V(const Point3 p1, const Point3 p2) const;
-
     PowerLightSampler light_sampler;
     int32 max_bounces;
 };
@@ -183,8 +181,6 @@ public:
     virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
 
 private:
-    Spectrum Tr(const Point3 p1, const Point3 p2, const Medium* medium, int32 wavelength) const;
-
     PowerLightSampler light_sampler;
     int32 max_bounces;
 };
@@ -201,7 +197,6 @@ public:
     virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
 
 private:
-    bool V(const Point3 p1, const Point3 p2) const;
     int32 SampleCameraPath(Vertex* path, const Ray& ray, const Camera* camera, Sampler& sampler, Allocator& alloc) const;
     int32 SampleLightPath(Vertex* path, Sampler& sampler, Allocator& alloc) const;
     int32 RandomWalk(

@@ -15,27 +15,6 @@ LightPathIntegrator::LightPathIntegrator(
 {
 }
 
-bool LightPathIntegrator::V(const Point3 p1, const Point3 p2) const
-{
-    Vec3 d = p2 - p1;
-    Float visibility = d.Normalize();
-    Ray ray(p1, d);
-
-    Intersection isect;
-    while (visibility > 0 && Intersect(&isect, ray, Ray::epsilon, visibility))
-    {
-        if (isect.primitive->GetMaterial())
-        {
-            return false;
-        }
-
-        ray.o = isect.point;
-        visibility -= isect.t;
-    }
-
-    return true;
-}
-
 Spectrum LightPathIntegrator::L(
     const Ray& primary_ray, const Medium* primary_medium, const Camera* camera, Film& film, Sampler& sampler
 ) const

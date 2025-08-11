@@ -35,27 +35,6 @@ BiDirectionalPathIntegrator::BiDirectionalPathIntegrator(
     }
 }
 
-bool BiDirectionalPathIntegrator::V(const Point3 p1, const Point3 p2) const
-{
-    Vec3 d = p2 - p1;
-    Float visibility = d.Normalize();
-    Ray ray(p1, d);
-
-    Intersection isect;
-    while (visibility > 0 && Intersect(&isect, ray, Ray::epsilon, visibility))
-    {
-        if (isect.primitive->GetMaterial())
-        {
-            return false;
-        }
-
-        ray.o = isect.point;
-        visibility -= isect.t;
-    }
-
-    return true;
-}
-
 int32 BiDirectionalPathIntegrator::SampleCameraPath(
     Vertex* path, const Ray& ray, const Camera* camera, Sampler& sampler, Allocator& alloc
 ) const

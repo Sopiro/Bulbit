@@ -9,6 +9,7 @@ namespace bulbit
 {
 
 class Rendering;
+class Medium;
 
 class Integrator
 {
@@ -18,16 +19,10 @@ public:
     virtual std::unique_ptr<Rendering> Render(const Camera* camera) = 0;
 
 protected:
-    Integrator(const Intersectable* accel, std::vector<Light*> lights)
-        : accel{ accel }
-        , all_lights{ std::move(lights) }
-    {
-        AABB world_bounds = accel->GetAABB();
-        for (size_t i = 0; i < all_lights.size(); i++)
-        {
-            all_lights[i]->Preprocess(world_bounds);
-        }
-    }
+    Integrator(const Intersectable* accel, std::vector<Light*> lights);
+
+    bool V(const Point3 p1, const Point3 p2) const;
+    Spectrum Tr(const Point3 p1, const Point3 p2, const Medium* medium, int32 wavelength) const;
 
     bool Intersect(Intersection* out_isect, const Ray& ray, Float t_min, Float t_max) const
     {
