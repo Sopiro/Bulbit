@@ -31,6 +31,7 @@ struct CameraVertex
 struct LightVertex
 {
     const Light* light;
+    bool infinite_light;
 };
 
 enum VertexType
@@ -105,6 +106,11 @@ struct Vertex
         return type == VertexType::light && lv.light && lv.light->IsDeltaLight();
     }
 
+    bool IsInfiniteLight() const
+    {
+        return type == VertexType::light && lv.infinite_light;
+    }
+
     Spectrum Le(const Vertex& v) const
     {
         Vec3 w = v.point - point;
@@ -117,12 +123,12 @@ struct Vertex
         return sv.primitive->GetMaterial()->Le(isect, w);
     }
 
-    Spectrum f(const Vec3& wi, TransportDirection mode) const
+    Spectrum f(const Vec3& wi, TransportDirection direction) const
     {
         switch (type)
         {
         case VertexType::surface:
-            return sv.bsdf.f(wo, wi, mode);
+            return sv.bsdf.f(wo, wi, direction);
         case VertexType::medium:
             return Spectrum(mv.phase->p(wo, wi));
         default:
@@ -131,7 +137,7 @@ struct Vertex
         }
     }
 
-    Spectrum f(const Vertex& next, TransportDirection mode) const
+    Spectrum f(const Vertex& next, TransportDirection direction) const
     {
         Vec3 wi = next.point - point;
         if (wi.Normalize() == 0)
@@ -139,7 +145,124 @@ struct Vertex
             return Spectrum::black;
         }
 
-        return f(wi, mode);
+        return f(wi, direction);
+    }
+
+    Float PDF(const Vertex& next, const Vertex* prev = nullptr) const
+    {
+        if (type == VertexType::light)
+        {
+            BulbitAssert(prev == nullptr);
+            return PDFLight(next);
+        }
+
+        Vec3 wi = next.point - point;
+        if (wi.Normalize() == 0)
+        {
+            return 0;
+        }
+
+        Vec3 wo;
+        if (prev)
+        {
+            wo = prev->point - point;
+            if (wo.Normalize() == 0)
+            {
+                return 0;
+            }
+        }
+        else
+        {
+            BulbitAssert(type == VertexType::camera);
+        }
+
+        Float pdf;
+        switch (type)
+        {
+        case VertexType::surface:
+            pdf = sv.bsdf.PDF(wo, wi);
+            break;
+        case VertexType::medium:
+            pdf = mv.phase->PDF(wo, wi);
+            break;
+        case VertexType::camera:
+        {
+            Float pdf_p;
+            cv.camera->PDF_We(&pdf_p, &pdf, Ray(point, wi));
+        }
+        break;
+        default:
+            BulbitAssert(false);
+            return 0;
+        }
+
+        return ConvertDensity(pdf, next);
+    }
+
+    Float PDFLight(const Vertex& next) const
+    {
+        Vec3 w = next.point - point;
+        Float inv_dist2 = 1 / Length2(w);
+        w *= std::sqrt(inv_dist2);
+
+        Float pdf;
+        if (IsInfiniteLight())
+        {
+            // Not handled yet
+            pdf = 0;
+        }
+        else if (IsOnSurface())
+        {
+            const Light* light = (type == VertexType::light) ? lv.light : sv.area_light;
+            Intersection isect{ .point = point, .normal = normal };
+            Float pdf_p, pdf_w;
+            light->PDF_Le(&pdf_p, &pdf_w, isect, w);
+            pdf = pdf_w * inv_dist2;
+        }
+        else
+        {
+            Float pdf_p, pdf_w;
+            lv.light->EvaluatePDF_Le(&pdf_p, &pdf_w, Ray(point, w));
+            pdf = pdf_w * inv_dist2;
+        }
+
+        if (next.IsOnSurface())
+        {
+            pdf *= AbsDot(next.normal, w);
+        }
+        return pdf;
+    }
+
+    Float PDFLightOrigin(const Vertex& next, const std::vector<Light*>& infinite_lights, const LightSampler& light_sampler) const
+    {
+        Vec3 w = next.point - point;
+        if (w.Normalize() == 0)
+        {
+            return 0;
+        }
+
+        if (IsInfiniteLight())
+        {
+            BulbitNotUsed(infinite_lights);
+            // Not handled yet
+            return 0;
+        }
+        else
+        {
+            const Light* light = (type == VertexType::light) ? lv.light : sv.area_light;
+            Float pdf_p, pdf_w;
+            if (IsOnSurface())
+            {
+                Intersection isect{ .point = point, .normal = normal };
+                light->PDF_Le(&pdf_p, &pdf_w, isect, w);
+            }
+            else
+            {
+                light->EvaluatePDF_Le(&pdf_p, &pdf_w, Ray(point, w));
+            }
+
+            return light_sampler.EvaluatePMF(light) * pdf_p;
+        }
     }
 
     Float ConvertDensity(Float pdf, const Vertex& next) const

@@ -64,6 +64,7 @@ public:
 
     Spectrum Phi() const;
     bool IsDeltaLight() const;
+    bool IsInfiniteLight() const;
 };
 
 } // namespace bulbit

@@ -47,13 +47,14 @@ int32 BiDirectionalPathIntegrator::SampleCameraPath(
     Float pdf_p, pdf_w;
     camera->PDF_We(&pdf_p, &pdf_w, ray);
 
-    // Create camera vertex
+    // Sample camera vertex
     {
         Vertex& v = path[0];
         v.type = VertexType::camera;
         v.cv.camera = camera;
         v.beta = Spectrum(1);
         v.point = ray.o;
+        // No need to calculate forward area density since t=0 paths are ignored
     }
 
     return 1 + RandomWalk(path + 1, ray, beta, pdf_w, max_bounces + 1, TransportDirection::ToLight, sampler, alloc);
@@ -74,11 +75,13 @@ int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sample
         return 0;
     }
 
-    // Create light vertex
+    // Sample light vertex
     {
         Vertex& v = path[0];
         v.type = VertexType::light;
         v.lv.light = sl.light;
+        v.lv.infinite_light = sl.light->IsInfiniteLight();
+
         v.point = light_sample.ray.o;
         v.normal = light_sample.normal;
         v.pdf_fwd = sl.pmf * light_sample.pdf_p;
@@ -259,15 +262,11 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
         {
             ve.type = VertexType::light;
             ve.lv.light = sampled_light.light;
-            ve.point = v.point + light_sample.wi * light_sample.visibility;
+            ve.lv.infinite_light = sampled_light.light->IsInfiniteLight();
+
+            ve.point = light_sample.point;
             ve.beta = light_sample.Li / (sampled_light.pmf * light_sample.pdf);
-
-            isect.point = light_sample.point;
-            isect.normal = light_sample.normal;
-
-            Float pdf_p, pdf_w;
-            sampled_light.light->PDF_Le(&pdf_p, &pdf_w, isect, -light_sample.wi);
-            ve.pdf_fwd = light_sampler.EvaluatePMF(sampled_light.light) * pdf_p;
+            ve.pdf_fwd = ve.PDFLightOrigin(v, infinite_lights, light_sampler);
         }
 
         L = v.beta * v.f(light_sample.wi, TransportDirection::ToLight) * ve.beta;

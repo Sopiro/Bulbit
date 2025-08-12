@@ -191,4 +191,9 @@ inline bool Light::IsDeltaLight() const
     return Is<PointLight>() || Is<DirectionalLight>();
 }
 
+inline bool Light::IsInfiniteLight() const
+{
+    return Is<UniformInfiniteLight>() || Is<ImageInfiniteLight>();
+}
+
 } // namespace bulbit
