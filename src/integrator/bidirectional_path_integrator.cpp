@@ -52,9 +52,16 @@ int32 BiDirectionalPathIntegrator::SampleCameraPath(
         Vertex& v = path[0];
         v.type = VertexType::camera;
         v.cv.camera = camera;
-        v.beta = Spectrum(1);
+
         v.point = ray.o;
-        // No need to calculate forward area density since t=0 paths are ignored
+        v.normal = Vec3(0);
+        v.wo = Vec3(0);
+
+        v.beta = Spectrum(1);
+        v.delta = false;
+
+        v.pdf_fwd = 1;
+        v.pdf_rev = 0;
     }
 
     return 1 + RandomWalk(path + 1, ray, beta, pdf_w, max_bounces + 1, TransportDirection::ToLight, sampler, alloc);
@@ -84,7 +91,13 @@ int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sample
 
         v.point = light_sample.ray.o;
         v.normal = light_sample.normal;
+        v.wo = Vec3(0);
+
+        v.beta = light_sample.Le;
+        v.delta = false;
+
         v.pdf_fwd = sl.pmf * light_sample.pdf_p;
+        v.pdf_rev = 0;
     }
 
     Spectrum beta =
@@ -146,8 +159,12 @@ int32 BiDirectionalPathIntegrator::RandomWalk(
             vertex.point = isect.point;
             vertex.normal = isect.normal;
             vertex.wo = wo;
+
             vertex.beta = beta;
+            vertex.delta = false;
+
             vertex.pdf_fwd = prev.ConvertDensity(pdf, vertex);
+            vertex.pdf_rev = 0;
         }
 
         if (++bounces >= max_bounces)
@@ -218,8 +235,16 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
         {
             ve.type = VertexType::camera;
             ve.cv.camera = camera;
+
             ve.point = camera_sample.p_aperture;
+            ve.normal = Vec3(0);
+            ve.wo = Vec3(0);
+
             ve.beta = camera_sample.Wi / camera_sample.pdf;
+            ve.delta = false;
+
+            ve.pdf_fwd = 1;
+            ve.pdf_rev = 0;
         }
 
         if (!V(v.point, camera_sample.p_aperture))
@@ -265,8 +290,14 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
             ve.lv.infinite_light = sampled_light.light->IsInfiniteLight();
 
             ve.point = light_sample.point;
+            ve.normal = light_sample.normal;
+            ve.wo = Vec3(0);
+
             ve.beta = light_sample.Li / (sampled_light.pmf * light_sample.pdf);
+            ve.delta = false;
+
             ve.pdf_fwd = ve.PDFLightOrigin(v, infinite_lights, light_sampler);
+            ve.pdf_rev = 0;
         }
 
         L = v.beta * v.f(light_sample.wi, TransportDirection::ToLight) * ve.beta;
@@ -276,7 +307,12 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
             L *= AbsDot(v.normal, light_sample.wi);
         }
 
-        if (!L.IsBlack() && IntersectAny(Ray(v.point, light_sample.wi), Ray::epsilon, light_sample.visibility))
+        if (L.IsBlack())
+        {
+            return Spectrum::black;
+        }
+
+        if (!V(v.point, ve.point))
         {
             return Spectrum::black;
         }
@@ -353,10 +389,94 @@ Spectrum BiDirectionalPathIntegrator::ConnectPaths(
 
 Float BiDirectionalPathIntegrator::WeightMIS(Vertex* light_path, Vertex* camera_path, int32 s, int32 t) const
 {
-    BulbitNotUsed(light_path);
-    BulbitNotUsed(camera_path);
+    if (s + t == 2)
+    {
+        return 1;
+    }
 
-    return (s + t == 2) ? 1.0f : 1.0f / (s + t);
+    Vertex* vc = t > 0 ? &camera_path[t - 1] : nullptr;
+    Vertex* vc_prev = t > 1 ? &camera_path[t - 2] : nullptr;
+    Vertex* vl = s > 0 ? &light_path[s - 1] : nullptr;
+    Vertex* vl_prev = s > 1 ? &light_path[s - 2] : nullptr;
+
+    Float camera_pdf_revs[2];
+    Float light_pdf_revs[2];
+
+    if (vc)
+    {
+        camera_pdf_revs[0] = s > 0 ? vl->PDF(*vc, vl_prev) : vc->PDFLightOrigin(*vc_prev, infinite_lights, light_sampler);
+        std::swap(vc->pdf_rev, camera_pdf_revs[0]);
+    }
+    if (vc_prev)
+    {
+        camera_pdf_revs[1] = s > 0 ? vc->PDF(*vc_prev, vl) : vc->PDFLight(*vc_prev);
+        std::swap(vc_prev->pdf_rev, camera_pdf_revs[1]);
+    }
+    if (vl)
+    {
+        light_pdf_revs[0] = vc->PDF(*vl, vc_prev);
+        std::swap(vl->pdf_rev, light_pdf_revs[0]);
+    }
+    if (vl_prev)
+    {
+        light_pdf_revs[1] = vl->PDF(*vl_prev, vc);
+        std::swap(vl_prev->pdf_rev, light_pdf_revs[1]);
+    }
+
+    Float ri = 1;
+    Float ri_sum = 0;
+
+    for (int32 i = t - 1; i > 0; --i)
+    {
+        const Vertex* vi = &camera_path[i];
+        const Vertex* vi_prev = &camera_path[i - 1];
+
+        Float pdf_rev = vi->pdf_rev;
+        Float pdf_fwd = vi->pdf_fwd;
+
+        ri *= ((pdf_rev == 0) ? 1 : pdf_rev) / ((pdf_fwd == 0) ? 1 : pdf_fwd);
+
+        if (!vi->delta && !vi_prev->delta)
+        {
+            ri_sum += ri;
+        }
+    }
+
+    ri = 1;
+    for (int32 i = s - 1; i >= 0; --i)
+    {
+        const Vertex* vi = &light_path[i];
+        const Vertex* vi_prev = i > 0 ? &light_path[i - 1] : nullptr;
+
+        Float pdf_rev = vi->pdf_rev;
+        Float pdf_fwd = vi->pdf_fwd;
+
+        ri *= ((pdf_rev == 0) ? 1 : pdf_rev) / ((pdf_fwd == 0) ? 1 : pdf_fwd);
+
+        if (!vi->delta && !(vi_prev ? vi_prev->delta : vi->IsDeltaLight()))
+        {
+            ri_sum += ri;
+        }
+    }
+
+    if (vc)
+    {
+        std::swap(vc->pdf_rev, camera_pdf_revs[0]);
+    }
+    if (vc_prev)
+    {
+        std::swap(vc_prev->pdf_rev, camera_pdf_revs[1]);
+    }
+    if (vl)
+    {
+        std::swap(vl->pdf_rev, light_pdf_revs[0]);
+    }
+    if (vl_prev)
+    {
+        std::swap(vl_prev->pdf_rev, light_pdf_revs[1]);
+    }
+
+    return 1 / (1 + ri_sum);
 }
 
 Spectrum BiDirectionalPathIntegrator::L(

@@ -2,6 +2,7 @@
 
 #include "bsdf.h"
 #include "camera.h"
+#include "light_sampler.h"
 #include "lights.h"
 #include "media.h"
 #include "primitive.h"
@@ -57,20 +58,15 @@ struct Vertex
     Point3 point;
     Vec3 normal;
     Vec3 wo;
+
     Spectrum beta;
     bool delta;
 
     Float pdf_fwd, pdf_rev;
 
     Vertex()
-        : point{ 0 }
-        , normal{ 0 }
-        , wo{ 0 }
-        , beta{ 0 }
-        , delta{ false }
-        , pdf_fwd{ 0 }
-        , pdf_rev{ 0 }
     {
+        std::memset(this, 0, sizeof(Vertex));
     }
 
     bool IsOnSurface() const
@@ -98,17 +94,17 @@ struct Vertex
 
     bool IsLight() const
     {
-        return type == VertexType::light || (type == VertexType::surface && sv.area_light);
+        return (type == VertexType::light) || (type == VertexType::surface && sv.area_light);
     }
 
     bool IsDeltaLight() const
     {
-        return type == VertexType::light && lv.light && lv.light->IsDeltaLight();
+        return (type == VertexType::light) && lv.light && lv.light->IsDeltaLight();
     }
 
     bool IsInfiniteLight() const
     {
-        return type == VertexType::light && lv.infinite_light;
+        return (type == VertexType::light) && lv.infinite_light;
     }
 
     Spectrum Le(const Vertex& v) const
