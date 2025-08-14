@@ -146,7 +146,7 @@ int32 BiDirectionalPathIntegrator::RandomWalk(
             vertex.beta = beta;
             vertex.delta = false;
 
-            vertex.pdf_fwd = prev.ConvertDensity(pdf, vertex);
+            vertex.pdf_fwd = ConvertDensity(prev, vertex, pdf);
             vertex.pdf_rev = 0;
         }
 
@@ -173,7 +173,7 @@ int32 BiDirectionalPathIntegrator::RandomWalk(
             pdf_rev = 0;
         }
 
-        prev.pdf_rev = vertex.ConvertDensity(pdf_rev, prev);
+        prev.pdf_rev = ConvertDensity(vertex, prev, pdf_rev);
 
         if (beta == Spectrum::black)
         {
