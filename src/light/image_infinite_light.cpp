@@ -63,7 +63,7 @@ bool ImageInfiniteLight::Sample_Li(LightSampleLi* light_sample, const Intersecti
 
     Vec3 wi = Mul(transform, SphericalDirection(sin_theta, cos_theta, sin_phi, cos_phi));
     light_sample->wi = wi;
-    light_sample->normal = -wi;
+    light_sample->normal = Vec3(0);
     light_sample->point = ref.point + wi * 2 * world_radius;
 
     if (sin_theta == 0)
@@ -119,7 +119,7 @@ bool ImageInfiniteLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) 
     Point3 p_disk = world_center + world_radius * frame.FromLocal(Point3(u_disk, 0));
 
     sample->ray = Ray(p_disk - world_radius * wo, wo);
-    sample->normal = wo;
+    sample->normal = Vec3(0);
     sample->pdf_p = 1 / (pi * Sqr(world_radius));
     sample->pdf_w = map_pdf / (2 * Sqr(pi) * sin_theta);
     sample->Le = l_scale * l_map->Evaluate(uv);

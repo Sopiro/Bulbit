@@ -66,18 +66,12 @@ std::unique_ptr<Camera> CornellBox(Scene& scene)
         // auto mat = CreateThinDielectricMaterial(scene, 1.5f);
 
         auto tf = Transform{ 0.66f, hy, -0.33f, Quat(DegToRad(-18.0f), y_axis), Vec3(hx * 2.0f, hy * 2.0f, hz * 2.0f) };
-        CreateBox(scene, tf, right_box);
+        // CreateBox(scene, tf, right_box);
     }
 
     // Right sphere
     {
-        // auto mat = CreateDielectricMaterial(scene, 1.5f);
-        // auto mat = CreateThinDielectricMaterial(scene, 1.5f);
-        // auto mat = CreateConductorMaterial(scene,
-        //     CreateSpectrumConstantTexture(scene, 0.1, 0.2, 1.9), CreateSpectrumConstantTexture(scene, 3, 2.5, 2),
-        //     CreateFloatConstantTexture(scene, 0.3f), CreateFloatConstantTexture(scene, 0.1f));
-        // CreateSphere(scene, Transform(Vec3(0.65f, 0.15f, -0.3f), Quat(DegToRad(0), x_axis)), 0.15f, mat);
-        // CreateSphere(scene, Transform(Vec3(0.65f, 0.15f, -0.3f), Quat(DegToRad(45), y_axis)), 0.15f, wakgood_mat);
+        CreateSphere(scene, Transform(Vec3(0.65f, 0.15f, -0.3f), Quat(DegToRad(0), x_axis)), 0.15f, glass);
     }
 
     // Lights

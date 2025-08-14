@@ -32,7 +32,7 @@ bool PointLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point
     Float distance = wi.Normalize();
 
     sample->point = position;
-    sample->normal = -wi;
+    sample->normal = Vec3(0);
 
     sample->wi = wi;
     sample->visibility = distance;
@@ -57,7 +57,7 @@ bool PointLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 
     sample->Le = intensity;
     sample->ray = Ray(position, w);
-    sample->normal = w;
+    sample->normal = Vec3(0);
     sample->pdf_p = 1;
     sample->pdf_w = UniformSpherePDF();
     sample->medium = medium;

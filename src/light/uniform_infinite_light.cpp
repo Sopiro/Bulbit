@@ -26,7 +26,7 @@ bool UniformInfiniteLight::Sample_Li(LightSampleLi* sample, const Intersection& 
 {
     Vec3 wi = SampleUniformSphere(u);
     sample->wi = wi;
-    sample->normal = -wi;
+    sample->normal = Vec3(0);
     sample->point = ref.point + wi * 2 * world_radius;
 
     sample->pdf = UniformSpherePDF();
@@ -52,7 +52,7 @@ bool UniformInfiniteLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1
     Point3 p_disk = world_center + world_radius * frame.FromLocal(Point3(u_disk, 0));
 
     sample->ray = Ray(p_disk - world_radius * wo, wo);
-    sample->normal = wo;
+    sample->normal = Vec3(0);
     sample->pdf_p = 1 / (pi * Sqr(world_radius));
     sample->pdf_w = UniformSpherePDF();
     sample->Le = scale * l;
