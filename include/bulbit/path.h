@@ -65,8 +65,15 @@ struct Vertex
     Float pdf_fwd, pdf_rev;
 
     Vertex()
+        : sv{ 0 }
+        , point{ 0 }
+        , normal{ 0 }
+        , wo{ 0 }
+        , beta{ 0 }
+        , delta{ false }
+        , pdf_fwd{ 0 }
+        , pdf_rev{ 0 }
     {
-        std::memset(this, 0, sizeof(Vertex));
     }
 
     bool IsOnSurface() const

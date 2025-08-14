@@ -402,8 +402,8 @@ Float BiDirectionalPathIntegrator::WeightMIS(Vertex* light_path, Vertex* camera_
     Vertex* vl = s > 0 ? &light_path[s - 1] : nullptr;
     Vertex* vl_prev = s > 1 ? &light_path[s - 2] : nullptr;
 
-    Float camera_pdf_revs[2];
-    Float light_pdf_revs[2];
+    Float camera_pdf_revs[2] = { 0 };
+    Float light_pdf_revs[2] = { 0 };
 
     if (vc)
     {
