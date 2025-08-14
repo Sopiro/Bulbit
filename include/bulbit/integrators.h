@@ -186,21 +186,6 @@ public:
 private:
     int32 SampleCameraPath(Vertex* path, const Ray& ray, const Camera* camera, Sampler& sampler, Allocator& alloc) const;
     int32 SampleLightPath(Vertex* path, Sampler& sampler, Allocator& alloc) const;
-    int32 RandomWalk(
-        Vertex* path,
-        Ray ray,
-        Spectrum beta,
-        Float pdf,
-        int32 bounces,
-        TransportDirection direction,
-        Sampler& sampler,
-        Allocator& alloc
-    ) const;
-
-    Spectrum ConnectPaths(
-        Vertex* light_path, Vertex* camera_path, int32 s, int32 t, const Camera* camera, Sampler& sampler, Point2* p_raster
-    ) const;
-    Float WeightMIS(Vertex* light_path, Vertex* camera_path, int32 s, int32 t) const;
 
     PowerLightSampler light_sampler;
     int32 max_bounces;

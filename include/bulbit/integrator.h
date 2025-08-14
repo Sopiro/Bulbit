@@ -11,18 +11,14 @@ class Camera;
 class Film;
 class Sampler;
 
+using AreaLightMap = std::unordered_map<const Primitive*, AreaLight*>;
+
 class Integrator
 {
 public:
     virtual ~Integrator() = default;
 
     virtual std::unique_ptr<Rendering> Render(const Camera* camera) = 0;
-
-protected:
-    Integrator(const Intersectable* accel, std::vector<Light*> lights);
-
-    bool V(const Point3 p1, const Point3 p2) const;
-    Spectrum Tr(const Point3 p1, const Point3 p2, const Medium* medium, int32 wavelength) const;
 
     bool Intersect(Intersection* out_isect, const Ray& ray, Float t_min, Float t_max) const
     {
@@ -34,11 +30,29 @@ protected:
         return accel->IntersectAny(ray, t_min, t_max);
     }
 
+    const std::vector<Light*>& Lights() const
+    {
+        return all_lights;
+    }
+
+    const std::vector<Light*>& InfiniteLights() const
+    {
+        return infinite_lights;
+    }
+
+    const AreaLightMap& AreaLights() const
+    {
+        return area_lights;
+    }
+
+protected:
+    Integrator(const Intersectable* accel, std::vector<Light*> lights);
+
     const Intersectable* accel;
 
     std::vector<Light*> all_lights;
     std::vector<Light*> infinite_lights;
-    std::unordered_map<const Primitive*, AreaLight*> area_lights;
+    AreaLightMap area_lights;
 };
 
 class UniDirectionalRayIntegrator : public Integrator

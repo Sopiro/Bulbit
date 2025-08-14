@@ -6,6 +6,7 @@
 #include "bulbit/lights.h"
 #include "bulbit/material.h"
 #include "bulbit/sampler.h"
+#include "bulbit/visibility.h"
 
 namespace bulbit
 {
@@ -54,7 +55,7 @@ Spectrum LightPathIntegrator::L(
         {
             if (Dot(light_sample.normal, camera_sample.wi) > 0 && Dot(light_sample.ray.d, camera_sample.wi) > 0)
             {
-                if (V(light_sample.ray.o, camera_sample.p_aperture))
+                if (V(this, light_sample.ray.o, camera_sample.p_aperture))
                 {
                     Spectrum L = light_sample.Le * AbsDot(light_sample.normal, camera_sample.wi) *
                                  AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi /
@@ -105,7 +106,7 @@ Spectrum LightPathIntegrator::L(
         {
             Vec3 wi = camera_sample.wi;
 
-            if (V(isect.point, camera_sample.p_aperture))
+            if (V(this, isect.point, camera_sample.p_aperture))
             {
                 Spectrum L = beta * camera_sample.Wi * bsdf.f(wo, wi, TransportDirection::ToCamera) *
                              AbsDot(isect.shading.normal, wi) / camera_sample.pdf;

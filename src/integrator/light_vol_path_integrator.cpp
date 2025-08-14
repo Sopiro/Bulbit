@@ -6,6 +6,7 @@
 #include "bulbit/lights.h"
 #include "bulbit/material.h"
 #include "bulbit/sampler.h"
+#include "bulbit/visibility.h"
 
 namespace bulbit
 {
@@ -55,7 +56,7 @@ Spectrum LightVolPathIntegrator::L(
         {
             if (Dot(light_sample.ray.d, camera_sample.wi) > 0 && Dot(light_sample.normal, camera_sample.wi) > 0)
             {
-                if (Spectrum V = Tr(light_sample.ray.o, camera_sample.p_aperture, medium, wavelength); !V.IsBlack())
+                if (Spectrum V = Tr(this, light_sample.ray.o, camera_sample.p_aperture, medium, wavelength); !V.IsBlack())
                 {
                     Spectrum L = V * light_sample.Le * AbsDot(light_sample.normal, camera_sample.wi) *
                                  AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi /
@@ -120,7 +121,7 @@ Spectrum LightVolPathIntegrator::L(
                         Intersection medium_isect{ .point = p };
                         if (camera->SampleWi(&camera_sample, medium_isect, { rng.NextFloat(), rng.NextFloat() }))
                         {
-                            if (Spectrum V = Tr(p, camera_sample.p_aperture, medium, wavelength); !V.IsBlack())
+                            if (Spectrum V = Tr(this, p, camera_sample.p_aperture, medium, wavelength); !V.IsBlack())
                             {
                                 Float pdf = T_maj[wavelength] * ms.sigma_a[wavelength];
                                 beta *= T_maj * ms.sigma_a / pdf;
@@ -153,7 +154,7 @@ Spectrum LightVolPathIntegrator::L(
                         if (camera->SampleWi(&camera_sample, medium_isect, { rng.NextFloat(), rng.NextFloat() }))
                         {
                             Vec3 wi = camera_sample.wi;
-                            if (Spectrum V = Tr(p, camera_sample.p_aperture, medium, wavelength); !V.IsBlack())
+                            if (Spectrum V = Tr(this, p, camera_sample.p_aperture, medium, wavelength); !V.IsBlack())
                             {
                                 Spectrum L = camera_sample.Wi * V * ms.phase->p(wo, wi) * beta / r_u.Average();
                                 film.AddSplat(camera_sample.p_raster, L / camera_sample.pdf);
@@ -245,7 +246,7 @@ Spectrum LightVolPathIntegrator::L(
         {
             Vec3 wi = camera_sample.wi;
 
-            if (Spectrum V = Tr(isect.point, camera_sample.p_aperture, isect.GetMedium(wi), wavelength); !V.IsBlack())
+            if (Spectrum V = Tr(this, isect.point, camera_sample.p_aperture, isect.GetMedium(wi), wavelength); !V.IsBlack())
             {
                 Spectrum L = camera_sample.Wi * V * bsdf.f(wo, wi, TransportDirection::ToCamera) *
                              AbsDot(isect.shading.normal, wi) * beta / r_u.Average();
