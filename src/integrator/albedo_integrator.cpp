@@ -9,13 +9,6 @@ namespace bulbit
 AlbedoIntegrator::AlbedoIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler)
     : UniDirectionalRayIntegrator(accel, std::move(lights), sampler)
 {
-    for (Light* light : all_lights)
-    {
-        if (light->Is<ImageInfiniteLight>() || light->Is<UniformInfiniteLight>())
-        {
-            infinite_lights.push_back(light);
-        }
-    }
 }
 
 Spectrum AlbedoIntegrator::Li(const Ray& ray, const Medium* medium, Sampler& sampler) const

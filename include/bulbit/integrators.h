@@ -24,7 +24,6 @@ public:
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 
 private:
-    std::vector<Light*> infinite_lights;
     int32 max_bounces;
 };
 
@@ -46,9 +45,6 @@ public:
     AlbedoIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler);
 
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
-
-private:
-    std::vector<Light*> infinite_lights;
 };
 
 // Whitted-style raytracer
@@ -67,8 +63,6 @@ public:
 private:
     Spectrum Li(const Ray& ray, Sampler& sampler, int32 depth) const;
 
-    std::vector<Light*> infinite_lights;
-
     int32 max_depth;
 };
 
@@ -81,8 +75,6 @@ public:
 
 private:
     Spectrum Li(const Ray& ray, Sampler& sampler, int32 depth) const;
-
-    std::vector<Light*> infinite_lights;
 
     int32 max_bounces;
 };
@@ -106,8 +98,6 @@ private:
         const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler& sampler, const Spectrum& beta
     ) const;
 
-    std::vector<Light*> infinite_lights;
-    std::unordered_map<const Primitive*, AreaLight*> area_lights;
     PowerLightSampler light_sampler;
 
     int32 max_bounces;
@@ -122,8 +112,6 @@ public:
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 
 private:
-    std::vector<Light*> infinite_lights;
-
     int32 max_bounces;
 };
 
@@ -153,8 +141,6 @@ private:
         Spectrum r_p
     ) const;
 
-    std::vector<Light*> infinite_lights;
-    std::unordered_map<const Primitive*, AreaLight*> area_lights;
     PowerLightSampler light_sampler;
 
     int32 max_bounces;
@@ -215,9 +201,6 @@ private:
         Vertex* light_path, Vertex* camera_path, int32 s, int32 t, const Camera* camera, Sampler& sampler, Point2* p_raster
     ) const;
     Float WeightMIS(Vertex* light_path, Vertex* camera_path, int32 s, int32 t) const;
-
-    std::vector<Light*> infinite_lights;
-    std::unordered_map<const Primitive*, AreaLight*> area_lights;
 
     PowerLightSampler light_sampler;
     int32 max_bounces;

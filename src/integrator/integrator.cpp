@@ -19,7 +19,26 @@ Integrator::Integrator(const Intersectable* accel, std::vector<Light*> lights)
     AABB world_bounds = accel->GetAABB();
     for (size_t i = 0; i < all_lights.size(); i++)
     {
-        all_lights[i]->Preprocess(world_bounds);
+        Light* light = all_lights[i];
+        light->Preprocess(world_bounds);
+
+        switch (light->type_index)
+        {
+        case Light::TypeIndexOf<UniformInfiniteLight>():
+        case Light::TypeIndexOf<ImageInfiniteLight>():
+        {
+            infinite_lights.push_back(light);
+        }
+        break;
+        case Light::TypeIndexOf<AreaLight>():
+        {
+            AreaLight* area_light = light->Cast<AreaLight>();
+            area_lights.emplace(area_light->GetPrimitive(), area_light);
+        }
+        break;
+        default:
+            break;
+        }
     }
 }
 

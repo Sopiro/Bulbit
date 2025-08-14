@@ -11,13 +11,6 @@ WhittedStyle::WhittedStyle(const Intersectable* accel, std::vector<Light*> light
     : UniDirectionalRayIntegrator(accel, std::move(lights), sampler)
     , max_depth{ max_depth }
 {
-    for (Light* light : all_lights)
-    {
-        if (light->Is<ImageInfiniteLight>() || light->Is<UniformInfiniteLight>())
-        {
-            infinite_lights.push_back(light);
-        }
-    }
 }
 
 Spectrum WhittedStyle::Li(const Ray& ray, Sampler& sampler, int32 depth) const

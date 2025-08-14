@@ -17,26 +17,6 @@ BiDirectionalPathIntegrator::BiDirectionalPathIntegrator(
     , light_sampler{ all_lights }
     , max_bounces{ max_bounces }
 {
-    for (Light* light : all_lights)
-    {
-        switch (light->type_index)
-        {
-        case Light::TypeIndexOf<UniformInfiniteLight>():
-        case Light::TypeIndexOf<ImageInfiniteLight>():
-        {
-            infinite_lights.push_back(light);
-        }
-        break;
-        case Light::TypeIndexOf<AreaLight>():
-        {
-            AreaLight* area_light = light->Cast<AreaLight>();
-            area_lights.emplace(area_light->GetPrimitive(), area_light);
-        }
-        break;
-        default:
-            break;
-        }
-    }
 }
 
 int32 BiDirectionalPathIntegrator::SampleCameraPath(

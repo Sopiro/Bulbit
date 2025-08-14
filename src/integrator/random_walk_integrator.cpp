@@ -12,13 +12,6 @@ RandomWalkIntegrator::RandomWalkIntegrator(
     : UniDirectionalRayIntegrator(accel, std::move(lights), sampler)
     , max_bounces{ max_bounces }
 {
-    for (Light* light : all_lights)
-    {
-        if (light->Is<ImageInfiniteLight>() || light->Is<UniformInfiniteLight>())
-        {
-            infinite_lights.push_back(light);
-        }
-    }
 }
 
 Spectrum RandomWalkIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium, Sampler& sampler) const

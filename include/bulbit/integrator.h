@@ -35,7 +35,10 @@ protected:
     }
 
     const Intersectable* accel;
+
     std::vector<Light*> all_lights;
+    std::vector<Light*> infinite_lights;
+    std::unordered_map<const Primitive*, AreaLight*> area_lights;
 };
 
 class UniDirectionalRayIntegrator : public Integrator

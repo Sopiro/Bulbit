@@ -16,26 +16,6 @@ PathIntegrator::PathIntegrator(
     , max_bounces{ max_bounces }
     , regularize_bsdf{ regularize_bsdf }
 {
-    for (Light* light : all_lights)
-    {
-        switch (light->type_index)
-        {
-        case Light::TypeIndexOf<UniformInfiniteLight>():
-        case Light::TypeIndexOf<ImageInfiniteLight>():
-        {
-            infinite_lights.push_back(light);
-        }
-        break;
-        case Light::TypeIndexOf<AreaLight>():
-        {
-            AreaLight* area_light = light->Cast<AreaLight>();
-            area_lights.emplace(area_light->GetPrimitive(), area_light);
-        }
-        break;
-        default:
-            break;
-        }
-    }
 }
 
 Spectrum PathIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium, Sampler& sampler) const
