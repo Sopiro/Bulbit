@@ -69,8 +69,11 @@ Spectrum LightPathIntegrator::L(
     int32 bounce = 0;
     Ray ray = light_sample.ray;
 
-    Spectrum beta =
-        light_sample.Le * AbsDot(light_sample.normal, ray.d) / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
+    Spectrum beta = light_sample.Le / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
+    if (light_sample.normal != Vec3::zero)
+    {
+        beta *= AbsDot(light_sample.normal, ray.d);
+    }
 
     // Trace light path
     while (true)

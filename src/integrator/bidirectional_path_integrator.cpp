@@ -100,8 +100,11 @@ int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sample
         v.pdf_rev = 0;
     }
 
-    Spectrum beta =
-        light_sample.Le * AbsDot(light_sample.normal, light_sample.ray.d) / (sl.pmf * light_sample.pdf_p * light_sample.pdf_w);
+    Spectrum beta = light_sample.Le / (sl.pmf * light_sample.pdf_p * light_sample.pdf_w);
+    if (light_sample.normal != Vec3::zero)
+    {
+        beta *= AbsDot(light_sample.normal, light_sample.ray.d);
+    }
 
     // Note light paths sample one fewer vertex than the target path length
     return 1 + RandomWalk(
