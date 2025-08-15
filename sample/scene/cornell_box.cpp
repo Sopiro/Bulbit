@@ -71,7 +71,7 @@ std::unique_ptr<Camera> CornellBox(Scene& scene)
 
     // Right sphere
     {
-        // CreateSphere(scene, Transform(Vec3(0.65f, 0.15f, -0.3f), Quat(DegToRad(0), x_axis)), 0.15f, rough_glass);
+        // CreateSphere(scene, Transform(Vec3(0.65f, 0.15f, -0.3f), Quat(DegToRad(0), x_axis)), 0.15f, glass);
     }
 
     // Lights

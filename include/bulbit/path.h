@@ -51,6 +51,7 @@ struct Vertex
         : sv{ 0 }
         , point{ 0 }
         , normal{ 0 }
+        , shading_normal{ 0 }
         , wo{ 0 }
         , beta{ 0 }
         , delta{ false }
@@ -90,7 +91,7 @@ struct Vertex
     };
 
     Point3 point;
-    Vec3 normal;
+    Vec3 normal, shading_normal;
     Vec3 wo;
 
     Spectrum beta;

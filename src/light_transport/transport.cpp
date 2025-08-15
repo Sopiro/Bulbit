@@ -61,6 +61,7 @@ int32 RandomWalk(
 
             vertex.point = isect.point;
             vertex.normal = isect.normal;
+            vertex.shading_normal = isect.shading.normal;
             vertex.wo = wo;
 
             vertex.beta = beta;
@@ -82,7 +83,7 @@ int32 RandomWalk(
         }
 
         pdf = bsdf_sample.is_stochastic ? bsdf.PDF(wo, bsdf_sample.wi, direction) : bsdf_sample.pdf;
-        beta *= bsdf_sample.f * AbsDot(isect.normal, bsdf_sample.wi) / bsdf_sample.pdf;
+        beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
         ray = Ray(isect.point, bsdf_sample.wi);
 
         Float pdf_rev = bsdf.PDF(bsdf_sample.wi, wo, !direction);
@@ -248,6 +249,7 @@ Spectrum ConnectPaths(
 
             ve.point = camera_sample.p_aperture;
             ve.normal = Vec3(0);
+            ve.shading_normal = Vec3(0);
             ve.wo = Vec3(0);
 
             ve.beta = camera_sample.Wi / camera_sample.pdf;
@@ -266,7 +268,7 @@ Spectrum ConnectPaths(
 
         if (v.IsOnSurface())
         {
-            L *= AbsDot(v.normal, camera_sample.wi);
+            L *= AbsDot(v.shading_normal, camera_sample.wi);
         }
 
         *p_raster = camera_sample.p_raster;
@@ -301,6 +303,7 @@ Spectrum ConnectPaths(
 
             ve.point = light_sample.point;
             ve.normal = light_sample.normal;
+            ve.shading_normal = light_sample.normal;
             ve.wo = Vec3(0);
 
             ve.beta = light_sample.Li / (sampled_light.pmf * light_sample.pdf);
@@ -314,7 +317,7 @@ Spectrum ConnectPaths(
 
         if (v.IsOnSurface())
         {
-            L *= AbsDot(v.normal, light_sample.wi);
+            L *= AbsDot(v.shading_normal, light_sample.wi);
         }
 
         if (L.IsBlack())
@@ -356,12 +359,12 @@ Spectrum ConnectPaths(
 
         if (vl.IsOnSurface())
         {
-            G *= AbsDot(vl.normal, d);
+            G *= AbsDot(vl.shading_normal, d);
         }
 
         if (vc.IsOnSurface())
         {
-            G *= AbsDot(vc.normal, d);
+            G *= AbsDot(vc.shading_normal, d);
         }
 
         L *= G;
