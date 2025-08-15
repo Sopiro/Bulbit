@@ -2,6 +2,8 @@
 
 std::unique_ptr<Camera> MISTest(Scene& scene)
 {
+    SetLoaderGenSmoothNormal(true);
+
     {
         auto floor_mat = CreateDiffuseMaterial(scene, Spectrum(0.4f));
         SetLoaderFallbackMaterial(floor_mat);
@@ -10,10 +12,10 @@ std::unique_ptr<Camera> MISTest(Scene& scene)
 
     // plates
     {
-        auto m1 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.005f));
-        auto m2 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.02f));
-        auto m3 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.05f));
-        auto m4 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.1f));
+        auto m1 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, 0.005f);
+        auto m2 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, 0.02f);
+        auto m3 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, 0.05f);
+        auto m4 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, 0.1f);
 
         SetLoaderFallbackMaterial(m1);
         LoadModel(scene, "res/veach_mi/plate1.obj", Transform{ identity });
@@ -44,7 +46,7 @@ std::unique_ptr<Camera> MISTest(Scene& scene)
     // Float aspect_ratio = 3.f / 2.f;
     // Float aspect_ratio = 4.f / 3.f;
     // Float aspect_ratio = 1.f;
-    int32 width = 500;
+    int32 width = 800;
     int32 height = int32(width / aspect_ratio);
 
     Point3 lookfrom{ 0, 2, 15 };
@@ -61,6 +63,8 @@ static int32 index1 = Sample::Register("mis", MISTest);
 
 std::unique_ptr<Camera> MISTestWak(Scene& scene)
 {
+    SetLoaderGenSmoothNormal(true);
+
     {
         auto floor = CreateDiffuseMaterial(scene, "res/wakdu.jpg");
         Float s = 20.0f;
@@ -73,10 +77,10 @@ std::unique_ptr<Camera> MISTestWak(Scene& scene)
 
     // plates
     {
-        auto m1 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.005f));
-        auto m2 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.02f));
-        auto m3 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.05f));
-        auto m4 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, std::sqrt(0.1f));
+        auto m1 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, 0.005f);
+        auto m2 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, 0.02f);
+        auto m3 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, 0.05f);
+        auto m4 = CreateMetallicRoughnessMaterial(scene, Spectrum(0.07f, 0.09f, 0.13f), 1.0f, 0.1f);
 
         SetLoaderFallbackMaterial(m1);
         LoadModel(scene, "res/veach_mi/plate1.obj", Transform{ identity });
@@ -107,7 +111,7 @@ std::unique_ptr<Camera> MISTestWak(Scene& scene)
     // Float aspect_ratio = 3.f / 2.f;
     // Float aspect_ratio = 4.f / 3.f;
     // Float aspect_ratio = 1.f;
-    int32 width = 500;
+    int32 width = 800;
     int32 height = int32(width / aspect_ratio);
 
     Point3 lookfrom{ 0, 2, 15 };

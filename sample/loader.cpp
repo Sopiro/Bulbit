@@ -29,6 +29,7 @@ static const Material* g_fallback_material = nullptr;
 static MediumInterface g_fallback_medium_interface = {};
 static bool g_flip_normal = false;
 static bool g_flip_texcoord = false;
+static bool g_gen_smooth_normal = false;
 
 static std::string g_folder;
 static std::vector<const Material*> g_materials;
@@ -36,6 +37,11 @@ static std::vector<const Material*> g_materials;
 void SetLoaderFlipNormal(bool flip_normal)
 {
     g_flip_normal = flip_normal;
+}
+
+void SetLoaderGenSmoothNormal(bool gen_smooth_normal)
+{
+    g_gen_smooth_normal = gen_smooth_normal;
 }
 
 void SetLoaderFlipTexcoord(bool flip_texcoord)
@@ -800,6 +806,57 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
         std::unordered_map<int, OBJMeshGroup> groups;
         groups.reserve(4); // Reserve some typical material group count.
 
+        // Accumulate every normals
+        std::vector<Vec3> smooth_normals;
+        if (g_gen_smooth_normal)
+        {
+            smooth_normals = std::vector<Vec3>(attrib.vertices.size() / 3, Vec3(0));
+
+            size_t index_offset = 0;
+            for (size_t f = 0; f < shape.mesh.num_face_vertices.size(); ++f)
+            {
+                size_t fv = size_t(shape.mesh.num_face_vertices[f]);
+                if (fv < 3)
+                {
+                    index_offset += fv;
+                    continue;
+                }
+
+                tinyobj::index_t i0 = shape.mesh.indices[index_offset + 0];
+                tinyobj::index_t i1 = shape.mesh.indices[index_offset + 1];
+                tinyobj::index_t i2 = shape.mesh.indices[index_offset + 2];
+
+                Vec3 v0(
+                    attrib.vertices[3 * size_t(i0.vertex_index) + 0], attrib.vertices[3 * size_t(i0.vertex_index) + 1],
+                    attrib.vertices[3 * size_t(i0.vertex_index) + 2]
+                );
+                Vec3 v1(
+                    attrib.vertices[3 * size_t(i1.vertex_index) + 0], attrib.vertices[3 * size_t(i1.vertex_index) + 1],
+                    attrib.vertices[3 * size_t(i1.vertex_index) + 2]
+                );
+                Vec3 v2(
+                    attrib.vertices[3 * size_t(i2.vertex_index) + 0], attrib.vertices[3 * size_t(i2.vertex_index) + 1],
+                    attrib.vertices[3 * size_t(i2.vertex_index) + 2]
+                );
+
+                Vec3 e1 = v1 - v0;
+                Vec3 e2 = v2 - v0;
+                Vec3 face_normal = Cross(e1, e2);
+                face_normal.Normalize();
+
+                smooth_normals[i0.vertex_index] += face_normal;
+                smooth_normals[i1.vertex_index] += face_normal;
+                smooth_normals[i2.vertex_index] += face_normal;
+
+                index_offset += fv;
+            }
+
+            for (auto& n : smooth_normals)
+            {
+                n.Normalize();
+            }
+        }
+
         // Iterate over each face.
         for (size_t f = 0; f < shape.mesh.num_face_vertices.size(); ++f)
         {
@@ -828,11 +885,15 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
                     normal.x = attrib.normals[3 * size_t(idx.normal_index) + 0];
                     normal.y = attrib.normals[3 * size_t(idx.normal_index) + 1];
                     normal.z = attrib.normals[3 * size_t(idx.normal_index) + 2];
+                }
+                else if (g_gen_smooth_normal)
+                {
+                    normal = smooth_normals[idx.vertex_index];
+                }
 
-                    if (g_flip_normal)
-                    {
-                        normal.Negate();
-                    }
+                if (g_flip_normal)
+                {
+                    normal.Negate();
                 }
 
                 // Retrieve texture coordinates if available.

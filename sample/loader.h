@@ -6,6 +6,7 @@ namespace bulbit
 {
 
 void SetLoaderFlipNormal(bool flip_normal);
+void SetLoaderGenSmoothNormal(bool gen_smooth_normal);
 void SetLoaderFlipTexcoord(bool flip_texcoord);
 void SetLoaderUseForceFallbackMaterial(bool force_use_fallback_material);
 void SetLoaderFallbackMaterial(const Material* fallback_material);
