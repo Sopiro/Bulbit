@@ -30,6 +30,11 @@ public:
         return accel->IntersectAny(ray, t_min, t_max);
     }
 
+    const Intersectable* World() const
+    {
+        return accel;
+    }
+
     const std::vector<Light*>& Lights() const
     {
         return all_lights;

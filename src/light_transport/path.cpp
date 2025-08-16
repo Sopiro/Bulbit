@@ -1,5 +1,6 @@
 #include "bulbit/path.h"
 #include "bulbit/camera.h"
+#include "bulbit/integrator.h"
 #include "bulbit/light_sampler.h"
 #include "bulbit/lights.h"
 #include "bulbit/medium.h"
@@ -41,16 +42,36 @@ bool Vertex::IsInfiniteLight() const
     return (type == VertexType::light) && lv.infinite_light;
 }
 
-Spectrum Vertex::Le(const Vertex& v) const
+Spectrum Vertex::Le(const Vertex& v, const Integrator* I) const
 {
-    Vec3 w = v.point - point;
-    if (w.Normalize() == 0)
+    if (!IsLight())
     {
-        return Spectrum::black;
+        return Spectrum(0);
     }
 
-    Intersection isect{ .normal = normal, .front_face = sv.front_face };
-    return sv.primitive->GetMaterial()->Le(isect, w);
+    if (IsInfiniteLight())
+    {
+        Ray ray(point, -wo);
+
+        // Return emitted radiance for infinite light sources
+        Spectrum Le(0);
+        for (const Light* light : I->InfiniteLights())
+        {
+            Le += light->Le(ray);
+        }
+        return Le;
+    }
+    else
+    {
+        Vec3 wo = v.point - point;
+        if (wo.Normalize() == 0)
+        {
+            return Spectrum::black;
+        }
+
+        Intersection isect{ .normal = normal, .front_face = sv.front_face };
+        return sv.primitive->GetMaterial()->Le(isect, wo);
+    }
 }
 
 Spectrum Vertex::f(const Vec3& wi, TransportDirection direction) const
@@ -78,12 +99,12 @@ Spectrum Vertex::f(const Vertex& next, TransportDirection direction) const
     return f(wi, direction);
 }
 
-Float Vertex::PDF(const Vertex& next, const Vertex* prev) const
+Float Vertex::PDF(const Vertex& next, const Vertex* prev, const Integrator* I) const
 {
     if (type == VertexType::light)
     {
         BulbitAssert(prev == nullptr);
-        return PDFLight(next);
+        return PDFLight(next, I);
     }
 
     Vec3 wi = next.point - point;
@@ -129,7 +150,7 @@ Float Vertex::PDF(const Vertex& next, const Vertex* prev) const
     return ConvertDensity(*this, next, pdf);
 }
 
-Float Vertex::PDFLight(const Vertex& next) const
+Float Vertex::PDFLight(const Vertex& next, const Integrator* I) const
 {
     Vec3 w = next.point - point;
     Float inv_dist2 = 1 / Length2(w);
@@ -138,12 +159,19 @@ Float Vertex::PDFLight(const Vertex& next) const
     Float pdf;
     if (IsInfiniteLight())
     {
-        // Not handled yet
-        pdf = 0;
+        AABB world_bounds = I->World()->GetAABB();
+
+        Point3 center;
+        Float radius;
+
+        world_bounds.ComputeBoundingSphere(&center, &radius);
+        pdf = 1 / (pi * Sqr(radius));
     }
     else if (IsOnSurface())
     {
         const Light* light = (type == VertexType::light) ? lv.light : sv.area_light;
+        BulbitAssert(light);
+
         Intersection isect{ .point = point, .normal = normal };
         Float pdf_p, pdf_w;
         light->PDF_Le(&pdf_p, &pdf_w, isect, w);
@@ -163,9 +191,7 @@ Float Vertex::PDFLight(const Vertex& next) const
     return pdf;
 }
 
-Float Vertex::PDFLightOrigin(
-    const Vertex& next, const std::vector<Light*>& infinite_lights, const LightSampler& light_sampler
-) const
+Float Vertex::PDFLightOrigin(const Vertex& next, const Integrator* I, const LightSampler& light_sampler) const
 {
     Vec3 w = next.point - point;
     if (w.Normalize() == 0)
@@ -175,9 +201,15 @@ Float Vertex::PDFLightOrigin(
 
     if (IsInfiniteLight())
     {
-        BulbitNotUsed(infinite_lights);
-        // Not handled yet
-        return 0;
+        // Return solid angle density for aggregate infinite lights
+        Ray ray(point, -w);
+
+        Float pdf = 0;
+        for (const Light* light : I->InfiniteLights())
+        {
+            pdf += light_sampler.EvaluatePMF(light) * light->EvaluatePDF_Li(ray);
+        }
+        return pdf;
     }
     else
     {

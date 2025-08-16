@@ -90,10 +90,40 @@ int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sample
     }
 
     // Note light paths sample one fewer vertex than the target path length
-    return 1 + RandomWalk(
-                   this, path + 1, light_sample.ray, beta, light_sample.pdf_w, max_bounces, TransportDirection::ToCamera, sampler,
-                   alloc
-               );
+    int32 num_light_vertices = RandomWalk(
+        this, path + 1, light_sample.ray, beta, light_sample.pdf_w, max_bounces, TransportDirection::ToCamera, sampler, alloc
+    );
+
+    // Correct sampling densities for initial infinite light vertex
+    Vertex& v0 = path[0];
+    Vertex& v1 = path[1];
+    if (v0.IsInfiniteLight())
+    {
+        // Set spatial density of primary hit vertex for infinite light
+        // by removing inv_dist2 factor
+        if (num_light_vertices > 0)
+        {
+            v1.pdf_fwd = light_sample.pdf_p;
+
+            if (v1.IsOnSurface())
+            {
+                v1.pdf_fwd *= AbsDot(light_sample.ray.d, v1.normal);
+            }
+        }
+
+        // Set spatial density of aggregate infinite lights
+        // as solid angle density for the aggregate infinite lights
+        Ray ray(light_sample.ray.o, -light_sample.ray.d);
+
+        Float pdf = 0;
+        for (const Light* light : infinite_lights)
+        {
+            pdf += light_sampler.EvaluatePMF(light) * light->EvaluatePDF_Li(ray);
+        }
+        v0.pdf_fwd = pdf;
+    }
+
+    return 1 + num_light_vertices;
 }
 
 Spectrum BiDirectionalPathIntegrator::L(
@@ -111,13 +141,13 @@ Spectrum BiDirectionalPathIntegrator::L(
     Vertex* light_path = (Vertex*)path_alloc.allocate(sizeof(Vertex) * (max_bounces + 2));
 
     int32 num_camera_vertices = SampleCameraPath(camera_path, primary_ray, camera, sampler, vertex_alloc);
-    int32 num_light_vertces = SampleLightPath(light_path, sampler, vertex_alloc);
+    int32 num_light_vertices = SampleLightPath(light_path, sampler, vertex_alloc);
 
     Spectrum Li(0);
 
     for (int32 t = 1; t <= num_camera_vertices; ++t)
     {
-        for (int32 s = 0; s <= num_light_vertces; ++s)
+        for (int32 s = 0; s <= num_light_vertices; ++s)
         {
             int32 bounces = t + s - 2;
             if ((s == 1 && t == 1) || bounces < 0 || bounces > max_bounces)

@@ -11,6 +11,7 @@ class Light;
 class AreaLight;
 class PhaseFunction;
 class LightSampler;
+class Integrator;
 
 struct SurfaceVertex
 {
@@ -71,14 +72,14 @@ struct Vertex
     bool IsDeltaLight() const;
     bool IsInfiniteLight() const;
 
-    Spectrum Le(const Vertex& v) const;
+    Spectrum Le(const Vertex& v, const Integrator* I) const;
 
     Spectrum f(const Vec3& wi, TransportDirection direction) const;
     Spectrum f(const Vertex& next, TransportDirection direction) const;
 
-    Float PDF(const Vertex& next, const Vertex* prev = nullptr) const;
-    Float PDFLight(const Vertex& next) const;
-    Float PDFLightOrigin(const Vertex& next, const std::vector<Light*>& infinite_lights, const LightSampler& light_sampler) const;
+    Float PDF(const Vertex& next, const Vertex* prev, const Integrator* I) const;
+    Float PDFLight(const Vertex& next, const Integrator* I) const;
+    Float PDFLightOrigin(const Vertex& next, const Integrator* I, const LightSampler& light_sampler) const;
 
     VertexType type;
 
@@ -101,8 +102,14 @@ struct Vertex
 };
 
 // Convert solid angle density to area density
+// If next vertex is infinite light, it just returns solid angle density
 inline Float ConvertDensity(const Vertex& from, const Vertex& to, Float pdf)
 {
+    if (to.IsInfiniteLight())
+    {
+        return pdf;
+    }
+
     Vec3 w = to.point - from.point;
     if (Length2(w) == 0)
     {

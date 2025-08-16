@@ -32,15 +32,35 @@ int32 RandomWalk(
         Vertex& vertex = path[bounces];
         Vertex& prev = path[bounces - 1];
 
+        Vec3 wo = -ray.d;
+
         Intersection isect;
         bool found_intersection = I->Intersect(&isect, ray, Ray::epsilon, infinity);
         if (!found_intersection)
         {
-            // Don't handle infinite light for now..
+            // Create infinite light vertex
+            if (direction == TransportDirection::ToLight)
+            {
+                vertex.type = VertexType::light;
+                vertex.lv.infinite_light = true;
+                vertex.lv.light = nullptr;
+
+                vertex.point = ray.At(1);
+                vertex.normal = Vec3(0);
+                vertex.shading_normal = Vec3(0);
+                vertex.wo = wo;
+
+                vertex.beta = beta;
+                vertex.delta = false;
+
+                // Note it stores solid angle density for infinite lights, not area density
+                vertex.pdf_fwd = pdf;
+                vertex.pdf_rev = 0;
+                ++bounces;
+            }
+
             break;
         }
-
-        Vec3 wo = -ray.d;
 
         BSDF bsdf;
         if (!isect.GetBSDF(&bsdf, wo, alloc))
@@ -105,14 +125,7 @@ int32 RandomWalk(
     return bounces;
 }
 
-Float WeightMIS(
-    Vertex* light_path,
-    Vertex* camera_path,
-    int32 s,
-    int32 t,
-    const std::vector<Light*>& infinite_lights,
-    const LightSampler& light_sampler
-)
+Float WeightMIS(const Integrator* I, Vertex* light_path, Vertex* camera_path, int32 s, int32 t, const LightSampler& light_sampler)
 {
     if (s + t == 2)
     {
@@ -129,22 +142,24 @@ Float WeightMIS(
 
     if (vc)
     {
-        camera_pdf_revs[0] = s > 0 ? vl->PDF(*vc, vl_prev) : vc->PDFLightOrigin(*vc_prev, infinite_lights, light_sampler);
+        BulbitAssert(vc->IsLight());
+
+        camera_pdf_revs[0] = s > 0 ? vl->PDF(*vc, vl_prev, I) : vc->PDFLightOrigin(*vc_prev, I, light_sampler);
         std::swap(vc->pdf_rev, camera_pdf_revs[0]);
     }
     if (vc_prev)
     {
-        camera_pdf_revs[1] = s > 0 ? vc->PDF(*vc_prev, vl) : vc->PDFLight(*vc_prev);
+        camera_pdf_revs[1] = s > 0 ? vc->PDF(*vc_prev, vl, I) : vc->PDFLight(*vc_prev, I);
         std::swap(vc_prev->pdf_rev, camera_pdf_revs[1]);
     }
     if (vl)
     {
-        light_pdf_revs[0] = vc->PDF(*vl, vc_prev);
+        light_pdf_revs[0] = vc->PDF(*vl, vc_prev, I);
         std::swap(vl->pdf_rev, light_pdf_revs[0]);
     }
     if (vl_prev)
     {
-        light_pdf_revs[1] = vl->PDF(*vl_prev, vc);
+        light_pdf_revs[1] = vl->PDF(*vl_prev, vc, I);
         std::swap(vl_prev->pdf_rev, light_pdf_revs[1]);
     }
 
@@ -216,6 +231,12 @@ Spectrum ConnectPaths(
     Point2* p_raster
 )
 {
+    // Ignore invalid connections that attempt to connect a light vertex to another light vertex
+    if (t > 1 && s > 0 && camera_path[t - 1].type == VertexType::light)
+    {
+        return Spectrum(0);
+    }
+
     Spectrum L(0);
 
     Vertex ve;
@@ -224,7 +245,7 @@ Spectrum ConnectPaths(
     {
         // Interpret the camera path as a complete path
         const Vertex& v = camera_path[t - 1];
-        L = v.beta * v.Le(camera_path[t - 2]);
+        L = v.beta * v.Le(camera_path[t - 2], I);
     }
     else if (t == 1)
     {
@@ -309,7 +330,7 @@ Spectrum ConnectPaths(
             ve.beta = light_sample.Li / (sampled_light.pmf * light_sample.pdf);
             ve.delta = false;
 
-            ve.pdf_fwd = ve.PDFLightOrigin(v, I->InfiniteLights(), light_sampler);
+            ve.pdf_fwd = ve.PDFLightOrigin(v, I, light_sampler);
             ve.pdf_rev = 0;
         }
 
@@ -385,7 +406,7 @@ Spectrum ConnectPaths(
         std::swap(light_path[0], ve);
     }
 
-    Float mis_weight = WeightMIS(light_path, camera_path, s, t, I->InfiniteLights(), light_sampler);
+    Float mis_weight = WeightMIS(I, light_path, camera_path, s, t, light_sampler);
 
     // Reswap
     if (t == 1)
