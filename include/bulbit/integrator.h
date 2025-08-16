@@ -1,5 +1,6 @@
 #pragma once
 
+#include "light_samplers.h"
 #include "scene.h"
 
 namespace bulbit
@@ -50,6 +51,11 @@ public:
         return area_lights;
     }
 
+    const LightSampler& LightSampler() const
+    {
+        return light_sampler;
+    }
+
 protected:
     Integrator(const Intersectable* accel, std::vector<Light*> lights);
 
@@ -58,6 +64,8 @@ protected:
     std::vector<Light*> all_lights;
     std::vector<Light*> infinite_lights;
     AreaLightMap area_lights;
+
+    PowerLightSampler light_sampler;
 };
 
 class UniDirectionalRayIntegrator : public Integrator

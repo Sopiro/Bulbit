@@ -79,7 +79,7 @@ struct Vertex
 
     Float PDF(const Vertex& next, const Vertex* prev, const Integrator* I) const;
     Float PDFLight(const Vertex& next, const Integrator* I) const;
-    Float PDFLightOrigin(const Vertex& next, const Integrator* I, const LightSampler& light_sampler) const;
+    Float PDFLightOrigin(const Vertex& next, const Integrator* I) const;
 
     VertexType type;
 

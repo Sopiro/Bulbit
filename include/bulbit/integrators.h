@@ -98,8 +98,6 @@ private:
         const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler& sampler, const Spectrum& beta
     ) const;
 
-    PowerLightSampler light_sampler;
-
     int32 max_bounces;
     bool regularize_bsdf;
 };
@@ -141,8 +139,6 @@ private:
         Spectrum r_p
     ) const;
 
-    PowerLightSampler light_sampler;
-
     int32 max_bounces;
     bool regularize_bsdf;
 };
@@ -156,7 +152,6 @@ public:
     virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
 
 private:
-    PowerLightSampler light_sampler;
     int32 max_bounces;
 };
 
@@ -168,7 +163,6 @@ public:
     virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
 
 private:
-    PowerLightSampler light_sampler;
     int32 max_bounces;
 };
 
@@ -187,7 +181,6 @@ private:
     int32 SampleCameraPath(Vertex* path, const Ray& ray, const Camera* camera, Sampler& sampler, Allocator& alloc) const;
     int32 SampleLightPath(Vertex* path, Sampler& sampler, Allocator& alloc) const;
 
-    PowerLightSampler light_sampler;
     int32 max_bounces;
 };
 } // namespace bulbit

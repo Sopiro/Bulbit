@@ -13,7 +13,6 @@ VolPathIntegrator::VolPathIntegrator(
     const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces, bool regularize_bsdf
 )
     : UniDirectionalRayIntegrator(accel, std::move(lights), sampler)
-    , light_sampler{ all_lights }
     , max_bounces{ max_bounces }
     , regularize_bsdf{ regularize_bsdf }
 {

@@ -15,7 +15,6 @@ BiDirectionalPathIntegrator::BiDirectionalPathIntegrator(
     const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces
 )
     : BiDirectionalRayIntegrator(accel, std::move(lights), sampler)
-    , light_sampler{ all_lights }
     , max_bounces{ max_bounces }
 {
 }
@@ -156,7 +155,7 @@ Spectrum BiDirectionalPathIntegrator::L(
             }
 
             Point2 p_raster;
-            Spectrum L_path = ConnectPaths(this, light_sampler, light_path, camera_path, s, t, camera, sampler, &p_raster);
+            Spectrum L_path = ConnectPaths(this, light_path, camera_path, s, t, camera, sampler, &p_raster);
 
             if (t == 1)
             {

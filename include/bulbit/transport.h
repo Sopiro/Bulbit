@@ -24,7 +24,6 @@ int32 RandomWalk(
 
 Spectrum ConnectPaths(
     const Integrator* integrator,
-    const LightSampler& light_sampler,
     Vertex* light_path,
     Vertex* camera_path,
     int32 s,

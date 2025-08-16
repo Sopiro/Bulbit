@@ -191,13 +191,15 @@ Float Vertex::PDFLight(const Vertex& next, const Integrator* I) const
     return pdf;
 }
 
-Float Vertex::PDFLightOrigin(const Vertex& next, const Integrator* I, const LightSampler& light_sampler) const
+Float Vertex::PDFLightOrigin(const Vertex& next, const Integrator* I) const
 {
     Vec3 w = next.point - point;
     if (w.Normalize() == 0)
     {
         return 0;
     }
+
+    const LightSampler& light_sampler = I->LightSampler();
 
     if (IsInfiniteLight())
     {

@@ -15,7 +15,6 @@ LightVolPathIntegrator::LightVolPathIntegrator(
     const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces
 )
     : BiDirectionalRayIntegrator(accel, std::move(lights), sampler)
-    , light_sampler{ all_lights }
     , max_bounces{ max_bounces }
 {
 }

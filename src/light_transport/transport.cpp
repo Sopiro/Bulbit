@@ -125,7 +125,7 @@ int32 RandomWalk(
     return bounces;
 }
 
-Float WeightMIS(const Integrator* I, Vertex* light_path, Vertex* camera_path, int32 s, int32 t, const LightSampler& light_sampler)
+Float WeightMIS(const Integrator* I, Vertex* light_path, Vertex* camera_path, int32 s, int32 t)
 {
     if (s + t == 2)
     {
@@ -144,7 +144,7 @@ Float WeightMIS(const Integrator* I, Vertex* light_path, Vertex* camera_path, in
     {
         BulbitAssert(vc->IsLight());
 
-        camera_pdf_revs[0] = s > 0 ? vl->PDF(*vc, vl_prev, I) : vc->PDFLightOrigin(*vc_prev, I, light_sampler);
+        camera_pdf_revs[0] = s > 0 ? vl->PDF(*vc, vl_prev, I) : vc->PDFLightOrigin(*vc_prev, I);
         std::swap(vc->pdf_rev, camera_pdf_revs[0]);
     }
     if (vc_prev)
@@ -221,7 +221,6 @@ Float WeightMIS(const Integrator* I, Vertex* light_path, Vertex* camera_path, in
 
 Spectrum ConnectPaths(
     const Integrator* I,
-    const LightSampler& light_sampler,
     Vertex* light_path,
     Vertex* camera_path,
     int32 s,
@@ -305,7 +304,7 @@ Spectrum ConnectPaths(
 
         SampledLight sampled_light;
         Intersection isect{ .point = v.point };
-        if (!light_sampler.Sample(&sampled_light, isect, sampler.Next1D()))
+        if (!I->LightSampler().Sample(&sampled_light, isect, sampler.Next1D()))
         {
             return Spectrum::black;
         }
@@ -330,7 +329,7 @@ Spectrum ConnectPaths(
             ve.beta = light_sample.Li / (sampled_light.pmf * light_sample.pdf);
             ve.delta = false;
 
-            ve.pdf_fwd = ve.PDFLightOrigin(v, I, light_sampler);
+            ve.pdf_fwd = ve.PDFLightOrigin(v, I);
             ve.pdf_rev = 0;
         }
 
@@ -406,7 +405,7 @@ Spectrum ConnectPaths(
         std::swap(light_path[0], ve);
     }
 
-    Float mis_weight = WeightMIS(I, light_path, camera_path, s, t, light_sampler);
+    Float mis_weight = WeightMIS(I, light_path, camera_path, s, t);
 
     // Reswap
     if (t == 1)

@@ -15,6 +15,7 @@ namespace bulbit
 Integrator::Integrator(const Intersectable* accel, std::vector<Light*> lights)
     : accel{ accel }
     , all_lights{ std::move(lights) }
+    , light_sampler{ all_lights }
 {
     AABB world_bounds = accel->GetAABB();
     for (size_t i = 0; i < all_lights.size(); i++)
