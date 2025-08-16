@@ -199,7 +199,7 @@ Float Vertex::PDFLightOrigin(const Vertex& next, const Integrator* I) const
         return 0;
     }
 
-    const LightSampler& light_sampler = I->LightSampler();
+    const LightSampler& light_sampler = I->GetLightSampler();
 
     if (IsInfiniteLight())
     {

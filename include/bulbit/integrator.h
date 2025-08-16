@@ -51,7 +51,7 @@ public:
         return area_lights;
     }
 
-    const LightSampler& LightSampler() const
+    const LightSampler& GetLightSampler() const
     {
         return light_sampler;
     }
