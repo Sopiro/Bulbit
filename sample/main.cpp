@@ -46,7 +46,8 @@ int main(int argc, char* argv[])
     // VolPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
     // LightPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
     // LightVolPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
-    BiDirectionalPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
+    // BiDirectionalPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
+    BiDirectionalVolPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
     // DebugIntegrator renderer(&accel, scene.GetLights(), &sampler);
     // AmbientOcclusion renderer(&accel, scene.GetLights(), &sampler, 0.5f);
     // AlbedoIntegrator renderer(&accel, scene.GetLights(), &sampler);

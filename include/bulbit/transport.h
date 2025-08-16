@@ -6,14 +6,29 @@
 namespace bulbit
 {
 
+struct Vertex;
+class Medium;
 class Sampler;
 class Integrator;
-struct Vertex;
 
 int32 RandomWalk(
     const Integrator* integrator,
     Vertex* path,
     Ray ray,
+    Spectrum beta,
+    Float pdf,
+    int32 bounces,
+    TransportDirection direction,
+    Sampler& sampler,
+    Allocator& alloc
+);
+
+int32 RandomWalkVol(
+    const Integrator* integrator,
+    Vertex* path,
+    Ray ray,
+    const Medium* medium,
+    int32 wavelength,
     Spectrum beta,
     Float pdf,
     int32 bounces,

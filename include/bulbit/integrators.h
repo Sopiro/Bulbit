@@ -183,4 +183,29 @@ private:
 
     int32 max_bounces;
 };
+
+class BiDirectionalVolPathIntegrator : public BiDirectionalRayIntegrator
+{
+public:
+    BiDirectionalVolPathIntegrator(
+        const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces
+    );
+
+    virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
+
+private:
+    int32 SampleCameraPath(
+        Vertex* path,
+        const Ray& ray,
+        const Medium* medium,
+        const Camera* camera,
+        int32 wavelength,
+        Sampler& sampler,
+        Allocator& alloc
+    ) const;
+    int32 SampleLightPath(Vertex* path, int32 wavelength, Sampler& sampler, Allocator& alloc) const;
+
+    int32 max_bounces;
+};
+
 } // namespace bulbit

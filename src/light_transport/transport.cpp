@@ -32,7 +32,7 @@ int32 RandomWalk(
         Vertex& vertex = path[bounces];
         Vertex& prev = path[bounces - 1];
 
-        Vec3 wo = -ray.d;
+        Vec3 wo = Normalize(-ray.d);
 
         Intersection isect;
         bool found_intersection = I->Intersect(&isect, ray, Ray::epsilon, infinity);
@@ -116,10 +116,131 @@ int32 RandomWalk(
 
         prev.pdf_rev = ConvertDensity(vertex, prev, pdf_rev);
 
-        if (beta == Spectrum::black)
+        if (beta.IsBlack())
         {
             break;
         }
+    }
+
+    return bounces;
+}
+
+int32 RandomWalkVol(
+    const Integrator* I,
+    Vertex* path,
+    Ray ray,
+    const Medium* medium,
+    int32 wavelength,
+    Spectrum beta,
+    Float pdf,
+    int32 max_bounces,
+    TransportDirection direction,
+    Sampler& sampler,
+    Allocator& alloc
+)
+{
+    BulbitNotUsed(medium);
+    BulbitNotUsed(wavelength);
+
+    if (max_bounces == 0)
+    {
+        return 0;
+    }
+
+    int32 bounces = 0;
+    while (true)
+    {
+        if (beta.IsBlack())
+        {
+            break;
+        }
+
+        Vertex& vertex = path[bounces];
+        Vertex& prev = path[bounces - 1];
+
+        Vec3 wo = Normalize(-ray.d);
+
+        Intersection isect;
+        bool found_intersection = I->Intersect(&isect, ray, Ray::epsilon, infinity);
+        if (!found_intersection)
+        {
+            // Create infinite light vertex
+            if (direction == TransportDirection::ToLight)
+            {
+                vertex.type = VertexType::light;
+                vertex.lv.infinite_light = true;
+                vertex.lv.light = nullptr;
+
+                vertex.point = ray.At(1);
+                vertex.normal = Vec3(0);
+                vertex.shading_normal = Vec3(0);
+                vertex.wo = wo;
+
+                vertex.beta = beta;
+                vertex.delta = false;
+
+                // Note it stores solid angle density for infinite lights, not area density
+                vertex.pdf_fwd = pdf;
+                vertex.pdf_rev = 0;
+                ++bounces;
+            }
+
+            break;
+        }
+
+        BSDF bsdf;
+        if (!isect.GetBSDF(&bsdf, wo, alloc))
+        {
+            ray = Ray(isect.point, -wo);
+            continue;
+        }
+
+        // Create surface vertex
+        {
+            const AreaLightMap& area_lights = I->AreaLights();
+
+            vertex.type = VertexType::surface;
+            vertex.sv.primitive = isect.primitive;
+            vertex.sv.area_light = area_lights.contains(isect.primitive) ? area_lights.at(isect.primitive) : nullptr;
+            vertex.sv.front_face = isect.front_face;
+            vertex.sv.bsdf = bsdf;
+
+            vertex.point = isect.point;
+            vertex.normal = isect.normal;
+            vertex.shading_normal = isect.shading.normal;
+            vertex.wo = wo;
+
+            vertex.beta = beta;
+            vertex.delta = false;
+
+            vertex.pdf_fwd = ConvertDensity(prev, vertex, pdf);
+            vertex.pdf_rev = 0;
+        }
+
+        if (++bounces >= max_bounces)
+        {
+            break;
+        }
+
+        BSDFSample bsdf_sample;
+        if (!bsdf.Sample_f(&bsdf_sample, wo, sampler.Next1D(), sampler.Next2D(), direction))
+        {
+            break;
+        }
+
+        pdf = bsdf_sample.is_stochastic ? bsdf.PDF(wo, bsdf_sample.wi, direction) : bsdf_sample.pdf;
+        beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
+        ray = Ray(isect.point, bsdf_sample.wi);
+
+        Float pdf_rev = bsdf.PDF(bsdf_sample.wi, wo, !direction);
+        if (bsdf_sample.IsSpecular())
+        {
+            vertex.delta = true;
+            pdf = 0;
+            pdf_rev = 0;
+        }
+
+        prev.pdf_rev = ConvertDensity(vertex, prev, pdf_rev);
     }
 
     return bounces;
