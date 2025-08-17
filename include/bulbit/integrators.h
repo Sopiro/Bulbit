@@ -4,6 +4,7 @@
 #include "integrator.h"
 #include "light_samplers.h"
 #include "lights.h"
+#include "photon.h"
 
 namespace bulbit
 {
@@ -206,6 +207,35 @@ private:
     int32 SampleLightPath(Vertex* path, int32 wavelength, Sampler& sampler, Allocator& alloc) const;
 
     int32 max_bounces;
+};
+
+class PhotonMappingIntegrator : public Integrator
+{
+public:
+    PhotonMappingIntegrator(
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        int32 max_bounces,
+        int32 n_photons,
+        Float gather_radius
+    );
+
+    virtual std::unique_ptr<Rendering> Render(const Camera* camera) override;
+
+private:
+    void EmitPhotons();
+    Spectrum SampleDirectLight(
+        const Vec3& wo, const Intersection& isect, const BSDF* bsdf, Sampler& sampler, const Spectrum& beta
+    ) const;
+    Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const;
+
+    const Sampler* sampler_prototype;
+    int32 max_bounces;
+
+    int32 n_photons;
+    Float gather_radius;
+    PhotonMap photon_map;
 };
 
 } // namespace bulbit

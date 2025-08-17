@@ -53,6 +53,10 @@ std::unique_ptr<Camera> CornellBoxCaustics(Scene& scene)
         // top
         tf = Transform{ Vec3(0.5f, 1.0f, -0.5f), Quat(pi, x_axis), Vec3(1.0f) };
         CreateRectXZ(scene, tf, white);
+
+        // back
+        // tf = Transform{ Vec3(0.5f, 0.5f, 0.0f), Quat(pi, y_axis), Vec3(1.0f) };
+        // CreateRectXY(scene, tf, glass);
     }
 
     // Left block

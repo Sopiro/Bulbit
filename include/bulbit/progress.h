@@ -81,6 +81,7 @@ public:
 private:
     friend class UniDirectionalRayIntegrator;
     friend class BiDirectionalRayIntegrator;
+    friend class PhotonMappingIntegrator;
 
     Film film;
 
