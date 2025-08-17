@@ -29,7 +29,7 @@ bool V(const Integrator* I, const Point3 p1, const Point3 p2)
 Spectrum Tr(const Integrator* I, const Point3 p1, const Point3 p2, const Medium* medium, int32 wavelength)
 {
     Vec3 w = p2 - p1;
-    Float visibility = w.Normalize();
+    Float visibility = w.Normalize() - Ray::epsilon;
 
     Ray ray(p1, w);
 

@@ -3,6 +3,7 @@
 #include "bulbit/integrator.h"
 #include "bulbit/light_sampler.h"
 #include "bulbit/lights.h"
+#include "bulbit/media.h"
 #include "bulbit/sampler.h"
 #include "bulbit/visibility.h"
 
@@ -139,9 +140,6 @@ int32 RandomWalkVol(
     Allocator& alloc
 )
 {
-    BulbitNotUsed(medium);
-    BulbitNotUsed(wavelength);
-
     if (max_bounces == 0)
     {
         return 0;
@@ -162,6 +160,124 @@ int32 RandomWalkVol(
 
         Intersection isect;
         bool found_intersection = I->Intersect(&isect, ray, Ray::epsilon, infinity);
+
+        if (medium)
+        {
+            bool scattered = false;
+            bool terminated = false;
+
+            uint64 hash0 = Hash(sampler.Next1D());
+            uint64 hash1 = Hash(sampler.Next1D());
+            RNG rng(hash0, hash1);
+
+            Float t_max = found_intersection ? isect.t : infinity;
+            Float u = sampler.Next1D();
+
+            // Evaluate L_n term which is the null-scattering extended source function by delta tracking
+            Spectrum T_maj = Sample_MajorantTransmittance(
+                medium, wavelength, ray, t_max, u, rng,
+                [&](Point3 p, MediumSample ms, Spectrum sigma_maj, Spectrum T_maj) -> bool {
+                    Float p_absorb = ms.sigma_a[wavelength] / sigma_maj[wavelength];
+                    Float p_scatter = ms.sigma_s[wavelength] / sigma_maj[wavelength];
+                    Float p_null = std::max<Float>(0, 1 - p_absorb - p_scatter);
+                    Float events[3] = { p_absorb, p_scatter, p_null };
+
+                    int32 event = SampleDiscrete(events, rng.NextFloat());
+                    switch (event)
+                    {
+                    case 0:
+                    {
+                        // Sampled absorption event
+                        terminated = true;
+
+                        return false;
+                    }
+
+                    case 1:
+                    {
+                        // Sampled real scattering event
+                        beta *= T_maj * ms.sigma_s / (T_maj[wavelength] * ms.sigma_s[wavelength]);
+
+                        // Create medium vertex
+                        {
+                            vertex.type = VertexType::medium;
+                            vertex.mv.phase = ms.phase;
+                            vertex.medium = medium;
+
+                            vertex.point = p;
+                            vertex.normal = Vec3(0);
+                            vertex.shading_normal = Vec3(0);
+                            vertex.wo = wo;
+
+                            vertex.beta = beta;
+                            vertex.delta = false;
+
+                            vertex.pdf_fwd = ConvertDensity(prev, vertex, pdf);
+                            vertex.pdf_rev = 0;
+                        }
+
+                        if (++bounces >= max_bounces)
+                        {
+                            terminated = true;
+                            return false;
+                        }
+
+                        // Sample phase function to find next path direction
+                        Point2 u{ rng.NextFloat(), rng.NextFloat() };
+                        PhaseFunctionSample ps;
+                        if (!ms.phase->Sample_p(&ps, wo, u))
+                        {
+                            terminated = true;
+                            return false;
+                        }
+
+                        beta *= ps.p / ps.pdf;
+                        ray = Ray(p, ps.wi);
+
+                        pdf = ps.pdf;
+                        prev.pdf_rev = ConvertDensity(vertex, prev, ps.pdf);
+
+                        scattered = true;
+                        return false;
+                    }
+
+                    case 2:
+                    {
+                        // Sampled null scattering event, continue sampling
+                        Spectrum sigma_n = Max(sigma_maj - ms.sigma_a - ms.sigma_s, 0);
+
+                        Float pdf = T_maj[wavelength] * sigma_n[wavelength];
+                        if (pdf == 0)
+                        {
+                            beta = Spectrum::black;
+                        }
+                        else
+                        {
+                            beta *= T_maj * sigma_n / pdf;
+                        }
+
+                        return !beta.IsBlack();
+                    }
+
+                    default:
+                        BulbitAssert(false);
+                        return false;
+                    }
+                }
+            );
+
+            if (terminated)
+            {
+                break;
+            }
+            if (scattered)
+            {
+                continue;
+            }
+
+            beta *= T_maj / T_maj[wavelength];
+        }
+
         if (!found_intersection)
         {
             // Create infinite light vertex
@@ -170,6 +286,7 @@ int32 RandomWalkVol(
                 vertex.type = VertexType::light;
                 vertex.lv.infinite_light = true;
                 vertex.lv.light = nullptr;
+                vertex.medium = nullptr;
 
                 vertex.point = ray.At(1);
                 vertex.normal = Vec3(0);
@@ -191,7 +308,8 @@ int32 RandomWalkVol(
         BSDF bsdf;
         if (!isect.GetBSDF(&bsdf, wo, alloc))
         {
-            ray = Ray(isect.point, -wo);
+            medium = isect.GetMedium(ray.d);
+            ray.o = isect.point;
             continue;
         }
 
@@ -204,6 +322,7 @@ int32 RandomWalkVol(
             vertex.sv.area_light = area_lights.contains(isect.primitive) ? area_lights.at(isect.primitive) : nullptr;
             vertex.sv.front_face = isect.front_face;
             vertex.sv.bsdf = bsdf;
+            vertex.medium = nullptr;
 
             vertex.point = isect.point;
             vertex.normal = isect.normal;
@@ -230,7 +349,9 @@ int32 RandomWalkVol(
 
         pdf = bsdf_sample.is_stochastic ? bsdf.PDF(wo, bsdf_sample.wi, direction) : bsdf_sample.pdf;
         beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
+
         ray = Ray(isect.point, bsdf_sample.wi);
+        medium = isect.GetMedium(bsdf_sample.wi);
 
         Float pdf_rev = bsdf.PDF(bsdf_sample.wi, wo, !direction);
         if (bsdf_sample.IsSpecular())
@@ -263,8 +384,6 @@ Float WeightMIS(const Integrator* I, Vertex* light_path, Vertex* camera_path, in
 
     if (vc)
     {
-        BulbitAssert(vc->IsLight());
-
         camera_pdf_revs[0] = s > 0 ? vl->PDF(*vc, vl_prev, I) : vc->PDFLightOrigin(*vc_prev, I);
         std::swap(vc->pdf_rev, camera_pdf_revs[0]);
     }
@@ -494,21 +613,222 @@ Spectrum ConnectPaths(
             return Spectrum::black;
         }
 
-        Vec3 d = vl.point - vc.point;
-        Float G = 1 / Length2(d);
-        d *= std::sqrt(G);
+        Vec3 w = vl.point - vc.point;
+        Float G = 1 / Length2(w);
+        w *= std::sqrt(G);
 
         if (vl.IsOnSurface())
         {
-            G *= AbsDot(vl.shading_normal, d);
+            G *= AbsDot(vl.shading_normal, w);
         }
 
         if (vc.IsOnSurface())
         {
-            G *= AbsDot(vc.shading_normal, d);
+            G *= AbsDot(vc.shading_normal, w);
         }
 
         L *= G;
+    }
+
+    if (L.IsBlack())
+    {
+        return L;
+    }
+
+    // Temporally swap end vertex
+    if (t == 1)
+    {
+        std::swap(camera_path[0], ve);
+    }
+    else if (s == 1)
+    {
+        std::swap(light_path[0], ve);
+    }
+
+    Float mis_weight = WeightMIS(I, light_path, camera_path, s, t);
+
+    // Reswap
+    if (t == 1)
+    {
+        std::swap(camera_path[0], ve);
+    }
+    else if (s == 1)
+    {
+        std::swap(light_path[0], ve);
+    }
+
+    return mis_weight * L;
+}
+
+Spectrum ConnectPathsVol(
+    const Integrator* I,
+    Vertex* light_path,
+    Vertex* camera_path,
+    int32 s,
+    int32 t,
+    const Camera* camera,
+    int32 wavelength,
+    Sampler& sampler,
+    Point2* p_raster
+)
+{
+    // Ignore invalid connections that attempt to connect a light vertex to another light vertex
+    if (t > 1 && s > 0 && camera_path[t - 1].type == VertexType::light)
+    {
+        return Spectrum(0);
+    }
+
+    Spectrum L(0);
+
+    Vertex ve;
+
+    if (s == 0)
+    {
+        // Interpret the camera path as a complete path
+        const Vertex& v = camera_path[t - 1];
+        L = v.beta * v.Le(camera_path[t - 2], I);
+    }
+    else if (t == 1)
+    {
+        // Sample camera sample and connect it to the light subpath
+        const Vertex& v = light_path[s - 1];
+        if (!v.IsConnectable())
+        {
+            return Spectrum::black;
+        }
+
+        CameraSampleWi camera_sample;
+        Intersection ref{ .point = v.point };
+        if (!camera->SampleWi(&camera_sample, ref, sampler.Next2D()))
+        {
+            return Spectrum::black;
+        }
+
+        // Sample new camera vertex
+        {
+            ve.type = VertexType::camera;
+            ve.cv.camera = camera;
+            ve.medium = camera->GetMedium();
+
+            ve.point = camera_sample.p_aperture;
+            ve.normal = Vec3(0);
+            ve.shading_normal = Vec3(0);
+            ve.wo = Vec3(0);
+
+            ve.beta = camera_sample.Wi / camera_sample.pdf;
+            ve.delta = false;
+
+            ve.pdf_fwd = 1;
+            ve.pdf_rev = 0;
+        }
+
+        L = ve.beta * v.f(camera_sample.wi, TransportDirection::ToCamera) * v.beta;
+
+        if (v.IsOnSurface())
+        {
+            L *= AbsDot(v.shading_normal, camera_sample.wi);
+        }
+
+        if (L.IsBlack())
+        {
+            return Spectrum::black;
+        }
+
+        L *= Tr(I, ve.point, v.point, camera->GetMedium(), wavelength);
+
+        *p_raster = camera_sample.p_raster;
+    }
+    else if (s == 1)
+    {
+        // Sample light sample and connect it to the camera subpath
+        const Vertex& v = camera_path[t - 1];
+        if (!v.IsConnectable())
+        {
+            return Spectrum::black;
+        }
+
+        SampledLight sampled_light;
+        Intersection isect{ .point = v.point };
+        if (!I->GetLightSampler().Sample(&sampled_light, isect, sampler.Next1D()))
+        {
+            return Spectrum::black;
+        }
+
+        LightSampleLi light_sample;
+        if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler.Next2D()))
+        {
+            return Spectrum::black;
+        }
+
+        // Sample new light vertex
+        {
+            ve.type = VertexType::light;
+            ve.lv.light = sampled_light.light;
+            ve.lv.infinite_light = sampled_light.light->IsInfiniteLight();
+            ve.medium = nullptr;
+
+            ve.point = light_sample.point;
+            ve.normal = light_sample.normal;
+            ve.shading_normal = light_sample.normal;
+            ve.wo = Vec3(0);
+
+            ve.beta = light_sample.Li / (sampled_light.pmf * light_sample.pdf);
+            ve.delta = false;
+
+            ve.pdf_fwd = ve.PDFLightOrigin(v, I);
+            ve.pdf_rev = 0;
+        }
+
+        L = v.beta * v.f(light_sample.wi, TransportDirection::ToLight) * ve.beta;
+
+        if (v.IsOnSurface())
+        {
+            L *= AbsDot(v.shading_normal, light_sample.wi);
+        }
+
+        if (L.IsBlack())
+        {
+            return Spectrum::black;
+        }
+
+        Vec3 w = Normalize(ve.point - v.point);
+        L *= Tr(I, v.point, ve.point, v.GetMedium(w), wavelength);
+    }
+    else
+    {
+        // Join two paths in the middle
+        const Vertex& vl = light_path[s - 1];
+        const Vertex& vc = camera_path[t - 1];
+        if (!vl.IsConnectable() || !vc.IsConnectable())
+        {
+            return Spectrum::black;
+        }
+
+        L = vc.beta * vc.f(vl, TransportDirection::ToLight) * vl.f(vc, TransportDirection::ToCamera) * vl.beta;
+
+        // Incorporate generalized geometry term
+        Vec3 w = vl.point - vc.point;
+        Float G = 1 / Length2(w);
+        w *= std::sqrt(G);
+
+        if (vl.IsOnSurface())
+        {
+            G *= AbsDot(vl.shading_normal, w);
+        }
+
+        if (vc.IsOnSurface())
+        {
+            G *= AbsDot(vc.shading_normal, w);
+        }
+
+        L *= G;
+
+        if (L.IsBlack())
+        {
+            return Spectrum::black;
+        }
+
+        L *= Tr(I, vc.point, vl.point, vc.GetMedium(w), wavelength);
     }
 
     if (L.IsBlack())

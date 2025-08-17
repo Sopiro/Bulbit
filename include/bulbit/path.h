@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bsdf.h"
+#include "medium.h"
 
 namespace bulbit
 {
@@ -50,6 +51,7 @@ struct Vertex
 {
     Vertex()
         : sv{ 0 }
+        , medium{ nullptr }
         , point{ 0 }
         , normal{ 0 }
         , shading_normal{ 0 }
@@ -72,6 +74,8 @@ struct Vertex
     bool IsDeltaLight() const;
     bool IsInfiniteLight() const;
 
+    const Medium* GetMedium(const Vec3& w) const;
+
     Spectrum Le(const Vertex& v, const Integrator* I) const;
 
     Spectrum f(const Vec3& wi, TransportDirection direction) const;
@@ -90,6 +94,8 @@ struct Vertex
         CameraVertex cv;
         LightVertex lv;
     };
+
+    const Medium* medium;
 
     Point3 point;
     Vec3 normal, shading_normal;

@@ -42,11 +42,32 @@ bool Vertex::IsInfiniteLight() const
     return (type == VertexType::light) && lv.infinite_light;
 }
 
+const Medium* Vertex::GetMedium(const Vec3& w) const
+{
+    if (IsOnSurface())
+    {
+        MediumInterface medium_interface = sv.primitive->GetMediumInterface();
+
+        if (sv.front_face == (Dot(w, normal) > 0))
+        {
+            return medium_interface.outside;
+        }
+        else
+        {
+            return medium_interface.inside;
+        }
+    }
+    else
+    {
+        return medium;
+    }
+}
+
 Spectrum Vertex::Le(const Vertex& v, const Integrator* I) const
 {
     if (!IsLight())
     {
-        return Spectrum(0);
+        return Spectrum::black;
     }
 
     if (IsInfiniteLight())

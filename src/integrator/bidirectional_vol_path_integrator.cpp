@@ -32,6 +32,7 @@ int32 BiDirectionalVolPathIntegrator::SampleCameraPath(
         Vertex& v = path[0];
         v.type = VertexType::camera;
         v.cv.camera = camera;
+        v.medium = medium;
 
         v.point = ray.o;
         v.normal = Vec3(0);
@@ -72,6 +73,7 @@ int32 BiDirectionalVolPathIntegrator::SampleLightPath(Vertex* path, int32 wavele
         v.type = VertexType::light;
         v.lv.light = sl.light;
         v.lv.infinite_light = sl.light->IsInfiniteLight();
+        v.medium = light_sample.medium;
 
         v.point = light_sample.ray.o;
         v.normal = light_sample.normal;
@@ -160,7 +162,7 @@ Spectrum BiDirectionalVolPathIntegrator::L(
             }
 
             Point2 p_raster;
-            Spectrum L_path = ConnectPaths(this, light_path, camera_path, s, t, camera, sampler, &p_raster);
+            Spectrum L_path = ConnectPathsVol(this, light_path, camera_path, s, t, camera, wavelength, sampler, &p_raster);
 
             if (t == 1)
             {

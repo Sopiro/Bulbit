@@ -38,16 +38,24 @@ bool AreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2
     Vec3 wi = shape_sample.point - ref.point;
 
     sample->point = shape_sample.point;
-    sample->normal = shape_sample.normal;
-
     sample->visibility = wi.Normalize() - Ray::epsilon;
     sample->wi = wi;
     sample->pdf = shape_sample.pdf;
 
+    bool front_face = Dot(shape_sample.normal, wi) < 0;
+    Vec3 normal = shape_sample.normal;
+    if (!front_face)
+    {
+        normal.Negate();
+    }
+    sample->normal = normal;
+
     Intersection isect;
-    isect.point = shape_sample.point;
-    isect.front_face = Dot(shape_sample.normal, wi) < 0;
-    sample->Li = primitive->GetMaterial()->Le(isect, wi);
+    isect.front_face = front_face;
+    isect.primitive = primitive;
+    isect.normal = normal;
+    isect.uv = shape_sample.uv;
+    sample->Li = isect.Le(-wi);
 
     return true;
 }

@@ -48,4 +48,16 @@ Spectrum ConnectPaths(
     Point2* p_raster
 );
 
+Spectrum ConnectPathsVol(
+    const Integrator* integrator,
+    Vertex* light_path,
+    Vertex* camera_path,
+    int32 s,
+    int32 t,
+    const Camera* camera,
+    int32 wavelength,
+    Sampler& sampler,
+    Point2* p_raster
+);
+
 } // namespace bulbit
