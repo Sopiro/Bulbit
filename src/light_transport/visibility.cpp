@@ -7,9 +7,10 @@ namespace bulbit
 
 bool V(const Integrator* I, const Point3 p1, const Point3 p2)
 {
-    Vec3 d = p2 - p1;
-    Float visibility = d.Normalize() - Ray::epsilon;
-    Ray ray(p1, d);
+    Vec3 w = p2 - p1;
+    Float visibility = w.Normalize() - Ray::epsilon;
+
+    Ray ray(p1, w);
 
     Intersection isect;
     while (visibility > 0 && I->Intersect(&isect, ray, Ray::epsilon, visibility))

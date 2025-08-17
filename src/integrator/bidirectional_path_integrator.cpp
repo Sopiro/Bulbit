@@ -34,9 +34,9 @@ int32 BiDirectionalPathIntegrator::SampleCameraPath(
         v.cv.camera = camera;
 
         v.point = ray.o;
-        v.normal = Vec3(0);
-        v.shading_normal = Vec3(0);
-        v.wo = Vec3(0);
+        v.normal = Vec3::zero;
+        v.shading_normal = Vec3::zero;
+        v.wo = Vec3::zero;
 
         v.beta = Spectrum(1);
         v.delta = false;
@@ -73,7 +73,7 @@ int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sample
         v.point = light_sample.ray.o;
         v.normal = light_sample.normal;
         v.shading_normal = light_sample.normal;
-        v.wo = Vec3(0);
+        v.wo = Vec3::zero;
 
         v.beta = light_sample.Le;
         v.delta = false;

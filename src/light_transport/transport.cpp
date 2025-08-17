@@ -47,8 +47,8 @@ int32 RandomWalk(
                 vertex.lv.light = nullptr;
 
                 vertex.point = ray.At(1);
-                vertex.normal = Vec3(0);
-                vertex.shading_normal = Vec3(0);
+                vertex.normal = Vec3::zero;
+                vertex.shading_normal = Vec3::zero;
                 vertex.wo = wo;
 
                 vertex.beta = beta;
@@ -205,8 +205,8 @@ int32 RandomWalkVol(
                             vertex.medium = medium;
 
                             vertex.point = p;
-                            vertex.normal = Vec3(0);
-                            vertex.shading_normal = Vec3(0);
+                            vertex.normal = Vec3::zero;
+                            vertex.shading_normal = Vec3::zero;
                             vertex.wo = wo;
 
                             vertex.beta = beta;
@@ -289,8 +289,8 @@ int32 RandomWalkVol(
                 vertex.medium = nullptr;
 
                 vertex.point = ray.At(1);
-                vertex.normal = Vec3(0);
-                vertex.shading_normal = Vec3(0);
+                vertex.normal = Vec3::zero;
+                vertex.shading_normal = Vec3::zero;
                 vertex.wo = wo;
 
                 vertex.beta = beta;
@@ -473,7 +473,7 @@ Spectrum ConnectPaths(
     // Ignore invalid connections that attempt to connect a light vertex to another light vertex
     if (t > 1 && s > 0 && camera_path[t - 1].type == VertexType::light)
     {
-        return Spectrum(0);
+        return Spectrum::black;
     }
 
     Spectrum L(0);
@@ -484,7 +484,10 @@ Spectrum ConnectPaths(
     {
         // Interpret the camera path as a complete path
         const Vertex& v = camera_path[t - 1];
-        L = v.beta * v.Le(camera_path[t - 2], I);
+        if (v.IsLight())
+        {
+            L = v.beta * v.Le(camera_path[t - 2], I);
+        }
     }
     else if (t == 1)
     {
@@ -508,9 +511,9 @@ Spectrum ConnectPaths(
             ve.cv.camera = camera;
 
             ve.point = camera_sample.p_aperture;
-            ve.normal = Vec3(0);
-            ve.shading_normal = Vec3(0);
-            ve.wo = Vec3(0);
+            ve.normal = Vec3::zero;
+            ve.shading_normal = Vec3::zero;
+            ve.wo = Vec3::zero;
 
             ve.beta = camera_sample.Wi / camera_sample.pdf;
             ve.delta = false;
@@ -519,16 +522,21 @@ Spectrum ConnectPaths(
             ve.pdf_rev = 0;
         }
 
-        if (!V(I, v.point, camera_sample.p_aperture))
-        {
-            return Spectrum::black;
-        }
-
         L = ve.beta * v.f(camera_sample.wi, TransportDirection::ToCamera) * v.beta;
 
         if (v.IsOnSurface())
         {
             L *= AbsDot(v.shading_normal, camera_sample.wi);
+        }
+
+        if (L.IsBlack())
+        {
+            return Spectrum::black;
+        }
+
+        if (!V(I, v.point, camera_sample.p_aperture))
+        {
+            return Spectrum::black;
         }
 
         *p_raster = camera_sample.p_raster;
@@ -564,7 +572,7 @@ Spectrum ConnectPaths(
             ve.point = light_sample.point;
             ve.normal = light_sample.normal;
             ve.shading_normal = light_sample.normal;
-            ve.wo = Vec3(0);
+            ve.wo = Vec3::zero;
 
             ve.beta = light_sample.Li / (sampled_light.pmf * light_sample.pdf);
             ve.delta = false;
@@ -608,11 +616,6 @@ Spectrum ConnectPaths(
         }
 
         // Incorporate generalized geometry term
-        if (!V(I, vl.point, vc.point))
-        {
-            return Spectrum::black;
-        }
-
         Vec3 w = vl.point - vc.point;
         Float G = 1 / Length2(w);
         w *= std::sqrt(G);
@@ -628,6 +631,16 @@ Spectrum ConnectPaths(
         }
 
         L *= G;
+
+        if (L.IsBlack())
+        {
+            return Spectrum::black;
+        }
+
+        if (!V(I, vl.point, vc.point))
+        {
+            return Spectrum::black;
+        }
     }
 
     if (L.IsBlack())
@@ -675,7 +688,7 @@ Spectrum ConnectPathsVol(
     // Ignore invalid connections that attempt to connect a light vertex to another light vertex
     if (t > 1 && s > 0 && camera_path[t - 1].type == VertexType::light)
     {
-        return Spectrum(0);
+        return Spectrum::black;
     }
 
     Spectrum L(0);
@@ -686,7 +699,10 @@ Spectrum ConnectPathsVol(
     {
         // Interpret the camera path as a complete path
         const Vertex& v = camera_path[t - 1];
-        L = v.beta * v.Le(camera_path[t - 2], I);
+        if (v.IsLight())
+        {
+            L = v.beta * v.Le(camera_path[t - 2], I);
+        }
     }
     else if (t == 1)
     {
@@ -711,9 +727,9 @@ Spectrum ConnectPathsVol(
             ve.medium = camera->GetMedium();
 
             ve.point = camera_sample.p_aperture;
-            ve.normal = Vec3(0);
-            ve.shading_normal = Vec3(0);
-            ve.wo = Vec3(0);
+            ve.normal = Vec3::zero;
+            ve.shading_normal = Vec3::zero;
+            ve.wo = Vec3::zero;
 
             ve.beta = camera_sample.Wi / camera_sample.pdf;
             ve.delta = false;
@@ -770,7 +786,7 @@ Spectrum ConnectPathsVol(
             ve.point = light_sample.point;
             ve.normal = light_sample.normal;
             ve.shading_normal = light_sample.normal;
-            ve.wo = Vec3(0);
+            ve.wo = Vec3::zero;
 
             ve.beta = light_sample.Li / (sampled_light.pmf * light_sample.pdf);
             ve.delta = false;
