@@ -30,14 +30,17 @@ PhotonMappingIntegrator::PhotonMappingIntegrator(
 
 void PhotonMappingIntegrator::EmitPhotons()
 {
-    RNG rng(Hash(n_photons), Hash(gather_radius));
+    ThreadLocal<std::vector<Photon>> tl_photons;
 
-    for (int32 i = 0; i < n_photons; ++i)
-    {
+    ParallelFor(0, n_photons, [&](int32 i) {
+        RNG rng(Hash(n_photons, gather_radius), Hash(i));
+
+        std::vector<Photon>& ps = tl_photons.Get();
+
         SampledLight sampled_light;
         if (!light_sampler.Sample(&sampled_light, Intersection{}, rng.NextFloat()))
         {
-            continue;
+            return;
         }
 
         Point2 u0(rng.NextFloat(), rng.NextFloat());
@@ -46,7 +49,7 @@ void PhotonMappingIntegrator::EmitPhotons()
         LightSampleLe light_sample;
         if (!sampled_light.light->Sample_Le(&light_sample, u0, u1))
         {
-            continue;
+            return;
         }
 
         Ray photon_ray = light_sample.ray;
@@ -86,7 +89,8 @@ void PhotonMappingIntegrator::EmitPhotons()
                 p.position = isect.point;
                 p.wi = wo;
                 p.beta = beta;
-                photon_map.Store(p);
+
+                ps.push_back(p);
             }
 
             BSDFSample bsdf_sample;
@@ -116,9 +120,16 @@ void PhotonMappingIntegrator::EmitPhotons()
                 }
             }
         }
-    }
+    });
 
-    photon_map.Build(gather_radius);
+    photons.reserve(n_photons);
+
+    tl_photons.ForEach([&](std::thread::id tid, std::vector<Photon>& ps) {
+        BulbitNotUsed(tid);
+        photons.insert(photons.end(), ps.begin(), ps.end());
+    });
+
+    photon_map.Build(photons, gather_radius);
 }
 
 Spectrum PhotonMappingIntegrator::SampleDirectLight(

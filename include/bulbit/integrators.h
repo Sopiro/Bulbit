@@ -233,6 +233,7 @@ private:
     const Sampler* sampler_prototype;
     int32 max_bounces;
 
+    std::vector<Photon> photons;
     int32 n_photons;
     Float gather_radius;
     PhotonMap photon_map;

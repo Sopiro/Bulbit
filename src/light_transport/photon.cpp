@@ -12,13 +12,9 @@ static inline Vec3i PosToCell(const Vec3& p, Float cell_size)
     return Vec3i(x, y, z);
 }
 
-void PhotonMap::Store(const Photon& photon)
+void PhotonMap::Build(std::span<Photon> ps, Float gather_radius)
 {
-    photons.push_back(photon);
-}
-
-void PhotonMap::Build(Float gather_radius)
-{
+    photons = ps;
     cell_size = gather_radius;
     cells.clear();
 
@@ -31,7 +27,7 @@ void PhotonMap::Build(Float gather_radius)
     }
 }
 
-void PhotonMap::Query(const Vec3& pos, Float radius, std::function<void(const Photon&)> callback) const
+void PhotonMap::Query(const Vec3& pos, Float radius, std::function<void(const Photon&)>&& callback) const
 {
     const Float radius2 = Sqr(radius);
 
@@ -53,9 +49,9 @@ void PhotonMap::Query(const Vec3& pos, Float radius, std::function<void(const Ph
                 }
 
                 const std::vector<int32>& photon_indices = cells.at(hash);
-                for (int32 idx : photon_indices)
+                for (int32 i : photon_indices)
                 {
-                    const Photon& p = photons[idx];
+                    const Photon& p = photons[i];
                     if (Dist2(p.position, pos) <= radius2)
                     {
                         callback(p);
