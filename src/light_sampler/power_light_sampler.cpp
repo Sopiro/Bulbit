@@ -5,15 +5,16 @@
 namespace bulbit
 {
 
-PowerLightSampler::PowerLightSampler(std::span<Light*> lights)
-    : LightSampler(lights)
+void PowerLightSampler::Init(std::span<Light*> all_lights)
 {
+    LightSampler::Init(all_lights);
+
     int32 light_count = int32(lights.size());
     std::vector<Float> powers(light_count);
 
     for (int32 i = 0; i < light_count; ++i)
     {
-        Light* light = lights[i];
+        const Light* light = lights[i];
         powers[i] = light->Phi().Luminance();
         light_to_index[light] = i;
     }

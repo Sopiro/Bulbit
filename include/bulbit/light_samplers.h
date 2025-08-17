@@ -9,8 +9,6 @@ namespace bulbit
 class UniformLightSampler : public LightSampler
 {
 public:
-    UniformLightSampler(std::span<Light*> lights);
-
     virtual bool Sample(SampledLight* sampled_light, const Intersection& isect, Float u) const override;
     virtual Float EvaluatePMF(const Light* light) const override;
 };
@@ -18,7 +16,7 @@ public:
 class PowerLightSampler : public LightSampler
 {
 public:
-    PowerLightSampler(std::span<Light*> lights);
+    virtual void Init(std::span<Light*> all_lights) override;
 
     virtual bool Sample(SampledLight* sampled_light, const Intersection& isect, Float u) const override;
     virtual Float EvaluatePMF(const Light* light) const override;

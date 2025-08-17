@@ -3,11 +3,6 @@
 namespace bulbit
 {
 
-UniformLightSampler::UniformLightSampler(std::span<Light*> lights)
-    : LightSampler(lights)
-{
-}
-
 bool UniformLightSampler::Sample(SampledLight* sl, const Intersection& isect, Float u) const
 {
     BulbitNotUsed(isect);
