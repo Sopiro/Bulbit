@@ -16,6 +16,7 @@ class PointLight : public Light
 {
 public:
     PointLight(const Point3& position, const Spectrum& intensity, const Medium* medium);
+    void Destroy() {}
 
     void Preprocess(const AABB& world_bounds);
 
@@ -40,6 +41,7 @@ class DirectionalLight : public Light
 {
 public:
     DirectionalLight(const Vec3& direction, const Spectrum& intensity);
+    void Destroy() {}
 
     void Preprocess(const AABB& world_bounds);
 
@@ -66,6 +68,7 @@ class AreaLight : public Light
 {
 public:
     AreaLight(const Primitive* primitive, bool two_sided);
+    void Destroy() {}
 
     void Preprocess(const AABB& world_bounds);
 
@@ -94,6 +97,7 @@ class ImageInfiniteLight : public Light
 {
 public:
     ImageInfiniteLight(const SpectrumImageTexture* l_map, const Transform& transform = identity, Float l_scale = 1);
+    void Destroy();
 
     void Preprocess(const AABB& world_bounds);
 
@@ -112,7 +116,7 @@ private:
     const SpectrumImageTexture* l_map; // Environment(Radiance) map
     Float l_scale;
 
-    Distribution2D distribution;
+    std::unique_ptr<Distribution2D> distribution;
 
     Transform transform;
 
@@ -124,6 +128,7 @@ class UniformInfiniteLight : public Light
 {
 public:
     UniformInfiniteLight(const Spectrum& l, Float scale = 1);
+    void Destroy() {}
 
     void Preprocess(const AABB& world_bounds);
 
@@ -145,6 +150,11 @@ private:
     Point3 world_center;
     Float world_radius;
 };
+
+inline Light::~Light()
+{
+    Dispatch([&](auto light) { light->Destroy(); });
+}
 
 inline void Light::Preprocess(const AABB& world_bounds)
 {
