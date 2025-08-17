@@ -24,7 +24,7 @@ public:
 
 private:
     std::span<Photon> photons;
-    std::unordered_map<size_t, std::vector<int32>> cells;
+    std::unordered_map<size_t, std::vector<size_t>> cells;
     Float cell_size;
 };
 

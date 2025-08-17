@@ -48,8 +48,8 @@ void PhotonMap::Query(const Vec3& pos, Float radius, std::function<void(const Ph
                     continue;
                 }
 
-                const std::vector<int32>& photon_indices = cells.at(hash);
-                for (int32 i : photon_indices)
+                const std::vector<size_t>& photon_indices = cells.at(hash);
+                for (size_t i : photon_indices)
                 {
                     const Photon& p = photons[i];
                     if (Dist2(p.position, pos) <= radius2)
