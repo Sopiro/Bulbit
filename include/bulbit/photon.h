@@ -6,9 +6,14 @@
 namespace bulbit
 {
 
+class Primitive;
+
 struct Photon
 {
+    const Primitive* primitive;
     Point3 position;
+    Vec3 normal;
+
     Vec3 wi;
     Spectrum beta;
 };

@@ -18,14 +18,23 @@ PhotonMappingIntegrator::PhotonMappingIntegrator(
     const Sampler* sampler,
     int32 max_bounces,
     int32 n_photons,
-    Float gather_radius
+    Float radius
 )
     : Integrator(accel, std::move(lights))
     , sampler_prototype{ sampler }
     , max_bounces{ max_bounces }
     , n_photons{ n_photons }
-    , gather_radius{ gather_radius }
+    , gather_radius{ radius }
 {
+    if (gather_radius <= 0)
+    {
+        AABB world_bounds = accel->GetAABB();
+        Point3 world_center;
+        Float world_radius;
+        world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
+
+        gather_radius = 2 * world_radius * 5e-3f;
+    }
 }
 
 void PhotonMappingIntegrator::EmitPhotons()
@@ -86,6 +95,8 @@ void PhotonMappingIntegrator::EmitPhotons()
             if (bounce > 1 && IsNonSpecular(bsdf.Flags()))
             {
                 Photon p;
+                p.primitive = isect.primitive;
+                p.normal = isect.normal;
                 p.position = isect.point;
                 p.wi = wo;
                 p.beta = beta;
@@ -222,14 +233,24 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
             L += SampleDirectLight(wo, isect, &bsdf, sampler, beta);
 
             // Estimate indirect light by gathering nearby photons
-            Spectrum L_p(0);
+            Spectrum L_i(0);
 
             photon_map.Query(isect.point, gather_radius, [&](const Photon& p) {
-                L_p += bsdf.f(-ray.d, p.wi) * AbsDot(isect.shading.normal, p.wi) * p.beta;
+                if (isect.primitive->GetMaterial() != p.primitive->GetMaterial())
+                {
+                    return;
+                }
+
+                if (Dot(p.normal, isect.normal) < 0.95f)
+                {
+                    return;
+                }
+
+                L_i += bsdf.f(-ray.d, p.wi) * AbsDot(isect.shading.normal, p.wi) * p.beta;
             });
 
-            L_p *= 1 / (pi * Sqr(gather_radius) * n_photons);
-            L += beta * L_p;
+            L_i *= 1 / (pi * Sqr(gather_radius) * n_photons);
+            L += beta * L_i;
 
             // Done!
             break;

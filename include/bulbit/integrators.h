@@ -218,7 +218,7 @@ public:
         const Sampler* sampler,
         int32 max_bounces,
         int32 n_photons,
-        Float gather_radius
+        Float gather_radius = -1
     );
 
     virtual std::unique_ptr<Rendering> Render(const Camera* camera) override;
