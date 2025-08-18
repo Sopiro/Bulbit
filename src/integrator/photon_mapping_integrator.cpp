@@ -33,7 +33,7 @@ PhotonMappingIntegrator::PhotonMappingIntegrator(
         Float world_radius;
         world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
 
-        gather_radius = 2 * world_radius * 5e-3f;
+        gather_radius = 2 * world_radius * 5e-4f;
     }
 }
 
@@ -246,7 +246,8 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
                     return;
                 }
 
-                L_i += bsdf.f(-ray.d, p.wi) * AbsDot(isect.shading.normal, p.wi) * p.beta;
+                Vec3 w = Normalize(ray.o - p.position);
+                L_i += bsdf.f(w, p.wi) * AbsDot(isect.shading.normal, p.wi) * p.beta;
             });
 
             L_i *= 1 / (pi * Sqr(gather_radius) * n_photons);
@@ -257,7 +258,7 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
         }
 
         BSDFSample bsdf_sample;
-        if (!bsdf.Sample_f(&bsdf_sample, -ray.d, sampler.Next1D(), sampler.Next2D()))
+        if (!bsdf.Sample_f(&bsdf_sample, wo, sampler.Next1D(), sampler.Next2D()))
         {
             break;
         }
