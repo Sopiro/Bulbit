@@ -8,6 +8,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <cstring>
+#include <execution>
 #include <filesystem>
 #include <format>
 #include <functional>

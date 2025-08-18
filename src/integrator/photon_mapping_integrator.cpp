@@ -115,7 +115,6 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
             photon_ray = Ray(isect.point, bsdf_sample.wi);
             beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
 
-            constexpr int32 min_bounces = 2;
             if (bounce > min_bounces)
             {
                 if (Float p = beta.MaxComponent(); p < 1)
@@ -135,14 +134,15 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
         progress->phase_works_dones[0]++;
     });
 
-    photons.reserve(n_photons);
+    std::vector<Photon> photons;
+    photons.reserve(n_photons * min_bounces);
 
     tl_photons.ForEach([&](std::thread::id tid, std::vector<Photon>& ps) {
         BulbitNotUsed(tid);
         photons.insert(photons.end(), ps.begin(), ps.end());
     });
 
-    photon_map.Build(photons, gather_radius);
+    photon_map.Build(std::move(photons), gather_radius);
 }
 
 Spectrum PhotonMappingIntegrator::SampleDirectLight(
