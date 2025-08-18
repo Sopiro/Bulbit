@@ -209,6 +209,8 @@ private:
     int32 max_bounces;
 };
 
+class MultiPhaseRendering;
+
 class PhotonMappingIntegrator : public Integrator
 {
 public:
@@ -224,7 +226,8 @@ public:
     virtual std::unique_ptr<Rendering> Render(const Camera* camera) override;
 
 private:
-    void EmitPhotons();
+    void EmitPhotons(MultiPhaseRendering* progress);
+
     Spectrum SampleDirectLight(
         const Vec3& wo, const Intersection& isect, const BSDF* bsdf, Sampler& sampler, const Spectrum& beta
     ) const;

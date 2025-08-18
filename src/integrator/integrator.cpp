@@ -6,7 +6,7 @@
 #include "bulbit/media.h"
 #include "bulbit/microfacet.h"
 #include "bulbit/parallel_for.h"
-#include "bulbit/progress.h"
+#include "bulbit/progresses.h"
 #include "bulbit/sampler.h"
 
 namespace bulbit
@@ -61,9 +61,8 @@ std::unique_ptr<Rendering> UniDirectionalRayIntegrator::Render(const Camera* cam
     const int32 spp = sampler_prototype->samples_per_pixel;
     const int32 tile_size = 16;
 
-    std::unique_ptr<Rendering> progress = std::make_unique<Rendering>(camera, tile_size);
-
-    progress->job = RunAsync([=, this, &progress]() {
+    SinglePhaseRendering* progress = new SinglePhaseRendering(camera, tile_size);
+    progress->job = RunAsync([=, this]() {
         ParallelFor2D(
             resolution,
             [&](AABB2i tile) {
@@ -87,7 +86,7 @@ std::unique_ptr<Rendering> UniDirectionalRayIntegrator::Render(const Camera* cam
                     }
                 }
 
-                progress->tile_done++;
+                progress->num_tiles_done++;
             },
             tile_size
         );
@@ -96,7 +95,7 @@ std::unique_ptr<Rendering> UniDirectionalRayIntegrator::Render(const Camera* cam
         return true;
     });
 
-    return progress;
+    return std::unique_ptr<Rendering>(progress);
 }
 
 BiDirectionalRayIntegrator::BiDirectionalRayIntegrator(
@@ -116,9 +115,8 @@ std::unique_ptr<Rendering> BiDirectionalRayIntegrator::Render(const Camera* came
     const int32 spp = sampler_prototype->samples_per_pixel;
     const int32 tile_size = 16;
 
-    std::unique_ptr<Rendering> progress = std::make_unique<Rendering>(camera, tile_size);
-
-    progress->job = RunAsync([=, this, &progress]() {
+    SinglePhaseRendering* progress = new SinglePhaseRendering(camera, tile_size);
+    progress->job = RunAsync([=, this]() {
         ParallelFor2D(
             resolution,
             [&](AABB2i tile) {
@@ -142,7 +140,7 @@ std::unique_ptr<Rendering> BiDirectionalRayIntegrator::Render(const Camera* came
                     }
                 }
 
-                progress->tile_done++;
+                progress->num_tiles_done++;
             },
             tile_size
         );
@@ -152,7 +150,7 @@ std::unique_ptr<Rendering> BiDirectionalRayIntegrator::Render(const Camera* came
         return true;
     });
 
-    return progress;
+    return std::unique_ptr<Rendering>(progress);
 }
 
 } // namespace bulbit

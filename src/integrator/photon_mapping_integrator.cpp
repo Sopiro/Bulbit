@@ -5,7 +5,7 @@
 #include "bulbit/integrators.h"
 #include "bulbit/microfacet.h"
 #include "bulbit/parallel_for.h"
-#include "bulbit/progress.h"
+#include "bulbit/progresses.h"
 #include "bulbit/sampler.h"
 #include "bulbit/visibility.h"
 
@@ -37,7 +37,7 @@ PhotonMappingIntegrator::PhotonMappingIntegrator(
     }
 }
 
-void PhotonMappingIntegrator::EmitPhotons()
+void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
 {
     ThreadLocal<std::vector<Photon>> tl_photons;
 
@@ -131,6 +131,8 @@ void PhotonMappingIntegrator::EmitPhotons()
                 }
             }
         }
+
+        progress->phase_works_dones[0]++;
     });
 
     photons.reserve(n_photons);
@@ -278,11 +280,21 @@ std::unique_ptr<Rendering> PhotonMappingIntegrator::Render(const Camera* camera)
     Point2i resolution = camera->GetScreenResolution();
     const int32 spp = sampler_prototype->samples_per_pixel;
     const int32 tile_size = 16;
-    std::unique_ptr<Rendering> progress = std::make_unique<Rendering>(camera, tile_size);
 
-    EmitPhotons();
+    Point2i res = camera->GetScreenResolution();
+    int32 num_tiles_x = (res.x + tile_size - 1) / tile_size;
+    int32 num_tiles_y = (res.y + tile_size - 1) / tile_size;
 
-    progress->job = RunAsync([=, this, &progress]() {
+    int32 tile_count = num_tiles_x * num_tiles_y;
+
+    std::array<size_t, 2> phase_works = { size_t(n_photons), size_t(tile_count) };
+    MultiPhaseRendering* progress = new MultiPhaseRendering(camera, phase_works);
+
+    progress->job = RunAsync([=, this]() {
+        EmitPhotons(progress);
+
+        progress->phase_dones[0] = true;
+
         ParallelFor2D(
             resolution,
             [&](AABB2i tile) {
@@ -305,16 +317,16 @@ std::unique_ptr<Rendering> PhotonMappingIntegrator::Render(const Camera* camera)
                     }
                 }
 
-                progress->tile_done++;
+                progress->phase_works_dones[1]++;
             },
             tile_size
         );
 
-        progress->done = true;
+        progress->phase_dones[1] = true;
         return true;
     });
 
-    return progress;
+    return std::unique_ptr<Rendering>(progress);
 }
 
 } // namespace bulbit

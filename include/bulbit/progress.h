@@ -10,88 +10,63 @@ namespace bulbit
 class Rendering
 {
 public:
-    Rendering(const Camera* camera, int32 tile_size)
+    Rendering(const Camera* camera)
         : camera{ camera }
         , film(camera)
-        , tile_size{ tile_size }
-        , tile_done{ 0 }
-        , done{ false }
+        , job{ nullptr }
     {
-        Point2i res = camera->GetScreenResolution();
-        int32 num_tiles_x = (res.x + tile_size - 1) / tile_size;
-        int32 num_tiles_y = (res.y + tile_size - 1) / tile_size;
-
-        tile_count = num_tiles_x * num_tiles_y;
     }
 
-    ~Rendering() = default;
+    virtual ~Rendering() = default;
 
-    void Wait() const
-    {
-        job->Wait();
-    }
+    virtual bool IsDone() const = 0;
+    virtual void LogProgress() const = 0;
 
-    void WaitAndLogProgress() const
-    {
-        while (!IsDone())
-        {
-            LogProgress();
-
-            using namespace std::chrono_literals;
-            std::this_thread::sleep_for(50ms);
-        }
-
-        BulbitAssert(done);
-    }
-
-    void LogProgress() const
-    {
-        int32 t = tile_done.load();
-        float p = 100.0f * t / tile_count;
-        std::fprintf(stdout, "\rRendering.. %.2f%% [%d/%d]", p, t, tile_count);
-    }
-
-    int32 GetTileCount() const
-    {
-        return tile_count;
-    }
-
-    int32 GetTileSize() const
-    {
-        return tile_size;
-    }
-
-    int32 GetNumTileDone() const
-    {
-        return tile_done.load();
-    }
-
-    int32 IsDone() const
-    {
-        return done.load();
-    }
-
-    const Film& GetFilm() const
-    {
-        return film;
-    }
+    bool Start(std::unique_ptr<AsyncJob<bool>> rendering);
+    void Wait() const;
+    void WaitAndLogProgress() const;
+    const Film& GetFilm() const;
 
     const Camera* camera;
 
-private:
-    friend class UniDirectionalRayIntegrator;
-    friend class BiDirectionalRayIntegrator;
-    friend class PhotonMappingIntegrator;
-
+protected:
     Film film;
-
-    int32 tile_size;
-    int32 tile_count;
-
-    std::atomic<int32> tile_done;
-    std::atomic<bool> done;
 
     std::unique_ptr<AsyncJob<bool>> job;
 };
+
+inline bool Rendering::Start(std::unique_ptr<AsyncJob<bool>> rendering)
+{
+    if (!job)
+    {
+        job = std::move(rendering);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+inline void Rendering::Wait() const
+{
+    job->Wait();
+}
+
+inline void Rendering::WaitAndLogProgress() const
+{
+    while (!IsDone())
+    {
+        LogProgress();
+
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(50ms);
+    }
+}
+
+inline const Film& Rendering::GetFilm() const
+{
+    return film;
+}
 
 } // namespace bulbit
