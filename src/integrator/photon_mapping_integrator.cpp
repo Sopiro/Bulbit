@@ -273,18 +273,48 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
     return L;
 }
 
+void PhotonMappingIntegrator::GatherPhotons(const Camera* camera, int32 tile_size, MultiPhaseRendering* progress)
+{
+    Point2i resolution = camera->GetScreenResolution();
+    const int32 spp = sampler_prototype->samples_per_pixel;
+
+    ParallelFor2D(
+        resolution,
+        [&](AABB2i tile) {
+            std::unique_ptr<Sampler> sampler = sampler_prototype->Clone();
+
+            for (Point2i pixel : tile)
+            {
+                for (int32 sample = 0; sample < spp; ++sample)
+                {
+                    sampler->StartPixelSample(pixel, sample);
+
+                    PrimaryRay primary_ray;
+                    camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
+
+                    Spectrum L = Li(primary_ray.ray, camera->GetMedium(), *sampler);
+                    if (!L.IsNullish())
+                    {
+                        progress->film.AddSample(pixel, primary_ray.weight * L);
+                    }
+                }
+            }
+
+            progress->phase_works_dones[1]++;
+        },
+        tile_size
+    );
+}
+
 std::unique_ptr<Rendering> PhotonMappingIntegrator::Render(const Camera* camera)
 {
     ComoputeReflectanceTextures();
 
-    Point2i resolution = camera->GetScreenResolution();
-    const int32 spp = sampler_prototype->samples_per_pixel;
     const int32 tile_size = 16;
 
     Point2i res = camera->GetScreenResolution();
     int32 num_tiles_x = (res.x + tile_size - 1) / tile_size;
     int32 num_tiles_y = (res.y + tile_size - 1) / tile_size;
-
     int32 tile_count = num_tiles_x * num_tiles_y;
 
     std::array<size_t, 2> phase_works = { size_t(n_photons), size_t(tile_count) };
@@ -292,36 +322,8 @@ std::unique_ptr<Rendering> PhotonMappingIntegrator::Render(const Camera* camera)
 
     progress->job = RunAsync([=, this]() {
         EmitPhotons(progress);
-
         progress->phase_dones[0] = true;
-
-        ParallelFor2D(
-            resolution,
-            [&](AABB2i tile) {
-                std::unique_ptr<Sampler> sampler = sampler_prototype->Clone();
-
-                for (Point2i pixel : tile)
-                {
-                    for (int32 sample = 0; sample < spp; ++sample)
-                    {
-                        sampler->StartPixelSample(pixel, sample);
-
-                        PrimaryRay primary_ray;
-                        camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
-
-                        Spectrum L = Li(primary_ray.ray, camera->GetMedium(), *sampler);
-                        if (!L.IsNullish())
-                        {
-                            progress->film.AddSample(pixel, primary_ray.weight * L);
-                        }
-                    }
-                }
-
-                progress->phase_works_dones[1]++;
-            },
-            tile_size
-        );
-
+        GatherPhotons(camera, tile_size, progress);
         progress->phase_dones[1] = true;
         return true;
     });

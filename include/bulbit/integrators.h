@@ -227,6 +227,7 @@ public:
 
 private:
     void EmitPhotons(MultiPhaseRendering* progress);
+    void GatherPhotons(const Camera* camera, int32 tile_size, MultiPhaseRendering* progress);
 
     Spectrum SampleDirectLight(
         const Vec3& wo, const Intersection& isect, const BSDF* bsdf, Sampler& sampler, const Spectrum& beta
