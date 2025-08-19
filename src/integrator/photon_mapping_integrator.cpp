@@ -258,6 +258,10 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
             // Done!
             break;
         }
+        else
+        {
+            was_specular_bounce = true;
+        }
 
         BSDFSample bsdf_sample;
         if (!bsdf.Sample_f(&bsdf_sample, wo, sampler.Next1D(), sampler.Next2D()))
@@ -265,7 +269,6 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
             break;
         }
 
-        was_specular_bounce = true;
         ray = Ray(isect.point, bsdf_sample.wi);
         beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
     }

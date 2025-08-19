@@ -61,7 +61,11 @@ std::unique_ptr<Rendering> UniDirectionalRayIntegrator::Render(const Camera* cam
     const int32 spp = sampler_prototype->samples_per_pixel;
     const int32 tile_size = 16;
 
-    SinglePhaseRendering* progress = new SinglePhaseRendering(camera, tile_size);
+    int32 num_tiles_x = (resolution.x + tile_size - 1) / tile_size;
+    int32 num_tiles_y = (resolution.y + tile_size - 1) / tile_size;
+    int32 tile_count = num_tiles_x * num_tiles_y;
+
+    SinglePhaseRendering* progress = new SinglePhaseRendering(camera, size_t(tile_count));
     progress->job = RunAsync([=, this]() {
         ParallelFor2D(
             resolution,
@@ -86,7 +90,7 @@ std::unique_ptr<Rendering> UniDirectionalRayIntegrator::Render(const Camera* cam
                     }
                 }
 
-                progress->num_tiles_done++;
+                progress->work_dones++;
             },
             tile_size
         );
@@ -115,7 +119,11 @@ std::unique_ptr<Rendering> BiDirectionalRayIntegrator::Render(const Camera* came
     const int32 spp = sampler_prototype->samples_per_pixel;
     const int32 tile_size = 16;
 
-    SinglePhaseRendering* progress = new SinglePhaseRendering(camera, tile_size);
+    int32 num_tiles_x = (resolution.x + tile_size - 1) / tile_size;
+    int32 num_tiles_y = (resolution.y + tile_size - 1) / tile_size;
+    int32 tile_count = num_tiles_x * num_tiles_y;
+
+    SinglePhaseRendering* progress = new SinglePhaseRendering(camera, size_t(tile_count));
     progress->job = RunAsync([=, this]() {
         ParallelFor2D(
             resolution,
@@ -140,7 +148,7 @@ std::unique_ptr<Rendering> BiDirectionalRayIntegrator::Render(const Camera* came
                     }
                 }
 
-                progress->num_tiles_done++;
+                progress->work_dones++;
             },
             tile_size
         );

@@ -8,17 +8,12 @@ namespace bulbit
 class SinglePhaseRendering : public Rendering
 {
 public:
-    SinglePhaseRendering(const Camera* camera, int32 tile_size)
+    SinglePhaseRendering(const Camera* camera, size_t works)
         : Rendering(camera)
-        , tile_size{ tile_size }
-        , num_tiles_done{ 0 }
+        , works{ works }
+        , work_dones{ 0 }
         , done{ false }
     {
-        Point2i res = camera->GetScreenResolution();
-        int32 num_tiles_x = (res.x + tile_size - 1) / tile_size;
-        int32 num_tiles_y = (res.y + tile_size - 1) / tile_size;
-
-        tile_count = num_tiles_x * num_tiles_y;
     }
 
     virtual bool IsDone() const override
@@ -28,34 +23,18 @@ public:
 
     virtual void LogProgress() const override
     {
-        int32 t = num_tiles_done.load();
-        float p = 100.0f * t / tile_count;
-        std::fprintf(stdout, "\rRendering.. %.2f%% [%d/%d]", p, t, tile_count);
-    }
-
-    int32 GetTileCount() const
-    {
-        return tile_count;
-    }
-
-    int32 GetTileSize() const
-    {
-        return tile_size;
-    }
-
-    int32 GetNumTilesDone() const
-    {
-        return num_tiles_done.load();
+        size_t t = work_dones.load();
+        float p = 100.0f * t / works;
+        std::fprintf(stdout, "\rRendering.. %.2f%% [%zu/%zu]", p, t, works);
     }
 
 private:
     friend class UniDirectionalRayIntegrator;
     friend class BiDirectionalRayIntegrator;
 
-    int32 tile_size;
-    int32 tile_count;
+    size_t works;
 
-    std::atomic<int32> num_tiles_done;
+    std::atomic<size_t> work_dones;
     std::atomic<bool> done;
 };
 
@@ -101,7 +80,7 @@ public:
         size_t t = phase_works_dones[current_phase].load();
         size_t total_works = num_phase_works[current_phase];
         float p = 100.0f * t / num_phase_works[current_phase];
-        std::fprintf(stdout, "\rPhase[%zu] Rendering.. %.2f%% [%zu/%zu]", current_phase, p, t, total_works);
+        std::fprintf(stdout, "\rPhase[%zu/%zu] Rendering.. %.2f%% [%zu/%zu]", current_phase + 1, num_phases, p, t, total_works);
     }
 
     size_t NumPhases() const
