@@ -21,35 +21,23 @@ void PhotonMap::Build(std::vector<Photon>&& ps, Float gather_radius)
     std::sort(std::execution::par, photons.begin(), photons.end(), [&](const Photon& p1, const Photon& p2) {
         Vec3i cell1 = PosToCell(p1.position, cell_size);
         Vec3i cell2 = PosToCell(p2.position, cell_size);
-        size_t hash1 = Hash(cell1);
-        size_t hash2 = Hash(cell2);
-
-        return hash1 < hash2;
+        return Hash(cell1) < Hash(cell2);
     });
 
-    size_t i0 = 0;
-    size_t prev = 0;
-    for (size_t i = 0; i < photons.size(); ++i)
+    photon_ranges.clear();
+    Point3i current_cell = PosToCell(photons[0].position, cell_size);
+    size_t begin = 0;
+    for (size_t i = 1; i < photons.size(); ++i)
     {
-        const Photon& p = photons[i];
-        Vec3i cell = PosToCell(p.position, cell_size);
-        size_t hash = Hash(cell);
-        if (hash_to_begin.contains(hash))
+        Point3i cell = PosToCell(photons[i].position, cell_size);
+        if (cell != current_cell)
         {
-            continue;
+            photon_ranges[current_cell] = { begin, i - begin };
+            current_cell = cell;
+            begin = i;
         }
-
-        if (i0 > 0)
-        {
-            hash_to_begin[prev].count = i - i0;
-        }
-
-        PhotonRange range{ i, 0 };
-        hash_to_begin[hash] = range;
-        i0 = i;
-        prev = hash;
     }
-    hash_to_begin[prev].count = photons.size() - i0;
+    photon_ranges[current_cell] = { begin, photons.size() - begin };
 }
 
 void PhotonMap::Query(const Vec3& pos, Float radius, std::function<void(const Photon&)>&& callback) const
@@ -65,14 +53,15 @@ void PhotonMap::Query(const Vec3& pos, Float radius, std::function<void(const Ph
         {
             for (int32 dz = -r; dz <= r; ++dz)
             {
-                Vec3i cell(middle.x + dx, middle.y + dy, middle.z + dz);
-                size_t hash = Hash(cell);
-                if (!hash_to_begin.contains(hash))
+                Vec3i cell = middle + Vec3i(dx, dy, dz);
+
+                auto it = photon_ranges.find(cell);
+                if (it == photon_ranges.end())
                 {
                     continue;
                 }
 
-                PhotonRange range = hash_to_begin.at(hash);
+                const PhotonRange& range = it->second;
                 for (size_t i = range.begin; i < range.begin + range.count; ++i)
                 {
                     const Photon& p = photons[i];

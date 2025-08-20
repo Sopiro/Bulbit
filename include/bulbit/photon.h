@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "hash.h"
 #include "spectrum.h"
 
 namespace bulbit
@@ -36,7 +37,16 @@ private:
         size_t begin;
         size_t count;
     };
-    std::unordered_map<size_t, PhotonRange> hash_to_begin;
+
+    struct Hasher
+    {
+        size_t operator()(const Point3i& v) const
+        {
+            return Hash(v);
+        }
+    };
+
+    std::unordered_map<Point3i, PhotonRange, Hasher> photon_ranges;
 };
 
 } // namespace bulbit
