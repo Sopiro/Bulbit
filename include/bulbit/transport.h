@@ -17,7 +17,7 @@ int32 RandomWalk(
     Ray ray,
     Spectrum beta,
     Float pdf,
-    int32 bounces,
+    int32 max_bounces,
     TransportDirection direction,
     Sampler& sampler,
     Allocator& alloc
@@ -31,7 +31,7 @@ int32 RandomWalkVol(
     int32 wavelength,
     Spectrum beta,
     Float pdf,
-    int32 bounces,
+    int32 max_bounces,
     TransportDirection direction,
     Sampler& sampler,
     Allocator& alloc

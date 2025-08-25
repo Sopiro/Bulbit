@@ -28,6 +28,7 @@ int32 RandomWalk(
     }
 
     int32 bounces = 0;
+    Float eta_scale = 1;
     while (true)
     {
         Vertex& vertex = path[bounces];
@@ -103,6 +104,11 @@ int32 RandomWalk(
             break;
         }
 
+        if (bsdf_sample.IsTransmission())
+        {
+            eta_scale *= Sqr(bsdf_sample.eta);
+        }
+
         pdf = bsdf_sample.is_stochastic ? bsdf.PDF(wo, bsdf_sample.wi, direction) : bsdf_sample.pdf;
         beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
         ray = Ray(isect.point, bsdf_sample.wi);
@@ -120,6 +126,22 @@ int32 RandomWalk(
         if (beta.IsBlack())
         {
             break;
+        }
+
+        // Terminate path with russian roulette
+        if (bounces > 1)
+        {
+            if (Float p = beta.MaxComponent() * eta_scale; p < 1)
+            {
+                if (sampler.Next1D() > p)
+                {
+                    break;
+                }
+                else
+                {
+                    beta /= p;
+                }
+            }
         }
     }
 
@@ -146,6 +168,7 @@ int32 RandomWalkVol(
     }
 
     int32 bounces = 0;
+    Float eta_scale = 1;
     while (true)
     {
         if (beta.IsBlack())
@@ -236,6 +259,23 @@ int32 RandomWalkVol(
 
                         pdf = ps.pdf;
                         prev.pdf_rev = ConvertDensity(vertex, prev, ps.pdf);
+
+                        // Terminate path with russian roulette
+                        if (bounces > 1)
+                        {
+                            if (Float p = beta.MaxComponent() * eta_scale; p < 1)
+                            {
+                                if (sampler.Next1D() > p)
+                                {
+                                    terminated = true;
+                                    return false;
+                                }
+                                else
+                                {
+                                    beta /= p;
+                                }
+                            }
+                        }
 
                         scattered = true;
                         return false;
@@ -347,6 +387,11 @@ int32 RandomWalkVol(
             break;
         }
 
+        if (bsdf_sample.IsTransmission())
+        {
+            eta_scale *= Sqr(bsdf_sample.eta);
+        }
+
         pdf = bsdf_sample.is_stochastic ? bsdf.PDF(wo, bsdf_sample.wi, direction) : bsdf_sample.pdf;
         beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
 
@@ -362,6 +407,22 @@ int32 RandomWalkVol(
         }
 
         prev.pdf_rev = ConvertDensity(vertex, prev, pdf_rev);
+
+        // Terminate path with russian roulette
+        if (bounces > 1)
+        {
+            if (Float p = beta.MaxComponent() * eta_scale; p < 1)
+            {
+                if (sampler.Next1D() > p)
+                {
+                    break;
+                }
+                else
+                {
+                    beta /= p;
+                }
+            }
+        }
     }
 
     return bounces;

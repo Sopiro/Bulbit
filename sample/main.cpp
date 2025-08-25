@@ -48,11 +48,11 @@ int main(int argc, char* argv[])
     // LightVolPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
     // BiDirectionalPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
     // BiDirectionalVolPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
+    // PhotonMappingIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces, 1000000);
     // DebugIntegrator renderer(&accel, scene.GetLights(), &sampler);
     // AmbientOcclusion renderer(&accel, scene.GetLights(), &sampler, 0.5f);
     // AlbedoIntegrator renderer(&accel, scene.GetLights(), &sampler);
     // WhittedStyle renderer(&accel, scene.GetLights(), &sampler, max_bounces);
-    // PhotonMappingIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces, 1000000, 0.01f);
 
     std::unique_ptr<Rendering> rendering = renderer.Render(camera.get());
     rendering->WaitAndLogProgress();
