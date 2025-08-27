@@ -263,16 +263,16 @@ int32 RandomWalkVol(
                         // Terminate path with russian roulette
                         if (bounces > 1)
                         {
-                            if (Float p = beta.MaxComponent() * eta_scale; p < 1)
+                            if (Float q = beta.MaxComponent() * eta_scale; q < 1)
                             {
-                                if (sampler.Next1D() > p)
+                                if (sampler.Next1D() > q)
                                 {
                                     terminated = true;
                                     return false;
                                 }
                                 else
                                 {
-                                    beta /= p;
+                                    beta /= q;
                                 }
                             }
                         }
