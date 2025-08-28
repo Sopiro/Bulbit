@@ -8,7 +8,7 @@
 namespace bulbit
 {
 
-void ComoputeReflectanceTextures();
+void ComputeReflectanceTextures();
 
 class TrowbridgeReitzDistribution
 {

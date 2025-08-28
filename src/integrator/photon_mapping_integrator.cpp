@@ -69,6 +69,8 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
         }
 
         int32 bounce = 0;
+        Float eta_scale = 1;
+
         while (true)
         {
             Vec3 wo = Normalize(-photon_ray.d);
@@ -116,12 +118,17 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
                 break;
             }
 
+            if (bsdf_sample.IsTransmission())
+            {
+                eta_scale *= Sqr(bsdf_sample.eta);
+            }
+
             photon_ray = Ray(isect.point, bsdf_sample.wi);
             beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
 
             if (bounce > min_bounces)
             {
-                if (Float p = beta.MaxComponent(); p < 1)
+                if (Float p = beta.MaxComponent() * eta_scale; p < 1)
                 {
                     if (rng.NextFloat() > p)
                     {
@@ -314,7 +321,7 @@ void PhotonMappingIntegrator::GatherPhotons(const Camera* camera, int32 tile_siz
 
 std::unique_ptr<Rendering> PhotonMappingIntegrator::Render(const Camera* camera)
 {
-    ComoputeReflectanceTextures();
+    ComputeReflectanceTextures();
 
     const int32 tile_size = 16;
 

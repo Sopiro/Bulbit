@@ -76,8 +76,17 @@ void PhotonMap::Query(
                 Point3i cell = middle + Point3i(dx, dy, dz);
                 int32 index = CellToIndex(cell);
 
-                int32 begin = cell_ends[index - 1];
-                int32 end = cell_ends[index];
+                int32 begin, end;
+                if (index == 0)
+                {
+                    begin = 0;
+                    end = cell_ends[0];
+                }
+                else
+                {
+                    begin = cell_ends[index - 1];
+                    end = cell_ends[index];
+                }
 
                 for (int32 i = begin; i < end; ++i)
                 {

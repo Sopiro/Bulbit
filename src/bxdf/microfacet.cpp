@@ -201,7 +201,7 @@ void DielectricMultiScatteringBxDF::ComputeReflectanceTexture(int32 texture_size
     E_inv_avg_texture = std::make_unique<FloatImageTexture>(std::move(image_e_inv_avg), TexCoordFilter::clamp);
 }
 
-void ComoputeReflectanceTextures()
+void ComputeReflectanceTextures()
 {
     int32 texture_size = 32;
 

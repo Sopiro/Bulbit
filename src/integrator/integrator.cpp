@@ -54,7 +54,7 @@ UniDirectionalRayIntegrator::UniDirectionalRayIntegrator(
 
 std::unique_ptr<Rendering> UniDirectionalRayIntegrator::Render(const Camera* camera)
 {
-    ComoputeReflectanceTextures();
+    ComputeReflectanceTextures();
 
     Point2i resolution = camera->GetScreenResolution();
 
@@ -112,7 +112,7 @@ BiDirectionalRayIntegrator::BiDirectionalRayIntegrator(
 
 std::unique_ptr<Rendering> BiDirectionalRayIntegrator::Render(const Camera* camera)
 {
-    ComoputeReflectanceTextures();
+    ComputeReflectanceTextures();
 
     Point2i resolution = camera->GetScreenResolution();
 
