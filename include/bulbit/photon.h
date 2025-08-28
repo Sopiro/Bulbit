@@ -25,28 +25,16 @@ class PhotonMap
 public:
     PhotonMap() = default;
 
-    void Build(std::vector<Photon>&& photons, Float gather_radius);
-    void Query(const Vec3& position, Float radius, std::function<void(const Photon&)>&& callback) const;
+    void Build(const std::vector<Photon>& photons, Float gather_radius);
+    void Query(
+        const std::vector<Photon>& photons, const Point3& position, Float radius, std::function<void(const Photon&)>&& callback
+    ) const;
 
 private:
-    std::vector<Photon> photons;
     Float cell_size;
 
-    struct PhotonRange
-    {
-        size_t begin;
-        size_t count;
-    };
-
-    struct Hasher
-    {
-        size_t operator()(const Point3i& v) const
-        {
-            return Hash(v);
-        }
-    };
-
-    std::unordered_map<Point3i, PhotonRange, Hasher> photon_ranges;
+    std::vector<int32> photon_indices;
+    std::vector<int32> cell_ends;
 };
 
 } // namespace bulbit

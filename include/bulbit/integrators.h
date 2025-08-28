@@ -240,6 +240,8 @@ private:
     const int32 min_bounces = 2;
     int32 n_photons;
     Float gather_radius;
+
+    std::vector<Photon> photons;
     PhotonMap photon_map;
 };
 

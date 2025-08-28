@@ -55,8 +55,8 @@ std::unique_ptr<Camera> CornellBoxCaustics(Scene& scene)
         CreateRectXZ(scene, tf, white);
 
         // back
-        // tf = Transform{ Vec3(0.5f, 0.5f, 0.0f), Quat(pi, y_axis), Vec3(1.0f) };
-        // CreateRectXY(scene, tf, glass);
+        tf = Transform{ Vec3(0.5f, 0.5f, 0.0f), Quat(pi, y_axis), Vec3(1.0f) };
+        CreateRectXY(scene, tf, glass);
     }
 
     // Left block
@@ -92,10 +92,10 @@ std::unique_ptr<Camera> CornellBoxCaustics(Scene& scene)
 
     // Lights
     {
-        auto tf = Transform{ 0.5f, 0.995f, -0.5f, Quat(pi, x_axis), Vec3(0.001f) };
-        CreateRectXZ(scene, tf, light);
+        // auto tf = Transform{ 0.5f, 0.995f, -0.5f, Quat(pi, x_axis), Vec3(0.001f) };
+        // CreateRectXZ(scene, tf, light);
 
-        // CreatePointLight(scene, Point3(0.5f, 0.99f, -0.5f), Spectrum(0.25f));
+        CreatePointLight(scene, Point3(0.5f, 0.99f, -0.5f), Spectrum(0.25f));
     }
 
     int32 width = 500;

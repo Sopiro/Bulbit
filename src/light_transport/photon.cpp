@@ -5,46 +5,63 @@
 namespace bulbit
 {
 
-static inline Vec3i PosToCell(const Vec3& p, Float cell_size)
+static inline Point3i PosToCell(const Point3& p, Float cell_size)
 {
     int32 x = int32(std::floor(p.x / cell_size));
     int32 y = int32(std::floor(p.y / cell_size));
     int32 z = int32(std::floor(p.z / cell_size));
-    return Vec3i(x, y, z);
+    return Point3i(x, y, z);
 }
 
-void PhotonMap::Build(std::vector<Photon>&& ps, Float gather_radius)
+void PhotonMap::Build(const std::vector<Photon>& photons, Float gather_radius)
 {
-    photons = std::move(ps);
     cell_size = gather_radius;
 
-    std::sort(std::execution::par, photons.begin(), photons.end(), [&](const Photon& p1, const Photon& p2) {
-        Vec3i cell1 = PosToCell(p1.position, cell_size);
-        Vec3i cell2 = PosToCell(p2.position, cell_size);
-        return Hash(cell1) < Hash(cell2);
-    });
+    size_t num_photons = photons.size();
+    photon_indices.resize(num_photons);
 
-    photon_ranges.clear();
-    Point3i current_cell = PosToCell(photons[0].position, cell_size);
-    size_t begin = 0;
-    for (size_t i = 1; i < photons.size(); ++i)
+    cell_ends.resize(num_photons);
+    memset(&cell_ends[0], 0, num_photons * sizeof(int32));
+
+    // Count how many photons are there in the cell
+    for (size_t i = 0; i < num_photons; ++i)
     {
-        Point3i cell = PosToCell(photons[i].position, cell_size);
-        if (cell != current_cell)
-        {
-            photon_ranges[current_cell] = { begin, i - begin };
-            current_cell = cell;
-            begin = i;
-        }
+        const Photon& p = photons[i];
+        Point3i cell = PosToCell(p.position, cell_size);
+        size_t index = Hash(cell) % num_photons;
+
+        cell_ends[index]++;
     }
-    photon_ranges[current_cell] = { begin, photons.size() - begin };
+
+    // Run exclusive prefix sum
+    int32 sum = 0;
+    for (size_t i = 0; i < num_photons; ++i)
+    {
+        int32 count = cell_ends[i];
+        cell_ends[i] = sum;
+        sum += count;
+    }
+    // Now cell_ends[i] indicates cell's starting index
+
+    for (size_t i = 0; i < num_photons; ++i)
+    {
+        const Photon& p = photons[i];
+        Point3i cell = PosToCell(p.position, cell_size);
+        size_t index = Hash(cell) % num_photons;
+
+        int32 insert_index = cell_ends[index]++;
+        photon_indices[insert_index] = int32(i);
+    }
+    // Now cell_ends[i] points to the index right after the last element of cell x
 }
 
-void PhotonMap::Query(const Vec3& pos, Float radius, std::function<void(const Photon&)>&& callback) const
+void PhotonMap::Query(
+    const std::vector<Photon>& photons, const Point3& pos, Float radius, std::function<void(const Photon&)>&& callback
+) const
 {
     const Float radius2 = Sqr(radius);
 
-    Vec3i middle = PosToCell(pos, cell_size);
+    Point3i middle = PosToCell(pos, cell_size);
     int32 r = int32(std::ceil(radius / cell_size));
 
     for (int32 dx = -r; dx <= r; ++dx)
@@ -53,18 +70,16 @@ void PhotonMap::Query(const Vec3& pos, Float radius, std::function<void(const Ph
         {
             for (int32 dz = -r; dz <= r; ++dz)
             {
-                Vec3i cell = middle + Vec3i(dx, dy, dz);
+                Point3i cell = middle + Point3i(dx, dy, dz);
+                size_t index = Hash(cell) % photons.size();
 
-                auto it = photon_ranges.find(cell);
-                if (it == photon_ranges.end())
-                {
-                    continue;
-                }
+                int32 begin = cell_ends[index - 1];
+                int32 end = cell_ends[index];
 
-                const PhotonRange& range = it->second;
-                for (size_t i = range.begin; i < range.begin + range.count; ++i)
+                for (int32 i = begin; i < end; ++i)
                 {
-                    const Photon& p = photons[i];
+                    int32 photon_index = photon_indices[i];
+                    const Photon& p = photons[photon_index];
                     if (Dist2(p.position, pos) <= radius2)
                     {
                         callback(p);

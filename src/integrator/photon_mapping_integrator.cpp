@@ -134,7 +134,6 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
         progress->phase_works_dones[0]++;
     });
 
-    std::vector<Photon> photons;
     photons.reserve(n_photons * min_bounces);
 
     tl_photons.ForEach([&](std::thread::id tid, std::vector<Photon>& ps) {
@@ -142,7 +141,7 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
         photons.insert(photons.end(), ps.begin(), ps.end());
     });
 
-    photon_map.Build(std::move(photons), gather_radius);
+    photon_map.Build(photons, gather_radius);
 }
 
 Spectrum PhotonMappingIntegrator::SampleDirectLight(
@@ -237,7 +236,7 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
             // Estimate indirect light by gathering nearby photons
             Spectrum L_i(0);
 
-            photon_map.Query(isect.point, gather_radius, [&](const Photon& p) {
+            photon_map.Query(photons, isect.point, gather_radius, [&](const Photon& p) {
                 if (isect.primitive->GetMaterial() != p.primitive->GetMaterial())
                 {
                     return;
