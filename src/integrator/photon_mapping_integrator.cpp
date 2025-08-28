@@ -63,6 +63,10 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
 
         Ray photon_ray = light_sample.ray;
         Spectrum beta = light_sample.Le / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
+        if (light_sample.normal != Vec3::zero)
+        {
+            beta *= AbsDot(light_sample.normal, photon_ray.d);
+        }
 
         int32 bounce = 0;
         while (true)
