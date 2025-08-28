@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bounding_box.h"
 #include "common.h"
 #include "hash.h"
 #include "spectrum.h"
@@ -31,7 +32,10 @@ public:
     ) const;
 
 private:
-    Float cell_size;
+    Point3i PosToCell(Point3 p) const;
+    int32 CellToIndex(Point3i cell) const;
+
+    Float inv_cell_size;
 
     std::vector<int32> photon_indices;
     std::vector<int32> cell_ends;
