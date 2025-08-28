@@ -26,10 +26,9 @@ std::unique_ptr<Camera> CornellBoxCaustics(Scene& scene)
     // Caustics
     // https://benedikt-bitterli.me/resources/
     {
-        auto tf = Transform{ 0, -0.2f, -1 };
+        auto tf = Transform{ .5f, 0.8f, -.5f, Quat::FromEuler({ 0, 0, 0 }), Vec3(1, 1, 1) };
         SetLoaderFallbackMaterial(water);
-        // LoadModel(scene, "res/caustics/Mesh000.obj", tf);
-        LoadModel(scene, "res/caustics/Mesh001.obj", tf);
+        LoadModel(scene, "res/caustics/water.obj", tf);
     }
 
     // Cornell box
@@ -95,7 +94,7 @@ std::unique_ptr<Camera> CornellBoxCaustics(Scene& scene)
         // auto tf = Transform{ 0.5f, 0.995f, -0.5f, Quat(pi, x_axis), Vec3(0.001f) };
         // CreateRectXZ(scene, tf, light);
 
-        CreatePointLight(scene, Point3(0.5f, 0.99f, -0.5f), Spectrum(0.25f));
+        CreatePointLight(scene, Point3(0.5f, 0.999f, -0.5f), Spectrum(0.25f));
     }
 
     int32 width = 500;
