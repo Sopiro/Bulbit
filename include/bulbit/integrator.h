@@ -19,6 +19,9 @@ class Integrator
 public:
     virtual ~Integrator() = default;
 
+    Integrator(Integrator&) = delete;
+    Integrator& operator=(Integrator&) = delete;
+
     virtual std::unique_ptr<Rendering> Render(const Camera* camera) = 0;
 
     bool Intersect(Intersection* out_isect, const Ray& ray, Float t_min, Float t_max) const

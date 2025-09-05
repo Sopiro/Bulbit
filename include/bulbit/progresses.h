@@ -71,10 +71,9 @@ public:
     virtual void LogProgress() const override
     {
         static size_t current_phase = 0;
-        if (phase_dones[current_phase])
+        while (phase_dones[current_phase].load())
         {
             ++current_phase;
-            std::fprintf(stdout, "\n");
         }
 
         size_t t = phase_works_dones[current_phase].load();
