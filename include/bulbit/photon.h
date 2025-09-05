@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bounding_box.h"
+#include "bsdf.h"
 #include "common.h"
 #include "hash.h"
 #include "spectrum.h"
@@ -39,6 +40,34 @@ private:
 
     std::vector<int32> photon_indices;
     std::vector<int32> cell_ends;
+};
+
+struct VisiblePoint
+{
+    VisiblePoint() = default;
+    VisiblePoint(Float initial_radius)
+        : radius{ initial_radius }
+        , Ld{ 0 }
+        , beta{ 0 }
+        , n{ 0 }
+        , m{ 0 }
+    {
+    }
+
+    Float radius;
+
+    Point3 p;
+    Vec3 wo;
+    BSDF bsdf;
+
+    Spectrum Ld;
+    Spectrum beta;
+
+    Float n;
+    std::atomic<int32> m;
+
+    std::atomic<Float> phi_i[3];
+    Spectrum tau;
 };
 
 } // namespace bulbit

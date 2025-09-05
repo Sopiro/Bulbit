@@ -245,4 +245,31 @@ private:
     PhotonMap photon_map;
 };
 
+// Stochastic Progressive Photon Mapping
+class SPPMIntegrator : public Integrator
+{
+public:
+    SPPMIntegrator(
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        int32 max_bounces,
+        int32 photons_per_interation,
+        Float initial_gather_radius = -1
+    );
+
+    virtual std::unique_ptr<Rendering> Render(const Camera* camera) override;
+
+private:
+    Spectrum SampleDirectLight(
+        const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler& sampler, const Spectrum& beta
+    ) const;
+
+    const Sampler* sampler_prototype;
+    int32 max_bounces;
+
+    int32 n_photons;
+    Float gather_radius;
+};
+
 } // namespace bulbit
