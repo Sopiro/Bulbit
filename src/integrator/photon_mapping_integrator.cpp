@@ -102,8 +102,8 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
             {
                 Photon p;
                 p.primitive = isect.primitive;
+                p.p = isect.point;
                 p.normal = isect.normal;
-                p.position = isect.point;
                 p.wi = wo;
                 p.beta = beta;
 
@@ -247,7 +247,7 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
             // Estimate indirect light by gathering nearby photons
             Spectrum L_i(0);
 
-            photon_map.Query(photons, isect.point, gather_radius, [&](const Photon& p) {
+            photon_map.Query<Photon>(photons, isect.point, gather_radius, [&](const Photon& p) {
                 if (isect.primitive->GetMaterial() != p.primitive->GetMaterial())
                 {
                     return;
@@ -258,8 +258,7 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
                     return;
                 }
 
-                Vec3 w = Normalize(ray.o - p.position);
-                L_i += bsdf.f(w, p.wi) * AbsDot(isect.shading.normal, p.wi) * p.beta;
+                L_i += bsdf.f(wo, p.wi) * AbsDot(isect.shading.normal, p.wi) * p.beta;
             });
 
             L_i *= 1 / (pi * Sqr(gather_radius) * n_photons);

@@ -242,7 +242,7 @@ private:
     Float gather_radius;
 
     std::vector<Photon> photons;
-    PhotonMap photon_map;
+    HashGrid photon_map;
 };
 
 // Stochastic Progressive Photon Mapping
