@@ -23,30 +23,20 @@ struct Photon
 
 struct VisiblePoint
 {
-    VisiblePoint() = default;
-    VisiblePoint(Float initial_radius)
-        : radius{ initial_radius }
-        , Ld{ 0 }
-        , beta{ 0 }
-        , n{ 0 }
-        , m{ 0 }
-    {
-    }
-
     Float radius;
 
     Point3 p;
     Vec3 wo;
     BSDF bsdf;
 
-    Spectrum Ld;
-    Spectrum beta;
+    Spectrum Ld{ 0 };
+    Spectrum beta{ 0 };
 
-    Float n;
-    std::atomic<int32> m;
+    Float n = 0;
+    std::atomic<int32> m{ 0 };
 
-    std::atomic<Float> phi_i[3];
-    Spectrum tau;
+    std::atomic<Float> phi_i[3]{ 0, 0, 0 };
+    Spectrum tau{ 0 };
 };
 
 // Spatial hash grid implementation adapted from
@@ -57,20 +47,20 @@ public:
     HashGrid() = default;
 
     template <typename T>
-    void Build(const std::vector<T>& photons, Float cell_size)
+    void Build(const std::vector<T>& points, Float cell_size)
     {
         inv_cell_size = 1 / cell_size;
 
-        int32 num_photons = int32(photons.size());
+        int32 num_photons = int32(points.size());
         photon_indices.resize(num_photons);
 
         cell_ends.resize(num_photons);
         memset(&cell_ends[0], 0, num_photons * sizeof(int32));
 
-        // Count how many photons are there in the cell
+        // Count how many points are there in the cell
         for (int32 i = 0; i < num_photons; ++i)
         {
-            const Photon& p = photons[i];
+            const T& p = points[i];
             int32 index = CellToIndex(PosToCell(p.p));
             cell_ends[index]++;
         }
@@ -87,7 +77,7 @@ public:
 
         for (int32 i = 0; i < num_photons; ++i)
         {
-            const Photon& p = photons[i];
+            const T& p = points[i];
             int32 index = CellToIndex(PosToCell(p.p));
 
             int32 insert_index = cell_ends[index]++;
@@ -97,9 +87,7 @@ public:
     }
 
     template <typename T>
-    void Query(
-        const std::vector<T>& photons, const Point3& position, Float radius, std::function<void(const T&)>&& callback
-    ) const
+    void Query(const std::vector<T>& points, const Point3& position, Float radius, std::function<void(const T&)>&& callback) const
     {
         const Float radius2 = Sqr(radius);
 
@@ -130,7 +118,7 @@ public:
                     for (int32 i = begin; i < end; ++i)
                     {
                         int32 photon_index = photon_indices[i];
-                        const Photon& p = photons[photon_index];
+                        const T& p = points[photon_index];
                         if (Dist2(p.p, position) <= radius2)
                         {
                             callback(p);

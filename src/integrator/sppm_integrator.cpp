@@ -24,16 +24,16 @@ SPPMIntegrator::SPPMIntegrator(
     , sampler_prototype{ sampler }
     , max_bounces{ max_bounces }
     , n_photons{ n_photons }
-    , gather_radius{ radius }
+    , initial_radius{ radius }
 {
-    if (gather_radius <= 0)
+    if (initial_radius <= 0)
     {
         AABB world_bounds = accel->GetAABB();
         Point3 world_center;
         Float world_radius;
         world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
 
-        gather_radius = 2 * world_radius * 5e-4f;
+        initial_radius = 2 * world_radius * 5e-4f;
     }
 }
 
@@ -109,6 +109,10 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
 
         int32 n_pixels = res.x * res.y;
         std::vector<VisiblePoint> visible_points(n_pixels);
+        for (VisiblePoint& vp : visible_points)
+        {
+            vp.radius = initial_radius;
+        }
 
         for (int32 iteration = 0; iteration < n_interations; ++iteration)
         {
@@ -262,8 +266,28 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
                 tile_size
             );
 
+            Float max_radius = 0;
+            for (const VisiblePoint& vp : visible_points)
+            {
+                if (vp.beta.IsBlack())
+                {
+                    continue;
+                }
+
+                max_radius = std::max(max_radius, vp.radius);
+            }
+
+            // Build hash grid of visible points
+            HashGrid grid;
+            grid.Build(visible_points, max_radius);
+
             progress->phase_dones[2 * iteration] = true;
             progress->phase_dones[2 * iteration + 1] = true;
+
+            for (size_t i = 0; i < thread_buffers.size(); ++i)
+            {
+                thread_buffers[i]->release();
+            }
         }
 
         ParallelFor2D(

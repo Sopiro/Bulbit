@@ -255,7 +255,7 @@ public:
         const Sampler* sampler,
         int32 max_bounces,
         int32 photons_per_interation,
-        Float initial_gather_radius = -1
+        Float initial_radius = -1
     );
 
     virtual std::unique_ptr<Rendering> Render(const Camera* camera) override;
@@ -269,7 +269,7 @@ private:
     int32 max_bounces;
 
     int32 n_photons;
-    Float gather_radius;
+    Float initial_radius;
 };
 
 } // namespace bulbit
