@@ -89,9 +89,8 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
     const int32 tile_size = 16;
 
     Point2i res = camera->GetScreenResolution();
-    int32 num_tiles_x = (res.x + tile_size - 1) / tile_size;
-    int32 num_tiles_y = (res.y + tile_size - 1) / tile_size;
-    int32 tile_count = num_tiles_x * num_tiles_y;
+    Point2i num_tiles = (res + (tile_size - 1)) / tile_size;
+    int32 tile_count = num_tiles.x * num_tiles.y;
 
     std::vector<size_t> phase_works(2 * n_interations);
     for (size_t i = 0; i < phase_works.size(); i += 2)
@@ -124,8 +123,8 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
                 [&](AABB2i tile) {
                     int8 mem[64];
                     BufferResource buffer(mem, sizeof(mem));
-                    Allocator alloc(&buffer);
-                    Sampler* sampler = sampler_prototype->Clone(alloc);
+                    Allocator sampler_alloc(&buffer);
+                    Sampler* sampler = sampler_prototype->Clone(sampler_alloc);
 
                     for (Point2i pixel : tile)
                     {

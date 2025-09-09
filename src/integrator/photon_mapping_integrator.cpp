@@ -287,11 +287,11 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
 
 void PhotonMappingIntegrator::GatherPhotons(const Camera* camera, int32 tile_size, MultiPhaseRendering* progress)
 {
-    Point2i resolution = camera->GetScreenResolution();
+    Point2i res = camera->GetScreenResolution();
     const int32 spp = sampler_prototype->samples_per_pixel;
 
     ParallelFor2D(
-        resolution,
+        res,
         [&](AABB2i tile) {
             int8 mem[64];
             BufferResource buffer(mem, sizeof(mem));
@@ -315,7 +315,7 @@ void PhotonMappingIntegrator::GatherPhotons(const Camera* camera, int32 tile_siz
                 }
             }
 
-            progress->phase_works_dones[1]++;
+            progress->phase_works_dones[1].fetch_add(1, std::memory_order_relaxed);
         },
         tile_size
     );
@@ -328,9 +328,8 @@ std::unique_ptr<Rendering> PhotonMappingIntegrator::Render(const Camera* camera)
     const int32 tile_size = 16;
 
     Point2i res = camera->GetScreenResolution();
-    int32 num_tiles_x = (res.x + tile_size - 1) / tile_size;
-    int32 num_tiles_y = (res.y + tile_size - 1) / tile_size;
-    int32 tile_count = num_tiles_x * num_tiles_y;
+    Point2i num_tiles = (res + (tile_size - 1)) / tile_size;
+    int32 tile_count = num_tiles.x * num_tiles.y;
 
     std::array<size_t, 2> phase_works = { size_t(n_photons), size_t(tile_count) };
     MultiPhaseRendering* progress = new MultiPhaseRendering(camera, phase_works);

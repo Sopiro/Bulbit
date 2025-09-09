@@ -17,7 +17,7 @@ Integrator::Integrator(const Intersectable* accel, std::vector<Light*> lights)
     , all_lights{ std::move(lights) }
 {
     AABB world_bounds = accel->GetAABB();
-    for (size_t i = 0; i < all_lights.size(); i++)
+    for (size_t i = 0; i < all_lights.size(); ++i)
     {
         Light* light = all_lights[i];
         light->Preprocess(world_bounds);
@@ -61,9 +61,8 @@ std::unique_ptr<Rendering> UniDirectionalRayIntegrator::Render(const Camera* cam
     const int32 spp = sampler_prototype->samples_per_pixel;
     const int32 tile_size = 16;
 
-    int32 num_tiles_x = (resolution.x + tile_size - 1) / tile_size;
-    int32 num_tiles_y = (resolution.y + tile_size - 1) / tile_size;
-    int32 tile_count = num_tiles_x * num_tiles_y;
+    Point2i num_tiles = (resolution + (tile_size - 1)) / tile_size;
+    int32 tile_count = num_tiles.x * num_tiles.y;
 
     SinglePhaseRendering* progress = new SinglePhaseRendering(camera, size_t(tile_count));
     progress->job = RunAsync([=, this]() {
@@ -122,9 +121,8 @@ std::unique_ptr<Rendering> BiDirectionalRayIntegrator::Render(const Camera* came
     const int32 spp = sampler_prototype->samples_per_pixel;
     const int32 tile_size = 16;
 
-    int32 num_tiles_x = (resolution.x + tile_size - 1) / tile_size;
-    int32 num_tiles_y = (resolution.y + tile_size - 1) / tile_size;
-    int32 tile_count = num_tiles_x * num_tiles_y;
+    Point2i num_tiles = (resolution + (tile_size - 1)) / tile_size;
+    int32 tile_count = num_tiles.x * num_tiles.y;
 
     SinglePhaseRendering* progress = new SinglePhaseRendering(camera, size_t(tile_count));
     progress->job = RunAsync([=, this]() {
