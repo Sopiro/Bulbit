@@ -16,7 +16,7 @@ public:
     virtual Float Next1D() override;
     virtual Point2 Next2D() override;
 
-    virtual std::unique_ptr<Sampler> Clone() const override;
+    virtual Sampler* Clone(Allocator& alloc) const override;
 
 private:
     int32 seed;
@@ -33,7 +33,7 @@ public:
     virtual Float Next1D() override;
     virtual Point2 Next2D() override;
 
-    virtual std::unique_ptr<Sampler> Clone() const override;
+    virtual Sampler* Clone(Allocator& alloc) const override;
 
 private:
     bool jitter;

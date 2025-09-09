@@ -293,7 +293,10 @@ void PhotonMappingIntegrator::GatherPhotons(const Camera* camera, int32 tile_siz
     ParallelFor2D(
         resolution,
         [&](AABB2i tile) {
-            std::unique_ptr<Sampler> sampler = sampler_prototype->Clone();
+            int8 mem[64];
+            BufferResource buffer(mem, sizeof(mem));
+            Allocator alloc(&buffer);
+            Sampler* sampler = sampler_prototype->Clone(alloc);
 
             for (Point2i pixel : tile)
             {

@@ -26,9 +26,9 @@ Point2 IndependentSampler::Next2D()
     return Point2{ rng.NextFloat(), rng.NextFloat() };
 }
 
-std::unique_ptr<Sampler> IndependentSampler::Clone() const
+Sampler* IndependentSampler::Clone(Allocator& alloc) const
 {
-    return std::make_unique<IndependentSampler>(samples_per_pixel, seed);
+    return alloc.new_object<IndependentSampler>(samples_per_pixel, seed);
 }
 
 } // namespace bulbit

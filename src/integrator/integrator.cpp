@@ -71,7 +71,10 @@ std::unique_ptr<Rendering> UniDirectionalRayIntegrator::Render(const Camera* cam
             resolution,
             [&](AABB2i tile) {
                 // Thread local sampler for current tile
-                std::unique_ptr<Sampler> sampler = sampler_prototype->Clone();
+                int8 mem[64];
+                BufferResource buffer(mem, sizeof(mem));
+                Allocator alloc(&buffer);
+                Sampler* sampler = sampler_prototype->Clone(alloc);
 
                 for (Point2i pixel : tile)
                 {
@@ -129,7 +132,10 @@ std::unique_ptr<Rendering> BiDirectionalRayIntegrator::Render(const Camera* came
             resolution,
             [&](AABB2i tile) {
                 // Thread local sampler for current tile
-                std::unique_ptr<Sampler> sampler = sampler_prototype->Clone();
+                int8 mem[64];
+                BufferResource buffer(mem, sizeof(mem));
+                Allocator alloc(&buffer);
+                Sampler* sampler = sampler_prototype->Clone(alloc);
 
                 for (Point2i pixel : tile)
                 {

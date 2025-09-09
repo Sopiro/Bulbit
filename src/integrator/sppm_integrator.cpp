@@ -122,7 +122,10 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
             ParallelFor2D(
                 res,
                 [&](AABB2i tile) {
-                    std::unique_ptr<Sampler> sampler = sampler_prototype->Clone();
+                    int8 mem[64];
+                    BufferResource buffer(mem, sizeof(mem));
+                    Allocator alloc(&buffer);
+                    Sampler* sampler = sampler_prototype->Clone(alloc);
 
                     for (Point2i pixel : tile)
                     {
@@ -288,7 +291,11 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
             progress->phase_dones[2 * iteration] = true;
 
             ParallelFor(0, photons_per_iteration, [&](int32 begin, int32 end) {
-                std::unique_ptr<Sampler> sampler = sampler_prototype->Clone();
+                int8 mem[64];
+                BufferResource buffer(mem, sizeof(mem));
+                Allocator alloc(&buffer);
+                Sampler* sampler = sampler_prototype->Clone(alloc);
+
                 for (int32 i = begin; i < end; ++i)
                 {
                     sampler->StartPixelSample({ -i, -i }, iteration);

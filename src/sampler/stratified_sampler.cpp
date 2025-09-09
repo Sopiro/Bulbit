@@ -49,9 +49,9 @@ Point2 StratifiedSampler::Next2D()
     return { (x + dx) / x_samples, (y + dy) / y_samples };
 }
 
-std::unique_ptr<Sampler> StratifiedSampler::Clone() const
+Sampler* StratifiedSampler::Clone(Allocator& alloc) const
 {
-    return std::make_unique<StratifiedSampler>(x_samples, y_samples, jitter, seed);
+    return alloc.new_object<StratifiedSampler>(x_samples, y_samples, jitter, seed);
 }
 
 } // namespace bulbit
