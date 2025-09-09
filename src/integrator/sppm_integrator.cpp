@@ -17,13 +17,13 @@ SPPMIntegrator::SPPMIntegrator(
     std::vector<Light*> lights,
     const Sampler* sampler,
     int32 max_bounces,
-    int32 n_photons,
+    int32 photons_per_iteration,
     Float radius
 )
     : Integrator(accel, std::move(lights))
     , sampler_prototype{ sampler }
     , max_bounces{ max_bounces }
-    , n_photons{ n_photons }
+    , photons_per_iteration{ photons_per_iteration }
     , initial_radius{ radius }
 {
     if (initial_radius <= 0)
@@ -33,7 +33,7 @@ SPPMIntegrator::SPPMIntegrator(
         Float world_radius;
         world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
 
-        initial_radius = 2 * world_radius * 5e-4f;
+        initial_radius = 2 * world_radius * 1e-2f;
     }
 }
 
@@ -95,7 +95,7 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
     for (size_t i = 0; i < phase_works.size(); i += 2)
     {
         phase_works[i] = size_t(tile_count);
-        phase_works[i + 1] = size_t(n_photons);
+        phase_works[i + 1] = size_t(photons_per_iteration);
     }
 
     MultiPhaseRendering* progress = new MultiPhaseRendering(camera, phase_works);
@@ -217,7 +217,9 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
                             if (IsDiffuse(flags) || (IsGlossy(flags) && bounce == max_bounces))
                             {
                                 // Create visible point
+                                vp.primitive = isect.primitive;
                                 vp.p = isect.point;
+                                vp.normal = isect.normal;
                                 vp.wo = wo;
                                 vp.bsdf = bsdf;
                                 vp.beta = beta;
@@ -282,6 +284,166 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
             grid.Build(visible_points, max_radius);
 
             progress->phase_dones[2 * iteration] = true;
+
+            ParallelFor(0, photons_per_iteration, [&](int32 begin, int32 end) {
+                std::unique_ptr<Sampler> sampler = sampler_prototype->Clone();
+                for (int32 i = begin; i < end; ++i)
+                {
+                    sampler->StartPixelSample({ -i, -i }, iteration);
+
+                    SampledLight sampled_light;
+                    if (!light_sampler.Sample(&sampled_light, Intersection{}, sampler->Next1D()))
+                    {
+                        continue;
+                    }
+
+                    const Light* light = sampled_light.light;
+
+                    LightSampleLe light_sample;
+                    if (!light->Sample_Le(&light_sample, sampler->Next2D(), sampler->Next2D()))
+                    {
+                        continue;
+                    }
+
+                    Ray ray = light_sample.ray;
+
+                    Spectrum beta = light_sample.Le / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
+                    if (light_sample.normal != Vec3::zero)
+                    {
+                        beta *= AbsDot(light_sample.normal, ray.d);
+                    }
+
+                    if (beta.IsBlack())
+                    {
+                        continue;
+                    }
+
+                    // Trace photon path and add indirect illumination to nearby visible points
+                    int32 bounce = 0;
+                    while (true)
+                    {
+                        Intersection isect;
+                        if (!Intersect(&isect, ray, Ray::epsilon, infinity))
+                        {
+                            break;
+                        }
+
+                        if (bounce++ >= max_bounces)
+                        {
+                            break;
+                        }
+
+                        Vec3 wo = Normalize(-ray.d);
+
+                        if (bounce > 1)
+                        {
+                            // Query hash grid for nearby visible points
+                            grid.Query<VisiblePoint>(visible_points, isect.point, [&](VisiblePoint& vp) {
+                                if (!vp.primitive)
+                                {
+                                    return;
+                                }
+
+                                if (isect.primitive->GetMaterial() != vp.primitive->GetMaterial())
+                                {
+                                    return;
+                                }
+
+                                if (Dot(vp.normal, isect.normal) < 0.95f)
+                                {
+                                    return;
+                                }
+
+                                if (Dist2(isect.point, vp.p) > Sqr(vp.radius))
+                                {
+                                    return;
+                                }
+
+                                // Compute photon flux and record to visible point
+                                Spectrum phi = beta * vp.bsdf.f(vp.wo, wo);
+
+                                for (int32 s = 0; s < 3; ++s)
+                                {
+                                    vp.phi_i[s] += phi[s];
+                                }
+
+                                ++vp.m;
+                            });
+                        }
+
+                        int8 mem[max_bxdf_size];
+                        BufferResource res(mem, sizeof(mem));
+                        Allocator alloc(&res);
+                        BSDF bsdf;
+                        if (!isect.GetBSDF(&bsdf, wo, alloc))
+                        {
+                            ray = Ray(isect.point, -wo);
+                            --bounce;
+                            continue;
+                        }
+
+                        BSDFSample bsdf_sample;
+                        if (!bsdf.Sample_f(&bsdf_sample, wo, sampler->Next1D(), sampler->Next2D(), TransportDirection::ToCamera))
+                        {
+                            continue;
+                        }
+
+                        Spectrum beta0 = beta;
+                        beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
+                        ray = Ray(isect.point, bsdf_sample.wi);
+
+                        // Terminate path with russian roulette based on beta ratio
+                        if (Float p = beta.MaxComponent() / beta0.MaxComponent(); p < 1)
+                        {
+                            if (sampler->Next1D() > p)
+                            {
+                                break;
+                            }
+                            else
+                            {
+                                beta /= p;
+                            }
+                        }
+                    }
+                }
+
+                progress->phase_works_dones[2 * iteration + 1] += end - begin;
+            });
+
+            ParallelFor2D(
+                res,
+                [&](AABB2i tile) {
+                    for (Point2i pixel : tile)
+                    {
+                        int32 index = res.x * pixel.y + pixel.x;
+                        VisiblePoint& vp = visible_points[index];
+
+                        if (int32 m = vp.m.load(std::memory_order_relaxed); m > 0)
+                        {
+                            Float gamma = 2.0f / 3.0f;
+                            Float n_new = vp.n + gamma * m;
+                            Float r_new = vp.radius * std::sqrt(n_new / (vp.n + m));
+
+                            // Update tau, the consistent flux accumulation
+                            Spectrum phi_i(vp.phi_i[0], vp.phi_i[1], vp.phi_i[2]);
+                            vp.tau = (vp.tau + phi_i) * Sqr(r_new / vp.radius);
+
+                            vp.n = n_new;
+                            vp.radius = r_new;
+                            vp.m = 0;
+                            for (int32 s = 0; s < 3; ++s)
+                            {
+                                vp.phi_i[s] = 0;
+                            }
+                        }
+
+                        vp.beta = Spectrum::black;
+                        vp.bsdf = {};
+                    }
+                },
+                tile_size
+            );
+
             progress->phase_dones[2 * iteration + 1] = true;
 
             for (size_t i = 0; i < thread_buffers.size(); ++i)
@@ -289,6 +451,8 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
                 thread_buffers[i]->release();
             }
         }
+
+        size_t total_photons = n_interations * photons_per_iteration;
 
         ParallelFor2D(
             res,
@@ -298,7 +462,8 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
                     int32 index = res.x * pixel.y + pixel.x;
                     VisiblePoint& vp = visible_points[index];
 
-                    progress->film.AddSample(pixel, vp.Ld / n_interations);
+                    Spectrum L = (vp.Ld / n_interations) + vp.tau / (total_photons * pi * Sqr(vp.radius));
+                    progress->film.AddSample(pixel, L);
                 }
             },
             tile_size

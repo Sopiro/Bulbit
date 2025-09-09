@@ -25,7 +25,10 @@ struct VisiblePoint
 {
     Float radius;
 
+    const Primitive* primitive;
     Point3 p;
+    Vec3 normal;
+
     Vec3 wo;
     BSDF bsdf;
 
@@ -123,6 +126,43 @@ public:
                         {
                             callback(p);
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    template <typename T>
+    void Query(std::vector<T>& points, const Point3& position, std::function<void(T&)>&& callback) const
+    {
+        Point3i middle = PosToCell(position);
+        const int32 r = 1;
+
+        for (int32 dx = -r; dx <= r; ++dx)
+        {
+            for (int32 dy = -r; dy <= r; ++dy)
+            {
+                for (int32 dz = -r; dz <= r; ++dz)
+                {
+                    Point3i cell = middle + Point3i(dx, dy, dz);
+                    int32 index = CellToIndex(cell);
+
+                    int32 begin, end;
+                    if (index == 0)
+                    {
+                        begin = 0;
+                        end = cell_ends[0];
+                    }
+                    else
+                    {
+                        begin = cell_ends[index - 1];
+                        end = cell_ends[index];
+                    }
+
+                    for (int32 i = begin; i < end; ++i)
+                    {
+                        int32 photon_index = photon_indices[i];
+                        callback(points[photon_index]);
                     }
                 }
             }

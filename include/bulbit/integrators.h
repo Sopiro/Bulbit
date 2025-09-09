@@ -268,7 +268,7 @@ private:
     const Sampler* sampler_prototype;
     int32 max_bounces;
 
-    int32 n_photons;
+    int32 photons_per_iteration;
     Float initial_radius;
 };
 
