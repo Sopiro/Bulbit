@@ -380,11 +380,11 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
                             });
                         }
 
-                        int8 mem[max_bxdf_size];
-                        BufferResource res(mem, sizeof(mem));
-                        Allocator alloc(&res);
+                        int8 bsdf_mem[max_bxdf_size];
+                        BufferResource bsdf_res(bsdf_mem, sizeof(bsdf_mem));
+                        Allocator bsdf_alloc(&bsdf_res);
                         BSDF bsdf;
-                        if (!isect.GetBSDF(&bsdf, wo, alloc))
+                        if (!isect.GetBSDF(&bsdf, wo, bsdf_alloc))
                         {
                             ray = Ray(isect.point, -wo);
                             --bounce;
