@@ -83,6 +83,8 @@ Spectrum SPPMIntegrator::SampleDirectLight(
 
 std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
 {
+    ComputeReflectanceTextures();
+
     const int32 n_interations = sampler_prototype->samples_per_pixel;
     const int32 tile_size = 16;
 
@@ -421,15 +423,23 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
                         if (int32 m = vp.m.load(std::memory_order_relaxed); m > 0)
                         {
                             Float gamma = 2.0f / 3.0f;
+
+                            // Update effective photon count
                             Float n_new = vp.n + gamma * m;
+
+                            // Update search radius so that the expected photon density
+                            // inside the new radius matches the updated photon count
+                            // r_{i+1} = r_i * sqrt(N_{i+1} / (N_i + M_i))
                             Float r_new = vp.radius * std::sqrt(n_new / (vp.n + m));
 
-                            // Update tau, the consistent flux accumulation
+                            // Update τ, the accumulated flux scaled to remain consistent after the radius update:
+                            // tau_{i+1} = (tau_i + phi_i) * (r_{i+1}^2 / r_i^2)
                             Spectrum phi_i(vp.phi_i[0], vp.phi_i[1], vp.phi_i[2]);
                             vp.tau = (vp.tau + phi_i) * Sqr(r_new / vp.radius);
 
                             vp.n = n_new;
                             vp.radius = r_new;
+
                             vp.m = 0;
                             for (int32 s = 0; s < 3; ++s)
                             {
