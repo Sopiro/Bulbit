@@ -18,12 +18,12 @@ public:
 
     virtual bool IsDone() const override
     {
-        return done.load();
+        return done.load(std::memory_order_acquire);
     }
 
     virtual void LogProgress() const override
     {
-        size_t t = work_dones.load();
+        size_t t = work_dones.load(std::memory_order_relaxed);
         float p = 100.0f * t / works;
         std::fprintf(stdout, "\rRendering.. %.2f%% [%zu/%zu]", p, t, works);
     }
@@ -59,7 +59,7 @@ public:
     {
         for (size_t i = 0; i < num_phases; ++i)
         {
-            if (!phase_dones[i].load())
+            if (!phase_dones[i].load(std::memory_order_acquire))
             {
                 return false;
             }
@@ -71,12 +71,12 @@ public:
     virtual void LogProgress() const override
     {
         static size_t current_phase = 0;
-        while (phase_dones[current_phase].load())
+        while (phase_dones[current_phase].load(std::memory_order_acquire))
         {
             ++current_phase;
         }
 
-        size_t t = phase_works_dones[current_phase].load();
+        size_t t = phase_works_dones[current_phase].load(std::memory_order_relaxed);
         size_t total_works = num_phase_works[current_phase];
         float p = 100.0f * t / num_phase_works[current_phase];
         std::fprintf(stdout, "\rPhase[%zu/%zu] Rendering.. %.2f%% [%zu/%zu]", current_phase + 1, num_phases, p, t, total_works);

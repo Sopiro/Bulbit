@@ -142,7 +142,7 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
             }
         }
 
-        progress->phase_works_dones[0]++;
+        progress->phase_works_dones[0].fetch_add(1, std::memory_order_relaxed);
     });
 
     photons.reserve(n_photons * min_bounces);
@@ -336,9 +336,9 @@ std::unique_ptr<Rendering> PhotonMappingIntegrator::Render(const Camera* camera)
 
     progress->job = RunAsync([=, this]() {
         EmitPhotons(progress);
-        progress->phase_dones[0] = true;
+        progress->phase_dones[0].store(true, std::memory_order_release);
         GatherPhotons(camera, tile_size, progress);
-        progress->phase_dones[1] = true;
+        progress->phase_dones[1].store(true, std::memory_order_release);
         return true;
     });
 

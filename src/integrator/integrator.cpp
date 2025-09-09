@@ -92,12 +92,12 @@ std::unique_ptr<Rendering> UniDirectionalRayIntegrator::Render(const Camera* cam
                     }
                 }
 
-                progress->work_dones++;
+                progress->work_dones.fetch_add(1, std::memory_order_relaxed);
             },
             tile_size
         );
 
-        progress->done = true;
+        progress->done.store(true, std::memory_order_release);
         return true;
     });
 
@@ -152,13 +152,13 @@ std::unique_ptr<Rendering> BiDirectionalRayIntegrator::Render(const Camera* came
                     }
                 }
 
-                progress->work_dones++;
+                progress->work_dones.fetch_add(1, std::memory_order_relaxed);
             },
             tile_size
         );
 
         progress->film.WeightSplats(1.0f / spp);
-        progress->done = true;
+        progress->done.store(true, std::memory_order_release);
         return true;
     });
 

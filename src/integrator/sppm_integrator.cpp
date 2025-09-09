@@ -267,7 +267,7 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
                         }
                     }
 
-                    progress->phase_works_dones[2 * iteration]++;
+                    progress->phase_works_dones[2 * iteration].fetch_add(1, std::memory_order_relaxed);
                 },
                 tile_size
             );
@@ -287,7 +287,7 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
             HashGrid grid;
             grid.Build(visible_points, max_radius);
 
-            progress->phase_dones[2 * iteration] = true;
+            progress->phase_dones[2 * iteration].store(true, std::memory_order_release);
 
             ParallelFor(0, photons_per_iteration, [&](int32 begin, int32 end) {
                 int8 mem[64];
@@ -415,7 +415,7 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
                     }
                 }
 
-                progress->phase_works_dones[2 * iteration + 1] += end - begin;
+                progress->phase_works_dones[2 * iteration + 1].fetch_add(end - begin, std::memory_order_relaxed);
             });
 
             ParallelFor2D(
@@ -460,7 +460,10 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
                 tile_size
             );
 
-            progress->phase_dones[2 * iteration + 1] = true;
+            if (iteration < n_interations - 1)
+            {
+                progress->phase_dones[2 * iteration + 1].store(true, std::memory_order_release);
+            }
 
             for (size_t i = 0; i < thread_buffers.size(); ++i)
             {
@@ -484,6 +487,8 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
             },
             tile_size
         );
+
+        progress->phase_dones[2 * (n_interations - 1) + 1].store(true, std::memory_order_release);
 
         return true;
     });
