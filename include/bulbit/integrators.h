@@ -237,7 +237,6 @@ private:
     const Sampler* sampler_prototype;
     int32 max_bounces;
 
-    const int32 min_bounces = 2;
     int32 n_photons;
     Float gather_radius;
 

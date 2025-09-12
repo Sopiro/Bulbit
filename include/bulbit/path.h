@@ -117,12 +117,13 @@ inline Float ConvertDensity(const Vertex& from, const Vertex& to, Float pdf)
     }
 
     Vec3 w = to.point - from.point;
-    if (Length2(w) == 0)
+    Float dist2 = Length2(w);
+    if (dist2 == 0)
     {
         return 0;
     }
 
-    Float inv_dist2 = 1 / Length2(w);
+    Float inv_dist2 = 1 / dist2;
     if (to.IsOnSurface())
     {
         pdf *= AbsDot(to.normal, w * std::sqrt(inv_dist2));

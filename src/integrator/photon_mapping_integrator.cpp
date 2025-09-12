@@ -39,6 +39,8 @@ PhotonMappingIntegrator::PhotonMappingIntegrator(
 
 void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
 {
+    const int32 min_bounces = 2;
+
     ThreadLocal<std::vector<Photon>> tl_photons;
 
     ParallelFor(0, n_photons, [&](int32 i) {

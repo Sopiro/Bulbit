@@ -40,7 +40,7 @@ std::unique_ptr<Camera> RaytracigInOneWeekend(Scene& scene)
                 else
                 {
                     // glass
-                    auto glass = CreateDielectricMaterial(scene, 1.5f, Rand(0.001f, 0.3f));
+                    auto glass = CreateDielectricMaterial(scene, 1.5f, 0.0f);
                     CreateSphere(scene, center, 0.2f, glass, mi_outside);
                 }
             }
