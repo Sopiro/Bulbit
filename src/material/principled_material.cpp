@@ -102,7 +102,7 @@ const FloatTexture* PrincipledMaterial::GetAlphaTexture() const
 
 const SpectrumTexture* PrincipledMaterial::GetEmissionTexture() const
 {
-    return nullptr;
+    return emissive;
 }
 
 const SpectrumTexture* PrincipledMaterial::GetNormalTexture() const

@@ -29,7 +29,11 @@ void CreateSphere(
     Sphere* sphere = scene.CreateShape<Sphere>(tf, radius);
     Primitive* primitive = scene.CreatePrimitive<Primitive>(sphere, material, medium_interface);
 
-    if (area_light || (g_create_area_light_source && material && material->Is<DiffuseLightMaterial>()))
+    if (area_light)
+    {
+        scene.CreateLight<AreaLight>(primitive, false);
+    }
+    else if (g_create_area_light_source && material && material->Is<DiffuseLightMaterial>())
     {
         const DiffuseLightMaterial* m = material->Cast<DiffuseLightMaterial>();
         scene.CreateLight<AreaLight>(primitive, m->IsTwoSided());
@@ -45,7 +49,11 @@ void CreateTriangles(
         Triangle* triangle = scene.CreateShape<Triangle>(mesh, i);
         Primitive* primitive = scene.CreatePrimitive<Primitive>(triangle, material, medium_interface);
 
-        if (area_light || (g_create_area_light_source && material && material->Is<DiffuseLightMaterial>()))
+        if (area_light)
+        {
+            scene.CreateLight<AreaLight>(primitive, false);
+        }
+        else if (g_create_area_light_source && material && material->Is<DiffuseLightMaterial>())
         {
             const DiffuseLightMaterial* m = material->Cast<DiffuseLightMaterial>();
             scene.CreateLight<AreaLight>(primitive, m->IsTwoSided());

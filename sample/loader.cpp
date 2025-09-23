@@ -30,6 +30,7 @@ static MediumInterface g_fallback_medium_interface = {};
 static bool g_flip_normal = false;
 static bool g_flip_texcoord = false;
 static bool g_gen_smooth_normal = false;
+static bool g_create_area_light = false;
 
 static std::string g_folder;
 static std::vector<const Material*> g_materials;
@@ -62,6 +63,11 @@ void SetLoaderFallbackMaterial(const Material* fallback_material)
 void SetLoaderFallbackMediumInterface(const MediumInterface& fallback_medium_interface)
 {
     g_fallback_medium_interface = fallback_medium_interface;
+}
+
+void SetLoaderAreaLightCreation(bool create_emissive_area_light)
+{
+    g_create_area_light = create_emissive_area_light;
 }
 
 bool HasExtension(const tinygltf::Material& material, const char* extension_name)
@@ -158,16 +164,19 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
 
         // emission
         {
-            if (gltf_material.emissiveTexture.index > -1)
+            if (emission_factor != Spectrum::black)
             {
-                tinygltf::Texture& texture = model.textures[gltf_material.emissiveTexture.index];
-                tinygltf::Image& image = model.images[texture.source];
+                if (gltf_material.emissiveTexture.index > -1)
+                {
+                    tinygltf::Texture& texture = model.textures[gltf_material.emissiveTexture.index];
+                    tinygltf::Image& image = model.images[texture.source];
 
-                emission_texture = CreateSpectrumImageTexture(scene, g_folder + image.uri, false, emission_factor);
-            }
-            else
-            {
-                emission_texture = CreateSpectrumConstantTexture(scene, emission_factor);
+                    emission_texture = CreateSpectrumImageTexture(scene, g_folder + image.uri, false, emission_factor);
+                }
+                else
+                {
+                    emission_texture = CreateSpectrumConstantTexture(scene, emission_factor);
+                }
             }
         }
 
@@ -604,9 +613,12 @@ static bool LoadMesh(Scene& scene, tinygltf::Model& model, tinygltf::Mesh& mesh,
         Mesh* m = scene.CreateMesh(
             std::move(positions), std::move(normals), std::move(tangents), std::move(texcoords), std::move(indices), transform
         );
+
+        bool area_light = g_materials[primitive.material]->GetEmissionTexture() != nullptr;
+
         CreateTriangles(
             scene, m, g_force_fallback_material ? g_fallback_material : g_materials[primitive.material],
-            g_fallback_medium_interface
+            g_fallback_medium_interface, g_create_area_light && area_light
         );
     }
 
