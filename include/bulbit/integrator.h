@@ -1,6 +1,5 @@
 #pragma once
 
-#include "light_samplers.h"
 #include "scene.h"
 
 namespace bulbit
@@ -11,6 +10,7 @@ class Medium;
 class Camera;
 class Film;
 class Sampler;
+class LightSampler;
 
 using AreaLightMap = std::unordered_map<const Primitive*, AreaLight*>;
 
@@ -54,13 +54,13 @@ public:
         return area_lights;
     }
 
-    const LightSampler& GetLightSampler() const
+    const LightSampler* GetLightSampler() const
     {
-        return light_sampler;
+        return light_sampler.get();
     }
 
 protected:
-    Integrator(const Intersectable* accel, std::vector<Light*> lights);
+    Integrator(const Intersectable* accel, std::vector<Light*> lights, std::unique_ptr<LightSampler> light_sampler);
 
     const Intersectable* accel;
 
@@ -68,13 +68,18 @@ protected:
     std::vector<Light*> infinite_lights;
     AreaLightMap area_lights;
 
-    PowerLightSampler light_sampler;
+    std::unique_ptr<LightSampler> light_sampler;
 };
 
 class UniDirectionalRayIntegrator : public Integrator
 {
 public:
-    UniDirectionalRayIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler);
+    UniDirectionalRayIntegrator(
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        std::unique_ptr<LightSampler> light_sampler
+    );
 
     virtual std::unique_ptr<Rendering> Render(const Camera* camera) override;
 
@@ -87,7 +92,12 @@ private:
 class BiDirectionalRayIntegrator : public Integrator
 {
 public:
-    BiDirectionalRayIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler);
+    BiDirectionalRayIntegrator(
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        std::unique_ptr<LightSampler> light_sampler
+    );
 
     virtual std::unique_ptr<Rendering> Render(const Camera* camera) override;
 

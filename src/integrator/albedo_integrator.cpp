@@ -7,7 +7,7 @@ namespace bulbit
 {
 
 AlbedoIntegrator::AlbedoIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler)
-    : UniDirectionalRayIntegrator(accel, std::move(lights), sampler)
+    : UniDirectionalRayIntegrator(accel, std::move(lights), sampler, nullptr)
 {
 }
 

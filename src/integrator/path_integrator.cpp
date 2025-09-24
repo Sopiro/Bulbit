@@ -11,7 +11,7 @@ namespace bulbit
 PathIntegrator::PathIntegrator(
     const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces, bool regularize_bsdf
 )
-    : UniDirectionalRayIntegrator(accel, std::move(lights), sampler)
+    : UniDirectionalRayIntegrator(accel, std::move(lights), sampler, std::make_unique<PowerLightSampler>())
     , max_bounces{ max_bounces }
     , regularize_bsdf{ regularize_bsdf }
 {
@@ -46,7 +46,7 @@ Spectrum PathIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium
                 // Evaluate BSDF sample MIS for infinite light
                 for (Light* light : infinite_lights)
                 {
-                    Float light_pdf = light->EvaluatePDF_Li(ray) * light_sampler.EvaluatePMF(light);
+                    Float light_pdf = light->EvaluatePDF_Li(ray) * light_sampler->EvaluatePMF(light);
                     Float mis_weight = PowerHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
 
                     L += beta * mis_weight * light->Le(ray);
@@ -70,7 +70,7 @@ Spectrum PathIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium
                 // Evaluate BSDF sample with MIS for area light
                 AreaLight* area_light = area_lights.at(isect.primitive);
 
-                Float light_pdf = isect.primitive->GetShape()->PDF(isect, ray) * light_sampler.EvaluatePMF(area_light);
+                Float light_pdf = isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
                 Float mis_weight = PowerHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
 
                 L += beta * mis_weight * Le;
@@ -151,7 +151,7 @@ Spectrum PathIntegrator::SampleDirectLight(
     Float u0 = sampler.Next1D();
     Point2 u12 = sampler.Next2D();
     SampledLight sampled_light;
-    if (!light_sampler.Sample(&sampled_light, isect, u0))
+    if (!light_sampler->Sample(&sampled_light, isect, u0))
     {
         return Spectrum::black;
     }

@@ -14,7 +14,7 @@ namespace bulbit
 BiDirectionalVolPathIntegrator::BiDirectionalVolPathIntegrator(
     const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces
 )
-    : BiDirectionalRayIntegrator(accel, std::move(lights), sampler)
+    : BiDirectionalRayIntegrator(accel, std::move(lights), sampler, std::make_unique<PowerLightSampler>())
     , max_bounces{ max_bounces }
 {
 }
@@ -56,7 +56,7 @@ int32 BiDirectionalVolPathIntegrator::SampleLightPath(Vertex* path, int32 wavele
 {
     Intersection isect;
     SampledLight sl;
-    if (!light_sampler.Sample(&sl, isect, sampler.Next1D()))
+    if (!light_sampler->Sample(&sl, isect, sampler.Next1D()))
     {
         return 0;
     }
@@ -123,7 +123,7 @@ int32 BiDirectionalVolPathIntegrator::SampleLightPath(Vertex* path, int32 wavele
         Float pdf = 0;
         for (const Light* light : infinite_lights)
         {
-            pdf += light_sampler.EvaluatePMF(light) * light->EvaluatePDF_Li(ray);
+            pdf += light_sampler->EvaluatePMF(light) * light->EvaluatePDF_Li(ray);
         }
         v0.pdf_fwd = pdf;
     }

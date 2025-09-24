@@ -14,7 +14,7 @@ namespace bulbit
 LightVolPathIntegrator::LightVolPathIntegrator(
     const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces
 )
-    : BiDirectionalRayIntegrator(accel, std::move(lights), sampler)
+    : BiDirectionalRayIntegrator(accel, std::move(lights), sampler, std::make_unique<PowerLightSampler>())
     , max_bounces{ max_bounces }
 {
 }
@@ -32,7 +32,7 @@ Spectrum LightVolPathIntegrator::L(
 
     // Sample light to start light tracing
     SampledLight sampled_light;
-    if (!light_sampler.Sample(&sampled_light, isect, sampler.Next1D()))
+    if (!light_sampler->Sample(&sampled_light, isect, sampler.Next1D()))
     {
         return Spectrum::black;
     }

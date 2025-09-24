@@ -220,7 +220,7 @@ Float Vertex::PDFLightOrigin(const Vertex& next, const Integrator* I) const
         return 0;
     }
 
-    const LightSampler& light_sampler = I->GetLightSampler();
+    const LightSampler* light_sampler = I->GetLightSampler();
 
     if (IsInfiniteLight())
     {
@@ -230,7 +230,7 @@ Float Vertex::PDFLightOrigin(const Vertex& next, const Integrator* I) const
         Float pdf = 0;
         for (const Light* light : I->InfiniteLights())
         {
-            pdf += light_sampler.EvaluatePMF(light) * light->EvaluatePDF_Li(ray);
+            pdf += light_sampler->EvaluatePMF(light) * light->EvaluatePDF_Li(ray);
         }
         return pdf;
     }
@@ -248,7 +248,7 @@ Float Vertex::PDFLightOrigin(const Vertex& next, const Integrator* I) const
             light->EvaluatePDF_Le(&pdf_p, &pdf_w, Ray(point, w));
         }
 
-        return light_sampler.EvaluatePMF(light) * pdf_p;
+        return light_sampler->EvaluatePMF(light) * pdf_p;
     }
 }
 

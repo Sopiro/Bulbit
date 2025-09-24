@@ -12,9 +12,10 @@
 namespace bulbit
 {
 
-Integrator::Integrator(const Intersectable* accel, std::vector<Light*> lights)
+Integrator::Integrator(const Intersectable* accel, std::vector<Light*> lights, std::unique_ptr<LightSampler> l_sampler)
     : accel{ accel }
     , all_lights{ std::move(lights) }
+    , light_sampler{ std::move(l_sampler) }
 {
     AABB world_bounds = accel->GetAABB();
     for (size_t i = 0; i < all_lights.size(); ++i)
@@ -41,13 +42,13 @@ Integrator::Integrator(const Intersectable* accel, std::vector<Light*> lights)
         }
     }
 
-    light_sampler.Init(all_lights);
+    light_sampler->Init(all_lights);
 }
 
 UniDirectionalRayIntegrator::UniDirectionalRayIntegrator(
-    const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler
+    const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, std::unique_ptr<LightSampler> light_sampler
 )
-    : Integrator(accel, std::move(lights))
+    : Integrator(accel, std::move(lights), std::move(light_sampler))
     , sampler_prototype{ sampler }
 {
 }
@@ -105,9 +106,9 @@ std::unique_ptr<Rendering> UniDirectionalRayIntegrator::Render(const Camera* cam
 }
 
 BiDirectionalRayIntegrator::BiDirectionalRayIntegrator(
-    const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler
+    const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, std::unique_ptr<LightSampler> light_sampler
 )
-    : Integrator(accel, std::move(lights))
+    : Integrator(accel, std::move(lights), std::move(light_sampler))
     , sampler_prototype{ sampler }
 {
 }

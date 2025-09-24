@@ -10,7 +10,7 @@ namespace bulbit
 NaivePathIntegrator::NaivePathIntegrator(
     const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces
 )
-    : UniDirectionalRayIntegrator(accel, std::move(lights), sampler)
+    : UniDirectionalRayIntegrator(accel, std::move(lights), sampler, nullptr)
     , max_bounces{ max_bounces }
 {
 }

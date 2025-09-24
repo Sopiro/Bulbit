@@ -20,7 +20,7 @@ PhotonMappingIntegrator::PhotonMappingIntegrator(
     int32 n_photons,
     Float radius
 )
-    : Integrator(accel, std::move(lights))
+    : Integrator(accel, std::move(lights), std::make_unique<PowerLightSampler>())
     , sampler_prototype{ sampler }
     , max_bounces{ max_bounces }
     , n_photons{ n_photons }
@@ -49,7 +49,7 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
         std::vector<Photon>& ps = tl_photons.Get();
 
         SampledLight sampled_light;
-        if (!light_sampler.Sample(&sampled_light, Intersection{}, rng.NextFloat()))
+        if (!light_sampler->Sample(&sampled_light, Intersection{}, rng.NextFloat()))
         {
             return;
         }
@@ -162,7 +162,7 @@ Spectrum PhotonMappingIntegrator::SampleDirectLight(
 ) const
 {
     SampledLight sampled_light;
-    if (!light_sampler.Sample(&sampled_light, isect, sampler.Next1D()))
+    if (!light_sampler->Sample(&sampled_light, isect, sampler.Next1D()))
     {
         return Spectrum::black;
     }

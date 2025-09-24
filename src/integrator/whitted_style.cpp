@@ -8,7 +8,7 @@ namespace bulbit
 {
 
 WhittedStyle::WhittedStyle(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_depth)
-    : UniDirectionalRayIntegrator(accel, std::move(lights), sampler)
+    : UniDirectionalRayIntegrator(accel, std::move(lights), sampler, nullptr)
     , max_depth{ max_depth }
 {
 }

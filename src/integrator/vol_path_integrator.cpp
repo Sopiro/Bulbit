@@ -12,7 +12,7 @@ namespace bulbit
 VolPathIntegrator::VolPathIntegrator(
     const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces, bool regularize_bsdf
 )
-    : UniDirectionalRayIntegrator(accel, std::move(lights), sampler)
+    : UniDirectionalRayIntegrator(accel, std::move(lights), sampler, std::make_unique<PowerLightSampler>())
     , max_bounces{ max_bounces }
     , regularize_bsdf{ regularize_bsdf }
 {
@@ -198,7 +198,7 @@ Spectrum VolPathIntegrator::Li(const Ray& primary_ray, const Medium* primary_med
                 for (Light* light : infinite_lights)
                 {
                     Ray r(last_scattering_vertex, ray.d);
-                    Float light_pdf = light->EvaluatePDF_Li(ray) * light_sampler.EvaluatePMF(light);
+                    Float light_pdf = light->EvaluatePDF_Li(ray) * light_sampler->EvaluatePMF(light);
                     r_l *= light_pdf;
                     L += beta * light->Le(ray) / (r_u + r_l).Average();
                 }
@@ -220,7 +220,7 @@ Spectrum VolPathIntegrator::Li(const Ray& primary_ray, const Medium* primary_med
                 AreaLight* area_light = area_lights.at(isect.primitive);
 
                 Ray r(last_scattering_vertex, ray.d);
-                Float light_pdf = area_light->EvaluatePDF_Li(r) * light_sampler.EvaluatePMF(area_light);
+                Float light_pdf = area_light->EvaluatePDF_Li(r) * light_sampler->EvaluatePMF(area_light);
                 r_l *= light_pdf;
                 L += beta * Le / (r_u + r_l).Average();
             }
@@ -364,7 +364,7 @@ Spectrum VolPathIntegrator::SampleDirectLight(
     Float u0 = sampler.Next1D();
     Point2 u12 = sampler.Next2D();
     SampledLight sampled_light;
-    if (!light_sampler.Sample(&sampled_light, isect, u0))
+    if (!light_sampler->Sample(&sampled_light, isect, u0))
     {
         return Spectrum::black;
     }

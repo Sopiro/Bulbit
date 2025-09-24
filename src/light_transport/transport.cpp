@@ -613,7 +613,7 @@ Spectrum ConnectPaths(
 
         SampledLight sampled_light;
         Intersection isect{ .point = v.point };
-        if (!I->GetLightSampler().Sample(&sampled_light, isect, sampler.Next1D()))
+        if (!I->GetLightSampler()->Sample(&sampled_light, isect, sampler.Next1D()))
         {
             return Spectrum::black;
         }
@@ -826,7 +826,7 @@ Spectrum ConnectPathsVol(
 
         SampledLight sampled_light;
         Intersection isect{ .point = v.point };
-        if (!I->GetLightSampler().Sample(&sampled_light, isect, sampler.Next1D()))
+        if (!I->GetLightSampler()->Sample(&sampled_light, isect, sampler.Next1D()))
         {
             return Spectrum::black;
         }

@@ -20,7 +20,7 @@ SPPMIntegrator::SPPMIntegrator(
     int32 photons_per_iteration,
     Float radius
 )
-    : Integrator(accel, std::move(lights))
+    : Integrator(accel, std::move(lights), std::make_unique<PowerLightSampler>())
     , sampler_prototype{ sampler }
     , max_bounces{ max_bounces }
     , photons_per_iteration{ photons_per_iteration }
@@ -44,7 +44,7 @@ Spectrum SPPMIntegrator::SampleDirectLight(
     Float u0 = sampler.Next1D();
     Point2 u12 = sampler.Next2D();
     SampledLight sampled_light;
-    if (!light_sampler.Sample(&sampled_light, isect, u0))
+    if (!light_sampler->Sample(&sampled_light, isect, u0))
     {
         return Spectrum::black;
     }
@@ -165,7 +165,7 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
                                     // Evaluate BSDF sample MIS for infinite light
                                     for (Light* light : infinite_lights)
                                     {
-                                        Float light_pdf = light->EvaluatePDF_Li(ray) * light_sampler.EvaluatePMF(light);
+                                        Float light_pdf = light->EvaluatePDF_Li(ray) * light_sampler->EvaluatePMF(light);
                                         Float mis_weight = PowerHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
 
                                         L += beta * mis_weight * light->Le(ray);
@@ -192,7 +192,7 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
                                     AreaLight* area_light = area_lights.at(isect.primitive);
 
                                     Float light_pdf =
-                                        isect.primitive->GetShape()->PDF(isect, ray) * light_sampler.EvaluatePMF(area_light);
+                                        isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
                                     Float mis_weight = PowerHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
 
                                     L += beta * mis_weight * Le;
@@ -300,7 +300,7 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
                     sampler->StartPixelSample({ -i, -i }, iteration);
 
                     SampledLight sampled_light;
-                    if (!light_sampler.Sample(&sampled_light, Intersection{}, sampler->Next1D()))
+                    if (!light_sampler->Sample(&sampled_light, Intersection{}, sampler->Next1D()))
                     {
                         continue;
                     }
