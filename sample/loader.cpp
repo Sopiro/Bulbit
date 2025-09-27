@@ -664,7 +664,7 @@ static void LoadScene(Scene& my_scene, tinygltf::Model& model, const Transform& 
 
 void LoadGLTF(Scene& scene, std::filesystem::path filename, const Transform& transform)
 {
-    std::cout << "Loading GLTF: " << filename.string() << std::endl;
+    std::cout << "Loading GLTF: " << filename.string() << "\n";
 
     tinygltf::TinyGLTF gltf;
     gltf.SetImageLoader(
@@ -773,7 +773,7 @@ struct OBJMeshGroup
 // Load OBJ model using tinyobj library.
 void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& transform)
 {
-    std::cout << "Loading OBJ: " << filename.string() << std::endl;
+    std::cout << "Loading OBJ: " << filename.string() << "\n";
 
     // Extract folder path for textures and MTL file loading.
     g_folder = filename.parent_path().string();

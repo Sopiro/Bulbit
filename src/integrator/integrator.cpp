@@ -42,7 +42,10 @@ Integrator::Integrator(const Intersectable* accel, std::vector<Light*> lights, s
         }
     }
 
-    light_sampler->Init(all_lights);
+    if (light_sampler)
+    {
+        light_sampler->Init(all_lights);
+    }
 }
 
 UniDirectionalRayIntegrator::UniDirectionalRayIntegrator(
