@@ -1,4 +1,4 @@
-#include "mistuba_loader.h"
+#include "mitsuba_loader.h"
 #include "bulbit/color.h"
 #include "light_builder.h"
 #include "loader.h"

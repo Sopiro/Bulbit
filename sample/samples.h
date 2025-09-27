@@ -5,7 +5,7 @@
 #include "light_builder.h"
 #include "loader.h"
 #include "material_builder.h"
-#include "mistuba_loader.h"
+#include "mitsuba_loader.h"
 #include "scene_builder.h"
 #include "texture_builder.h"
 
