@@ -11,7 +11,9 @@ struct RGBSpectrum
 {
     Float r, g, b;
 
-    explicit constexpr RGBSpectrum(Float s = 0)
+    RGBSpectrum() = default;
+
+    explicit constexpr RGBSpectrum(Float s)
         : r{ s }
         , g{ s }
         , b{ s }

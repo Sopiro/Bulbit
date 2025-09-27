@@ -61,7 +61,7 @@ public:
         const FloatTexture* u_roughness,
         const FloatTexture* v_roughness,
         const SpectrumTexture* reflectance,
-        bool energy_compensation,
+        bool energy_compensation = true,
         const SpectrumTexture* normal = nullptr
     );
 

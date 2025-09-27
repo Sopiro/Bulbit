@@ -58,9 +58,9 @@ struct Transform
 
     Transform(const Mat4& m)
     {
-        s.x = std::sqrt(m[0][0] * m[0][0] + m[1][0] * m[1][0] + m[2][0] * m[2][0]);
-        s.y = std::sqrt(m[0][1] * m[0][1] + m[1][1] * m[1][1] + m[2][1] * m[2][1]);
-        s.z = std::sqrt(m[0][2] * m[0][2] + m[1][2] * m[1][2] + m[2][2] * m[2][2]);
+        s.x = std::sqrt(m[0][0] * m[0][0] + m[0][1] * m[0][1] + m[0][2] * m[0][2]);
+        s.y = std::sqrt(m[1][0] * m[1][0] + m[1][1] * m[1][1] + m[1][2] * m[1][2]);
+        s.z = std::sqrt(m[2][0] * m[2][0] + m[2][1] * m[2][1] + m[2][2] * m[2][2]);
 
         q = Mat3(
             Vec3(m[0][0], m[0][1], m[0][2]) / s.x, Vec3(m[1][0], m[1][1], m[1][2]) / s.y, Vec3(m[2][0], m[2][1], m[2][2]) / s.z
@@ -95,7 +95,7 @@ struct Transform
 
 constexpr inline bool operator==(const Transform& a, const Transform& b)
 {
-    return a.p == b.p && a.q == b.q;
+    return a.p == b.p && a.q == b.q && a.s == b.s;
 }
 
 constexpr inline Vec3 operator*(const Transform& t, const Vec3& v)
