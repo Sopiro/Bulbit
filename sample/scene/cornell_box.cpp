@@ -2,8 +2,6 @@
 
 std::unique_ptr<Camera> CornellBox(Scene& scene)
 {
-    // auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
-
     // Materials
     auto red = CreateDiffuseMaterial(scene, Spectrum(.65f, .05f, .05f));
     auto green = CreateDiffuseMaterial(scene, Spectrum(.12f, .45f, .15f));
