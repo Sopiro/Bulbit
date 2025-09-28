@@ -3,10 +3,10 @@
 #include "bulbit/bulbit.h"
 
 #include "light_builder.h"
-#include "loader.h"
 #include "material_builder.h"
-#include "mitsuba_loader.h"
+#include "model_loader.h"
 #include "scene_builder.h"
+#include "scene_loader.h"
 #include "texture_builder.h"
 
 using namespace bulbit;

@@ -5,8 +5,8 @@
 
 #include "string_util.h"
 
-#include "loader.h"
-#include "mitsuba_loader.h"
+#include "model_loader.h"
+#include "scene_loader.h"
 
 #include "light_builder.h"
 #include "material_builder.h"
@@ -1111,7 +1111,7 @@ static SceneInfo ParseScene(pugi::xml_node scene_node)
     return si;
 }
 
-SceneInfo LoadMitsubaScene(std::filesystem::path filename)
+SceneInfo LoadScene(std::filesystem::path filename)
 {
     pugi::xml_document doc;
     pugi::xml_parse_result xml_result = doc.load_file(filename.c_str());

@@ -1,4 +1,4 @@
-#include "loader.h"
+#include "model_loader.h"
 #include "scene_builder.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION

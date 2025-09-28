@@ -75,6 +75,9 @@ struct SceneInfo
     operator bool() const;
 };
 
-SceneInfo LoadMitsubaScene(std::filesystem::path filename);
+// Load Mitsuba3 scene file
+// Parser implementation is based on:
+// https://github.com/BachiLi/lajolla_public/blob/main/src/parsers/parse_scene.cpp
+SceneInfo LoadScene(std::filesystem::path filename);
 
 } // namespace bulbit
