@@ -28,15 +28,16 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
     HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
-    SetLoaderUseForceFallbackMaterial(true);
+    ModelLoaderOptions options;
+    options.use_fallback_material = true;
 
     // Floor
     {
         auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(60));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(10) };
         auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
-        SetLoaderFallbackMaterial(floor);
-        LoadModel(scene, "res/background.obj", tf);
+        options.fallback_material = floor;
+        LoadModel(scene, "res/background.obj", tf, options);
     }
 
     int32 w = 5;
@@ -223,20 +224,20 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
             int32 sign_j = std::pow<int32>(-1, j);
             Vec3 p = o + (sign_j * y * ((j + 1) / 2)) + (sign_i * x * ((i + 1) / 2));
 
-            // SetLoaderFallbackMediumInterface(mi);
+            // options.fallback_medium_interface = mi;
 
-            SetLoaderFallbackMaterial(outers[std::min(i + j * w, count)]);
+            options.fallback_material = outers[std::min(i + j * w, count)];
             if (model == 0)
             {
                 // https://github.com/lighttransport/lighttransportequation-orb
                 auto tf = Transform{ p, Quat::FromEuler({ 0, 0, 0 }), Vec3(2.0f) };
-                LoadModel(scene, "res/mori_knob/base.obj", tf);
+                LoadModel(scene, "res/mori_knob/base.obj", tf, options);
 
                 tf = Transform{ p, Quat::FromEuler({ 0, 0, 0 }), Vec3(2.0f) };
-                LoadModel(scene, "res/mori_knob/outer.obj", tf);
+                LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
 
-                LoadModel(scene, "res/mori_knob/inner.obj", tf);
-                LoadModel(scene, "res/mori_knob/equation.obj", tf);
+                LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
+                LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
             }
             else
             {
@@ -244,9 +245,9 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
                 LoadModel(scene, "res/cloth.glb", tf);
             }
 
-            // SetLoaderFallbackMaterial(inners[std::min(i + j * w, count)]);
-            // LoadModel(scene, "res/mori_knob/inner.obj", tf);
-            // LoadModel(scene, "res/mori_knob/equation.obj", tf);
+            // options.fallback_material = inners[std::min(i + j * w, count)];
+            // LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
+            // LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
         }
     }
 

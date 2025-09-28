@@ -4,17 +4,18 @@ std::unique_ptr<Camera> MaterialTest(Scene& scene)
 {
     HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
-    // SetLoaderFallbackMediumInterface(mi);
+    // options.fallback_medium_interface = mi;
 
-    SetLoaderUseForceFallbackMaterial(true);
+    ModelLoaderOptions options;
+    options.use_fallback_material = true;
 
     // Floor
     {
         auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
         auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
-        SetLoaderFallbackMaterial(floor);
-        LoadModel(scene, "res/background.obj", tf);
+        options.fallback_material = floor;
+        LoadModel(scene, "res/background.obj", tf, options);
     }
 
     auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
@@ -35,13 +36,13 @@ std::unique_ptr<Camera> MaterialTest(Scene& scene)
     auto tf = Transform{ { 0, 0, 0.4 }, Quat::FromEuler({ 0, 0, 0 }), Vec3(2) };
 
     // https://github.com/lighttransport/lighttransportequation-orb
-    SetLoaderFallbackMaterial(outer);
-    LoadModel(scene, "res/mori_knob/base.obj", tf);
-    LoadModel(scene, "res/mori_knob/outer.obj", tf);
+    options.fallback_material = outer;
+    LoadModel(scene, "res/mori_knob/base.obj", tf, options);
+    LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
 
-    SetLoaderFallbackMaterial(inner);
-    LoadModel(scene, "res/mori_knob/inner.obj", tf);
-    // LoadModel(scene, "res/mori_knob/equation.obj", tf);
+    options.fallback_material = inner;
+    LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
+    // LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
 
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
     CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
@@ -73,15 +74,16 @@ std::unique_ptr<Camera> MetallicRoughness(Scene& scene)
     HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
-    SetLoaderUseForceFallbackMaterial(true);
+    ModelLoaderOptions options;
+    options.use_fallback_material = true;
 
     // Floor
     {
         auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
         auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
-        SetLoaderFallbackMaterial(floor);
-        LoadModel(scene, "res/background.obj", tf);
+        options.fallback_material = floor;
+        LoadModel(scene, "res/background.obj", tf, options);
     }
 
     Float scale = 2.0f;
@@ -115,18 +117,18 @@ std::unique_ptr<Camera> MetallicRoughness(Scene& scene)
             int32 sign_j = std::pow<int32>(-1, j);
             Vec3 p = o + (sign_j * y * ((j + 1) / 2)) + (sign_i * x * ((i + 1) / 2));
 
-            // SetLoaderFallbackMediumInterface(mi);
+            // options.fallback_medium_interface = mi;
 
             auto tf = Transform{ p, Quat::FromEuler({ 0, pi / 6, 0 }), Vec3(scale) };
 
             // https://github.com/lighttransport/lighttransportequation-orb
-            SetLoaderFallbackMaterial(outers[std::min(i + j * w, count)]);
-            LoadModel(scene, "res/mori_knob/base.obj", tf);
-            LoadModel(scene, "res/mori_knob/outer.obj", tf);
+            options.fallback_material = outers[std::min(i + j * w, count)];
+            LoadModel(scene, "res/mori_knob/base.obj", tf, options);
+            LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
 
-            SetLoaderFallbackMaterial(inners[std::min(i + j * w, count)]);
-            LoadModel(scene, "res/mori_knob/inner.obj", tf);
-            LoadModel(scene, "res/mori_knob/equation.obj", tf);
+            options.fallback_material = inners[std::min(i + j * w, count)];
+            LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
+            LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
         }
     }
 
@@ -168,15 +170,16 @@ std::unique_ptr<Camera> Dielectrics(Scene& scene)
     HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
-    SetLoaderUseForceFallbackMaterial(true);
+    ModelLoaderOptions options;
+    options.use_fallback_material = true;
 
     // Floor
     {
         auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
         auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
-        SetLoaderFallbackMaterial(floor);
-        LoadModel(scene, "res/background.obj", tf);
+        options.fallback_material = floor;
+        LoadModel(scene, "res/background.obj", tf, options);
     }
 
     Float scale = 2.0f;
@@ -210,18 +213,18 @@ std::unique_ptr<Camera> Dielectrics(Scene& scene)
             int32 sign_j = std::pow<int32>(-1, j);
             Vec3 p = o + (sign_j * y * ((j + 1) / 2)) + (sign_i * x * ((i + 1) / 2));
 
-            // SetLoaderFallbackMediumInterface(mi);
+            // options.fallback_medium_interface = mi;
 
             auto tf = Transform{ p, Quat::FromEuler({ 0, pi / 6, 0 }), Vec3(scale) };
 
             // https://github.com/lighttransport/lighttransportequation-orb
-            SetLoaderFallbackMaterial(outers[std::min(i + j * w, count)]);
-            LoadModel(scene, "res/mori_knob/base.obj", tf);
-            LoadModel(scene, "res/mori_knob/outer.obj", tf);
+            options.fallback_material = outers[std::min(i + j * w, count)];
+            LoadModel(scene, "res/mori_knob/base.obj", tf, options);
+            LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
 
-            SetLoaderFallbackMaterial(inners[std::min(i + j * w, count)]);
-            LoadModel(scene, "res/mori_knob/inner.obj", tf);
-            LoadModel(scene, "res/mori_knob/equation.obj", tf);
+            options.fallback_material = inners[std::min(i + j * w, count)];
+            LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
+            LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
         }
     }
 
@@ -263,15 +266,16 @@ std::unique_ptr<Camera> Skins(Scene& scene)
     HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
-    SetLoaderUseForceFallbackMaterial(true);
+    ModelLoaderOptions options;
+    options.use_fallback_material = true;
 
     // Floor
     {
         auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
         auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
-        SetLoaderFallbackMaterial(floor);
-        LoadModel(scene, "res/background.obj", tf);
+        options.fallback_material = floor;
+        LoadModel(scene, "res/background.obj", tf, options);
     }
 
     Float scale = 2.0f;
@@ -306,18 +310,18 @@ std::unique_ptr<Camera> Skins(Scene& scene)
             int32 sign_j = std::pow<int32>(-1, j);
             Vec3 p = o + (sign_j * y * ((j + 1) / 2)) + (sign_i * x * ((i + 1) / 2));
 
-            // SetLoaderFallbackMediumInterface(mi);
+            // options.fallback_medium_interface = mi;
 
             auto tf = Transform{ p, Quat::FromEuler({ 0, pi / 6, 0 }), Vec3(scale) };
 
             // https://github.com/lighttransport/lighttransportequation-orb
-            SetLoaderFallbackMaterial(skins[std::min(i + j * w, count)]);
-            LoadModel(scene, "res/mori_knob/base.obj", tf);
-            LoadModel(scene, "res/mori_knob/outer.obj", tf);
+            options.fallback_material = skins[std::min(i + j * w, count)];
+            LoadModel(scene, "res/mori_knob/base.obj", tf, options);
+            LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
 
-            // SetLoaderFallbackMaterial(skins[std::min(i + j * w, count)]);
-            // LoadModel(scene, "res/mori_knob/inner.obj", tf);
-            // LoadModel(scene, "res/mori_knob/equation.obj", tf);
+            // options.fallback_material = skins[std::min(i + j * w, count)];
+            // LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
+            // LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
         }
     }
 
@@ -363,15 +367,16 @@ std::unique_ptr<Camera> Mixtures(Scene& scene)
     HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
-    SetLoaderUseForceFallbackMaterial(true);
+    ModelLoaderOptions options;
+    options.use_fallback_material = true;
 
     // Floor
     {
         auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
         auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
-        SetLoaderFallbackMaterial(floor);
-        LoadModel(scene, "res/background.obj", tf);
+        options.fallback_material = floor;
+        LoadModel(scene, "res/background.obj", tf, options);
     }
 
     Float scale = 2.0f;
@@ -415,18 +420,18 @@ std::unique_ptr<Camera> Mixtures(Scene& scene)
             int32 sign_j = std::pow<int32>(-1, j);
             Vec3 p = o + (sign_j * y * ((j + 1) / 2)) + (sign_i * x * ((i + 1) / 2));
 
-            // SetLoaderFallbackMediumInterface(mi);
+            // options.fallback_medium_interface = mi;
 
             auto tf = Transform{ p, Quat::FromEuler({ 0, pi / 6, 0 }), Vec3(scale) };
 
             // https://github.com/lighttransport/lighttransportequation-orb
-            SetLoaderFallbackMaterial(outers[std::min(i + j * w, count)]);
-            LoadModel(scene, "res/mori_knob/base.obj", tf);
-            LoadModel(scene, "res/mori_knob/outer.obj", tf);
+            options.fallback_material = outers[std::min(i + j * w, count)];
+            LoadModel(scene, "res/mori_knob/base.obj", tf, options);
+            LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
 
-            SetLoaderFallbackMaterial(inners[std::min(i + j * w, count)]);
-            LoadModel(scene, "res/mori_knob/inner.obj", tf);
-            LoadModel(scene, "res/mori_knob/equation.obj", tf);
+            options.fallback_material = inners[std::min(i + j * w, count)];
+            LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
+            LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
         }
     }
 
@@ -468,15 +473,16 @@ std::unique_ptr<Camera> Alphas(Scene& scene)
     HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
-    SetLoaderUseForceFallbackMaterial(true);
+    ModelLoaderOptions options;
+    options.use_fallback_material = true;
 
     // Floor
     {
         auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
         auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
-        SetLoaderFallbackMaterial(floor);
-        LoadModel(scene, "res/background.obj", tf);
+        options.fallback_material = floor;
+        LoadModel(scene, "res/background.obj", tf, options);
     }
 
     Float scale = 2.0f;
@@ -510,18 +516,18 @@ std::unique_ptr<Camera> Alphas(Scene& scene)
             int32 sign_j = std::pow<int32>(-1, j);
             Vec3 p = o + (sign_j * y * ((j + 1) / 2)) + (sign_i * x * ((i + 1) / 2));
 
-            // SetLoaderFallbackMediumInterface(mi);
+            // options.fallback_medium_interface = mi;
 
             auto tf = Transform{ p, Quat::FromEuler({ 0, pi / 6, 0 }), Vec3(scale) };
 
             // https://github.com/lighttransport/lighttransportequation-orb
-            SetLoaderFallbackMaterial(outers[std::min(i + j * w, count)]);
-            LoadModel(scene, "res/mori_knob/base.obj", tf);
-            LoadModel(scene, "res/mori_knob/outer.obj", tf);
+            options.fallback_material = outers[std::min(i + j * w, count)];
+            LoadModel(scene, "res/mori_knob/base.obj", tf, options);
+            LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
 
-            SetLoaderFallbackMaterial(inners[std::min(i + j * w, count)]);
-            LoadModel(scene, "res/mori_knob/inner.obj", tf);
-            LoadModel(scene, "res/mori_knob/equation.obj", tf);
+            options.fallback_material = inners[std::min(i + j * w, count)];
+            LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
+            LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
         }
     }
 
@@ -563,15 +569,16 @@ std::unique_ptr<Camera> ColoredDielectrics(Scene& scene)
     HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
-    SetLoaderUseForceFallbackMaterial(true);
+    ModelLoaderOptions options;
+    options.use_fallback_material = true;
 
     // Floor
     {
         auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
         auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
-        SetLoaderFallbackMaterial(floor);
-        LoadModel(scene, "res/background.obj", tf);
+        options.fallback_material = floor;
+        LoadModel(scene, "res/background.obj", tf, options);
     }
 
     Float scale = 2.0f;
@@ -605,18 +612,18 @@ std::unique_ptr<Camera> ColoredDielectrics(Scene& scene)
             int32 sign_j = std::pow<int32>(-1, j);
             Vec3 p = o + (sign_j * y * ((j + 1) / 2)) + (sign_i * x * ((i + 1) / 2));
 
-            // SetLoaderFallbackMediumInterface(mi);
+            // options.fallback_medium_interface = mi;
 
             auto tf = Transform{ p, Quat::FromEuler({ 0, pi / 6, 0 }), Vec3(scale) };
 
             // https://github.com/lighttransport/lighttransportequation-orb
-            SetLoaderFallbackMaterial(outers[std::min(i + j * w, count)]);
-            LoadModel(scene, "res/mori_knob/base.obj", tf);
-            LoadModel(scene, "res/mori_knob/outer.obj", tf);
+            options.fallback_material = outers[std::min(i + j * w, count)];
+            LoadModel(scene, "res/mori_knob/base.obj", tf, options);
+            LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
 
-            SetLoaderFallbackMaterial(inners[std::min(i + j * w, count)]);
-            LoadModel(scene, "res/mori_knob/inner.obj", tf);
-            LoadModel(scene, "res/mori_knob/equation.obj", tf);
+            options.fallback_material = inners[std::min(i + j * w, count)];
+            LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
+            LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
         }
     }
 

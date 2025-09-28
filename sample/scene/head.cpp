@@ -2,7 +2,8 @@
 
 std::unique_ptr<Camera> Head(Scene& scene)
 {
-    SetLoaderUseForceFallbackMaterial(true);
+    ModelLoaderOptions options;
+    options.use_fallback_material = true;
     // Head
     {
         auto head_albedo = CreateSpectrumImageTexture(scene, "res/head/lambertian.jpg");
@@ -14,10 +15,10 @@ std::unique_ptr<Camera> Head(Scene& scene)
         // auto l1 = scene.CreateMaterial<DiffuseMaterial>(head_albedo);
         // auto mat = CreateLayeredMaterial(scene, l0, l1);
 
-        SetLoaderFallbackMaterial(mat);
+        options.fallback_material = mat;
 
         auto tf = Transform{ Vec3(0.0f, 0.05f, 0.0f), Quat(DegToRad(0.0f), y_axis), Vec3(1.5f) };
-        LoadModel(scene, "res/head/head.obj", tf);
+        LoadModel(scene, "res/head/head.obj", tf, options);
     }
 
     // CreateImageInfiniteLight(scene, "res/HDR/small_rural_road_1k.hdr", Transform(Quat(0, y_axis)), 2);

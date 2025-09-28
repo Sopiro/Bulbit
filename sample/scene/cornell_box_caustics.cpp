@@ -24,9 +24,11 @@ std::unique_ptr<Camera> CornellBoxCaustics(Scene& scene)
     // Caustics
     // https://benedikt-bitterli.me/resources/
     {
+        ModelLoaderOptions options;
+        options.use_fallback_material = true;
         auto tf = Transform{ .5f, 0.8f, -.5f, Quat::FromEuler({ 0, 0, 0 }), Vec3(1, 1, 1) };
-        SetLoaderFallbackMaterial(water);
-        LoadModel(scene, "res/caustics/water.obj", tf);
+        options.fallback_material = water;
+        LoadModel(scene, "res/caustics/water.obj", tf, options);
     }
 
     // Cornell box

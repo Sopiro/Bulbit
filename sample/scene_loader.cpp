@@ -293,7 +293,7 @@ static Transform ParseTransform(pugi::xml_node node, const DefaultMap& dm)
     return tf;
 }
 
-static FilmInfo ParseFilm(pugi::xml_node node, DefaultMap& dm)
+static FilmInfo ParseFilm(pugi::xml_node node, const DefaultMap& dm)
 {
     FilmInfo fi;
     fi.width = 1280;
@@ -327,7 +327,7 @@ static FilmInfo ParseFilm(pugi::xml_node node, DefaultMap& dm)
     return fi;
 }
 
-static SamplerInfo ParseSampler(pugi::xml_node node, DefaultMap& dm)
+static SamplerInfo ParseSampler(pugi::xml_node node, const DefaultMap& dm)
 {
     std::string name = node.attribute("type").value();
 
@@ -360,7 +360,7 @@ static SamplerInfo ParseSampler(pugi::xml_node node, DefaultMap& dm)
     return sampler;
 }
 
-static void ParseCamera(pugi::xml_node node, DefaultMap& dm, CameraInfo& ci)
+static void ParseCamera(pugi::xml_node node, const DefaultMap& dm, CameraInfo& ci)
 {
     ci.type = perspective;
     ci.fov = 35;
@@ -1060,9 +1060,11 @@ static bool ParseShape(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Sce
             }
         }
 
-        SetLoaderGenSmoothNormal(true);
-        SetLoaderFallbackMaterial(mat);
-        SetLoaderUseForceFallbackMaterial(true);
+        ModelLoaderOptions options;
+        options.gen_smooth_normal = true;
+        options.use_fallback_material = true;
+        options.fallback_material = mat;
+        ;
         LoadOBJ(*scene, filename, to_world);
     }
     else

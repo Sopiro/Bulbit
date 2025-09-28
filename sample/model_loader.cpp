@@ -24,58 +24,14 @@ constexpr int32 channel_transmission = 0;
 constexpr int32 channel_clearcoat = 0;
 constexpr int32 channel_sheen_roughness = 4;
 
-static bool g_force_fallback_material = false;
-static const Material* g_fallback_material = nullptr;
-static MediumInterface g_fallback_medium_interface = {};
-static bool g_flip_normal = false;
-static bool g_flip_texcoord = false;
-static bool g_gen_smooth_normal = false;
-static bool g_create_area_light = false;
-
-static std::string g_folder;
-static std::vector<const Material*> g_materials;
-
-void SetLoaderFlipNormal(bool flip_normal)
-{
-    g_flip_normal = flip_normal;
-}
-
-void SetLoaderGenSmoothNormal(bool gen_smooth_normal)
-{
-    g_gen_smooth_normal = gen_smooth_normal;
-}
-
-void SetLoaderFlipTexcoord(bool flip_texcoord)
-{
-    g_flip_texcoord = flip_texcoord;
-}
-
-void SetLoaderUseForceFallbackMaterial(bool force_use_fallback_material)
-{
-    g_force_fallback_material = force_use_fallback_material;
-}
-
-void SetLoaderFallbackMaterial(const Material* fallback_material)
-{
-    g_fallback_material = fallback_material;
-}
-
-void SetLoaderFallbackMediumInterface(const MediumInterface& fallback_medium_interface)
-{
-    g_fallback_medium_interface = fallback_medium_interface;
-}
-
-void SetLoaderAreaLightCreation(bool create_emissive_area_light)
-{
-    g_create_area_light = create_emissive_area_light;
-}
-
-bool HasExtension(const tinygltf::Material& material, const char* extension_name)
+static bool HasExtension(const tinygltf::Material& material, const char* extension_name)
 {
     return material.extensions.contains(extension_name);
 }
 
-static void LoadMaterials(Scene& scene, tinygltf::Model& model)
+static void LoadMaterials(
+    Scene& scene, tinygltf::Model& model, const std::string& base_path, std::vector<const Material*>& materials
+)
 {
     for (int32 i = 0; i < int32(model.materials.size()); i++)
     {
@@ -119,8 +75,8 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                 tinygltf::Texture& texture = model.textures[pbr.baseColorTexture.index];
                 tinygltf::Image& image = model.images[texture.source];
 
-                basecolor_texture = CreateSpectrumImageTexture(scene, g_folder + image.uri, false);
-                alpha_texture = CreateFloatImageTexture(scene, g_folder + image.uri, channel_alpha, true);
+                basecolor_texture = CreateSpectrumImageTexture(scene, base_path + image.uri, false);
+                alpha_texture = CreateFloatImageTexture(scene, base_path + image.uri, channel_alpha, true);
             }
             else
             {
@@ -136,9 +92,9 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                 tinygltf::Texture& texture = model.textures[pbr.metallicRoughnessTexture.index];
                 tinygltf::Image& image = model.images[texture.source];
 
-                metallic_texture = CreateFloatImageTexture(scene, g_folder + image.uri, channel_metallic, true, metallic_factor);
+                metallic_texture = CreateFloatImageTexture(scene, base_path + image.uri, channel_metallic, true, metallic_factor);
                 roughness_texture =
-                    CreateFloatImageTexture(scene, g_folder + image.uri, channel_roughness, true, roughness_factor);
+                    CreateFloatImageTexture(scene, base_path + image.uri, channel_roughness, true, roughness_factor);
             }
             else
             {
@@ -154,7 +110,7 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                 tinygltf::Texture& texture = model.textures[gltf_material.normalTexture.index];
                 tinygltf::Image& image = model.images[texture.source];
 
-                normal_texture = CreateSpectrumImageTexture(scene, g_folder + image.uri, true);
+                normal_texture = CreateSpectrumImageTexture(scene, base_path + image.uri, true);
             }
             else
             {
@@ -171,7 +127,7 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                     tinygltf::Texture& texture = model.textures[gltf_material.emissiveTexture.index];
                     tinygltf::Image& image = model.images[texture.source];
 
-                    emission_texture = CreateSpectrumImageTexture(scene, g_folder + image.uri, false, emission_factor);
+                    emission_texture = CreateSpectrumImageTexture(scene, base_path + image.uri, false, emission_factor);
                 }
                 else
                 {
@@ -219,7 +175,7 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                         tinygltf::Texture& texture = model.textures[tex_index];
                         tinygltf::Image& image = model.images[texture.source];
                         anisotropy_texture = CreateFloatImageTexture(
-                            scene, g_folder + image.uri, channel_anisotropy_strength, true, anisotropy_factor
+                            scene, base_path + image.uri, channel_anisotropy_strength, true, anisotropy_factor
                         );
                     }
                 }
@@ -259,8 +215,9 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                     {
                         tinygltf::Texture& texture = model.textures[tex_index];
                         tinygltf::Image& image = model.images[texture.source];
-                        transmission_texture =
-                            CreateFloatImageTexture(scene, g_folder + image.uri, channel_transmission, true, transmission_factor);
+                        transmission_texture = CreateFloatImageTexture(
+                            scene, base_path + image.uri, channel_transmission, true, transmission_factor
+                        );
                     }
                 }
             }
@@ -297,7 +254,7 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                         tinygltf::Texture& texture = model.textures[tex_index];
                         tinygltf::Image& image = model.images[texture.source];
                         clearcoat_texture =
-                            CreateFloatImageTexture(scene, g_folder + image.uri, channel_clearcoat, true, clearcoat_factor);
+                            CreateFloatImageTexture(scene, base_path + image.uri, channel_clearcoat, true, clearcoat_factor);
                     }
                 }
 
@@ -320,7 +277,7 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                         tinygltf::Texture& texture = model.textures[tex_index];
                         tinygltf::Image& image = model.images[texture.source];
                         clearcoat_roughness_texture = CreateFloatImageTexture(
-                            scene, g_folder + image.uri, channel_roughness, true, clearcoat_roughness_factor
+                            scene, base_path + image.uri, channel_roughness, true, clearcoat_roughness_factor
                         );
                     }
                 }
@@ -369,7 +326,7 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                     {
                         tinygltf::Texture& texture = model.textures[tex_index];
                         tinygltf::Image& image = model.images[texture.source];
-                        sheen_color_texture = CreateSpectrumImageTexture(scene, g_folder + image.uri, false, sheen_color_factor);
+                        sheen_color_texture = CreateSpectrumImageTexture(scene, base_path + image.uri, false, sheen_color_factor);
                     }
                 }
 
@@ -392,7 +349,7 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
                         tinygltf::Texture& texture = model.textures[tex_index];
                         tinygltf::Image& image = model.images[texture.source];
                         sheen_roughness_texture = CreateFloatImageTexture(
-                            scene, g_folder + image.uri, channel_sheen_roughness, true, sheen_roughness_factor
+                            scene, base_path + image.uri, channel_sheen_roughness, true, sheen_roughness_factor
                         );
                     }
                 }
@@ -419,12 +376,12 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
         }
 
 #if 0
-        g_materials.push_back(scene.CreateMaterial<MetallicRoughnessMaterial>(
+        materials.push_back(scene.CreateMaterial<MetallicRoughnessMaterial>(
             basecolor_texture, metallic_texture, roughness_texture, roughness_texture, emission_texture, normal_texture,
             alpha_texture
         ));
 #else
-        g_materials.push_back(scene.CreateMaterial<PrincipledMaterial>(
+        materials.push_back(scene.CreateMaterial<PrincipledMaterial>(
             basecolor_texture, metallic_texture, roughness_texture, anisotropy_texture, ior_factor, transmission_texture,
             clearcoat_texture, clearcoat_roughness_texture, clearcoat_color_texture, sheen_texture, sheen_roughness_texture,
             sheen_color_texture, emission_texture, normal_texture, alpha_texture
@@ -433,7 +390,14 @@ static void LoadMaterials(Scene& scene, tinygltf::Model& model)
     }
 }
 
-static bool LoadMesh(Scene& scene, tinygltf::Model& model, tinygltf::Mesh& mesh, const Mat4& transform)
+static bool LoadMesh(
+    Scene& scene,
+    tinygltf::Model& model,
+    tinygltf::Mesh& mesh,
+    const Mat4& transform,
+    const std::vector<const Material*> materials,
+    const ModelLoaderOptions& options
+)
 {
     for (int32 prim = 0; prim < mesh.primitives.size(); ++prim)
     {
@@ -593,7 +557,7 @@ static bool LoadMesh(Scene& scene, tinygltf::Model& model, tinygltf::Mesh& mesh,
 
         // post-processes
         {
-            if (g_flip_normal)
+            if (options.flip_normal)
             {
                 for (size_t i = 0; i < normals.size(); ++i)
                 {
@@ -601,7 +565,7 @@ static bool LoadMesh(Scene& scene, tinygltf::Model& model, tinygltf::Mesh& mesh,
                 }
             }
 
-            if (!g_flip_texcoord)
+            if (!options.flip_tex_coord)
             {
                 for (size_t i = 0; i < texcoords.size(); ++i)
                 {
@@ -614,57 +578,77 @@ static bool LoadMesh(Scene& scene, tinygltf::Model& model, tinygltf::Mesh& mesh,
             std::move(positions), std::move(normals), std::move(tangents), std::move(texcoords), std::move(indices), transform
         );
 
-        bool area_light = g_materials[primitive.material]->GetEmissionTexture() != nullptr;
-
         CreateTriangles(
-            scene, m, g_force_fallback_material ? g_fallback_material : g_materials[primitive.material],
-            g_fallback_medium_interface, g_create_area_light && area_light
+            scene, m, options.use_fallback_material ? options.fallback_material : materials[primitive.material],
+            options.fallback_medium_interface
         );
     }
 
     return true;
 }
 
-static void ProcessNode(Scene& my_scene, tinygltf::Model& model, tinygltf::Node& node, Mat4 parent)
+static void ProcessNode(
+    Scene& scene,
+    tinygltf::Model& model,
+    tinygltf::Node& node,
+    const Mat4& parent_transform,
+    const std::vector<const Material*> materials,
+    const ModelLoaderOptions& options
+)
 {
-    Mat4 transform =
-        node.matrix.empty()
-            ? identity
-            : Mat4(
-                  Vec4(float(node.matrix[0]), float(node.matrix[1]), float(node.matrix[2]), float(node.matrix[3])),
-                  Vec4(float(node.matrix[4]), float(node.matrix[5]), float(node.matrix[6]), float(node.matrix[7])),
-                  Vec4(float(node.matrix[8]), float(node.matrix[9]), float(node.matrix[10]), float(node.matrix[11])),
-                  Vec4(float(node.matrix[12]), float(node.matrix[13]), float(node.matrix[14]), float(node.matrix[15]))
-              );
+    Mat4 transform;
+    if (!node.matrix.empty())
+    {
+        transform = Mat4(
+            Vec4(Float(node.matrix[0]), Float(node.matrix[1]), Float(node.matrix[2]), Float(node.matrix[3])),
+            Vec4(Float(node.matrix[4]), Float(node.matrix[5]), Float(node.matrix[6]), Float(node.matrix[7])),
+            Vec4(Float(node.matrix[8]), Float(node.matrix[9]), Float(node.matrix[10]), Float(node.matrix[11])),
+            Vec4(Float(node.matrix[12]), Float(node.matrix[13]), Float(node.matrix[14]), Float(node.matrix[15]))
+        );
+    }
+    else
+    {
+        transform = identity;
+    }
 
-    transform = Mul(parent, transform);
+    transform = Mul(parent_transform, transform);
 
     if ((node.mesh >= 0) && (node.mesh < model.meshes.size()))
     {
-        LoadMesh(my_scene, model, model.meshes[node.mesh], transform);
+        LoadMesh(scene, model, model.meshes[node.mesh], transform, materials, options);
     }
 
     // Recursively process child nodes
     for (size_t i = 0; i < node.children.size(); i++)
     {
         BulbitAssert((node.children[i] >= 0) && (node.children[i] < model.nodes.size()));
-        ProcessNode(my_scene, model, model.nodes[node.children[i]], transform);
+        ProcessNode(scene, model, model.nodes[node.children[i]], transform, materials, options);
     }
 }
 
-static void LoadScene(Scene& my_scene, tinygltf::Model& model, const Transform& transform)
+static void LoadScene(
+    Scene& scene,
+    tinygltf::Model& model,
+    const Transform& transform,
+    const std::vector<const Material*> materials,
+    const ModelLoaderOptions& options
+)
 {
-    const tinygltf::Scene& scene = model.scenes[model.defaultScene];
-    for (size_t i = 0; i < scene.nodes.size(); ++i)
+    const tinygltf::Scene& gltf_scene = model.scenes[model.defaultScene];
+    for (size_t i = 0; i < gltf_scene.nodes.size(); ++i)
     {
-        BulbitAssert((scene.nodes[i] >= 0) && (scene.nodes[i] < model.nodes.size()));
-        ProcessNode(my_scene, model, model.nodes[scene.nodes[i]], Mat4(transform));
+        BulbitAssert((gltf_scene.nodes[i] >= 0) && (gltf_scene.nodes[i] < model.nodes.size()));
+        ProcessNode(scene, model, model.nodes[gltf_scene.nodes[i]], transform, materials, options);
     }
 }
 
-void LoadGLTF(Scene& scene, std::filesystem::path filename, const Transform& transform)
+void LoadGLTF(Scene& scene, std::filesystem::path filename, const Transform& transform, const ModelLoaderOptions& options)
 {
-    std::cout << "Loading GLTF: " << filename.string() << "\n";
+    if (options.use_fallback_material && options.fallback_material == nullptr)
+    {
+        std::cerr << "Fallback material not provided!" << std::endl;
+        return;
+    }
 
     tinygltf::TinyGLTF gltf;
     gltf.SetImageLoader(
@@ -705,12 +689,13 @@ void LoadGLTF(Scene& scene, std::filesystem::path filename, const Transform& tra
         return;
     }
 
-    g_folder = filename.remove_filename().string();
-    if (!g_force_fallback_material)
+    std::vector<const Material*> materials;
+    std::string base_path = filename.remove_filename().string();
+    if (!options.use_fallback_material)
     {
-        LoadMaterials(scene, model);
+        LoadMaterials(scene, model, base_path, materials);
     }
-    LoadScene(scene, model, transform);
+    LoadScene(scene, model, transform, materials, options);
 }
 
 const Material* CreateOBJMaterial(Scene& scene, const tinyobj::material_t& mat, const std::string& root)
@@ -771,19 +756,23 @@ struct OBJMeshGroup
 };
 
 // Load OBJ model using tinyobj library.
-void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& transform)
+void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& transform, const ModelLoaderOptions& options)
 {
-    // std::cout << "Loading OBJ: " << filename.string() << "\n";
+    if (options.use_fallback_material && options.fallback_material == nullptr)
+    {
+        std::cerr << "Fallback material not provided!" << std::endl;
+        return;
+    }
 
     // Extract folder path for textures and MTL file loading.
-    g_folder = filename.parent_path().string();
-    if (!g_folder.empty() && g_folder.back() != '/')
+    std::string base_path = filename.parent_path().string();
+    if (!base_path.empty() && base_path.back() != '/')
     {
-        g_folder += "/";
+        base_path += "/";
     }
 
     tinyobj::ObjReaderConfig reader_config;
-    reader_config.mtl_search_path = g_folder; // MTL file is assumed to be in the same folder as the OBJ.
+    reader_config.mtl_search_path = base_path; // MTL file is assumed to be in the same folder as the OBJ.
 
     tinyobj::ObjReader reader;
     if (!reader.ParseFromFile(filename.string(), reader_config))
@@ -801,13 +790,17 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
 
     const auto& attrib = reader.GetAttrib();
     const auto& shapes = reader.GetShapes();
-    const auto& materials = reader.GetMaterials();
+    const auto& obj_materials = reader.GetMaterials();
 
     // Convert OBJ materials to engine Materials. The index corresponds to the material ID.
-    std::vector<const Material*> obj_materials(materials.size());
-    for (size_t i = 0; i < materials.size(); i++)
+    std::vector<const Material*> materials;
+    if (!options.use_fallback_material)
     {
-        obj_materials[i] = (!g_force_fallback_material) ? CreateOBJMaterial(scene, materials[i], g_folder) : g_fallback_material;
+        materials.resize(obj_materials.size());
+        for (size_t i = 0; i < obj_materials.size(); i++)
+        {
+            materials[i] = CreateOBJMaterial(scene, obj_materials[i], base_path);
+        }
     }
 
     // Process each shape in the OBJ file.
@@ -820,7 +813,7 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
 
         // Accumulate every normals
         std::vector<Vec3> smooth_normals;
-        if (g_gen_smooth_normal)
+        if (options.gen_smooth_normal)
         {
             smooth_normals = std::vector<Vec3>(attrib.vertices.size() / 3, Vec3(0));
 
@@ -898,12 +891,12 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
                     normal.y = attrib.normals[3 * size_t(idx.normal_index) + 1];
                     normal.z = attrib.normals[3 * size_t(idx.normal_index) + 2];
                 }
-                else if (g_gen_smooth_normal)
+                else if (options.gen_smooth_normal)
                 {
                     normal = smooth_normals[idx.vertex_index];
                 }
 
-                if (g_flip_normal)
+                if (options.flip_normal)
                 {
                     normal.Negate();
                 }
@@ -915,7 +908,7 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
                     texcoord.x = attrib.texcoords[2 * size_t(idx.texcoord_index) + 0];
                     texcoord.y = attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
 
-                    if (g_flip_texcoord)
+                    if (options.flip_tex_coord)
                     {
                         texcoord.y = 1 - texcoord.y;
                     }
@@ -964,30 +957,50 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
                 std::move(group.indices), transform
             );
 
-            const Material* material = (material_id < 0 || size_t(material_id) >= obj_materials.size())
-                                           ? g_fallback_material
-                                           : obj_materials[material_id];
+            const Material* material;
+            if (material_id < 0 || size_t(material_id) >= materials.size())
+            {
+                if (options.fallback_material)
+                {
+                    material = options.fallback_material;
+                }
+                else
+                {
+                    std::cerr << "No valid material found and no fallback specified" << std::endl;
+                    material = CreateDiffuseMaterial(scene, Spectrum{ 1, 0, 1 });
+                }
+            }
+            else if (options.fallback_material)
+            {
+                material = options.fallback_material;
+            }
+            else
+            {
+                material = materials[material_id];
+            }
 
-            CreateTriangles(scene, m, g_force_fallback_material ? g_fallback_material : material, g_fallback_medium_interface);
+            CreateTriangles(
+                scene, m, options.use_fallback_material ? options.fallback_material : material, options.fallback_medium_interface
+            );
         }
     }
 }
 
-void LoadModel(Scene& scene, std::filesystem::path filename, const Transform& transform)
+void LoadModel(Scene& scene, std::filesystem::path filename, const Transform& transform, const ModelLoaderOptions& options)
 {
     auto ext = filename.extension();
     if (ext == ".gltf" || ext == ".glb")
     {
-        LoadGLTF(scene, filename, transform);
+        LoadGLTF(scene, filename, transform, options);
     }
     else if (filename.extension() == ".obj")
     {
-        LoadOBJ(scene, filename, transform);
+        LoadOBJ(scene, filename, transform, options);
     }
     else
     {
-        std::cout << "Failed to load model: " << filename.string() << std::endl;
-        std::cout << "Supported extensions: .obj .gltf" << std::endl;
+        std::cerr << "Failed to load model: " << filename.string() << '\n';
+        std::cerr << "Supported extensions: .obj .gltf" << std::endl;
     }
 }
 
