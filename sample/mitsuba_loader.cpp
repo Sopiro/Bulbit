@@ -1,7 +1,9 @@
-#include <regex>
+#include "pugixml.hpp"
 
 #include "bulbit/color.h"
-#include "pugixml.hpp"
+#include "bulbit/texture.h"
+
+#include "string_util.h"
 
 #include "loader.h"
 #include "mitsuba_loader.h"
@@ -27,20 +29,6 @@ static Float VFovToHFov(Float vfov, Float aspect)
 static Float HFovToVFov(Float hfov, Float aspect)
 {
     return RadToDeg(2.0f * std::atan(std::tan(DegToRad(hfov) * 0.5f) / aspect));
-}
-
-static std::vector<std::string> SplitString(const std::string& str, const std::regex& delim_regex)
-{
-    std::sregex_token_iterator first{ begin(str), end(str), delim_regex, -1 }, last;
-    std::vector<std::string> list{ first, last };
-    return list;
-}
-
-static std::string ToLowercase(const std::string& s)
-{
-    std::string out = s;
-    std::transform(s.begin(), s.end(), out.begin(), ::tolower);
-    return out;
 }
 
 static void ParseDefault(pugi::xml_node node, DefaultMap& dm)
@@ -158,7 +146,7 @@ static Mat4 ParseMat4(const std::string& value)
     return m;
 }
 
-Vec3 ParseSRGB(const std::string& value)
+static Vec3 ParseSRGB(const std::string& value)
 {
     Vec3 srgb;
     if (value.size() == 7 && value[0] == '#')
@@ -193,7 +181,7 @@ static Mat4 ParseMat4(pugi::xml_attribute attr, const DefaultMap& dm)
     return ParseMat4(str);
 }
 
-Vec3 ParseSRGB(pugi::xml_attribute attr, const DefaultMap& dm)
+static Vec3 ParseSRGB(pugi::xml_attribute attr, const DefaultMap& dm)
 {
     std::string str = ParseString(attr, dm);
     return ParseSRGB(str);
@@ -357,7 +345,7 @@ static SamplerInfo ParseSampler(pugi::xml_node node, DefaultMap& dm)
     }
     else
     {
-        std::cerr << "Unsupported sampler type: " << name << ", fallback to independent sampler" << std::endl;
+        std::cerr << "Sampler not supported: " << name << std::endl;
     }
 
     for (auto child : node.children())
@@ -444,7 +432,7 @@ static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, RendererInfo& r
     // clang-format on
     else
     {
-        std::cerr << "Unsupported integrator type: " + type << std::endl;
+        std::cerr << "Integrator not supported: " + type << std::endl;
     }
 
     for (auto child : node.children())
@@ -467,7 +455,7 @@ static Spectrum ParseColor(pugi::xml_node node, const DefaultMap& dm)
     std::string type = node.name();
     if (type == "spectrum")
     {
-        std::cerr << "Not a supported color type: spectrum" << std::endl;
+        std::cerr << "Color type not supported: spectrum" << std::endl;
         return Spectrum::black;
     }
     else if (type == "rgb")
@@ -503,96 +491,80 @@ struct TextureInfo
 
     fs::path filename;
     Spectrum color0, color1; // for checkerboard
-    Float uscale = 1, vscale = 1;
-    Float uoffset = 0, voffset = 0;
+    Point2 scale;
+    TexCoordFilter wrap_mode;
 };
 
-TextureInfo ParseTexture(pugi::xml_node node, const DefaultMap& dm)
+static TextureInfo ParseTexture(pugi::xml_node node, const DefaultMap& dm)
 {
+    TextureInfo ti;
+    ti.type = checkboard;
+    ti.filename = "";
+    ti.color0 = { 0.4f, 0.4f, 0.4f };
+    ti.color1 = { 0.2f, 0.2f, 0.2f };
+    ti.scale = { 1, 1 };
+    ti.wrap_mode = repeat;
+
     std::string type = node.attribute("type").value();
     if (type == "bitmap")
     {
-        std::string filename = "";
-        Float uscale = 1;
-        Float vscale = 1;
-        Float uoffset = 0;
-        Float voffset = 0;
+        ti.type = bitmap;
+
+        std::string wm;
         for (auto child : node.children())
         {
             std::string name = child.attribute("name").value();
             if (name == "filename")
             {
-                filename = ParseString(child.attribute("value"), dm);
+                ti.filename = ParseString(child.attribute("value"), dm);
             }
-            else if (name == "uvscale")
+            else if (name == "wrap_mode")
             {
-                uscale = vscale = ParseFloat(child.attribute("value"), dm);
-            }
-            else if (name == "uscale")
-            {
-                uscale = ParseFloat(child.attribute("value"), dm);
-            }
-            else if (name == "vscale")
-            {
-                vscale = ParseFloat(child.attribute("value"), dm);
-            }
-            else if (name == "uoffset")
-            {
-                uoffset = ParseFloat(child.attribute("value"), dm);
-            }
-            else if (name == "voffset")
-            {
-                voffset = ParseFloat(child.attribute("value"), dm);
+                wm = ParseString(child.attribute("value"), dm);
             }
         }
 
-        return TextureInfo{ TextureType::bitmap, fs::path(filename), Spectrum(0), Spectrum(0), uscale, vscale, uoffset, voffset };
+        if (wm == "repeat")
+        {
+            ti.wrap_mode = repeat;
+        }
+        else if (wm == "clamp")
+        {
+            ti.wrap_mode = clamp;
+        }
+        else
+        {
+            std::cerr << "Wrapmode not supported: " << wm << std::endl;
+        }
     }
     else if (type == "checkerboard")
     {
-        Spectrum color0 = { 0.4f, 0.4f, 0.4f };
-        Spectrum color1 = { 0.2f, 0.2f, 0.2f };
-        Float uscale = 1;
-        Float vscale = 1;
-        Float uoffset = 0;
-        Float voffset = 0;
         for (auto child : node.children())
         {
             std::string name = child.attribute("name").value();
+
             if (name == "color0")
             {
-                color0 = ParseColor(child, dm);
+                ti.color0 = ParseColor(child, dm);
             }
             else if (name == "color1")
             {
-                color1 = ParseColor(child, dm);
+                ti.color1 = ParseColor(child, dm);
             }
-            else if (name == "uvscale")
+            else if (name == "to_uv")
             {
-                uscale = vscale = ParseFloat(child.attribute("value"), dm);
-            }
-            else if (name == "uscale")
-            {
-                uscale = ParseFloat(child.attribute("value"), dm);
-            }
-            else if (name == "vscale")
-            {
-                vscale = ParseFloat(child.attribute("value"), dm);
-            }
-            else if (name == "uoffset")
-            {
-                uoffset = ParseFloat(child.attribute("value"), dm);
-            }
-            else if (name == "voffset")
-            {
-                voffset = ParseFloat(child.attribute("value"), dm);
+                Transform tf = ParseTransform(child, dm);
+                ti.scale.x = tf.s.x;
+                ti.scale.y = tf.s.y;
             }
         }
-        return TextureInfo{ TextureType::checkboard, "", color0, color1, uscale, vscale, uoffset, voffset };
+    }
+    else
+    {
+        std::cerr << "Texture type not supported: " << type << std::endl;
     }
 
-    std::cerr << "Unknown texture type: " << type;
-    return TextureInfo{};
+    return ti;
 }
 
 static FloatTexture* ParseFloatTexture(pugi::xml_node node, const DefaultMap& dm, Scene* scene)
@@ -606,13 +578,14 @@ static FloatTexture* ParseFloatTexture(pugi::xml_node node, const DefaultMap& dm
     else if (type == "texture")
     {
         TextureInfo t = ParseTexture(node, dm);
+
         if (t.type == TextureType::bitmap)
         {
             return CreateFloatImageTexture(*scene, t.filename.string(), 0);
         }
         else if (t.type == TextureType::checkboard)
         {
-            return CreateFloatCheckerTexture(*scene, t.color0.Average(), t.color1.Average(), { t.uscale, t.vscale });
+            return CreateFloatCheckerTexture(*scene, t.color0.Average(), t.color1.Average(), t.scale);
         }
         else
         {
@@ -660,7 +633,7 @@ static SpectrumTexture* ParseSpectrumTexture(pugi::xml_node node, const DefaultM
         }
         else if (t.type == TextureType::checkboard)
         {
-            return CreateSpectrumCheckerTexture(*scene, t.color0, t.color1, { t.uscale, t.vscale });
+            return CreateSpectrumCheckerTexture(*scene, t.color0, t.color1, t.scale);
         }
         else
         {
@@ -819,7 +792,7 @@ static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scen
                 }
                 else
                 {
-                    std::cerr << "Unsupported conductor material: " << conductor_type << std::endl;
+                    std::cerr << "Conductor type not supported: " << conductor_type << std::endl;
                 }
             }
             else if (name == "eta")
@@ -932,7 +905,7 @@ static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scen
     return true;
 }
 
-Spectrum ParseIntensity(pugi::xml_node node, const DefaultMap& dm)
+static Spectrum ParseIntensity(pugi::xml_node node, const DefaultMap& dm)
 {
     std::string rad_type = node.name();
     if (rad_type == "spectrum")
@@ -1101,7 +1074,7 @@ static bool ParseShape(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Sce
     return true;
 }
 
-static std::optional<SceneInfo> ParseScene(pugi::xml_node scene_node)
+static SceneInfo ParseScene(pugi::xml_node scene_node)
 {
     SceneInfo si;
     si.scene = std::make_unique<Scene>();
@@ -1138,7 +1111,7 @@ static std::optional<SceneInfo> ParseScene(pugi::xml_node scene_node)
     return si;
 }
 
-std::optional<SceneInfo> LoadMitsubaScene(std::filesystem::path filename)
+SceneInfo LoadMitsubaScene(std::filesystem::path filename)
 {
     pugi::xml_document doc;
     pugi::xml_parse_result xml_result = doc.load_file(filename.c_str());
@@ -1155,6 +1128,11 @@ std::optional<SceneInfo> LoadMitsubaScene(std::filesystem::path filename)
     fs::current_path(old_path);
 
     return scene;
+}
+
+SceneInfo::operator bool() const
+{
+    return bool(scene);
 }
 
 } // namespace bulbit

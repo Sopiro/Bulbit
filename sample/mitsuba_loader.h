@@ -1,7 +1,6 @@
 #pragma once
 
 #include "bulbit/bulbit.h"
-#include <optional>
 
 namespace bulbit
 {
@@ -72,8 +71,10 @@ struct SceneInfo
 
     CameraInfo camera_info;
     RendererInfo renderer_info;
+
+    operator bool() const;
 };
 
-std::optional<SceneInfo> LoadMitsubaScene(std::filesystem::path filename);
+SceneInfo LoadMitsubaScene(std::filesystem::path filename);
 
 } // namespace bulbit
