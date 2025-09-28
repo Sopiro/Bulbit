@@ -1,12 +1,10 @@
-#include "pugixml.hpp"
+#include "scene_loader.h"
 
 #include "bulbit/color.h"
-#include "bulbit/texture.h"
-
-#include "string_util.h"
+#include <pugixml.hpp>
 
 #include "model_loader.h"
-#include "scene_loader.h"
+#include "string_util.h"
 
 #include "light_builder.h"
 #include "material_builder.h"
@@ -296,9 +294,8 @@ static Transform ParseTransform(pugi::xml_node node, const DefaultMap& dm)
 static FilmInfo ParseFilm(pugi::xml_node node, const DefaultMap& dm)
 {
     FilmInfo fi;
-    fi.width = 1280;
-    fi.height = 720;
     fi.filename = "bulbit_render.hdr";
+    fi.resolution = { 1280, 720 };
 
     for (auto child : node.children())
     {
@@ -307,11 +304,11 @@ static FilmInfo ParseFilm(pugi::xml_node node, const DefaultMap& dm)
 
         if (name == "width")
         {
-            fi.width = ParseInteger(child.attribute("value"), dm);
+            fi.resolution.x = ParseInteger(child.attribute("value"), dm);
         }
         else if (name == "height")
         {
-            fi.height = ParseInteger(child.attribute("value"), dm);
+            fi.resolution.y = ParseInteger(child.attribute("value"), dm);
         }
         else if (name == "filename")
         {
@@ -332,16 +329,16 @@ static SamplerInfo ParseSampler(pugi::xml_node node, const DefaultMap& dm)
     std::string name = node.attribute("type").value();
 
     SamplerInfo sampler;
-    sampler.type = independent;
+    sampler.type = SamplerType::independent;
     sampler.spp = 64;
 
     if (name == "independent")
     {
-        sampler.type = independent;
+        sampler.type = SamplerType::independent;
     }
     else if (name == "stratified")
     {
-        sampler.type = stratified;
+        sampler.type = SamplerType::stratified;
     }
     else
     {
@@ -351,7 +348,7 @@ static SamplerInfo ParseSampler(pugi::xml_node node, const DefaultMap& dm)
     for (auto child : node.children())
     {
         std::string name = child.attribute("name").value();
-        if (name == "sampleCount" || name == "sample_count")
+        if (name == "sample_count")
         {
             sampler.spp = ParseInteger(child.attribute("value"), dm);
         }
@@ -362,16 +359,18 @@ static SamplerInfo ParseSampler(pugi::xml_node node, const DefaultMap& dm)
 
 static void ParseCamera(pugi::xml_node node, const DefaultMap& dm, CameraInfo& ci)
 {
-    ci.type = perspective;
+    ci.type = CameraType::perspective;
+    ci.tf = identity;
     ci.fov = 35;
     ci.aperture = 0;
-    ci.focus_distance = 0;
+    ci.focus_distance = 1;
 
     std::string type = ParseString(node.attribute("type"), dm);
+    std::string fov_axis = "x";
 
     if (type == "perspective" || type == "thinlens")
     {
-        ci.type = perspective;
+        ci.type = CameraType::perspective;
 
         for (auto child : node.children())
         {
@@ -380,14 +379,24 @@ static void ParseCamera(pugi::xml_node node, const DefaultMap& dm, CameraInfo& c
             {
                 ci.fov = ParseFloat(child.attribute("value"), dm);
             }
-            else if (name == "to_world" || name == "toWorld")
+            else if (name == "to_world")
             {
                 ci.tf = ParseTransform(child, dm);
+            }
+            else if (name == "fov_axis")
+            {
+                fov_axis = child.attribute("value").value();
             }
             else if (name == "aperture_radius")
             {
                 ci.aperture = ParseFloat(child.attribute("value"), dm);
             }
+        }
+
+        if (fov_axis != "x" || fov_axis == "y")
+        {
+            std::cerr << "FOV axis not supported: " << fov_axis << std::endl;
+            fov_axis = "x";
         }
     }
     else
@@ -408,27 +417,38 @@ static void ParseCamera(pugi::xml_node node, const DefaultMap& dm, CameraInfo& c
             ci.sampler_info = ParseSampler(child, dm);
         }
     }
+
+    if (fov_axis == "x")
+    {
+        Float aspect = Float(ci.film_info.resolution.x) / Float(ci.film_info.resolution.y);
+        ci.fov = HFovToVFov(ci.fov, aspect);
+    }
 }
 
 static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, RendererInfo& ri)
 {
     std::string type = ParseString(node.attribute("type"), dm);
 
-    ri.type = path;
+    ri.type = IntegratorType::path;
     ri.max_bounces = 8;
+    ri.rr_depth = 1;
+    ri.ao_range = 0.1f;
+    ri.n_photons = 100000;
+    ri.initial_radius = -1;
 
     // TODO: add all types
     // clang-format off
-    if (type == "path") { ri.type = path; }
-    else if (type == "volpath") { ri.type = vol_path; }
-    else if (type == "light_path") { ri.type = light_path; }
-    else if (type == "light_vol_path") { ri.type = light_vol_path; }
-    else if (type == "bdpt") { ri.type = bdpt; }
-    else if (type == "vol_bdpt") { ri.type = vol_bdpt; }
-    else if (type == "ao") { ri.type = ao; }
-    else if (type == "debug") { ri.type = debug; }
-    else if (type == "pm") { ri.type = pm; }
-    else if (type == "sppm") { ri.type = sppm; }
+    if (type == "path") { ri.type = IntegratorType::path; }
+    else if (type == "volpath") { ri.type = IntegratorType::vol_path; }
+    else if (type == "light_path") { ri.type = IntegratorType::light_path; }
+    else if (type == "light_vol_path") { ri.type = IntegratorType::light_vol_path; }
+    else if (type == "bdpt") { ri.type = IntegratorType::bdpt; }
+    else if (type == "vol_bdpt") { ri.type = IntegratorType::vol_bdpt; }
+    else if (type == "ao") { ri.type = IntegratorType::ao; }
+    else if (type == "albedo") { ri.type = IntegratorType::albedo; }
+    else if (type == "debug") { ri.type = IntegratorType::debug; }
+    else if (type == "pm") { ri.type = IntegratorType::pm; }
+    else if (type == "sppm") { ri.type = IntegratorType::sppm; }
     // clang-format on
     else
     {
@@ -439,13 +459,25 @@ static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, RendererInfo& r
     {
         std::string name = child.name();
 
-        if (name == "max_depth" || name == "maxDepth")
+        if (name == "max_depth")
         {
             ri.max_bounces = ParseInteger(node.attribute("value"), dm);
         }
-        else if (name == "rr_depth" || name == "rrDepth")
+        else if (name == "rr_depth")
         {
             ri.rr_depth = ParseInteger(node.attribute("value"), dm);
+        }
+        else if (name == "ao_range")
+        {
+            ri.ao_range = ParseFloat(node.attribute("value"), dm);
+        }
+        else if (name == "n_photons")
+        {
+            ri.n_photons = ParseFloat(node.attribute("value"), dm);
+        }
+        else if (name == "initial_radius")
+        {
+            ri.initial_radius = ParseFloat(node.attribute("value"), dm);
         }
     }
 }
@@ -479,7 +511,7 @@ static Spectrum ParseColor(pugi::xml_node node, const DefaultMap& dm)
     }
 }
 
-enum TextureType
+enum class TextureType
 {
     bitmap,
     checkboard,
@@ -498,7 +530,7 @@ struct TextureInfo
 static TextureInfo ParseTexture(pugi::xml_node node, const DefaultMap& dm)
 {
     TextureInfo ti;
-    ti.type = checkboard;
+    ti.type = TextureType::checkboard;
     ti.filename = "";
     ti.color0 = { 0.4f, 0.4f, 0.4f };
     ti.color1 = { 0.2f, 0.2f, 0.2f };
@@ -508,9 +540,9 @@ static TextureInfo ParseTexture(pugi::xml_node node, const DefaultMap& dm)
     std::string type = node.attribute("type").value();
     if (type == "bitmap")
     {
-        ti.type = bitmap;
+        ti.type = TextureType::bitmap;
 
-        std::string wm;
+        std::string wm = "repeat";
         for (auto child : node.children())
         {
             std::string name = child.attribute("name").value();
@@ -539,6 +571,8 @@ static TextureInfo ParseTexture(pugi::xml_node node, const DefaultMap& dm)
     }
     else if (type == "checkerboard")
     {
+        ti.type = TextureType::checkboard;
+
         for (auto child : node.children())
         {
             std::string name = child.attribute("name").value();
@@ -749,7 +783,7 @@ static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scen
         for (auto child : node.children())
         {
             std::string name = child.attribute("name").value();
-            if (name == "diffuseReflectance" || name == "diffuse_reflectance")
+            if (name == "diffuse_reflectance")
             {
                 basecolor = ParseSpectrumTexture(child, dm, scene);
             }
@@ -803,7 +837,7 @@ static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scen
             {
                 k = ParseSpectrumTexture(child, dm, scene);
             }
-            else if (name == "reflectance")
+            else if (name == "specular_reflectance")
             {
                 reflectance = ParseSpectrumTexture(child, dm, scene);
             }
@@ -853,11 +887,11 @@ static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scen
                 u_roughness = ParseFloatTexture(child, dm, scene);
                 v_roughness = u_roughness;
             }
-            else if (name == "intIOR" || name == "int_ior")
+            else if (name == "int_ior")
             {
                 int_ior = ParseFloat(child.attribute("value"), dm);
             }
-            else if (name == "extIOR" || name == "ext_ior")
+            else if (name == "ext_ior")
             {
                 ext_ior = ParseFloat(child.attribute("value"), dm);
             }
@@ -880,11 +914,11 @@ static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scen
         for (auto child : node.children())
         {
             std::string name = child.attribute("name").value();
-            if (name == "intIOR" || name == "int_ior")
+            if (name == "int_ior")
             {
                 int_ior = ParseFloat(child.attribute("value"), dm);
             }
-            else if (name == "extIOR" || name == "ext_ior")
+            else if (name == "ext_ior")
             {
                 ext_ior = ParseFloat(child.attribute("value"), dm);
             }
@@ -947,7 +981,7 @@ static bool ParseShape(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Sce
             }
             else if (!mm.contains(id.value()))
             {
-                std::cerr << "Material not found by id: " << std::string(id.value()) << std::endl;
+                std::cerr << "Material not found by id: " << id.value() << std::endl;
                 mat = mm["fallback"];
             }
             else
@@ -1002,14 +1036,14 @@ static bool ParseShape(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Sce
         for (auto child : node.children())
         {
             std::string name = child.attribute("name").value();
-            if (name == "toWorld" || name == "to_world")
+            if (name == "to_world")
             {
                 if (std::string(child.name()) == "transform")
                 {
                     to_world = ParseTransform(child, dm);
                 }
             }
-            else if (name == "flipNormals" || name == "flip_normals")
+            else if (name == "flip_normals")
             {
                 flip_normals = ParseBoolean(child.attribute("value"), dm);
             }
@@ -1024,7 +1058,7 @@ static bool ParseShape(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Sce
         for (auto child : node.children())
         {
             std::string name = child.attribute("name").value();
-            if (name == "toWorld" || name == "to_world")
+            if (name == "to_world")
             {
                 if (std::string(child.name()) == "transform")
                 {
@@ -1035,7 +1069,7 @@ static bool ParseShape(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Sce
 
         CreateBox(*scene, to_world * Transform(0, 0, 0, identity, { 2, 2, 2 }), mat, {}, { 1, 1 }, emitter);
     }
-    else if (shape_type == "obj")
+    else if (shape_type == "obj" || shape_type == "gltf")
     {
         std::string filename;
         Mat4 to_world = identity;
@@ -1047,14 +1081,14 @@ static bool ParseShape(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Sce
             {
                 filename = ParseString(child.attribute("value"), dm);
             }
-            else if (name == "toWorld" || name == "to_world")
+            else if (name == "to_world")
             {
                 if (std::string(child.name()) == "transform")
                 {
                     to_world = ParseTransform(child, dm);
                 }
             }
-            else if (name == "faceNormals" || name == "face_normals")
+            else if (name == "face_normals")
             {
                 face_normals = ParseBoolean(child.attribute("value"), dm);
             }
@@ -1064,8 +1098,8 @@ static bool ParseShape(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Sce
         options.gen_smooth_normal = true;
         options.use_fallback_material = true;
         options.fallback_material = mat;
-        ;
-        LoadOBJ(*scene, filename, to_world);
+
+        LoadOBJ(*scene, filename, to_world, options);
     }
     else
     {

@@ -7,12 +7,11 @@ namespace bulbit
 
 struct FilmInfo
 {
-    int32 width;
-    int32 height;
     std::string filename;
+    Point2i resolution;
 };
 
-enum SamplerType
+enum class SamplerType
 {
     independent,
     stratified,
@@ -24,7 +23,7 @@ struct SamplerInfo
     int32 spp;
 };
 
-enum CameraType
+enum class CameraType
 {
     perspective,
     orthographic,
@@ -44,7 +43,7 @@ struct CameraInfo
     SamplerInfo sampler_info;
 };
 
-enum IntegratorType
+enum class IntegratorType
 {
     path,
     vol_path,
@@ -53,6 +52,7 @@ enum IntegratorType
     bdpt,
     vol_bdpt,
     ao,
+    albedo,
     debug,
     pm,
     sppm,
@@ -63,6 +63,9 @@ struct RendererInfo
     IntegratorType type;
     int32 max_bounces;
     int32 rr_depth;
+    Float ao_range;
+    int32 n_photons;
+    Float initial_radius;
 };
 
 struct SceneInfo
