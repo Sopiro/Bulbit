@@ -1,23 +1,20 @@
-#include "mitsuba_loader.h"
+#include <regex>
+
 #include "bulbit/color.h"
-#include "light_builder.h"
+#include "pugixml.hpp"
+
 #include "loader.h"
+#include "mitsuba_loader.h"
+
+#include "light_builder.h"
 #include "material_builder.h"
 #include "scene_builder.h"
 #include "texture_builder.h"
-
-#include "pugixml.hpp"
-#include <regex>
 
 namespace fs = std::filesystem;
 
 namespace bulbit
 {
-
-static const int32 g_default_fov = 35;
-static const int32 g_default_width = 640;
-static const int32 g_default_height = 480;
-static const std::string g_default_filename = "render.hdr";
 
 using DefaultMap = std::unordered_map<std::string, std::string>;
 using MaterialMap = std::unordered_map<std::string, const Material*>;
@@ -32,7 +29,21 @@ static Float HFovToVFov(Float hfov, Float aspect)
     return RadToDeg(2.0f * std::atan(std::tan(DegToRad(hfov) * 0.5f) / aspect));
 }
 
-static void ParseDefaultMap(pugi::xml_node node, DefaultMap& dm)
+static std::vector<std::string> SplitString(const std::string& str, const std::regex& delim_regex)
+{
+    std::sregex_token_iterator first{ begin(str), end(str), delim_regex, -1 }, last;
+    std::vector<std::string> list{ first, last };
+    return list;
+}
+
+static std::string ToLowercase(const std::string& s)
+{
+    std::string out = s;
+    std::transform(s.begin(), s.end(), out.begin(), ::tolower);
+    return out;
+}
+
+static void ParseDefault(pugi::xml_node node, DefaultMap& dm)
 {
     if (node.attribute("name"))
     {
@@ -99,23 +110,9 @@ static bool ParseBoolean(pugi::xml_attribute attr, const DefaultMap& dm)
     }
 }
 
-static std::vector<std::string> split_string(const std::string& str, const std::regex& delim_regex)
-{
-    std::sregex_token_iterator first{ begin(str), end(str), delim_regex, -1 }, last;
-    std::vector<std::string> list{ first, last };
-    return list;
-}
-
-static std::string to_lowercase(const std::string& s)
-{
-    std::string out = s;
-    std::transform(s.begin(), s.end(), out.begin(), ::tolower);
-    return out;
-}
-
 static Vec3 ParseVec3(const std::string& value)
 {
-    std::vector<std::string> list = split_string(value, std::regex("(,| )+"));
+    std::vector<std::string> list = SplitString(value, std::regex("(,| )+"));
 
     Vec3 v;
     if (list.size() == 1)
@@ -141,7 +138,7 @@ static Vec3 ParseVec3(const std::string& value)
 
 static Mat4 ParseMat4(const std::string& value)
 {
-    std::vector<std::string> list = split_string(value, std::regex("(,| )+"));
+    std::vector<std::string> list = SplitString(value, std::regex("(,| )+"));
     if (list.size() != 16)
     {
         std::cerr << "ParseMat4 failed" << std::endl;
@@ -208,7 +205,7 @@ static Transform ParseTransform(pugi::xml_node node, const DefaultMap& dm)
 
     for (auto child : node.children())
     {
-        std::string name = to_lowercase(child.name());
+        std::string name = ToLowercase(child.name());
 
         if (name == "scale")
         {
@@ -308,18 +305,12 @@ static Transform ParseTransform(pugi::xml_node node, const DefaultMap& dm)
     return tf;
 }
 
-struct FilmInfo
-{
-    int32 width;
-    int32 height;
-    std::string filename;
-};
-
 static FilmInfo ParseFilm(pugi::xml_node node, DefaultMap& dm)
 {
-    int32 width = g_default_width;
-    int32 height = g_default_height;
-    std::string filename = g_default_filename;
+    FilmInfo fi;
+    fi.width = 1280;
+    fi.height = 720;
+    fi.filename = "bulbit_render.hdr";
 
     for (auto child : node.children())
     {
@@ -328,15 +319,15 @@ static FilmInfo ParseFilm(pugi::xml_node node, DefaultMap& dm)
 
         if (name == "width")
         {
-            width = ParseInteger(child.attribute("value"), dm);
+            fi.width = ParseInteger(child.attribute("value"), dm);
         }
         else if (name == "height")
         {
-            height = ParseInteger(child.attribute("value"), dm);
+            fi.height = ParseInteger(child.attribute("value"), dm);
         }
         else if (name == "filename")
         {
-            filename = ParseString(child.attribute("value"), dm);
+            fi.filename = ParseString(child.attribute("value"), dm);
         }
 
         if (type == "rfilter")
@@ -345,38 +336,76 @@ static FilmInfo ParseFilm(pugi::xml_node node, DefaultMap& dm)
         }
     }
 
-    return { width, height, filename };
+    return fi;
 }
 
-static std::unique_ptr<Camera> ParseCamera(pugi::xml_node node, DefaultMap& dm)
+static SamplerInfo ParseSampler(pugi::xml_node node, DefaultMap& dm)
 {
+    std::string name = node.attribute("type").value();
+
+    SamplerInfo sampler;
+    sampler.type = independent;
+    sampler.spp = 64;
+
+    if (name == "independent")
+    {
+        sampler.type = independent;
+    }
+    else if (name == "stratified")
+    {
+        sampler.type = stratified;
+    }
+    else
+    {
+        std::cerr << "Unsupported sampler type: " << name << ", fallback to independent sampler" << std::endl;
+    }
+
+    for (auto child : node.children())
+    {
+        std::string name = child.attribute("name").value();
+        if (name == "sampleCount" || name == "sample_count")
+        {
+            sampler.spp = ParseInteger(child.attribute("value"), dm);
+        }
+    }
+
+    return sampler;
+}
+
+static void ParseCamera(pugi::xml_node node, DefaultMap& dm, CameraInfo& ci)
+{
+    ci.type = perspective;
+    ci.fov = 35;
+    ci.aperture = 0;
+    ci.focus_distance = 0;
+
     std::string type = ParseString(node.attribute("type"), dm);
 
-    Float fov = g_default_fov;
-    Transform to_world = identity;
-
-    if (type == "perspective")
+    if (type == "perspective" || type == "thinlens")
     {
+        ci.type = perspective;
+
         for (auto child : node.children())
         {
             std::string name = ParseString(child.attribute("name"), dm);
             if (name == "fov")
             {
-                fov = ParseFloat(child.attribute("value"), dm);
+                ci.fov = ParseFloat(child.attribute("value"), dm);
             }
             else if (name == "to_world" || name == "toWorld")
             {
-                to_world = ParseTransform(child, dm);
+                ci.tf = ParseTransform(child, dm);
+            }
+            else if (name == "aperture_radius")
+            {
+                ci.aperture = ParseFloat(child.attribute("value"), dm);
             }
         }
     }
     else
     {
-        std::cerr << "Camera not supported: " + type << std::endl;
-        return nullptr;
+        std::cerr << "Camera not supported: " << type << std::endl;
     }
-
-    FilmInfo film;
 
     for (auto child : node.children())
     {
@@ -384,43 +413,53 @@ static std::unique_ptr<Camera> ParseCamera(pugi::xml_node node, DefaultMap& dm)
 
         if (name == "film")
         {
-            film = ParseFilm(child, dm);
+            ci.film_info = ParseFilm(child, dm);
         }
-    }
-
-    if (type == "perspective")
-    {
-        Point3 f = Mul(to_world, Point3(0));
-        Point3 t = Mul(to_world, Point3(0, 0, 1));
-
-        Float aspect = Float(film.width) / Float(film.height);
-        fov = HFovToVFov(fov, aspect);
-
-        return std::make_unique<PerspectiveCamera>(f, t, y_axis, fov, 0, 1, Point2i{ film.width, film.height });
-    }
-    else
-    {
-        return nullptr;
+        else if (name == "sampler")
+        {
+            ci.sampler_info = ParseSampler(child, dm);
+        }
     }
 }
 
-static bool ParseIntegrator(pugi::xml_node node, DefaultMap& dm)
+static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, RendererInfo& ri)
 {
     std::string type = ParseString(node.attribute("type"), dm);
 
+    ri.type = path;
+    ri.max_bounces = 8;
+
     // TODO: add all types
-    if (type == "path" || type == "volpath" || type == "bdpt" || type == "light_path" || type == "ao" || type == "debug" ||
-        type == "sppm" || type == "random_walk")
-    {
-        dm["integrator"] = type;
-    }
+    // clang-format off
+    if (type == "path") { ri.type = path; }
+    else if (type == "volpath") { ri.type = vol_path; }
+    else if (type == "light_path") { ri.type = light_path; }
+    else if (type == "light_vol_path") { ri.type = light_vol_path; }
+    else if (type == "bdpt") { ri.type = bdpt; }
+    else if (type == "vol_bdpt") { ri.type = vol_bdpt; }
+    else if (type == "ao") { ri.type = ao; }
+    else if (type == "debug") { ri.type = debug; }
+    else if (type == "pm") { ri.type = pm; }
+    else if (type == "sppm") { ri.type = sppm; }
+    // clang-format on
     else
     {
-        std::cerr << "Integrator not supported: " + type << std::endl;
-        return false;
+        std::cerr << "Unsupported integrator type: " + type << std::endl;
     }
 
-    return true;
+    for (auto child : node.children())
+    {
+        std::string name = child.name();
+
+        if (name == "max_depth" || name == "maxDepth")
+        {
+            ri.max_bounces = ParseInteger(node.attribute("value"), dm);
+        }
+        else if (name == "rr_depth" || name == "rrDepth")
+        {
+            ri.rr_depth = ParseInteger(node.attribute("value"), dm);
+        }
+    }
 }
 
 static Spectrum ParseColor(pugi::xml_node node, const DefaultMap& dm)
@@ -452,22 +491,23 @@ static Spectrum ParseColor(pugi::xml_node node, const DefaultMap& dm)
     }
 }
 
-enum class TextureType
+enum TextureType
 {
-    BITMAP,
-    CHECKERBOARD
+    bitmap,
+    checkboard,
 };
 
-struct ParsedTexture
+struct TextureInfo
 {
     TextureType type;
+
     fs::path filename;
     Spectrum color0, color1; // for checkerboard
     Float uscale = 1, vscale = 1;
     Float uoffset = 0, voffset = 0;
 };
 
-ParsedTexture ParseTexture(pugi::xml_node node, const DefaultMap& dm)
+TextureInfo ParseTexture(pugi::xml_node node, const DefaultMap& dm)
 {
     std::string type = node.attribute("type").value();
     if (type == "bitmap")
@@ -506,9 +546,7 @@ ParsedTexture ParseTexture(pugi::xml_node node, const DefaultMap& dm)
             }
         }
 
-        return ParsedTexture{
-            TextureType::BITMAP, fs::path(filename), Spectrum(0), Spectrum(0), uscale, vscale, uoffset, voffset
-        };
+        return TextureInfo{ TextureType::bitmap, fs::path(filename), Spectrum(0), Spectrum(0), uscale, vscale, uoffset, voffset };
     }
     else if (type == "checkerboard")
     {
@@ -550,11 +588,11 @@ ParsedTexture ParseTexture(pugi::xml_node node, const DefaultMap& dm)
                 voffset = ParseFloat(child.attribute("value"), dm);
             }
         }
-        return ParsedTexture{ TextureType::CHECKERBOARD, "", color0, color1, uscale, vscale, uoffset, voffset };
+        return TextureInfo{ TextureType::checkboard, "", color0, color1, uscale, vscale, uoffset, voffset };
     }
 
     std::cerr << "Unknown texture type: " << type;
-    return ParsedTexture{};
+    return TextureInfo{};
 }
 
 static FloatTexture* ParseFloatTexture(pugi::xml_node node, const DefaultMap& dm, Scene* scene)
@@ -567,12 +605,12 @@ static FloatTexture* ParseFloatTexture(pugi::xml_node node, const DefaultMap& dm
     }
     else if (type == "texture")
     {
-        ParsedTexture t = ParseTexture(node, dm);
-        if (t.type == TextureType::BITMAP)
+        TextureInfo t = ParseTexture(node, dm);
+        if (t.type == TextureType::bitmap)
         {
             return CreateFloatImageTexture(*scene, t.filename.string(), 0);
         }
-        else if (t.type == TextureType::CHECKERBOARD)
+        else if (t.type == TextureType::checkboard)
         {
             return CreateFloatCheckerTexture(*scene, t.color0.Average(), t.color1.Average(), { t.uscale, t.vscale });
         }
@@ -614,13 +652,13 @@ static SpectrumTexture* ParseSpectrumTexture(pugi::xml_node node, const DefaultM
     }
     else if (type == "texture")
     {
-        ParsedTexture t = ParseTexture(node, dm);
+        TextureInfo t = ParseTexture(node, dm);
 
-        if (t.type == TextureType::BITMAP)
+        if (t.type == TextureType::bitmap)
         {
             return CreateSpectrumImageTexture(*scene, t.filename.string());
         }
-        else if (t.type == TextureType::CHECKERBOARD)
+        else if (t.type == TextureType::checkboard)
         {
             return CreateSpectrumCheckerTexture(*scene, t.color0, t.color1, { t.uscale, t.vscale });
         }
@@ -652,6 +690,17 @@ static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scen
 
     if (type == "bumpmap")
     {
+        std::cerr << "Bumpmap not supported" << std::endl;
+        for (auto child : node.children())
+        {
+            if (std::string(child.name()) == "bsdf")
+            {
+                return ParseBSDF(child, dm, mm, scene, id);
+            }
+        }
+    }
+    else if (type == "normalmap")
+    {
         // TODO: implement properly
         for (auto child : node.children())
         {
@@ -661,7 +710,21 @@ static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scen
             }
         }
     }
-    if (type == "mask")
+    else if (type == "blendbsdf")
+    {
+        // TODO: implement properly
+        for (auto child : node.children())
+        {
+            if (std::string(child.name()) == "bsdf")
+            {
+                return ParseBSDF(child, dm, mm, scene, id);
+            }
+        }
+    }
+    else if (type == "null")
+    {
+    }
+    else if (type == "mask")
     {
         // TODO: implement properly
         for (auto child : node.children())
@@ -1038,19 +1101,13 @@ static bool ParseShape(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Sce
     return true;
 }
 
-static std::optional<MitsubaScene> ParseScene(pugi::xml_node scene_node)
+static std::optional<SceneInfo> ParseScene(pugi::xml_node scene_node)
 {
-    std::unique_ptr<Scene> scene = std::make_unique<Scene>();
-    std::unique_ptr<Intersectable> accel;
-    std::unique_ptr<Sampler> sampler;
-    std::unique_ptr<Camera> camera;
-    std::unique_ptr<Integrator> integrator;
+    SceneInfo si;
+    si.scene = std::make_unique<Scene>();
 
     DefaultMap dm;
     MaterialMap mm;
-
-    auto fallback = CreateDiffuseMaterial(*scene, 1);
-    mm["fallback"] = fallback;
 
     for (auto node : scene_node.children())
     {
@@ -1058,67 +1115,30 @@ static std::optional<MitsubaScene> ParseScene(pugi::xml_node scene_node)
 
         if (name == "default")
         {
-            ParseDefaultMap(node, dm);
+            ParseDefault(node, dm);
         }
         else if (name == "integrator")
         {
-            if (!ParseIntegrator(node, dm)) return {};
+            ParseIntegrator(node, dm, si.renderer_info);
         }
         else if (name == "sensor")
         {
-            camera = ParseCamera(node, dm);
-            if (camera == nullptr) return {};
+            ParseCamera(node, dm, si.camera_info);
         }
         else if (name == "bsdf")
         {
-            if (!ParseBSDF(node, dm, mm, scene.get())) return {};
+            ParseBSDF(node, dm, mm, si.scene.get());
         }
         else if (name == "shape")
         {
-            if (!ParseShape(node, dm, mm, scene.get())) return {};
+            ParseShape(node, dm, mm, si.scene.get());
         }
     }
 
-    for (auto p : dm)
-    {
-        std::cout << p.first << ": " << p.second << std::endl;
-    }
-
-    accel = std::make_unique<BVH>(scene->GetPrimitives());
-    int32 spp = 64;
-    sampler = std::make_unique<StratifiedSampler>(std::sqrt(spp), std::sqrt(spp), true);
-
-    std::string integrator_type = dm.at("integrator");
-    if (integrator_type == "path")
-    {
-        integrator = std::make_unique<PathIntegrator>(accel.get(), scene->GetLights(), sampler.get(), 8, false);
-    }
-    else if (integrator_type == "volpath")
-    {
-        integrator = std::make_unique<VolPathIntegrator>(accel.get(), scene->GetLights(), sampler.get(), 8, false);
-    }
-    else if (integrator_type == "bdpt")
-    {
-        integrator = std::make_unique<BiDirectionalPathIntegrator>(accel.get(), scene->GetLights(), sampler.get(), 8);
-    }
-    else if (integrator_type == "ao")
-    {
-        integrator = std::make_unique<AmbientOcclusion>(accel.get(), scene->GetLights(), sampler.get(), 0.1f);
-    }
-    else if (integrator_type == "debug")
-    {
-        integrator = std::make_unique<DebugIntegrator>(accel.get(), scene->GetLights(), sampler.get());
-    }
-    else
-    {
-        std::cout << "Not a supported integrator: " << integrator_type << std::endl;
-        return {};
-    }
-
-    return MitsubaScene{ std::move(scene), std::move(accel), std::move(sampler), std::move(camera), std::move(integrator) };
+    return si;
 }
 
-std::optional<MitsubaScene> LoadMitsubaScene(std::filesystem::path filename)
+std::optional<SceneInfo> LoadMitsubaScene(std::filesystem::path filename)
 {
     pugi::xml_document doc;
     pugi::xml_parse_result xml_result = doc.load_file(filename.c_str());
