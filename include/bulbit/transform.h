@@ -91,6 +91,28 @@ struct Transform
     {
         return Transform{ q.RotateInv(-p), q.GetConjugate(), 1 / s };
     }
+
+    static Transform Translate(const Vec3& position)
+    {
+        return Transform(position, Quat(1), Vec3(1));
+    }
+
+    static Transform Rotate(const Vec3& rotation)
+    {
+        return Transform(Vec3(0), Quat::FromEuler(rotation), Vec3(1));
+    }
+
+    static Transform Scale(const Vec3& scale)
+    {
+        return Transform(Vec3(0), Quat(1), scale);
+    }
+
+    static Transform LookAt(const Vec3& position, const Vec3& target, const Vec3& up)
+    {
+        Vec3 w = target - position;
+        w.Normalize();
+        return Transform(position, Quat(w, up));
+    }
 };
 
 constexpr inline bool operator==(const Transform& a, const Transform& b)

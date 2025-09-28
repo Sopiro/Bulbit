@@ -283,7 +283,9 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
     Float aperture = 0.01f;
     Float vFov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height));
+    return std::make_unique<PerspectiveCamera>(
+        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+    );
 }
 
 static int32 index0 = Sample::Register("principled0", std::bind(Principled, std::placeholders::_1, roughness, knob));

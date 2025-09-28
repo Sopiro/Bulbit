@@ -6,17 +6,16 @@ namespace bulbit
 {
 
 PerspectiveCamera::PerspectiveCamera(
-    const Point3& look_from,
-    const Point3& look_at,
-    const Vec3& up,
+    const Transform& tf,
     Float vfov,
-    Float aperture,
+    Float aperture_radius,
     Float focus_distance,
     const Point2i& resolution,
     const Medium* medium,
     const Filter* pixel_filter
 )
     : Camera(resolution, medium, pixel_filter)
+    , lens_radius{ aperture_radius }
     , focus_distance{ focus_distance }
 {
     Float theta = DegToRad(vfov);
@@ -25,16 +24,14 @@ PerspectiveCamera::PerspectiveCamera(
     Float viewport_height = 2 * h;
     Float viewport_width = aspect_ratio * viewport_height;
 
-    w = Normalize(look_from - look_at);
-    u = Normalize(Cross(up, w));
-    v = Cross(w, u);
+    u = -tf.q.GetBasisX();
+    v = tf.q.GetBasisY();
+    w = tf.q.GetBasisZ();
 
-    origin = look_from;
+    origin = tf.p;
     horizontal = focus_distance * viewport_width * u;
     vertical = focus_distance * viewport_height * v;
-    lower_left = origin - horizontal / 2 - vertical / 2 - focus_distance * w;
-
-    lens_radius = aperture / 2;
+    lower_left = origin - horizontal / 2 - vertical / 2 + focus_distance * w;
 
     A_viewport = viewport_width * viewport_height;
     A_lens = lens_radius != 0 ? (pi * Sqr(lens_radius)) : 1;
@@ -56,7 +53,7 @@ void PerspectiveCamera::SampleRay(PrimaryRay* ray, const Point2i& pixel, Point2 
 
 Spectrum PerspectiveCamera::We(const Ray& ray, Point2* p_raster) const
 {
-    Float cos_theta = Dot(-w, ray.d);
+    Float cos_theta = Dot(w, ray.d);
     if (cos_theta <= 0)
     {
         return Spectrum::black;
@@ -86,7 +83,7 @@ Spectrum PerspectiveCamera::We(const Ray& ray, Point2* p_raster) const
 
 void PerspectiveCamera::PDF_We(Float* pdf_p, Float* pdf_w, const Ray& ray) const
 {
-    Float cos_theta = Dot(-w, ray.d);
+    Float cos_theta = Dot(w, ray.d);
     if (cos_theta <= 0)
     {
         *pdf_p = 0;
@@ -124,7 +121,7 @@ bool PerspectiveCamera::SampleWi(CameraSampleWi* sample, const Intersection& ref
     Float dist = wi.Normalize();
 
     Float leas_area = lens_radius != 0 ? (pi * Sqr(lens_radius)) : 1;
-    Float pdf = Sqr(dist) / (AbsDot(-w, wi) * leas_area); // joint pdf
+    Float pdf = Sqr(dist) / (AbsDot(w, wi) * leas_area); // joint pdf
 
     Point2 p_raster;
     Spectrum Wi = We(Ray(p_aperture, -wi), &p_raster);
@@ -133,7 +130,7 @@ bool PerspectiveCamera::SampleWi(CameraSampleWi* sample, const Intersection& ref
         return false;
     }
 
-    *sample = CameraSampleWi(Wi, wi, pdf, p_raster, p_aperture, -w, medium);
+    *sample = CameraSampleWi(Wi, wi, pdf, p_raster, p_aperture, w, medium);
 
     return true;
 }

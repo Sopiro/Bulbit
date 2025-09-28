@@ -82,7 +82,7 @@ std::unique_ptr<Camera> RaytracigInOneWeekend(Scene& scene)
     Float vFov = 20;
 
     return std::make_unique<PerspectiveCamera>(
-        lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height), hm
+        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height), hm
     );
     // return std::make_unique<SphericalCamera>(lookfrom, Point2i(width, height));
 }

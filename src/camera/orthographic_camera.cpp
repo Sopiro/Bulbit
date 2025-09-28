@@ -6,21 +6,15 @@ namespace bulbit
 {
 
 OrthographicCamera::OrthographicCamera(
-    const Point3& look_from,
-    const Point3& look_at,
-    const Vec3& up,
-    const Point2& viewport_size,
-    int32 resolution_x,
-    const Medium* medium,
-    const Filter* pixel_filter
+    const Transform& tf, const Point2& viewport_size, int32 resolution_x, const Medium* medium, const Filter* pixel_filter
 )
     : Camera(Point2i(resolution_x, int32(resolution_x * viewport_size.y / viewport_size.x)), medium, pixel_filter)
 {
-    w = Normalize(look_from - look_at);
-    u = Normalize(Cross(up, w));
-    v = Cross(w, u);
+    u = -tf.q.GetBasisX();
+    v = tf.q.GetBasisY();
+    w = tf.q.GetBasisZ();
 
-    origin = look_from;
+    origin = tf.p;
     horizontal = viewport_size.x * u;
     vertical = viewport_size.y * v;
     lower_left = origin - horizontal / 2 - vertical / 2;
@@ -34,7 +28,7 @@ void OrthographicCamera::SampleRay(PrimaryRay* ray, const Point2i& pixel, Point2
     Point3 origin = lower_left + horizontal * (pixel.x + pixel_offset.x) / resolution.x +
                     vertical * (pixel.y + pixel_offset.y) / resolution.y;
 
-    ray->ray = Ray(origin, -w);
+    ray->ray = Ray(origin, w);
     ray->weight = 1;
 }
 

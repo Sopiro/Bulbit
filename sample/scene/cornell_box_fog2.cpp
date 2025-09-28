@@ -102,7 +102,9 @@ std::unique_ptr<Camera> CornellBoxFog2(Scene& scene)
     Float aperture = 0.0f;
     Float vFov = 28.0f;
 
-    return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, width));
+    return std::make_unique<PerspectiveCamera>(
+        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, width)
+    );
 }
 
 static int32 sample_index = Sample::Register("cornell-box-fog2", CornellBoxFog2);

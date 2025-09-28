@@ -9,9 +9,7 @@ class OrthographicCamera : public Camera
 {
 public:
     OrthographicCamera(
-        const Point3& look_from,
-        const Point3& look_at,
-        const Vec3& up,
+        const Transform& tf,
         const Point2& viewport_size,
         int32 resolution_x,
         const Medium* medium = nullptr,
@@ -33,11 +31,9 @@ class PerspectiveCamera : public Camera
 {
 public:
     PerspectiveCamera(
-        const Point3& look_from,
-        const Point3& look_at,
-        const Vec3& up,
-        Float vfov, // vertical field-of-view. in degrees.
-        Float aperture,
+        const Transform& tf,
+        Float vfov, // in degrees
+        Float aperture_radius,
         Float focus_distance,
         const Point2i& resolution,
         const Medium* medium = nullptr,
@@ -68,7 +64,7 @@ class SphericalCamera : public Camera
 {
 public:
     SphericalCamera(
-        const Point3& position,
+        const Transform& tf,
         const Point2i& resolution,
         const Medium* medium = nullptr,
         const Filter* pixel_filter = Camera::default_filter.get()

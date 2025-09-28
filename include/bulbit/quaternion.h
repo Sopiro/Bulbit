@@ -66,7 +66,7 @@ struct Quat
     {
         Mat3 rotation;
 
-        rotation.ez = -front;
+        rotation.ez = front;
         rotation.ex = Cross(up, rotation.ez);
         rotation.ex.Normalize();
         rotation.ey = Cross(rotation.ez, rotation.ex);

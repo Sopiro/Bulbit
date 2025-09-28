@@ -66,7 +66,9 @@ std::unique_ptr<Camera> MaterialTest(Scene& scene)
     Float aperture = 0.01f;
     Float vFov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height));
+    return std::make_unique<PerspectiveCamera>(
+        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+    );
 }
 
 std::unique_ptr<Camera> MetallicRoughness(Scene& scene)
@@ -162,7 +164,9 @@ std::unique_ptr<Camera> MetallicRoughness(Scene& scene)
     Float aperture = 0.01f;
     Float vFov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height));
+    return std::make_unique<PerspectiveCamera>(
+        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+    );
 }
 
 std::unique_ptr<Camera> Dielectrics(Scene& scene)
@@ -258,7 +262,9 @@ std::unique_ptr<Camera> Dielectrics(Scene& scene)
     Float aperture = 0.01f;
     Float vFov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height));
+    return std::make_unique<PerspectiveCamera>(
+        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+    );
 }
 
 std::unique_ptr<Camera> Skins(Scene& scene)
@@ -359,7 +365,9 @@ std::unique_ptr<Camera> Skins(Scene& scene)
     Float aperture = 0.01f;
     Float vFov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height));
+    return std::make_unique<PerspectiveCamera>(
+        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+    );
 }
 
 std::unique_ptr<Camera> Mixtures(Scene& scene)
@@ -465,7 +473,9 @@ std::unique_ptr<Camera> Mixtures(Scene& scene)
     Float aperture = 0.01f;
     Float vFov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height));
+    return std::make_unique<PerspectiveCamera>(
+        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+    );
 }
 
 std::unique_ptr<Camera> Alphas(Scene& scene)
@@ -561,7 +571,9 @@ std::unique_ptr<Camera> Alphas(Scene& scene)
     Float aperture = 0.01f;
     Float vFov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height));
+    return std::make_unique<PerspectiveCamera>(
+        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+    );
 }
 
 std::unique_ptr<Camera> ColoredDielectrics(Scene& scene)
@@ -657,7 +669,9 @@ std::unique_ptr<Camera> ColoredDielectrics(Scene& scene)
     Float aperture = 0.01f;
     Float vFov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height));
+    return std::make_unique<PerspectiveCamera>(
+        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+    );
 }
 
 static int32 index0 = Sample::Register("material", MaterialTest);

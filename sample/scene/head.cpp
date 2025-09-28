@@ -50,7 +50,9 @@ std::unique_ptr<Camera> Head(Scene& scene)
     Float aperture = 0.0f;
     Float vFov = 30;
 
-    return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height));
+    return std::make_unique<PerspectiveCamera>(
+        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+    );
 }
 
 static int32 sample_index = Sample::Register("head", Head);

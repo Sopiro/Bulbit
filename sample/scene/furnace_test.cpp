@@ -87,7 +87,9 @@ std::unique_ptr<Camera> FurnacePrincipled(Scene& scene)
     Float aperture = 0.01f;
     Float vFov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height));
+    return std::make_unique<PerspectiveCamera>(
+        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+    );
 }
 
 std::unique_ptr<Camera> FurnaceDielectric(Scene& scene)
@@ -179,7 +181,9 @@ std::unique_ptr<Camera> FurnaceDielectric(Scene& scene)
     Float aperture = 0.01f;
     Float vFov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height));
+    return std::make_unique<PerspectiveCamera>(
+        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+    );
 }
 
 std::unique_ptr<Camera> FurnaceConductor(Scene& scene)
@@ -272,7 +276,9 @@ std::unique_ptr<Camera> FurnaceConductor(Scene& scene)
     Float aperture = 0.01f;
     Float vFov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(lookfrom, lookat, y_axis, vFov, aperture, dist_to_focus, Point2i(width, height));
+    return std::make_unique<PerspectiveCamera>(
+        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+    );
 }
 
 static int32 index0 = Sample::Register("furnace", FurnacePrincipled);
