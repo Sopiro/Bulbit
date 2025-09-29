@@ -28,7 +28,7 @@ Spectrum ConductorBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
     wm.Normalize();
 
     Spectrum F = FresnelComplex(AbsDot(wo, wm), eta, k);
-    return F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
+    return reflectance * F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
 }
 
 Float ConductorBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_SamplingFlags flags) const
@@ -77,7 +77,7 @@ bool ConductorBxDF::Sample_f(
         // Sample perfect specular conductor BRDF
         Vec3 wi(-wo.x, -wo.y, wo.z);
         Spectrum f = FresnelComplex(AbsCosTheta(wi), eta, k) / AbsCosTheta(wi);
-        *sample = BSDFSample(f, wi, 1, BxDF_Flags::SpecularReflection);
+        *sample = BSDFSample(reflectance * f, wi, 1, BxDF_Flags::SpecularReflection);
         return true;
     }
 
@@ -107,7 +107,7 @@ bool ConductorBxDF::Sample_f(
     Spectrum F = FresnelComplex(AbsDot(wo, wm), eta, k);
     Spectrum f = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
 
-    *sample = BSDFSample(f, wi, pdf, BxDF_Flags::GlossyReflection);
+    *sample = BSDFSample(reflectance * f, wi, pdf, BxDF_Flags::GlossyReflection);
     return true;
 }
 

@@ -847,7 +847,7 @@ static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scen
                 if (conductor_type == "none")
                 {
                     // Mirror
-                    reflectance = CreateSpectrumConstantTexture(*scene, 1);
+                    break;
                 }
                 else
                 {
@@ -881,17 +881,13 @@ static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scen
             }
         }
 
-        if (reflectance)
+        if (eta == nullptr && k == nullptr)
         {
-            mm[id] = scene->CreateMaterial<ConductorMaterial>(reflectance, u_roughness, v_roughness);
-        }
-        else if (eta == nullptr || k == nullptr)
-        {
-            mm[id] = scene->CreateMaterial<MirrorMaterial>(reflectance);
+            mm[id] = CreateMirrorMaterial(*scene, Spectrum(1));
         }
         else
         {
-            mm[id] = scene->CreateMaterial<ConductorMaterial>(eta, k, u_roughness, v_roughness);
+            mm[id] = scene->CreateMaterial<ConductorMaterial>(eta, k, u_roughness, v_roughness, reflectance);
         }
     }
     else if (type == "roughdielectric" || type == "dielectric")

@@ -103,7 +103,7 @@ std::unique_ptr<Camera> MetallicRoughness(Scene& scene)
 
     const Material* outers[count];
     outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.08f);
-    outers[1] = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.05f, 0.4f, true, normalmap);
+    outers[1] = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.05f, 0.4f, Spectrum(1), true, normalmap);
     outers[2] = CreateMetallicRoughnessMaterial(scene, { 80 / 255.0, 1.0, 175 / 255.0 }, 0, 0);
 
     const Material* inners[count];

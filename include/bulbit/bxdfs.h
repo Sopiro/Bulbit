@@ -248,23 +248,26 @@ private:
 
 class ConductorBxDF : public BxDF
 {
+    // Physically correct BRDF assumes reflectance = 1
 public:
-    ConductorBxDF(Spectrum eta, Spectrum k, TrowbridgeReitzDistribution mf)
+    ConductorBxDF(Spectrum eta, Spectrum k, TrowbridgeReitzDistribution mf, Spectrum reflectance = Spectrum(1))
         : mf{ mf }
         , eta{ eta }
         , k{ k }
+        , reflectance{ reflectance }
     {
     }
 
-    ConductorBxDF(Spectrum reflectance, TrowbridgeReitzDistribution mf)
+    ConductorBxDF(Spectrum R, TrowbridgeReitzDistribution mf, Spectrum reflectance = Spectrum(1))
         : mf{ mf }
         , eta{ 1 }
+        , reflectance{ reflectance }
     {
         // The reflectance R for a conductor is:
         // R = \frac{(\eta - 1)^2 + k^2}{(\eta + 1)^2 + k^2}
         // Assume \eta = 1 and solve for k
 
-        Spectrum r = Clamp(reflectance, 0, 1 - 1e-4f);
+        Spectrum r = Clamp(R, 0, 1 - 1e-4f);
         k = 2 * Sqrt(r) / Sqrt(Max(Spectrum(1) - r, 0));
     }
 
@@ -294,28 +297,31 @@ public:
 
 private:
     TrowbridgeReitzDistribution mf;
-    Spectrum eta, k;
+    Spectrum eta, k, reflectance;
 };
 
 class ConductorMultiScatteringBxDF : public BxDF
 {
+    // Physically correct BRDF assumes reflectance = 1
 public:
-    ConductorMultiScatteringBxDF(Spectrum eta, Spectrum k, TrowbridgeReitzDistribution mf)
+    ConductorMultiScatteringBxDF(Spectrum eta, Spectrum k, TrowbridgeReitzDistribution mf, Spectrum reflectance = Spectrum(1))
         : mf{ mf }
         , eta{ eta }
         , k{ k }
+        , reflectance{ reflectance }
     {
     }
 
-    ConductorMultiScatteringBxDF(Spectrum reflectance, TrowbridgeReitzDistribution mf)
+    ConductorMultiScatteringBxDF(Spectrum R, TrowbridgeReitzDistribution mf, Spectrum reflectance = Spectrum(1))
         : mf{ mf }
         , eta{ 1 }
+        , reflectance{ reflectance }
     {
         // The reflectance R for a conductor is:
         // R = \frac{(\eta - 1)^2 + k^2}{(\eta + 1)^2 + k^2}
         // Assume \eta = 1 and solve for k
 
-        Spectrum r = Clamp(reflectance, 0, 1 - 1e-4f);
+        Spectrum r = Clamp(R, 0, 1 - 1e-4f);
         k = 2 * Sqrt(r) / Sqrt(Max(Spectrum(1) - r, 0));
     }
 
@@ -345,7 +351,7 @@ public:
 
 private:
     TrowbridgeReitzDistribution mf;
-    Spectrum eta, k;
+    Spectrum eta, k, reflectance;
 };
 
 class ThinDielectricBxDF : public BxDF

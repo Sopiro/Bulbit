@@ -139,14 +139,16 @@ public:
         const SpectrumTexture* k,
         const FloatTexture* u_roughness,
         const FloatTexture* v_roughness,
+        const SpectrumTexture* reflectance = nullptr,
         bool energy_compensation = true,
         const SpectrumTexture* normal = nullptr,
         const FloatTexture* alpha = nullptr
     );
     ConductorMaterial(
-        const SpectrumTexture* reflectance,
+        const SpectrumTexture* R,                     // physical reflectance
         const FloatTexture* u_roughness,
         const FloatTexture* v_roughness,
+        const SpectrumTexture* reflectance = nullptr, // lobe reflectance
         bool energy_compensation = true,
         const SpectrumTexture* normal = nullptr,
         const FloatTexture* alpha = nullptr
@@ -166,6 +168,8 @@ private:
 
     const FloatTexture* u_roughness;
     const FloatTexture* v_roughness;
+
+    const SpectrumTexture* reflectance;
 
     bool energy_compensation;
 
