@@ -23,14 +23,18 @@ ConstantTexture<Spectrum>* CreateSpectrumConstantTexture(Scene& scene, Float r, 
     return scene.CreateTexture<ConstantTexture, Spectrum>(Spectrum{ r, g, b });
 }
 
-ImageTexture<Float>* CreateFloatImageTexture(Scene& scene, std::string filename, int32 channel, bool non_color, Float multiplier)
+ImageTexture<Float>* CreateFloatImageTexture(
+    Scene& scene, std::string filename, int32 channel, bool non_color, std::function<Float(Float)> transform
+)
 {
-    return scene.CreateTexture<ImageTexture, Float>(ReadImage1(filename, channel, non_color, multiplier));
+    return scene.CreateTexture<ImageTexture, Float>(ReadImage1(filename, channel, non_color, transform));
 }
 
-ImageTexture<Spectrum>* CreateSpectrumImageTexture(Scene& scene, std::string filename, bool non_color, Spectrum multiplier)
+ImageTexture<Spectrum>* CreateSpectrumImageTexture(
+    Scene& scene, std::string filename, bool non_color, std::function<Spectrum(Spectrum)> transform
+)
 {
-    return scene.CreateTexture<ImageTexture, Spectrum>(ReadImage3(filename, non_color, multiplier));
+    return scene.CreateTexture<ImageTexture, Spectrum>(ReadImage3(filename, non_color, transform));
 }
 
 CheckerTexture<Float>* CreateFloatCheckerTexture(Scene& scene, Float a, Float b, const Point2& resolution)

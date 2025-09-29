@@ -92,9 +92,12 @@ static void LoadMaterials(
                 tinygltf::Texture& texture = model.textures[pbr.metallicRoughnessTexture.index];
                 tinygltf::Image& image = model.images[texture.source];
 
-                metallic_texture = CreateFloatImageTexture(scene, base_path + image.uri, channel_metallic, true, metallic_factor);
-                roughness_texture =
-                    CreateFloatImageTexture(scene, base_path + image.uri, channel_roughness, true, roughness_factor);
+                metallic_texture = CreateFloatImageTexture(scene, base_path + image.uri, channel_metallic, true, [=](Float v) {
+                    return v * metallic_factor;
+                });
+                roughness_texture = CreateFloatImageTexture(scene, base_path + image.uri, channel_roughness, true, [=](Float v) {
+                    return v * roughness_factor;
+                });
             }
             else
             {
@@ -127,7 +130,9 @@ static void LoadMaterials(
                     tinygltf::Texture& texture = model.textures[gltf_material.emissiveTexture.index];
                     tinygltf::Image& image = model.images[texture.source];
 
-                    emission_texture = CreateSpectrumImageTexture(scene, base_path + image.uri, false, emission_factor);
+                    emission_texture = CreateSpectrumImageTexture(scene, base_path + image.uri, false, [=](Spectrum v) {
+                        return v * emission_factor;
+                    });
                 }
                 else
                 {
@@ -175,7 +180,8 @@ static void LoadMaterials(
                         tinygltf::Texture& texture = model.textures[tex_index];
                         tinygltf::Image& image = model.images[texture.source];
                         anisotropy_texture = CreateFloatImageTexture(
-                            scene, base_path + image.uri, channel_anisotropy_strength, true, anisotropy_factor
+                            scene, base_path + image.uri, channel_anisotropy_strength, true,
+                            [=](Float v) { return v * anisotropy_factor; }
                         );
                     }
                 }
@@ -215,9 +221,10 @@ static void LoadMaterials(
                     {
                         tinygltf::Texture& texture = model.textures[tex_index];
                         tinygltf::Image& image = model.images[texture.source];
-                        transmission_texture = CreateFloatImageTexture(
-                            scene, base_path + image.uri, channel_transmission, true, transmission_factor
-                        );
+                        transmission_texture =
+                            CreateFloatImageTexture(scene, base_path + image.uri, channel_transmission, true, [=](Float v) {
+                                return v * transmission_factor;
+                            });
                     }
                 }
             }
@@ -254,7 +261,9 @@ static void LoadMaterials(
                         tinygltf::Texture& texture = model.textures[tex_index];
                         tinygltf::Image& image = model.images[texture.source];
                         clearcoat_texture =
-                            CreateFloatImageTexture(scene, base_path + image.uri, channel_clearcoat, true, clearcoat_factor);
+                            CreateFloatImageTexture(scene, base_path + image.uri, channel_clearcoat, true, [=](Float v) {
+                                return v * clearcoat_factor;
+                            });
                     }
                 }
 
@@ -276,9 +285,10 @@ static void LoadMaterials(
                     {
                         tinygltf::Texture& texture = model.textures[tex_index];
                         tinygltf::Image& image = model.images[texture.source];
-                        clearcoat_roughness_texture = CreateFloatImageTexture(
-                            scene, base_path + image.uri, channel_roughness, true, clearcoat_roughness_factor
-                        );
+                        clearcoat_roughness_texture =
+                            CreateFloatImageTexture(scene, base_path + image.uri, channel_roughness, true, [=](Float v) {
+                                return v * clearcoat_roughness_factor;
+                            });
                     }
                 }
             }
@@ -326,7 +336,9 @@ static void LoadMaterials(
                     {
                         tinygltf::Texture& texture = model.textures[tex_index];
                         tinygltf::Image& image = model.images[texture.source];
-                        sheen_color_texture = CreateSpectrumImageTexture(scene, base_path + image.uri, false, sheen_color_factor);
+                        sheen_color_texture = CreateSpectrumImageTexture(scene, base_path + image.uri, false, [=](Spectrum v) {
+                            return v * sheen_color_factor;
+                        });
                     }
                 }
 
@@ -348,9 +360,10 @@ static void LoadMaterials(
                     {
                         tinygltf::Texture& texture = model.textures[tex_index];
                         tinygltf::Image& image = model.images[texture.source];
-                        sheen_roughness_texture = CreateFloatImageTexture(
-                            scene, base_path + image.uri, channel_sheen_roughness, true, sheen_roughness_factor
-                        );
+                        sheen_roughness_texture =
+                            CreateFloatImageTexture(scene, base_path + image.uri, channel_sheen_roughness, true, [=](Float v) {
+                                return v * sheen_roughness_factor;
+                            });
                     }
                 }
             }

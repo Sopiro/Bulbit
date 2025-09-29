@@ -12,7 +12,9 @@
 namespace bulbit
 {
 
-Image1 ReadImage1(const std::filesystem::path& filename, int32 channel, bool non_color, Image1::Type multiplier)
+Image1 ReadImage1(
+    const std::filesystem::path& filename, int32 channel, bool non_color, std::function<Image1::Type(Image1::Type)> transform
+)
 {
     stbi_set_flip_vertically_on_load(true);
     stbi_ldr_to_hdr_gamma(non_color ? 1.0f : 2.2f);
@@ -31,29 +33,57 @@ Image1 ReadImage1(const std::filesystem::path& filename, int32 channel, bool non
         return {};
     }
 
+    constexpr int32 stride = STBI_rgb_alpha;
     Image1 image(width, height);
 
     if (channel < 3)
     {
         if (width * height > 64 * 1024)
         {
-            ParallelFor(0, width * height, [&](int32 i) {
-                image[i] = Float(std::fmax(0, multiplier * data[STBI_rgb_alpha * i + channel]));
-            });
+            if (transform)
+            {
+                ParallelFor(0, width * height, [&](int32 i) {
+                    image[i] = transform(Float(std::fmax(0, data[stride * i + channel])));
+                });
+            }
+            else
+            {
+                ParallelFor(0, width * height, [&](int32 i) { image[i] = Float(std::fmax(0, data[stride * i + channel])); });
+            }
         }
         else
         {
-            for (int32 i = 0; i < width * height; ++i)
+            if (transform)
             {
-                image[i] = Float(std::fmax(0, multiplier * data[STBI_rgb_alpha * i + channel]));
+                for (int32 i = 0; i < width * height; ++i)
+                {
+                    image[i] = transform(Float(std::fmax(0, data[stride * i + channel])));
+                }
+            }
+            else
+            {
+                for (int32 i = 0; i < width * height; ++i)
+                {
+                    image[i] = Float(std::fmax(0, data[stride * i + channel]));
+                }
             }
         }
     }
     else if (components_per_pixel == STBI_rgb_alpha)
     {
-        for (int32 i = 0; i < width * height; ++i)
+        if (transform)
         {
-            image[i] = Float(std::fmax(0, multiplier * data[STBI_rgb_alpha * i + channel]));
+            for (int32 i = 0; i < width * height; ++i)
+            {
+                image[i] = transform(Float(std::fmax(0, data[stride * i + channel])));
+            }
+        }
+        else
+        {
+            for (int32 i = 0; i < width * height; ++i)
+            {
+                image[i] = Float(std::fmax(0, data[stride * i + channel]));
+            }
         }
     }
 
@@ -61,7 +91,7 @@ Image1 ReadImage1(const std::filesystem::path& filename, int32 channel, bool non
     return image;
 }
 
-Image3 ReadImage3(const std::filesystem::path& filename, bool non_color, Image3::Type multiplier)
+Image3 ReadImage3(const std::filesystem::path& filename, bool non_color, std::function<Image3::Type(Image3::Type)> transform)
 {
     stbi_set_flip_vertically_on_load(true);
     stbi_ldr_to_hdr_gamma(non_color ? 1.0f : 2.2f);
@@ -75,23 +105,39 @@ Image3 ReadImage3(const std::filesystem::path& filename, bool non_color, Image3:
         return {};
     }
 
+    constexpr int32 stride = STBI_rgb;
     Image3 image(width, height);
 
     if (width * height > 64 * 1024)
     {
-        ParallelFor(0, width * height, [&](int32 i) {
-            image[i][0] = Float(std::fmax(0, multiplier[0] * data[STBI_rgb * i + 0]));
-            image[i][1] = Float(std::fmax(0, multiplier[1] * data[STBI_rgb * i + 1]));
-            image[i][2] = Float(std::fmax(0, multiplier[2] * data[STBI_rgb * i + 2]));
-        });
+        if (transform)
+        {
+            ParallelFor(0, width * height, [&](int32 i) {
+                image[i] = transform(Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0));
+            });
+        }
+        else
+        {
+            ParallelFor(0, width * height, [&](int32 i) {
+                image[i] = Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0);
+            });
+        }
     }
     else
     {
-        for (int32 i = 0; i < width * height; ++i)
+        if (transform)
         {
-            image[i][0] = Float(std::fmax(0, multiplier[0] * data[STBI_rgb * i + 0]));
-            image[i][1] = Float(std::fmax(0, multiplier[1] * data[STBI_rgb * i + 1]));
-            image[i][2] = Float(std::fmax(0, multiplier[2] * data[STBI_rgb * i + 2]));
+            for (int32 i = 0; i < width * height; ++i)
+            {
+                image[i] = transform(Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0));
+            }
+        }
+        else
+        {
+            for (int32 i = 0; i < width * height; ++i)
+            {
+                image[i] = Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0);
+            }
         }
     }
 
@@ -99,7 +145,7 @@ Image3 ReadImage3(const std::filesystem::path& filename, bool non_color, Image3:
     return image;
 }
 
-Image4 ReadImage4(const std::filesystem::path& filename, bool non_color, Image4::Type multiplier)
+Image4 ReadImage4(const std::filesystem::path& filename, bool non_color, std::function<Image4::Type(Image4::Type)> transform)
 {
     stbi_set_flip_vertically_on_load(true);
     stbi_ldr_to_hdr_gamma(non_color ? 1.0f : 2.2f);
@@ -113,32 +159,52 @@ Image4 ReadImage4(const std::filesystem::path& filename, bool non_color, Image4:
         return {};
     }
 
+    constexpr int32 stride = STBI_rgb_alpha;
     Image4 image(width, height);
 
     if (width * height > 64 * 1024)
     {
-        ParallelFor(0, width * height, [&](int32 i) {
-            image[i][0] = Float(std::fmax(0, multiplier[0] * data[STBI_rgb_alpha * i + 0]));
-            image[i][1] = Float(std::fmax(0, multiplier[1] * data[STBI_rgb_alpha * i + 1]));
-            image[i][2] = Float(std::fmax(0, multiplier[2] * data[STBI_rgb_alpha * i + 2]));
-
-            if (components_per_pixel == STBI_rgb_alpha)
-            {
-                image[i][3] = Float(std::fmax(0, multiplier[3] * data[STBI_rgb_alpha * i + 3]));
-            }
-        });
+        if (transform)
+        {
+            ParallelFor(0, width * height, [&](int32 i) {
+                image[i] = transform(
+                    Max(Vec4{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2],
+                              (components_per_pixel == STBI_rgb_alpha ? data[stride * i + 3] : 1) },
+                        Vec4(0))
+                );
+            });
+        }
+        else
+        {
+            ParallelFor(0, width * height, [&](int32 i) {
+                image[i] =
+                    Max(Vec4{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2],
+                              (components_per_pixel == STBI_rgb_alpha ? data[stride * i + 3] : 1) },
+                        Vec4(0));
+            });
+        }
     }
     else
     {
-        for (int32 i = 0; i < width * height; ++i)
+        if (transform)
         {
-            image[i][0] = Float(std::fmax(0, multiplier[0] * data[STBI_rgb_alpha * i + 0]));
-            image[i][1] = Float(std::fmax(0, multiplier[1] * data[STBI_rgb_alpha * i + 1]));
-            image[i][2] = Float(std::fmax(0, multiplier[2] * data[STBI_rgb_alpha * i + 2]));
-
-            if (components_per_pixel == STBI_rgb_alpha)
+            for (int32 i = 0; i < width * height; ++i)
             {
-                image[i][3] = Float(std::fmax(0, multiplier[3] * data[STBI_rgb_alpha * i + 3]));
+                image[i] = transform(
+                    Max(Vec4{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2],
+                              (components_per_pixel == STBI_rgb_alpha ? data[stride * i + 3] : 1) },
+                        Vec4(0))
+                );
+            }
+        }
+        else
+        {
+            for (int32 i = 0; i < width * height; ++i)
+            {
+                image[i] =
+                    Max(Vec4{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2],
+                              (components_per_pixel == STBI_rgb_alpha ? data[stride * i + 3] : 1) },
+                        Vec4(0));
             }
         }
     }

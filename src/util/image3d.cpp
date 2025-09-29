@@ -9,7 +9,11 @@ namespace bulbit
 {
 
 Image3D1 ReadImage3D(
-    const std::filesystem::path& filename, int32 channel, Point3i resolution, bool non_color, Image3D1::Type multiplier
+    const std::filesystem::path& filename,
+    int32 channel,
+    Point3i resolution,
+    bool non_color,
+    std::function<Image3D1::Type(Image3D1::Type)> transform
 )
 {
     stbi_set_flip_vertically_on_load(true);
@@ -17,7 +21,7 @@ Image3D1 ReadImage3D(
 
     int32 dim_x, dim_y, dim_z;
     int32 components_per_pixel;
-    float* data = stbi_loadf(filename.string().c_str(), &dim_x, &dim_y, &components_per_pixel, STBI_rgb);
+    float* data = stbi_loadf(filename.string().c_str(), &dim_x, &dim_y, &components_per_pixel, STBI_rgb_alpha);
 
     if (!data)
     {
@@ -42,29 +46,59 @@ Image3D1 ReadImage3D(
         return {};
     }
 
+    constexpr int32 stride = STBI_rgb_alpha;
     Image3D1 image(dim_x, dim_y, dim_z);
 
     if (channel < 3)
     {
         if (dim_x * dim_y * dim_z > 64 * 1024)
         {
-            ParallelFor(0, dim_x * dim_y * dim_z, [&](int32 i) {
-                image[i] = Float(std::fmax(0, multiplier * data[STBI_rgb_alpha * i + channel]));
-            });
+            if (transform)
+            {
+                ParallelFor(0, dim_x * dim_y * dim_z, [&](int32 i) {
+                    image[i] = transform(Float(std::fmax(0, data[stride * i + channel])));
+                });
+            }
+            else
+            {
+                ParallelFor(0, dim_x * dim_y * dim_z, [&](int32 i) {
+                    image[i] = Float(std::fmax(0, data[stride * i + channel]));
+                });
+            }
         }
         else
         {
-            for (int32 i = 0; i < dim_x * dim_y * dim_z; ++i)
+            if (transform)
             {
-                image[i] = Float(std::fmax(0, multiplier * data[STBI_rgb_alpha * i + channel]));
+                for (int32 i = 0; i < dim_x * dim_y * dim_z; ++i)
+                {
+                    image[i] = transform(Float(std::fmax(0, data[stride * i + channel])));
+                }
+            }
+            else
+            {
+                for (int32 i = 0; i < dim_x * dim_y * dim_z; ++i)
+                {
+                    image[i] = Float(std::fmax(0, data[stride * i + channel]));
+                }
             }
         }
     }
     else if (components_per_pixel == STBI_rgb_alpha)
     {
-        for (int32 i = 0; i < dim_x * dim_y * dim_z; ++i)
+        if (transform)
         {
-            image[i] = Float(std::fmax(0, multiplier * data[STBI_rgb_alpha * i + channel]));
+            for (int32 i = 0; i < dim_x * dim_y * dim_z; ++i)
+            {
+                image[i] = transform(Float(std::fmax(0, data[stride * i + channel])));
+            }
+        }
+        else
+        {
+            for (int32 i = 0; i < dim_x * dim_y * dim_z; ++i)
+            {
+                image[i] = Float(std::fmax(0, data[stride * i + channel]));
+            }
         }
     }
 
@@ -72,7 +106,12 @@ Image3D1 ReadImage3D(
     return image;
 }
 
-Image3D3 ReadImage3D(const std::filesystem::path& filename, Point3i resolution, bool non_color, Image3D3::Type multiplier)
+Image3D3 ReadImage3D(
+    const std::filesystem::path& filename,
+    Point3i resolution,
+    bool non_color,
+    std::function<Image3D3::Type(Image3D3::Type)> transform
+)
 {
     stbi_set_flip_vertically_on_load(true);
     stbi_ldr_to_hdr_gamma(non_color ? 1.0f : 2.2f);
@@ -99,23 +138,39 @@ Image3D3 ReadImage3D(const std::filesystem::path& filename, Point3i resolution, 
         return {};
     }
 
+    constexpr int32 stride = STBI_rgb;
     Image3D3 image(dim_x, dim_y, dim_z);
 
     if (dim_x * dim_y * dim_z > 64 * 1024)
     {
-        ParallelFor(0, dim_x * dim_y * dim_z, [&](int32 i) {
-            image[i][0] = Float(std::fmax(0, multiplier[0] * data[STBI_rgb * i + 0]));
-            image[i][1] = Float(std::fmax(0, multiplier[1] * data[STBI_rgb * i + 1]));
-            image[i][2] = Float(std::fmax(0, multiplier[2] * data[STBI_rgb * i + 2]));
-        });
+        if (transform)
+        {
+            ParallelFor(0, dim_x * dim_y * dim_z, [&](int32 i) {
+                image[i] = transform(Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0));
+            });
+        }
+        else
+        {
+            ParallelFor(0, dim_x * dim_y * dim_z, [&](int32 i) {
+                image[i] = Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0);
+            });
+        }
     }
     else
     {
-        for (int32 i = 0; i < dim_x * dim_y * dim_z; ++i)
+        if (transform)
         {
-            image[i][0] = Float(std::fmax(0, multiplier[0] * data[STBI_rgb * i + 0]));
-            image[i][1] = Float(std::fmax(0, multiplier[1] * data[STBI_rgb * i + 1]));
-            image[i][2] = Float(std::fmax(0, multiplier[2] * data[STBI_rgb * i + 2]));
+            for (int32 i = 0; i < dim_x * dim_y * dim_z; ++i)
+            {
+                image[i] = transform(Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0));
+            }
+        }
+        else
+        {
+            for (int32 i = 0; i < dim_x * dim_y * dim_z; ++i)
+            {
+                image[i] = Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0);
+            }
         }
     }
 

@@ -77,13 +77,13 @@ Image3D1 ReadImage3D(
     int32 channel,
     Point3i resolution,
     bool non_color = false,
-    Image3D1::Type multiplier = Image3D1::Type(1)
+    std::function<Image3D1::Type(Image3D1::Type)> transform = {}
 );
 Image3D3 ReadImage3D(
     const std::filesystem::path& filename,
     Point3i resolution,
     bool non_color = false,
-    Image3D3::Type multiplier = Image3D3::Type(1)
+    std::function<Image3D3::Type(Image3D3::Type)> transform = {}
 );
 
 void WriteImage3D(const Image3D1& image, const std::filesystem::path& filename);

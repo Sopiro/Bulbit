@@ -74,10 +74,17 @@ using Image3 = Image3f;
 using Image4 = Image4f;
 
 Image1 ReadImage1(
-    const std::filesystem::path& filename, int32 channel, bool non_color = false, Image1::Type multiplier = Image1::Type(1)
+    const std::filesystem::path& filename,
+    int32 channel,
+    bool non_color = false,
+    std::function<Image1::Type(Image1::Type)> transform = {}
 );
-Image3 ReadImage3(const std::filesystem::path& filename, bool non_color = false, Image3::Type multiplier = Image3::Type(1));
-Image4 ReadImage4(const std::filesystem::path& filename, bool non_color = false, Image4::Type multiplier = Image4::Type(1));
+Image3 ReadImage3(
+    const std::filesystem::path& filename, bool non_color = false, std::function<Image3::Type(Image3::Type)> transform = {}
+);
+Image4 ReadImage4(
+    const std::filesystem::path& filename, bool non_color = false, std::function<Image4::Type(Image4::Type)> transform = {}
+);
 
 using ToneMappingCallback = Vec3(const Vec3&);
 
