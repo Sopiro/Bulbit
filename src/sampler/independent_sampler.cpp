@@ -6,8 +6,8 @@ namespace bulbit
 
 IndependentSampler::IndependentSampler(int32 samples_per_pixel, int32 seed)
     : Sampler(samples_per_pixel)
+    , seed{ seed }
 {
-    rng.Seed(seed);
 }
 
 void IndependentSampler::StartPixelSample(const Point2i& pixel, int32 sample_index)
