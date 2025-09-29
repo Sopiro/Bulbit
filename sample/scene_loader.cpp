@@ -601,13 +601,15 @@ static TextureInfo ParseTexture(pugi::xml_node node, const DefaultMap& dm)
     return ti;
 }
 
-static FloatTexture* ParseFloatTexture(pugi::xml_node node, const DefaultMap& dm, Scene* scene)
+static FloatTexture* ParseFloatTexture(
+    pugi::xml_node node, const DefaultMap& dm, Scene* scene, std::function<Float(Float)> transform = [](Float v) { return v; }
+)
 {
     std::string type = node.name();
     if (type == "float")
     {
         Float value = ParseFloat(node.attribute("value"), dm);
-        return CreateFloatConstantTexture(*scene, value);
+        return CreateFloatConstantTexture(*scene, transform(value));
     }
     else if (type == "texture")
     {
@@ -615,14 +617,15 @@ static FloatTexture* ParseFloatTexture(pugi::xml_node node, const DefaultMap& dm
 
         if (t.type == TextureType::bitmap)
         {
-            return CreateFloatImageTexture(*scene, t.filename.string(), 0);
+            return CreateFloatImageTexture(*scene, t.filename.string(), 0, true, std::move(transform));
         }
         else if (t.type == TextureType::checkboard)
         {
-            return CreateFloatCheckerTexture(*scene, t.color0.Average(), t.color1.Average(), t.scale);
+            return CreateFloatCheckerTexture(*scene, transform(t.color0.Average()), transform(t.color1.Average()), t.scale);
         }
         else
         {
+            std::cerr << "Texture type not supported" << std::endl;
             return CreateFloatConstantTexture(*scene, 0);
         }
     }
@@ -639,7 +642,11 @@ static FloatTexture* ParseFloatTexture(pugi::xml_node node, const DefaultMap& dm
     }
 }
 
-static SpectrumTexture* ParseSpectrumTexture(pugi::xml_node node, const DefaultMap& dm, Scene* scene)
+static SpectrumTexture* ParseSpectrumTexture(
+    pugi::xml_node node, const DefaultMap& dm, Scene* scene, std::function<Spectrum(Spectrum)> transform = [](Spectrum v) {
+        return v;
+    }
+)
 {
     std::string type = node.name();
     if (type == "spectrum")
@@ -650,12 +657,12 @@ static SpectrumTexture* ParseSpectrumTexture(pugi::xml_node node, const DefaultM
     else if (type == "rgb")
     {
         Vec3 rgb = ParseVec3(node.attribute("value"), dm);
-        return CreateSpectrumConstantTexture(*scene, rgb.x, rgb.y, rgb.z);
+        return CreateSpectrumConstantTexture(*scene, transform({ rgb.x, rgb.y, rgb.z }));
     }
     else if (type == "srgb")
     {
         Vec3 rgb = RGB_from_sRGB(ParseVec3(node.attribute("value"), dm));
-        return CreateSpectrumConstantTexture(*scene, rgb.x, rgb.y, rgb.z);
+        return CreateSpectrumConstantTexture(*scene, transform({ rgb.x, rgb.y, rgb.z }));
     }
     else if (type == "texture")
     {
@@ -663,20 +670,22 @@ static SpectrumTexture* ParseSpectrumTexture(pugi::xml_node node, const DefaultM
 
         if (t.type == TextureType::bitmap)
         {
-            return CreateSpectrumImageTexture(*scene, t.filename.string());
+            return CreateSpectrumImageTexture(*scene, t.filename.string(), false, std::move(transform));
         }
         else if (t.type == TextureType::checkboard)
         {
-            return CreateSpectrumCheckerTexture(*scene, t.color0, t.color1, t.scale);
+            return CreateSpectrumCheckerTexture(*scene, transform(t.color0), transform(t.color1), t.scale);
         }
         else
         {
+            std::cerr << "Texture type not supported: " << int32(t.type) << std::endl;
             return CreateSpectrumConstantTexture(*scene, 1, 0, 1);
         }
     }
     else if (type == "ref")
     {
         // TODO: implement
+        std::cerr << "Not a supported spectrum texture type: ref" << std::endl;
         return CreateSpectrumConstantTexture(*scene, 1, 0, 1);
     }
     else
@@ -768,6 +777,9 @@ static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scen
     }
     else if (type == "roughplastic" || type == "plastic")
     {
+        Float int_ior = 1.49f;
+        Float ext_ior = 1.000277f;
+
         const SpectrumTexture* basecolor = CreateSpectrumConstantTexture(*scene, 0.5f, 0.5f, 0.5f);
         const FloatTexture* metallic = CreateFloatConstantTexture(*scene, 0);
         const FloatTexture* roughness;
@@ -792,9 +804,22 @@ static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scen
                 Float alpha = ParseFloat(child.attribute("value"), dm);
                 roughness = CreateFloatConstantTexture(*scene, std::sqrt(alpha));
             }
+            else if (name == "int_ior")
+            {
+                int_ior = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "ext_ior")
+            {
+                ext_ior = ParseFloat(child.attribute("value"), dm);
+            }
         }
 
-        mm[id] = scene->CreateMaterial<MetallicRoughnessMaterial>(basecolor, metallic, roughness, roughness);
+        Float eta = int_ior / ext_ior;
+
+        const SpectrumTexture* reflectance = CreateSpectrumConstantTexture(*scene, 1);
+        auto top = scene->CreateMaterial<DielectricMaterial>(eta, roughness, roughness, reflectance);
+        auto bottom = scene->CreateMaterial<DiffuseMaterial>(basecolor);
+        mm[id] = CreateLayeredMaterial(*scene, top, bottom, true);
     }
     else if (type == "roughconductor" || type == "conductor")
     {
@@ -843,8 +868,16 @@ static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scen
             }
             else if (name == "alpha")
             {
-                u_roughness = ParseFloatTexture(child, dm, scene);
+                u_roughness = ParseFloatTexture(child, dm, scene, [](Float alpha) { return std::sqrt(alpha); });
                 v_roughness = u_roughness;
+            }
+            else if (name == "alpha_u")
+            {
+                u_roughness = ParseFloatTexture(child, dm, scene, [](Float alpha) { return std::sqrt(alpha); });
+            }
+            else if (name == "alpha_v")
+            {
+                v_roughness = ParseFloatTexture(child, dm, scene, [](Float alpha) { return std::sqrt(alpha); });
             }
         }
 
@@ -884,8 +917,16 @@ static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scen
             std::string name = child.attribute("name").value();
             if (name == "alpha")
             {
-                u_roughness = ParseFloatTexture(child, dm, scene);
+                u_roughness = ParseFloatTexture(child, dm, scene, [](Float alpha) { return std::sqrt(alpha); });
                 v_roughness = u_roughness;
+            }
+            else if (name == "alpha_u")
+            {
+                u_roughness = ParseFloatTexture(child, dm, scene, [](Float alpha) { return std::sqrt(alpha); });
+            }
+            else if (name == "alpha_v")
+            {
+                v_roughness = ParseFloatTexture(child, dm, scene, [](Float alpha) { return std::sqrt(alpha); });
             }
             else if (name == "int_ior")
             {

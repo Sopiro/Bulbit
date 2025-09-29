@@ -39,8 +39,8 @@ bool DielectricMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Ve
     Float eta_p = isect.front_face ? eta : 1 / eta;
 
     Spectrum r = reflectance->Evaluate(isect.uv);
-    Float alpha_x = u_roughness->Evaluate(isect.uv);
-    Float alpha_y = v_roughness->Evaluate(isect.uv);
+    Float alpha_x = TrowbridgeReitzDistribution::RoughnessToAlpha(u_roughness->Evaluate(isect.uv));
+    Float alpha_y = TrowbridgeReitzDistribution::RoughnessToAlpha(v_roughness->Evaluate(isect.uv));
 
     if (energy_compensation)
     {
