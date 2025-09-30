@@ -82,15 +82,15 @@ std::unique_ptr<Camera> FurnacePrincipled2(Scene& scene)
     int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
-    Point3 lookfrom = Point3{ 0, 0.25, 4.75 };
-    Point3 lookat = Point3{ 0.0, 0.25, 0.0 };
+    Point3 position = Point3{ 0, 0.25, 4.75 };
+    Point3 target = Point3{ 0.0, 0.25, 0.0 };
 
-    Float dist_to_focus = Dist(lookfrom, lookat);
+    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.0f;
-    Float vFov = 15.0;
+    Float fov = 15.0;
 
     return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
     );
 }
 
@@ -178,15 +178,15 @@ std::unique_ptr<Camera> FurnaceDielectric2(Scene& scene)
     int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
-    Point3 lookfrom = Point3{ 0, 0.25, 4.75 };
-    Point3 lookat = Point3{ 0.0, 0.25, 0.0 };
+    Point3 position = Point3{ 0, 0.25, 4.75 };
+    Point3 target = Point3{ 0.0, 0.25, 0.0 };
 
-    Float dist_to_focus = Dist(lookfrom, lookat);
+    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.0f;
-    Float vFov = 15.0;
+    Float fov = 15.0;
 
     return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
     );
 }
 
@@ -275,15 +275,15 @@ std::unique_ptr<Camera> FurnaceConductor2(Scene& scene)
     int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
-    Point3 lookfrom = Point3{ 0, 0.25, 4.75 };
-    Point3 lookat = Point3{ 0.0, 0.25, 0.0 };
+    Point3 position = Point3{ 0, 0.25, 4.75 };
+    Point3 target = Point3{ 0.0, 0.25, 0.0 };
 
-    Float dist_to_focus = Dist(lookfrom, lookat);
+    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.0f;
-    Float vFov = 15.0;
+    Float fov = 15.0;
 
     return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
     );
 }
 

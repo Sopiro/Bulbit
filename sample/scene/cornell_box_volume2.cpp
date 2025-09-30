@@ -64,9 +64,6 @@ std::unique_ptr<Camera> CornellBoxVolume2(Scene& scene)
         CreateSphere(scene, Vec3(0.5f, 0.98f, -0.5f), 0.02f, light);
         // CreatePointLight(scene, Point3(0.5f, 1.0f - Ray::epsilon, -0.5f), Spectrum(0.2f));
         // CreateDirectionalLight(scene,  Normalize(-Vec3(1, 1, 1)), Vec3(5.0f));
-        // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr");
-        // CreateImageInfiniteLight(scene, "res/solitude_night_4k/solitude_night_4k.hdr");
-        // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
         // CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(pi, y_axis)));
     }
 
@@ -74,17 +71,15 @@ std::unique_ptr<Camera> CornellBoxVolume2(Scene& scene)
 
     int32 width = 1000;
 
-    Point3 lookfrom{ 0.5f, 0.5f, 2.05f };
-    Point3 lookat{ 0.5f, 0.5f, 0.0f };
+    Point3 position{ 0.5f, 0.5f, 2.05f };
+    Point3 target{ 0.5f, 0.5f, 0.0f };
 
-    Float dist_to_focus = Dist(lookfrom, lookat);
+    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.0f;
-    Float vFov = 28.0f;
+    Float fov = 28.0f;
 
-    // return std::make_unique<OrthographicCamera>(Transform::LookAt(lookfrom, lookat, y_axis), Point2(1.1, 1.1), width);
-    // return std::make_unique<SphericalCamera>(lookfrom, Point2i(width, width));
     return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, width)
+        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, width)
     );
 }
 

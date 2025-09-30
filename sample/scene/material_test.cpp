@@ -59,15 +59,15 @@ std::unique_ptr<Camera> MaterialTest(Scene& scene)
     int32 width = 1000;
     int32 height = int32(width / aspect_ratio);
 
-    Point3 lookfrom = Point3{ 0, 1.0, 2.0 };
-    Point3 lookat = Point3{ 0.0, 0.1, 0.0 };
+    Point3 position = Point3{ 0, 1.0, 2.0 };
+    Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float dist_to_focus = Dist(lookfrom, lookat);
+    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.01f;
-    Float vFov = 30.0;
+    Float fov = 30.0;
 
     return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
     );
 }
 
@@ -134,9 +134,6 @@ std::unique_ptr<Camera> MetallicRoughness(Scene& scene)
         }
     }
 
-    // CreateImageInfiniteLight(scene,
-    //     "res/material_test_ball/envmap.hdr", Transform(Quat::FromEuler(0, DegToRad(-67.26139831542969), 0))
-    // );
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
     CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
@@ -150,22 +147,18 @@ std::unique_ptr<Camera> MetallicRoughness(Scene& scene)
     // CreateUniformInfiniteLight(scene, Spectrum(1));
 
     Float aspect_ratio = 21.f / 9.f;
-    // Float aspect_ratio = 9.f / 16.f;
-    // Float aspect_ratio = 3.f / 2.f;
-    // Float aspect_ratio = 4.f / 3.f;
-    // Float aspect_ratio = 1.f;
     int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
-    Point3 lookfrom = Point3{ 0, 1.0, 2.28 };
-    Point3 lookat = Point3{ 0.0, 0.1, 0.0 };
+    Point3 position = Point3{ 0, 1.0, 2.28 };
+    Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float dist_to_focus = Dist(lookfrom, lookat);
+    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.01f;
-    Float vFov = 30.0;
+    Float fov = 30.0;
 
     return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
     );
 }
 
@@ -232,9 +225,6 @@ std::unique_ptr<Camera> Dielectrics(Scene& scene)
         }
     }
 
-    // CreateImageInfiniteLight(scene,
-    //     "res/material_test_ball/envmap.hdr", Transform(Quat::FromEuler(0, DegToRad(-67.26139831542969), 0))
-    // );
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
     CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
@@ -248,22 +238,18 @@ std::unique_ptr<Camera> Dielectrics(Scene& scene)
     // CreateUniformInfiniteLight(scene, Spectrum(1));
 
     Float aspect_ratio = 21.f / 9.f;
-    // Float aspect_ratio = 9.f / 16.f;
-    // Float aspect_ratio = 3.f / 2.f;
-    // Float aspect_ratio = 4.f / 3.f;
-    // Float aspect_ratio = 1.f;
     int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
-    Point3 lookfrom = Point3{ 0, 1.0, 2.28 };
-    Point3 lookat = Point3{ 0.0, 0.1, 0.0 };
+    Point3 position = Point3{ 0, 1.0, 2.28 };
+    Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float dist_to_focus = Dist(lookfrom, lookat);
+    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.01f;
-    Float vFov = 30.0;
+    Float fov = 30.0;
 
     return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
     );
 }
 
@@ -331,9 +317,6 @@ std::unique_ptr<Camera> Skins(Scene& scene)
         }
     }
 
-    // CreateImageInfiniteLight(scene,
-    //     "res/material_test_ball/envmap.hdr", Transform(Quat::FromEuler(0, DegToRad(-67.26139831542969), 0))
-    // );
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
     CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
@@ -351,22 +334,18 @@ std::unique_ptr<Camera> Skins(Scene& scene)
     CreateRectXY(scene, tf, light);
 
     Float aspect_ratio = 21.f / 9.f;
-    // Float aspect_ratio = 9.f / 16.f;
-    // Float aspect_ratio = 3.f / 2.f;
-    // Float aspect_ratio = 4.f / 3.f;
-    // Float aspect_ratio = 1.f;
     int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
-    Point3 lookfrom = Point3{ 0, 1.0, 2.28 };
-    Point3 lookat = Point3{ 0.0, 0.1, 0.0 };
+    Point3 position = Point3{ 0, 1.0, 2.28 };
+    Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float dist_to_focus = Dist(lookfrom, lookat);
+    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.01f;
-    Float vFov = 30.0;
+    Float fov = 30.0;
 
     return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
     );
 }
 
@@ -443,9 +422,6 @@ std::unique_ptr<Camera> Mixtures(Scene& scene)
         }
     }
 
-    // CreateImageInfiniteLight(scene,
-    //     "res/material_test_ball/envmap.hdr", Transform(Quat::FromEuler(0, DegToRad(-67.26139831542969), 0))
-    // );
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
     CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
@@ -459,22 +435,18 @@ std::unique_ptr<Camera> Mixtures(Scene& scene)
     // CreateUniformInfiniteLight(scene, Spectrum(1));
 
     Float aspect_ratio = 21.f / 9.f;
-    // Float aspect_ratio = 9.f / 16.f;
-    // Float aspect_ratio = 3.f / 2.f;
-    // Float aspect_ratio = 4.f / 3.f;
-    // Float aspect_ratio = 1.f;
     int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
-    Point3 lookfrom = Point3{ 0, 1.0, 2.28 };
-    Point3 lookat = Point3{ 0.0, 0.1, 0.0 };
+    Point3 position = Point3{ 0, 1.0, 2.28 };
+    Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float dist_to_focus = Dist(lookfrom, lookat);
+    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.01f;
-    Float vFov = 30.0;
+    Float fov = 30.0;
 
     return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
     );
 }
 
@@ -541,9 +513,6 @@ std::unique_ptr<Camera> Alphas(Scene& scene)
         }
     }
 
-    // CreateImageInfiniteLight(scene,
-    //     "res/material_test_ball/envmap.hdr", Transform(Quat::FromEuler(0, DegToRad(-67.26139831542969), 0))
-    // );
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
     CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
@@ -557,22 +526,18 @@ std::unique_ptr<Camera> Alphas(Scene& scene)
     // CreateUniformInfiniteLight(scene, Spectrum(1));
 
     Float aspect_ratio = 21.f / 9.f;
-    // Float aspect_ratio = 9.f / 16.f;
-    // Float aspect_ratio = 3.f / 2.f;
-    // Float aspect_ratio = 4.f / 3.f;
-    // Float aspect_ratio = 1.f;
     int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
-    Point3 lookfrom = Point3{ 0, 1.0, 2.28 };
-    Point3 lookat = Point3{ 0.0, 0.1, 0.0 };
+    Point3 position = Point3{ 0, 1.0, 2.28 };
+    Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float dist_to_focus = Dist(lookfrom, lookat);
+    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.01f;
-    Float vFov = 30.0;
+    Float fov = 30.0;
 
     return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
     );
 }
 
@@ -639,9 +604,6 @@ std::unique_ptr<Camera> ColoredDielectrics(Scene& scene)
         }
     }
 
-    // CreateImageInfiniteLight(scene,
-    //     "res/material_test_ball/envmap.hdr", Transform(Quat::FromEuler(0, DegToRad(-67.26139831542969), 0))
-    // );
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
     CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
@@ -655,22 +617,18 @@ std::unique_ptr<Camera> ColoredDielectrics(Scene& scene)
     // CreateUniformInfiniteLight(scene, Spectrum(1));
 
     Float aspect_ratio = 21.f / 9.f;
-    // Float aspect_ratio = 9.f / 16.f;
-    // Float aspect_ratio = 3.f / 2.f;
-    // Float aspect_ratio = 4.f / 3.f;
-    // Float aspect_ratio = 1.f;
     int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
-    Point3 lookfrom = Point3{ 0, 1.0, 2.28 };
-    Point3 lookat = Point3{ 0.0, 0.1, 0.0 };
+    Point3 position = Point3{ 0, 1.0, 2.28 };
+    Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float dist_to_focus = Dist(lookfrom, lookat);
+    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.01f;
-    Float vFov = 30.0;
+    Float fov = 30.0;
 
     return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
     );
 }
 

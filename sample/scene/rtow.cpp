@@ -64,27 +64,21 @@ std::unique_ptr<Camera> RaytracigInOneWeekend(Scene& scene)
     CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/harties_4k.hdr");
     // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/solitude_night_4k/solitude_night_4k.hdr");
-    // CreateImageInfiniteLight(scene, "res/earthmap.jpg");
 
     Float aspect_ratio = 16.f / 9.f;
-    // Float aspect_ratio = 3.f / 2.f;
-    // Float aspect_ratio = 4.f / 3.f;
-    // Float aspect_ratio = 1.f;
     int32 width = 960;
     int32 height = int32(width / aspect_ratio);
 
-    Point3 lookfrom{ 13, 2, 3 };
-    Point3 lookat{ 0, 0, 0 };
+    Point3 position{ 13, 2, 3 };
+    Point3 target{ 0, 0, 0 };
 
     Float dist_to_focus = 10.0f;
     Float aperture = 0.1f;
-    Float vFov = 20;
+    Float fov = 20;
 
     return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height), hm
+        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height), hm
     );
-    // return std::make_unique<SphericalCamera>(lookfrom, Point2i(width, height));
 }
 
 static int32 sample_index = Sample::Register("rtow", RaytracigInOneWeekend);

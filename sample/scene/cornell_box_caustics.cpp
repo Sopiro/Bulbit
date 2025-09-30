@@ -99,17 +99,15 @@ std::unique_ptr<Camera> CornellBoxCaustics(Scene& scene)
 
     int32 width = 500;
 
-    Point3 lookfrom{ 0.5f, 0.5f, 2.05f };
-    Point3 lookat{ 0.5f, 0.5f, 0.0f };
+    Point3 position{ 0.5f, 0.5f, 2.05f };
+    Point3 target{ 0.5f, 0.5f, 0.0f };
 
-    Float dist_to_focus = Dist(lookfrom, lookat);
+    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.0f;
-    Float vFov = 28.0f;
+    Float fov = 28.0f;
 
-    // return std::make_unique<OrthographicCamera>(Transform::LookAt(lookfrom, lookat, y_axis), Point2(1.1, 1.1), width);
-    // return std::make_unique<SphericalCamera>(lookfrom, Point2i(width, width));
     return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, width)
+        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, width)
     );
 }
 

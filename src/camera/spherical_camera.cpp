@@ -12,11 +12,11 @@ SphericalCamera::SphericalCamera(const Transform& tf, const Point2i& resolution,
 
 void SphericalCamera::SampleRay(PrimaryRay* ray, const Point2i& pixel, Point2 u0, Point2 u1) const
 {
-    BulbitNotUsed(pixel);
     BulbitNotUsed(u1);
 
-    Float theta = (1 - u0[1] / Float(resolution.y)) * pi;
-    Float phi = u0[0] / Float(resolution.x) * two_pi;
+    Point2 p_film = Point2(pixel.x + u0[0], pixel.y + u0[1]);
+    Float theta = (1 - p_film.y / resolution.y) * pi;
+    Float phi = p_film.x / resolution.x * two_pi;
 
     ray->ray = Ray(origin, SphericalDirection(theta, phi));
     ray->weight = 1;

@@ -4,6 +4,7 @@ std::unique_ptr<Camera> Head(Scene& scene)
 {
     ModelLoaderOptions options;
     options.use_fallback_material = true;
+
     // Head
     {
         auto head_albedo = CreateSpectrumImageTexture(scene, "res/head/lambertian.jpg");
@@ -11,7 +12,7 @@ std::unique_ptr<Camera> Head(Scene& scene)
         auto mat =
             CreateSubsurfaceRandomWalkMaterial(scene, head_albedo, Spectrum(0.0012953, 0.00095238, 0.00067114), 1.33f, 0.1f);
 
-        // auto l0 = CreateDielectricMaterial(scene, 1.33, 0.1f);
+        // auto l0 = CreateDielectricMaterial(scene, 1.33, 0.3f);
         // auto l1 = scene.CreateMaterial<DiffuseMaterial>(head_albedo);
         // auto mat = CreateLayeredMaterial(scene, l0, l1);
 
@@ -22,7 +23,8 @@ std::unique_ptr<Camera> Head(Scene& scene)
     }
 
     // CreateImageInfiniteLight(scene, "res/HDR/small_rural_road_1k.hdr", Transform(Quat(0, y_axis)), 2);
-    CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(pi / 2, y_axis)));
+    // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(pi / 2, y_axis)));
+    CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/sunset.hdr", Transform(Quat(-pi / 2, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
     // CreateImageInfiniteLight(scene, "res/HDR/scythian_tombs_2_4k.hdr", Transform(Quat(0, y_axis)));
@@ -35,23 +37,19 @@ std::unique_ptr<Camera> Head(Scene& scene)
     // CreateImageInfiniteLight(scene, "res/HDR/Background_05.hdr", Transform(Quat(pi / 2, y_axis)));
     // CreateUniformInfiniteLight(scene, Spectrum(1));
 
-    // Float aspect_ratio = 16.f / 9.f;
-    // Float aspect_ratio = 9.f / 16.f;
-    // Float aspect_ratio = 3.f / 2.f;
     Float aspect_ratio = 4.f / 3.f;
-    // Float aspect_ratio = 1.f;
-    int32 width = 1000;
+    int32 width = 800;
     int32 height = int32(width / aspect_ratio);
 
-    Point3 lookfrom = Point3{ -0.3, 0.1, 1 } * 0.8;
-    Point3 lookat = Point3{ 0, 0, 0 };
+    Point3 position = Point3{ -0.3, 0.1, 1 } * 0.8;
+    Point3 target = Point3{ 0, 0, 0 };
 
-    Float dist_to_focus = Dist(lookfrom, lookat);
-    Float aperture = 0.0f;
-    Float vFov = 30;
+    Float dist_to_focus = Dist(position, target);
+    Float aperture = 0.01f;
+    Float fov = 30;
 
     return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
     );
 }
 

@@ -430,7 +430,7 @@ static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, RendererInfo& r
     std::string type = ParseString(node.attribute("type"), dm);
 
     ri.type = IntegratorType::path;
-    ri.max_bounces = 8;
+    ri.max_bounces = 16;
     ri.rr_depth = 1;
     ri.ao_range = 0.1f;
     ri.n_photons = 100000;

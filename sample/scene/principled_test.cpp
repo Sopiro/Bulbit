@@ -269,22 +269,18 @@ std::unique_ptr<Camera> Principled(Scene& scene, int32 lobe, int32 model)
     // CreateUniformInfiniteLight(scene, Spectrum(1));
 
     Float aspect_ratio = 4.f / 1.f;
-    // Float aspect_ratio = 9.f / 16.f;
-    // Float aspect_ratio = 3.f / 2.f;
-    // Float aspect_ratio = 4.f / 3.f;
-    // Float aspect_ratio = 1.f;
     int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
-    Point3 lookfrom = Point3{ 0, 1.0, 2.28 };
-    Point3 lookat = Point3{ 0.0, 0.1, 0.0 };
+    Point3 position = Point3{ 0, 1.0, 2.28 };
+    Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float dist_to_focus = Dist(lookfrom, lookat);
+    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.01f;
-    Float vFov = 30.0;
+    Float fov = 30.0;
 
     return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(lookfrom, lookat, y_axis), vFov, aperture, dist_to_focus, Point2i(width, height)
+        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
     );
 }
 
