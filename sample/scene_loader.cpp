@@ -638,9 +638,11 @@ static FloatTexture* ParseFloatTexture(
 }
 
 static SpectrumTexture* ParseSpectrumTexture(
-    pugi::xml_node node, const DefaultMap& dm, Scene* scene, std::function<Spectrum(Spectrum)> transform = [](Spectrum v) {
-        return v;
-    }
+    pugi::xml_node node,
+    const DefaultMap& dm,
+    Scene* scene,
+    bool non_color = false,
+    std::function<Spectrum(Spectrum)> transform = [](Spectrum v) { return v; }
 )
 {
     std::string type = node.name();
@@ -665,7 +667,7 @@ static SpectrumTexture* ParseSpectrumTexture(
 
         if (t.type == TextureType::bitmap)
         {
-            return CreateSpectrumImageTexture(*scene, t.filename.string(), false, std::move(transform));
+            return CreateSpectrumImageTexture(*scene, t.filename.string(), non_color, std::move(transform));
         }
         else if (t.type == TextureType::checkboard)
         {
@@ -690,7 +692,21 @@ static SpectrumTexture* ParseSpectrumTexture(
     }
 }
 
-static void ParseBSDF(pugi::xml_node node, const DefaultMap& dm, MaterialMap& mm, Scene* scene, const std::string& parent_id = "")
+struct MaterialInfo
+{
+    bool two_sided = false;
+    const SpectrumTexture* normal = nullptr;
+    const FloatTexture* alpha = nullptr;
+};
+
+static const Material* ParseMaterial(
+    pugi::xml_node node,
+    const DefaultMap& dm,
+    MaterialMap& mm,
+    Scene* scene,
+    const MaterialInfo& mi,
+    const std::string& parent_id = ""
+)
 {
     std::string type = node.attribute("type").value();
     std::string id = parent_id;
@@ -706,43 +722,99 @@ static void ParseBSDF(pugi::xml_node node, const DefaultMap& dm, MaterialMap& mm
         {
             if (std::string(child.name()) == "bsdf")
             {
-                return ParseBSDF(child, dm, mm, scene, id);
+                return ParseMaterial(child, dm, mm, scene, mi, id);
             }
         }
     }
     else if (type == "normalmap")
     {
-        // TODO: implement properly
+        const SpectrumTexture* normalmap = nullptr;
+
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "normalmap")
+            {
+                normalmap = ParseSpectrumTexture(child, dm, scene, true);
+            }
+        }
+
+        if (!normalmap)
+        {
+            std::cerr << "normal texture not specified for normalmap bsdf" << std::endl;
+        }
+
         for (auto child : node.children())
         {
             if (std::string(child.name()) == "bsdf")
             {
-                return ParseBSDF(child, dm, mm, scene, id);
+                MaterialInfo new_mi = mi;
+                new_mi.normal = normalmap;
+                return ParseMaterial(child, dm, mm, scene, new_mi, id);
             }
         }
     }
     else if (type == "blendbsdf")
     {
-        // TODO: implement properly
+        const FloatTexture* weight = nullptr;
+
         for (auto child : node.children())
         {
-            if (std::string(child.name()) == "bsdf")
+            std::string name = child.attribute("name").value();
+            if (name == "weight")
             {
-                return ParseBSDF(child, dm, mm, scene, id);
+                weight = ParseFloatTexture(child, dm, scene);
             }
         }
-    }
-    else if (type == "null")
-    {
+
+        if (!weight)
+        {
+            std::cerr << "Weight texture not specified for blendbsdf" << std::endl;
+        }
+
+        int32 index = 0;
+        const Material* mat[2];
+        for (auto child : node.children())
+        {
+            std::string type = child.name();
+            if (type == "bsdf")
+            {
+                mat[index++] = ParseMaterial(child, dm, mm, scene, mi, id);
+            }
+
+            if (index == 2)
+            {
+                break;
+            }
+        }
+
+        return scene->CreateMaterial<MixtureMaterial>(mat[0], mat[1], weight, mi.alpha);
     }
     else if (type == "mask")
     {
-        // TODO: implement properly
+        const FloatTexture* alpha = nullptr;
+
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "opacity")
+            {
+                alpha = ParseFloatTexture(child, dm, scene);
+            }
+        }
+
+        if (!alpha)
+        {
+            std::cerr << "mask texture not specified for mask bsdf" << std::endl;
+        }
+
         for (auto child : node.children())
         {
             if (std::string(child.name()) == "bsdf")
             {
-                return ParseBSDF(child, dm, mm, scene, id);
+                MaterialInfo new_mi = mi;
+                new_mi.alpha = alpha;
+                return ParseMaterial(child, dm, mm, scene, new_mi, id);
             }
         }
     }
@@ -752,7 +824,9 @@ static void ParseBSDF(pugi::xml_node node, const DefaultMap& dm, MaterialMap& mm
         {
             if (std::string(child.name()) == "bsdf")
             {
-                return ParseBSDF(child, dm, mm, scene, id);
+                MaterialInfo new_mi = mi;
+                new_mi.two_sided = true;
+                return ParseMaterial(child, dm, mm, scene, new_mi, id);
             }
         }
     }
@@ -768,7 +842,8 @@ static void ParseBSDF(pugi::xml_node node, const DefaultMap& dm, MaterialMap& mm
             }
         }
 
-        mm[id] = scene->CreateMaterial<DiffuseMaterial>(reflectance);
+        const Material* mat = scene->CreateMaterial<DiffuseMaterial>(reflectance, nullptr, mi.normal, mi.alpha);
+        mm[id] = mat;
     }
     else if (type == "roughplastic" || type == "plastic")
     {
@@ -812,9 +887,12 @@ static void ParseBSDF(pugi::xml_node node, const DefaultMap& dm, MaterialMap& mm
         Float eta = int_ior / ext_ior;
 
         const SpectrumTexture* reflectance = CreateSpectrumConstantTexture(*scene, 1);
-        auto top = scene->CreateMaterial<DielectricMaterial>(eta, roughness, roughness, reflectance);
-        auto bottom = scene->CreateMaterial<DiffuseMaterial>(basecolor);
-        mm[id] = CreateLayeredMaterial(*scene, top, bottom, true);
+        const Material* top = scene->CreateMaterial<DielectricMaterial>(eta, roughness, roughness, reflectance);
+        const Material* bottom = scene->CreateMaterial<DiffuseMaterial>(basecolor);
+
+        const Material* mat =
+            scene->CreateMaterial<LayeredMaterial>(top, bottom, mi.two_sided, Spectrum(0), 1e-4f, 0, 16, 1, mi.normal, mi.alpha);
+        mm[id] = mat;
     }
     else if (type == "roughconductor" || type == "conductor")
     {
@@ -851,11 +929,11 @@ static void ParseBSDF(pugi::xml_node node, const DefaultMap& dm, MaterialMap& mm
             }
             else if (name == "eta")
             {
-                eta = ParseSpectrumTexture(child, dm, scene);
+                eta = ParseSpectrumTexture(child, dm, scene, true);
             }
             else if (name == "k")
             {
-                k = ParseSpectrumTexture(child, dm, scene);
+                k = ParseSpectrumTexture(child, dm, scene, true);
             }
             else if (name == "specular_reflectance")
             {
@@ -876,14 +954,20 @@ static void ParseBSDF(pugi::xml_node node, const DefaultMap& dm, MaterialMap& mm
             }
         }
 
+        const Material* mat;
         if (eta == nullptr && k == nullptr)
         {
-            mm[id] = CreateMirrorMaterial(*scene, Spectrum(1));
+            mat = scene->CreateMaterial<MirrorMaterial>(CreateSpectrumConstantTexture(*scene, 1), mi.normal, mi.alpha);
         }
         else
         {
-            mm[id] = scene->CreateMaterial<ConductorMaterial>(eta, k, u_roughness, v_roughness, reflectance);
+            mat = scene->CreateMaterial<ConductorMaterial>(
+                eta, k, u_roughness, v_roughness, reflectance, true, mi.normal, mi.alpha
+            );
         }
+
+        mm[id] = mat;
+        return mat;
     }
     else if (type == "roughdielectric" || type == "dielectric")
     {
@@ -934,8 +1018,10 @@ static void ParseBSDF(pugi::xml_node node, const DefaultMap& dm, MaterialMap& mm
         }
 
         Float eta = int_ior / ext_ior;
-
-        mm[id] = scene->CreateMaterial<DielectricMaterial>(eta, u_roughness, v_roughness, reflectance);
+        const Material* mat =
+            scene->CreateMaterial<DielectricMaterial>(eta, u_roughness, v_roughness, reflectance, true, mi.normal);
+        mm[id] = mat;
+        return mat;
     }
     else if (type == "thindielectric")
     {
@@ -961,12 +1047,16 @@ static void ParseBSDF(pugi::xml_node node, const DefaultMap& dm, MaterialMap& mm
         }
 
         Float eta = int_ior / ext_ior;
-        mm[id] = scene->CreateMaterial<ThinDielectricMaterial>(eta, reflectance);
+        const Material* mat = scene->CreateMaterial<ThinDielectricMaterial>(eta, reflectance);
+        mm[id] = mat;
+        return mat;
     }
     else
     {
         std::cerr << "BSDF not supported: " << type << std::endl;
     }
+
+    return nullptr;
 }
 
 static Spectrum ParseIntensity(pugi::xml_node node, const DefaultMap& dm)
@@ -1267,7 +1357,7 @@ static SceneInfo ParseScene(pugi::xml_node scene_node)
         }
         else if (name == "bsdf")
         {
-            ParseBSDF(node, dm, mm, si.scene.get());
+            ParseMaterial(node, dm, mm, si.scene.get(), {});
         }
         else if (name == "shape")
         {
