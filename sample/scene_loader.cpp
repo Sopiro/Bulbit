@@ -506,6 +506,28 @@ static Spectrum ParseColor(pugi::xml_node node, const DefaultMap& dm)
     }
 }
 
+static Spectrum ParseIntensity(pugi::xml_node node, const DefaultMap& dm)
+{
+    std::string rad_type = node.name();
+    if (rad_type == "spectrum")
+    {
+        std::cerr << "Not a supported radiance type: spectrum" << std::endl;
+        return Spectrum::black;
+    }
+    else if (rad_type == "rgb")
+    {
+        Vec3 rgb = ParseVec3(node.attribute("value"), dm);
+        return Spectrum(rgb.x, rgb.y, rgb.z);
+    }
+    else if (rad_type == "srgb")
+    {
+        Vec3 rgb = RGB_from_sRGB(ParseSRGB(node.attribute("value"), dm));
+        return Spectrum(rgb.x, rgb.y, rgb.z);
+    }
+
+    return Spectrum(1);
+}
+
 enum class TextureType
 {
     bitmap,
@@ -830,6 +852,59 @@ static const Material* ParseMaterial(
             }
         }
     }
+    else if (type == "layered")
+    {
+        Spectrum albedo(0);
+        Float thickness = 1e-4f;
+        Float g = 0;
+        int32 max_bounces = 16;
+        int32 samples = 1;
+
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "albedo")
+            {
+                albedo = ParseIntensity(child, dm);
+            }
+            else if (name == "thickness")
+            {
+                thickness = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "g")
+            {
+                g = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "max_bounces")
+            {
+                max_bounces = ParseInteger(child.attribute("value"), dm);
+            }
+            else if (name == "samples")
+            {
+                samples = ParseInteger(child.attribute("value"), dm);
+            }
+        }
+
+        int32 index = 0;
+        const Material* mat[2];
+        for (auto child : node.children())
+        {
+            std::string type = child.name();
+            if (type == "bsdf")
+            {
+                mat[index++] = ParseMaterial(child, dm, mm, scene, mi, id);
+            }
+
+            if (index == 2)
+            {
+                break;
+            }
+        }
+
+        return scene->CreateMaterial<LayeredMaterial>(
+            mat[0], mat[1], mi.two_sided, albedo, thickness, g, max_bounces, samples, mi.normal, mi.alpha
+        );
+    }
     else if (type == "diffuse")
     {
         SpectrumTexture* reflectance = CreateSpectrumConstantTexture(*scene, 1, 0, 1);
@@ -1057,28 +1132,6 @@ static const Material* ParseMaterial(
     }
 
     return nullptr;
-}
-
-static Spectrum ParseIntensity(pugi::xml_node node, const DefaultMap& dm)
-{
-    std::string rad_type = node.name();
-    if (rad_type == "spectrum")
-    {
-        std::cerr << "Not a supported radiance type: spectrum" << std::endl;
-        return Spectrum::black;
-    }
-    else if (rad_type == "rgb")
-    {
-        Vec3 rgb = ParseVec3(node.attribute("value"), dm);
-        return Spectrum(rgb.x, rgb.y, rgb.z);
-    }
-    else if (rad_type == "srgb")
-    {
-        Vec3 rgb = RGB_from_sRGB(ParseSRGB(node.attribute("value"), dm));
-        return Spectrum(rgb.x, rgb.y, rgb.z);
-    }
-
-    return Spectrum(1);
 }
 
 static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& mm, Scene* scene)
