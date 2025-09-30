@@ -34,7 +34,7 @@ struct CameraInfo
 {
     CameraType type;
 
-    Transform tf;
+    Transform transform;
     Float fov;
     Float aperture;
     Float focus_distance;

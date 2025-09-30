@@ -360,7 +360,7 @@ static SamplerInfo ParseSampler(pugi::xml_node node, const DefaultMap& dm)
 static void ParseCamera(pugi::xml_node node, const DefaultMap& dm, CameraInfo& ci)
 {
     ci.type = CameraType::perspective;
-    ci.tf = identity;
+    ci.transform = identity;
     ci.fov = 35;
     ci.aperture = 0;
     ci.focus_distance = 1;
@@ -381,7 +381,7 @@ static void ParseCamera(pugi::xml_node node, const DefaultMap& dm, CameraInfo& c
             }
             else if (name == "to_world")
             {
-                ci.tf = ParseTransform(child, dm);
+                ci.transform = ParseTransform(child, dm);
             }
             else if (name == "fov_axis")
             {

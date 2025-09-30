@@ -95,7 +95,7 @@ SceneInfo FurnacePrincipled2()
     si.renderer_info.type = IntegratorType::path;
     si.renderer_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
-    si.camera_info.tf = Transform::LookAt(position, target, y_axis);
+    si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;
     si.camera_info.aperture = aperture;
     si.camera_info.focus_distance = Dist(position, target);
@@ -204,7 +204,7 @@ SceneInfo FurnaceDielectric2()
     si.renderer_info.type = IntegratorType::path;
     si.renderer_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
-    si.camera_info.tf = Transform::LookAt(position, target, y_axis);
+    si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;
     si.camera_info.aperture = aperture;
     si.camera_info.focus_distance = Dist(position, target);
@@ -314,7 +314,7 @@ SceneInfo FurnaceConductor2()
     si.renderer_info.type = IntegratorType::path;
     si.renderer_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
-    si.camera_info.tf = Transform::LookAt(position, target, y_axis);
+    si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;
     si.camera_info.aperture = aperture;
     si.camera_info.focus_distance = Dist(position, target);

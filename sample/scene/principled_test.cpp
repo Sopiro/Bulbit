@@ -282,7 +282,7 @@ SceneInfo Principled(int32 lobe, int32 model)
     si.renderer_info.type = IntegratorType::path;
     si.renderer_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
-    si.camera_info.tf = Transform::LookAt(position, target, y_axis);
+    si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = 30;
     si.camera_info.aperture = 0.01;
     si.camera_info.focus_distance = Dist(position, target);

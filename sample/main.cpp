@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     SceneInfo si = Sample::Get("cornell-box-caustics");
     if (!si)
     {
-        std::cout << "sample not found!" << std::endl;
+        std::cout << "Sample not found!" << std::endl;
         return 0;
     }
 
@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
     case CameraType::perspective:
     {
         camera = std::make_unique<PerspectiveCamera>(
-            si.camera_info.tf, si.camera_info.fov, si.camera_info.aperture, si.camera_info.focus_distance,
+            si.camera_info.transform, si.camera_info.fov, si.camera_info.aperture, si.camera_info.focus_distance,
             si.camera_info.film_info.resolution
         );
     }
@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    std::cout << "Building Acceleration structure.." << std::endl;
+    std::cout << "Building acceleration structure.." << std::endl;
 
     BVH accel(si.scene->GetPrimitives());
     std::unique_ptr<Sampler> sampler;
