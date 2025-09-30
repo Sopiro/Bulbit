@@ -27,9 +27,9 @@ bool DirectionalLight::Sample_Li(LightSampleLi* sample, const Intersection& ref,
 {
     BulbitNotUsed(u);
 
-    sample->wi = -wo;
+    sample->wi = wo;
     sample->normal = Vec3(0);
-    sample->point = ref.point - wo * 2 * world_radius;
+    sample->point = ref.point + wo * 2 * world_radius;
     sample->pdf = 1;
     sample->visibility = 2 * world_radius;
     sample->Li = intensity;
@@ -53,7 +53,7 @@ bool DirectionalLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) co
     Point2 u_disk = SampleUniformUnitDiskConcentric(u0);
     Point3 p_disk = world_center + world_radius * frame.FromLocal(Point3(u_disk, 0));
 
-    sample->ray = Ray(p_disk - world_radius * wo, wo);
+    sample->ray = Ray(p_disk + world_radius * wo, -wo);
     sample->normal = Vec3(0);
     sample->pdf_p = 1 / (pi * Sqr(world_radius));
     sample->pdf_w = 1;

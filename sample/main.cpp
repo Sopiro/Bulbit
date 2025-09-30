@@ -14,11 +14,10 @@ int main(int argc, char* argv[])
 
     ThreadPool::global_thread_pool.reset(new ThreadPool(std::thread::hardware_concurrency()));
 
-    // SceneInfo si = LoadScene("C:/Users/sopir/Desktop/spaceship/scene_v3.xml");
-
     std::cout << "Loading scene.." << std::endl;
     Timer timer;
     SceneInfo si = Sample::Get("cornell-box");
+    // SceneInfo si = LoadScene("C:/Users/sopir/Desktop/cornell-box/scene_v3.xml");
     if (!si)
     {
         std::cout << "Sample not found!" << std::endl;

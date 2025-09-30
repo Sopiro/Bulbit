@@ -40,6 +40,7 @@ private:
 class DirectionalLight : public Light
 {
 public:
+    // Incident light direction
     DirectionalLight(const Vec3& direction, const Spectrum& intensity);
     void Destroy() {}
 

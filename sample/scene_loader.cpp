@@ -267,7 +267,7 @@ static Transform ParseTransform(pugi::xml_node node, const DefaultMap& dm)
             {
                 angle = ParseFloat(child.attribute("angle"), dm);
             }
-            tf = Mul(Quat(angle, Vec3(x, y, z)), tf);
+            tf = Mul(Quat(DegToRad(angle), Vec3(x, y, z)), tf);
         }
         else if (name == "matrix")
         {
@@ -690,7 +690,7 @@ static SpectrumTexture* ParseSpectrumTexture(
     }
 }
 
-static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scene* scene, const std::string& parent_id = "")
+static void ParseBSDF(pugi::xml_node node, const DefaultMap& dm, MaterialMap& mm, Scene* scene, const std::string& parent_id = "")
 {
     std::string type = node.attribute("type").value();
     std::string id = parent_id;
@@ -965,10 +965,8 @@ static bool ParseBSDF(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scen
     }
     else
     {
-        return true;
+        std::cerr << "BSDF not supported: " << type << std::endl;
     }
-
-    return true;
 }
 
 static Spectrum ParseIntensity(pugi::xml_node node, const DefaultMap& dm)
@@ -993,7 +991,7 @@ static Spectrum ParseIntensity(pugi::xml_node node, const DefaultMap& dm)
     return Spectrum(1);
 }
 
-static bool ParseShape(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Scene* scene)
+static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& mm, Scene* scene)
 {
     const Material* mat = nullptr;
     bool emitter = false;
@@ -1136,10 +1134,111 @@ static bool ParseShape(pugi::xml_node node, DefaultMap& dm, MaterialMap& mm, Sce
     else
     {
         std::cerr << "Shape type not supported: " << shape_type << std::endl;
-        return true;
     }
+}
 
-    return true;
+static void ParseLight(pugi::xml_node node, const DefaultMap& dm, Scene* scene)
+{
+    std::string type = node.attribute("type").value();
+
+    if (type == "point")
+    {
+        Vec3 position(0);
+        Spectrum intensity(1);
+        Transform to_world = identity;
+
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "position")
+            {
+                position = ParseVec3(child.attribute("value"), dm);
+            }
+            else if (name == "intensity")
+            {
+                intensity = ParseIntensity(child, dm);
+            }
+            else if (name == "to_world")
+            {
+                to_world = ParseTransform(child, dm);
+            }
+        }
+
+        scene->CreateLight<PointLight>(Mul(to_world, position), intensity, nullptr);
+    }
+    else if (type == "directional")
+    {
+        Spectrum irradiance(1);
+        Transform to_world = identity;
+        Vec3 direction(0, 0, 1);
+
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "irradiance")
+            {
+                irradiance = ParseIntensity(child, dm);
+            }
+            else if (name == "to_world")
+            {
+                to_world = ParseTransform(child, dm);
+            }
+            else if (name == "direction")
+            {
+                direction = ParseVec3(child.attribute("value"), dm);
+            }
+        }
+
+        scene->CreateLight<DirectionalLight>(to_world.q.Rotate(direction), irradiance);
+    }
+    else if (type == "constant")
+    {
+        Spectrum radiance(1);
+
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "radiance")
+            {
+                radiance = ParseIntensity(child, dm);
+            }
+        }
+
+        scene->CreateLight<UniformInfiniteLight>(radiance);
+    }
+    else if (type == "envmap")
+    {
+        std::string filename;
+        Float scale = 1;
+        Transform to_world = identity;
+
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+
+            if (name == "filename")
+            {
+                filename = ParseString(child.attribute("value"), dm);
+            }
+            else if (name == "to_world")
+            {
+                to_world = ParseTransform(child, dm);
+            }
+            else if (name == "scale")
+            {
+                scale = ParseFloat(child.attribute("value"), dm);
+            }
+        }
+
+        if (filename.size() > 0)
+        {
+            CreateImageInfiniteLight(*scene, filename, to_world, scale);
+        }
+        else
+        {
+            std::cerr << "Filename unspecified for envmap" << std::endl;
+        }
+    }
 }
 
 static SceneInfo ParseScene(pugi::xml_node scene_node)
@@ -1173,6 +1272,10 @@ static SceneInfo ParseScene(pugi::xml_node scene_node)
         else if (name == "shape")
         {
             ParseShape(node, dm, mm, si.scene.get());
+        }
+        else if (name == "emitter")
+        {
+            ParseLight(node, dm, si.scene.get());
         }
     }
 
