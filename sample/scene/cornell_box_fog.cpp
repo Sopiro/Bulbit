@@ -91,8 +91,8 @@ SceneInfo CornellBoxFog()
 
     SceneInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.renderer_info.type = IntegratorType::vol_bdpt;
+    si.renderer_info.max_bounces = 8;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = 28;

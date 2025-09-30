@@ -17,6 +17,7 @@ int32 RandomWalk(
     Spectrum beta,
     Float pdf,
     int32 max_bounces,
+    int32 rr_min_bounces,
     TransportDirection direction,
     Sampler& sampler,
     Allocator& alloc
@@ -129,7 +130,7 @@ int32 RandomWalk(
         }
 
         // Terminate path with russian roulette
-        if (bounces > 1)
+        if (bounces > rr_min_bounces)
         {
             if (Float p = beta.MaxComponent() * eta_scale; p < 1)
             {
@@ -157,6 +158,7 @@ int32 RandomWalkVol(
     Spectrum beta,
     Float pdf,
     int32 max_bounces,
+    int32 rr_min_bounces,
     TransportDirection direction,
     Sampler& sampler,
     Allocator& alloc
@@ -409,7 +411,7 @@ int32 RandomWalkVol(
         prev.pdf_rev = ConvertDensity(vertex, prev, pdf_rev);
 
         // Terminate path with russian roulette
-        if (bounces > 1)
+        if (bounces > rr_min_bounces)
         {
             if (Float p = beta.MaxComponent() * eta_scale; p < 1)
             {

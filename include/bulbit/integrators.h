@@ -70,7 +70,13 @@ private:
 class NaivePathIntegrator : public UniDirectionalRayIntegrator
 {
 public:
-    NaivePathIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces);
+    NaivePathIntegrator(
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        int32 max_bounces,
+        int32 rr_min_bounces = 1
+    );
 
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 
@@ -78,6 +84,7 @@ private:
     Spectrum Li(const Ray& ray, Sampler& sampler, int32 depth) const;
 
     int32 max_bounces;
+    int32 rr_min_bounces;
 };
 
 // Uni-directional path tracer
@@ -89,6 +96,7 @@ public:
         std::vector<Light*> lights,
         const Sampler* sampler,
         int32 max_bounces,
+        int32 rr_min_bounces = 1,
         bool regularize_bsdf = false
     );
 
@@ -100,18 +108,26 @@ private:
     ) const;
 
     int32 max_bounces;
+    int32 rr_min_bounces;
     bool regularize_bsdf;
 };
 
 class NaiveVolPathIntegrator : public UniDirectionalRayIntegrator
 {
 public:
-    NaiveVolPathIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces);
+    NaiveVolPathIntegrator(
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        int32 max_bounces,
+        int32 rr_min_bounces = 1
+    );
 
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 
 private:
     int32 max_bounces;
+    int32 rr_min_bounces;
 };
 
 class VolPathIntegrator : public UniDirectionalRayIntegrator
@@ -122,6 +138,7 @@ public:
         std::vector<Light*> lights,
         const Sampler* sampler,
         int32 max_bounces,
+        int32 rr_min_bounces = 1,
         bool regularize_bsdf = false
     );
 
@@ -141,6 +158,7 @@ private:
     ) const;
 
     int32 max_bounces;
+    int32 rr_min_bounces;
     bool regularize_bsdf;
 };
 
@@ -148,23 +166,37 @@ private:
 class LightPathIntegrator : public BiDirectionalRayIntegrator
 {
 public:
-    LightPathIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces);
+    LightPathIntegrator(
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        int32 max_bounces,
+        int32 rr_min_bounces = 1
+    );
 
     virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
 
 private:
     int32 max_bounces;
+    int32 rr_min_bounces;
 };
 
 class LightVolPathIntegrator : public BiDirectionalRayIntegrator
 {
 public:
-    LightVolPathIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces);
+    LightVolPathIntegrator(
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        int32 max_bounces,
+        int32 rr_min_bounces = 1
+    );
 
     virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
 
 private:
     int32 max_bounces;
+    int32 rr_min_bounces;
 };
 
 struct Vertex;
@@ -173,7 +205,11 @@ class BiDirectionalPathIntegrator : public BiDirectionalRayIntegrator
 {
 public:
     BiDirectionalPathIntegrator(
-        const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        int32 max_bounces,
+        int32 rr_min_bounces = 1
     );
 
     virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
@@ -183,13 +219,18 @@ private:
     int32 SampleLightPath(Vertex* path, Sampler& sampler, Allocator& alloc) const;
 
     int32 max_bounces;
+    int32 rr_min_bounces;
 };
 
 class BiDirectionalVolPathIntegrator : public BiDirectionalRayIntegrator
 {
 public:
     BiDirectionalVolPathIntegrator(
-        const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        int32 max_bounces,
+        int32 rr_min_bounces = 1
     );
 
     virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
@@ -207,6 +248,7 @@ private:
     int32 SampleLightPath(Vertex* path, int32 wavelength, Sampler& sampler, Allocator& alloc) const;
 
     int32 max_bounces;
+    int32 rr_min_bounces;
 };
 
 class MultiPhaseRendering;

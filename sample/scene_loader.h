@@ -65,7 +65,7 @@ struct RendererInfo
 {
     IntegratorType type = IntegratorType::path;
     int32 max_bounces = 16;
-    int32 rr_depth = 1;
+    int32 rr_min_bounces = 1;
     bool regularize_bsdf = false;
 
     Float ao_range = 0.1f;

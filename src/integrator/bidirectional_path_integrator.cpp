@@ -12,10 +12,11 @@ namespace bulbit
 {
 
 BiDirectionalPathIntegrator::BiDirectionalPathIntegrator(
-    const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces
+    const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces, int32 rr_min_bounces
 )
     : BiDirectionalRayIntegrator(accel, std::move(lights), sampler, std::make_unique<PowerLightSampler>())
     , max_bounces{ max_bounces }
+    , rr_min_bounces{ rr_min_bounces }
 {
 }
 
@@ -45,7 +46,9 @@ int32 BiDirectionalPathIntegrator::SampleCameraPath(
         v.pdf_rev = 0;
     }
 
-    return 1 + RandomWalk(this, path + 1, ray, beta, pdf_w, max_bounces + 1, TransportDirection::ToLight, sampler, alloc);
+    return 1 + RandomWalk(
+                   this, path + 1, ray, beta, pdf_w, max_bounces + 1, rr_min_bounces, TransportDirection::ToLight, sampler, alloc
+               );
 }
 
 int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sampler, Allocator& alloc) const
@@ -90,7 +93,8 @@ int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sample
 
     // Note light paths sample one fewer vertex than the target path length
     int32 num_light_vertices = RandomWalk(
-        this, path + 1, light_sample.ray, beta, light_sample.pdf_w, max_bounces, TransportDirection::ToCamera, sampler, alloc
+        this, path + 1, light_sample.ray, beta, light_sample.pdf_w, max_bounces, rr_min_bounces, TransportDirection::ToCamera,
+        sampler, alloc
     );
 
     // Correct sampling densities for initial infinite light vertex

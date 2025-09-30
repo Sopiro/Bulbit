@@ -429,7 +429,6 @@ static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, RendererInfo& r
 {
     std::string type = ParseString(node.attribute("type"), dm);
 
-    // TODO: add all types
     // clang-format off
     if (type == "path") { ri.type = IntegratorType::path; }
     else if (type == "volpath") { ri.type = IntegratorType::vol_path; }
@@ -437,6 +436,9 @@ static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, RendererInfo& r
     else if (type == "light_vol_path") { ri.type = IntegratorType::light_vol_path; }
     else if (type == "bdpt") { ri.type = IntegratorType::bdpt; }
     else if (type == "vol_bdpt") { ri.type = IntegratorType::vol_bdpt; }
+    else if (type == "naive_path") { ri.type = IntegratorType::naive_path; }
+    else if (type == "naive_vol_path") { ri.type = IntegratorType::naive_vol_path; }
+    else if (type == "random_walk") { ri.type = IntegratorType::random_walk; }
     else if (type == "ao") { ri.type = IntegratorType::ao; }
     else if (type == "albedo") { ri.type = IntegratorType::albedo; }
     else if (type == "debug") { ri.type = IntegratorType::debug; }
@@ -458,7 +460,7 @@ static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, RendererInfo& r
         }
         else if (name == "rr_depth")
         {
-            ri.rr_depth = ParseInteger(node.attribute("value"), dm);
+            ri.rr_min_bounces = ParseInteger(node.attribute("value"), dm);
         }
         else if (name == "ao_range")
         {

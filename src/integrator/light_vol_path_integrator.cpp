@@ -12,10 +12,11 @@ namespace bulbit
 {
 
 LightVolPathIntegrator::LightVolPathIntegrator(
-    const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces
+    const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces, int32 rr_min_bounces
 )
     : BiDirectionalRayIntegrator(accel, std::move(lights), sampler, std::make_unique<PowerLightSampler>())
     , max_bounces{ max_bounces }
+    , rr_min_bounces{ rr_min_bounces }
 {
 }
 
@@ -272,8 +273,7 @@ Spectrum LightVolPathIntegrator::L(
         medium = isect.GetMedium(bsdf_sample.wi);
 
         // Terminate path with russian roulette
-        constexpr int32 min_bounces = 2;
-        if (bounce > min_bounces)
+        if (bounce > rr_min_bounces)
         {
             Spectrum rr = beta * eta_scale / r_u.Average();
             if (Float p = rr.MaxComponent(); p < 1)
