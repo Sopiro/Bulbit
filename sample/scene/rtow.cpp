@@ -2,21 +2,23 @@
 
 // The final scene of Ray Tracing in One Weekend
 // https://raytracing.github.io/books/RayTracingInOneWeekend.html#wherenext?/afinalrender
-std::unique_ptr<Camera> RaytracigInOneWeekend(Scene& scene)
+SceneInfo RaytracigInOneWeekend()
 {
+    auto scene = std::make_unique<Scene>();
+
     Medium* hm = nullptr;
-    // hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0), Spectrum(0.0f), Spectrum(0.0), 0.5f);
+    // hm = scene->CreateMedium<HomogeneousMedium>(Spectrum(0), Spectrum(0.0f), Spectrum(0.0), 0.5f);
     MediumInterface mi_outside(nullptr, hm);
     MediumInterface mi_inside(hm, nullptr);
     MediumInterface mi_two_sided(hm, hm);
 
-    // CreateSphere(scene, identity, 100, nullptr, mi_inside);
+    // CreateSphere(*scene, identity, 100, nullptr, mi_inside);
 
-    auto ground_material = CreateDiffuseMaterial(scene, Spectrum(0.5f, 0.5f, 0.5f));
+    auto ground_material = CreateDiffuseMaterial(*scene, Spectrum(0.5f, 0.5f, 0.5f));
 
     Transform tf = identity;
     tf.s *= 30;
-    CreateRectXZ(scene, tf, ground_material);
+    CreateRectXZ(*scene, tf, ground_material);
 
     Srand(7777);
 
@@ -31,39 +33,39 @@ std::unique_ptr<Camera> RaytracigInOneWeekend(Scene& scene)
             {
                 if (choose_mat < 0.9f)
                 {
-                    auto mat = CreateRandomPrincipledMaterial(scene);
+                    auto mat = CreateRandomPrincipledMaterial(*scene);
                     CreateSphere(
-                        scene, Transform(center, Quat(DegToRad(Rand(0, 180)), SampleUniformSphere(RandVec2()))), 0.2f, mat,
+                        *scene, Transform(center, Quat(DegToRad(Rand(0, 180)), SampleUniformSphere(RandVec2()))), 0.2f, mat,
                         mi_outside
                     );
                 }
                 else
                 {
                     // glass
-                    auto glass = CreateDielectricMaterial(scene, 1.5f, 0.0f);
-                    CreateSphere(scene, center, 0.2f, glass, mi_outside);
+                    auto glass = CreateDielectricMaterial(*scene, 1.5f, 0.0f);
+                    CreateSphere(*scene, center, 0.2f, glass, mi_outside);
                 }
             }
         }
     }
 
-    auto material1 = CreateDielectricMaterial(scene, 1.5f);
-    CreateSphere(scene, Vec3(0, 1, 0), 1.0f, material1, mi_outside);
+    auto material1 = CreateDielectricMaterial(*scene, 1.5f);
+    CreateSphere(*scene, Vec3(0, 1, 0), 1.0f, material1, mi_outside);
 
-    auto material2 = CreateDiffuseMaterial(scene, Spectrum(0.4f, 0.2f, 0.1f));
-    CreateSphere(scene, Vec3(-4, 1, 0), 1.0f, material2, mi_outside);
+    auto material2 = CreateDiffuseMaterial(*scene, Spectrum(0.4f, 0.2f, 0.1f));
+    CreateSphere(*scene, Vec3(-4, 1, 0), 1.0f, material2, mi_outside);
 
-    auto material3 = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.01f);
-    CreateSphere(scene, Transform(Vec3(4, 1, 0), Quat(DegToRad(0), Normalize(Vec3(1, 0, 0)))), 1.0f, material3, mi_outside);
+    auto material3 = CreateConductorMaterial(*scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.01f);
+    CreateSphere(*scene, Transform(Vec3(4, 1, 0), Quat(DegToRad(0), Normalize(Vec3(1, 0, 0)))), 1.0f, material3, mi_outside);
 
-    // CreateDirectionalLight(scene, -Normalize(Vec3(1, 1, 1)), 5.0f);
-    // CreateImageInfiniteLight(scene, "res/HDR/kloppenheim_07_puresky_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/pizzo_pernice_1k.hdr");
-    CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/harties_4k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
+    // CreateDirectionalLight(*scene, -Normalize(Vec3(1, 1, 1)), 5.0f);
+    // CreateImageInfiniteLight(*scene, "res/HDR/kloppenheim_07_puresky_1k.hdr");
+    // CreateImageInfiniteLight(*scene, "res/HDR/quarry_04_puresky_1k.hdr");
+    // CreateImageInfiniteLight(*scene, "res/HDR/photo_studio_01_1k.hdr");
+    // CreateImageInfiniteLight(*scene, "res/HDR/pizzo_pernice_1k.hdr");
+    CreateImageInfiniteLight(*scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(pi, y_axis)));
+    // CreateImageInfiniteLight(*scene, "res/HDR/harties_4k.hdr");
+    // CreateImageInfiniteLight(*scene, "res/HDR/sunflowers_puresky_1k.hdr");
 
     Float aspect_ratio = 16.f / 9.f;
     int32 width = 960;
@@ -72,13 +74,21 @@ std::unique_ptr<Camera> RaytracigInOneWeekend(Scene& scene)
     Point3 position{ 13, 2, 3 };
     Point3 target{ 0, 0, 0 };
 
-    Float dist_to_focus = 10.0f;
-    Float aperture = 0.1f;
-    Float fov = 20;
+    SceneInfo si;
+    si.scene = std::move(scene);
+    si.renderer_info.type = IntegratorType::path;
+    si.renderer_info.max_bounces = 64;
+    si.camera_info.type = CameraType::perspective;
+    si.camera_info.tf = Transform::LookAt(position, target, y_axis);
+    si.camera_info.fov = 20;
+    si.camera_info.aperture = 0.05f;
+    si.camera_info.focus_distance = 10;
+    si.camera_info.film_info.filename = "";
+    si.camera_info.film_info.resolution = { 500, 500 };
+    si.camera_info.sampler_info.type = SamplerType::stratified;
+    si.camera_info.sampler_info.spp = 64;
 
-    return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height), hm
-    );
+    return si;
 }
 
 static int32 sample_index = Sample::Register("rtow", RaytracigInOneWeekend);

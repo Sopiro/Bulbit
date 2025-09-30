@@ -1,22 +1,24 @@
 #include "../samples.h"
 
-std::unique_ptr<Camera> CornellBoxFog2(Scene& scene)
+SceneInfo CornellBoxFog2()
 {
+    auto scene = std::make_unique<Scene>();
+
     // Materials
-    auto red = CreateDiffuseMaterial(scene, Spectrum(.65f, .05f, .05f));
-    auto green = CreateDiffuseMaterial(scene, Spectrum(.12f, .45f, .15f));
-    auto blue = CreateDiffuseMaterial(scene, Spectrum(.22f, .23f, .75f));
-    auto white = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
-    auto light = CreateDiffuseLightMaterial(scene, Spectrum(1000000.0f));
-    auto glass = CreateDielectricMaterial(scene, 1.5f);
-    auto rough_glass = CreateDielectricMaterial(scene, 1.5f, 0.1f);
-    auto mirror = CreateMirrorMaterial(scene, Spectrum(1));
-    auto mix = CreateMixtureMaterial(scene, red, blue, 0.5f);
+    auto red = CreateDiffuseMaterial(*scene, Spectrum(.65f, .05f, .05f));
+    auto green = CreateDiffuseMaterial(*scene, Spectrum(.12f, .45f, .15f));
+    auto blue = CreateDiffuseMaterial(*scene, Spectrum(.22f, .23f, .75f));
+    auto white = CreateDiffuseMaterial(*scene, Spectrum(.73f, .73f, .73f));
+    auto light = CreateDiffuseLightMaterial(*scene, Spectrum(1000000.0f));
+    auto glass = CreateDielectricMaterial(*scene, 1.5f);
+    auto rough_glass = CreateDielectricMaterial(*scene, 1.5f, 0.1f);
+    auto mirror = CreateMirrorMaterial(*scene, Spectrum(1));
+    auto mix = CreateMixtureMaterial(*scene, red, blue, 0.5f);
 
     Spectrum sigma_a(0);
     Spectrum sigma_s(1.0f);
 
-    HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(sigma_a, sigma_s, Spectrum(0.0), 0.0f);
+    HomogeneousMedium* hm = scene->CreateMedium<HomogeneousMedium>(sigma_a, sigma_s, Spectrum(0.0), 0.0f);
 
     MediumInterface mi_outside(nullptr, hm);
     MediumInterface mi_inside(hm, nullptr);
@@ -35,62 +37,62 @@ std::unique_ptr<Camera> CornellBoxFog2(Scene& scene)
     {
         // front
         auto tf = Transform{ Vec3(0.5f, 0.5f, -1.0f), identity, Vec3(1.0f) };
-        CreateRectXY(scene, tf, white, mi_outside);
+        CreateRectXY(*scene, tf, white, mi_outside);
 
         // left
         tf = Transform{ Vec3(0.0f, 0.5f, -0.5f), identity, Vec3(1.0f) };
-        CreateRectYZ(scene, tf, red, mi_outside);
+        CreateRectYZ(*scene, tf, red, mi_outside);
 
         // right
         tf = Transform{ Vec3(1.0f, 0.5f, -0.5f), Quat(pi, y_axis), Vec3(1.0f) };
-        CreateRectYZ(scene, tf, green, mi_outside);
+        CreateRectYZ(*scene, tf, green, mi_outside);
 
         // bottom
         tf = Transform{ Vec3(0.5f, 0.0f, -0.5f), identity, Vec3(1.0f) };
-        CreateRectXZ(scene, tf, white, mi_outside);
+        CreateRectXZ(*scene, tf, white, mi_outside);
 
         // top
         tf = Transform{ Vec3(0.5f, 1.0f, -0.5f), Quat(pi, x_axis), Vec3(1.0f) };
-        CreateRectXZ(scene, tf, white, mi_outside);
+        CreateRectXZ(*scene, tf, white, mi_outside);
 
         // back
         tf = Transform{ Vec3(0.5f, 0.5f, 0.0f), Quat(pi, y_axis), Vec3(1.0f) };
-        CreateRectXY(scene, tf, nullptr, mi_outside);
+        CreateRectXY(*scene, tf, nullptr, mi_outside);
     }
 
     // Left sphere
     Float r1 = 0.15f;
     Point3 s1 = p_light + w1 * 0.4f * d1;
-    CreateSphere(scene, s1, r1, glass, mi_outside);
+    CreateSphere(*scene, s1, r1, glass, mi_outside);
 
     // Right sphere
     Float r2 = 0.1f;
     Point3 s2 = p_light + w2 * 0.2 * d2;
-    CreateSphere(scene, s2, r2, glass, mi_outside);
+    CreateSphere(*scene, s2, r2, glass, mi_outside);
 
     Float r3 = 0.05f;
     Point3 s3 = p_light + w2 * 0.5f * d2;
-    CreateSphere(scene, s3, r3, glass, mi_outside);
+    CreateSphere(*scene, s3, r3, glass, mi_outside);
 
     Point3 s4 = p_light + w2 * 0.7f * d2;
     Vec3 w3 = Normalize(s1 - s4);
     Vec3 n = Normalize(-w2 + w3);
 
     auto tf = Transform{ s4, Quat(n, y_axis), Point3(0.1f) };
-    CreateRectXY(scene, tf, mirror, mi_two_sided);
+    CreateRectXY(*scene, tf, mirror, mi_two_sided);
 
     // Point3 s5 = p_light + w1 * 0.7f * d1;
     // Vec3 w4 = Normalize(s3 - s5);
     // n = Normalize(-w1 + w4);
     // tf = Transform{ s5, Quat(n, y_axis), Point3(0.1f) };
-    // CreateRectXY(scene, tf, mirror, mi_two_sided);
+    // CreateRectXY(*scene, tf, mirror, mi_two_sided);
 
     // Lights
     {
         auto tf = Transform{ p_light, Quat(pi, x_axis), Vec3(0.001f) };
-        CreateRectXZ(scene, tf, light, mi_two_sided);
+        CreateRectXZ(*scene, tf, light, mi_two_sided);
 
-        // CreatePointLight(scene, Point3(0.5f, 0.9f, -0.5f), Spectrum(0.25f));
+        // CreatePointLight(*scene, Point3(0.5f, 0.9f, -0.5f), Spectrum(0.25f));
     }
 
     int32 width = 1000;
@@ -98,13 +100,21 @@ std::unique_ptr<Camera> CornellBoxFog2(Scene& scene)
     Point3 position{ 0.5f, 0.5f, 2.05f };
     Point3 target{ 0.5f, 0.5f, 0.0f };
 
-    Float dist_to_focus = Dist(position, target);
-    Float aperture = 0.0f;
-    Float fov = 28.0f;
+    SceneInfo si;
+    si.scene = std::move(scene);
+    si.renderer_info.type = IntegratorType::path;
+    si.renderer_info.max_bounces = 64;
+    si.camera_info.type = CameraType::perspective;
+    si.camera_info.tf = Transform::LookAt(position, target, y_axis);
+    si.camera_info.fov = 28;
+    si.camera_info.aperture = 0;
+    si.camera_info.focus_distance = Dist(position, target);
+    si.camera_info.film_info.filename = "";
+    si.camera_info.film_info.resolution = { width, width };
+    si.camera_info.sampler_info.type = SamplerType::stratified;
+    si.camera_info.sampler_info.spp = 64;
 
-    return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, width)
-    );
+    return si;
 }
 
 static int32 sample_index = Sample::Register("cornell-box-fog2", CornellBoxFog2);

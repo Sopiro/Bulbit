@@ -14,12 +14,12 @@ int main(int argc, char* argv[])
 
     ThreadPool::global_thread_pool.reset(new ThreadPool(std::thread::hardware_concurrency()));
 
-    Scene scene;
-    std::unique_ptr<Camera> camera;
+    // SceneInfo si = LoadScene("C:/Users/sopir/Desktop/spaceship/scene_v3.xml");
 
     std::cout << "Loading scene.." << std::endl;
     Timer timer;
-    if (!Sample::Get("cornell-box", &scene, &camera))
+    SceneInfo si = Sample::Get("cornell-box-caustics");
+    if (!si)
     {
         std::cout << "sample not found!" << std::endl;
         return 0;
@@ -28,36 +28,101 @@ int main(int argc, char* argv[])
     timer.Mark();
     double t = timer.Get();
     std::cout << "Scene loading: " << t << "s" << std::endl;
-    std::cout << "Primitives: " << scene.GetPrimitives().size() << std::endl;
+    std::cout << "Primitives: " << si.scene->GetPrimitives().size() << std::endl;
+    std::cout << "Lights: " << si.scene->GetLights().size() << std::endl;
+
+    std::unique_ptr<Camera> camera;
+
+    switch (si.camera_info.type)
+    {
+    case CameraType::perspective:
+    {
+        camera = std::make_unique<PerspectiveCamera>(
+            si.camera_info.tf, si.camera_info.fov, si.camera_info.aperture, si.camera_info.focus_distance,
+            si.camera_info.film_info.resolution
+        );
+    }
+    break;
+
+    default:
+        return 0;
+    }
 
     std::cout << "Building Acceleration structure.." << std::endl;
-    BVH accel(scene.GetPrimitives());
+
+    BVH accel(si.scene->GetPrimitives());
+    std::unique_ptr<Sampler> sampler;
+
     timer.Mark();
     t = timer.Get();
     std::cout << "Acceleration structure build: " << t << "s" << std::endl;
 
-    int32 samples_per_pixel = 64;
-    int32 max_bounces = 8;
+    int32 spp = si.camera_info.sampler_info.spp;
 
-    // IndependentSampler sampler(samples_per_pixel);
-    StratifiedSampler sampler(std::sqrt(samples_per_pixel), std::sqrt(samples_per_pixel), true);
+    switch (si.camera_info.sampler_info.type)
+    {
+    case SamplerType::independent:
+    {
+        sampler = std::make_unique<IndependentSampler>(spp);
+    }
+    break;
+    case SamplerType::stratified:
+    {
+        int32 h = std::sqrt(spp);
+        sampler = std::make_unique<StratifiedSampler>(h, h, true);
+    }
+    break;
 
-    PathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
-    // VolPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
-    // LightPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
-    // LightVolPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
-    // BiDirectionalPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
-    // BiDirectionalVolPathIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces);
-    // PhotonMappingIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces, 1000000);
-    // SPPMIntegrator renderer(&accel, scene.GetLights(), &sampler, max_bounces, 10000);
-    // DebugIntegrator renderer(&accel, scene.GetLights(), &sampler);
-    // AmbientOcclusion renderer(&accel, scene.GetLights(), &sampler, 0.5f);
-    // AlbedoIntegrator renderer(&accel, scene.GetLights(), &sampler);
-    // WhittedStyle renderer(&accel, scene.GetLights(), &sampler, max_bounces);
+    default:
+        return 0;
+    }
 
-    std::unique_ptr<Rendering> rendering = renderer.Render(camera.get());
+    std::unique_ptr<Integrator> integrator;
+    int32 max_bounces = si.renderer_info.max_bounces;
+
+    switch (si.renderer_info.type)
+    {
+    case IntegratorType::path:
+        integrator = std::make_unique<PathIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces);
+        break;
+    case IntegratorType::vol_path:
+        integrator = std::make_unique<VolPathIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces);
+        break;
+    case IntegratorType::light_path:
+        integrator = std::make_unique<LightPathIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces);
+        break;
+    case IntegratorType::light_vol_path:
+        integrator = std::make_unique<LightVolPathIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces);
+        break;
+    case IntegratorType::bdpt:
+        integrator = std::make_unique<BiDirectionalPathIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces);
+        break;
+    case IntegratorType::pm:
+        integrator = std::make_unique<PhotonMappingIntegrator>(
+            &accel, si.scene->GetLights(), sampler.get(), max_bounces, si.renderer_info.n_photons, si.renderer_info.initial_radius
+        );
+        break;
+    case IntegratorType::sppm:
+        integrator = std::make_unique<SPPMIntegrator>(
+            &accel, si.scene->GetLights(), sampler.get(), max_bounces, si.renderer_info.n_photons, si.renderer_info.initial_radius
+        );
+        break;
+    case IntegratorType::ao:
+        integrator = std::make_unique<AmbientOcclusion>(&accel, si.scene->GetLights(), sampler.get(), si.renderer_info.ao_range);
+        break;
+    case IntegratorType::albedo:
+        integrator = std::make_unique<AlbedoIntegrator>(&accel, si.scene->GetLights(), sampler.get());
+        break;
+    case IntegratorType::debug:
+        integrator = std::make_unique<DebugIntegrator>(&accel, si.scene->GetLights(), sampler.get());
+        break;
+
+    default:
+        return 0;
+    }
+
+    std::unique_ptr<Rendering> rendering = integrator->Render(camera.get());
     rendering->WaitAndLogProgress();
-
     timer.Mark();
     t = timer.Get();
     std::cout << "\nComplete: " << t << 's' << std::endl;
@@ -65,8 +130,7 @@ int main(int argc, char* argv[])
     const Film& film = rendering->GetFilm();
     Image3 image = film.GetRenderedImage();
 
-    auto [width, height] = camera->GetScreenResolution();
-    std::string filename = std::format("render_{}x{}_s{}_d{}_t{}s.hdr", width, height, samples_per_pixel, max_bounces, t);
+    std::string filename = std::format("render_{}x{}_s{}_d{}_t{}s.hdr", image.width, image.height, spp, max_bounces, t);
     WriteImage(image, filename.c_str());
 
 #if _DEBUG

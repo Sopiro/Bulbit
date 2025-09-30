@@ -1,8 +1,10 @@
 #include "../samples.h"
 
-std::unique_ptr<Camera> MaterialTest(Scene& scene)
+SceneInfo MaterialTest()
 {
-    HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
+    auto scene = std::make_unique<Scene>();
+
+    HomogeneousMedium* hm = scene->CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
     // options.fallback_medium_interface = mi;
 
@@ -11,49 +13,40 @@ std::unique_ptr<Camera> MaterialTest(Scene& scene)
 
     // Floor
     {
-        auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
+        auto checker = CreateSpectrumCheckerTexture(*scene, 0.75, 0.3, Point2(20));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
-        auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
+        auto floor = scene->CreateMaterial<DiffuseMaterial>(checker);
         options.fallback_material = floor;
-        LoadModel(scene, "res/background.obj", tf, options);
+        LoadModel(*scene, "res/background.obj", tf, options);
     }
 
-    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+    auto normalmap = CreateSpectrumImageTexture(*scene, "res/bistro/Concrete_Normal.png", true);
 
-    const Material* white = CreateDiffuseMaterial(scene, 1.0f);
-    const Material* air = CreateDielectricMaterial(scene, 1.0f);
-    const Material* glass = CreateDielectricMaterial(scene, 1.5f);
-    const Material* rough_glass = CreateDielectricMaterial(scene, 1.5f, 0.01f);
-    const Material* copper = CreateConductorMaterial(scene, { 0.21100, 1.1274, 1.2444 }, { 4.1592, 2.5978, 2.433 }, 0.2f);
-    const Material* patina = CreateLayeredMaterial(scene, air, copper, true, { 0.25f, 0.95f, 0.45f }, 0.2, 0.1f);
-    const Material* gold = CreateConductorMaterial(scene, { 0.161, 0.492, 1.426 }, { 4.08769, 2.32625, 1.846 }, 0.1f);
-    const Material* platinum = CreateConductorMaterial(scene, { 0.49745, 0.48267, 0.60399 }, { 6.9266, 4.8444, 3.8895 }, 0.1f);
+    const Material* white = CreateDiffuseMaterial(*scene, 1.0f);
+    const Material* air = CreateDielectricMaterial(*scene, 1.0f);
+    const Material* glass = CreateDielectricMaterial(*scene, 1.5f);
+    const Material* rough_glass = CreateDielectricMaterial(*scene, 1.5f, 0.01f);
+    const Material* copper = CreateConductorMaterial(*scene, { 0.21100, 1.1274, 1.2444 }, { 4.1592, 2.5978, 2.433 }, 0.2f);
+    const Material* patina = CreateLayeredMaterial(*scene, air, copper, true, { 0.25f, 0.95f, 0.45f }, 0.2, 0.1f);
+    const Material* gold = CreateConductorMaterial(*scene, { 0.161, 0.492, 1.426 }, { 4.08769, 2.32625, 1.846 }, 0.1f);
+    const Material* platinum = CreateConductorMaterial(*scene, { 0.49745, 0.48267, 0.60399 }, { 6.9266, 4.8444, 3.8895 }, 0.1f);
 
-    const Material* outer = CreateLayeredMaterial(scene, rough_glass, gold, true, Spectrum(0.7, 0, 0), 0.2f, -0.3f);
-    const Material* inner = CreateDiffuseMaterial(scene, 0.8f, 0.0f);
+    const Material* outer = CreateLayeredMaterial(*scene, rough_glass, gold, true, Spectrum(0.7, 0, 0), 0.2f, -0.3f);
+    const Material* inner = CreateDiffuseMaterial(*scene, 0.8f, 0.0f);
 
     // auto tf = Transform{ o, Quat::FromEuler({ 0, pi / 6, 0 }), Vec3(2) };
     auto tf = Transform{ { 0, 0, 0.4 }, Quat::FromEuler({ 0, 0, 0 }), Vec3(2) };
 
     // https://github.com/lighttransport/lighttransportequation-orb
     options.fallback_material = outer;
-    LoadModel(scene, "res/mori_knob/base.obj", tf, options);
-    LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
+    LoadModel(*scene, "res/mori_knob/base.obj", tf, options);
+    LoadModel(*scene, "res/mori_knob/outer.obj", tf, options);
 
     options.fallback_material = inner;
-    LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
-    // LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
+    LoadModel(*scene, "res/mori_knob/inner.obj", tf, options);
+    // LoadModel(*scene, "res/mori_knob/equation.obj", tf, options);
 
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
-    CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/scythian_tombs_2_4k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(-pi, y_axis)));
-    // CreateUniformInfiniteLight(scene, Spectrum(1));
+    CreateImageInfiniteLight(*scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
 
     Float aspect_ratio = 1.0f;
     int32 width = 1000;
@@ -62,18 +55,31 @@ std::unique_ptr<Camera> MaterialTest(Scene& scene)
     Point3 position = Point3{ 0, 1.0, 2.0 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
-    );
+    SceneInfo si;
+    si.scene = std::move(scene);
+    si.renderer_info.type = IntegratorType::path;
+    si.renderer_info.max_bounces = 64;
+    si.camera_info.type = CameraType::perspective;
+    si.camera_info.tf = Transform::LookAt(position, target, y_axis);
+    si.camera_info.fov = fov;
+    si.camera_info.aperture = aperture;
+    si.camera_info.focus_distance = Dist(position, target);
+    si.camera_info.film_info.filename = "";
+    si.camera_info.film_info.resolution = { width, height };
+    si.camera_info.sampler_info.type = SamplerType::stratified;
+    si.camera_info.sampler_info.spp = 64;
+
+    return si;
 }
 
-std::unique_ptr<Camera> MetallicRoughness(Scene& scene)
+SceneInfo MetallicRoughness()
 {
-    HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
+    auto scene = std::make_unique<Scene>();
+
+    HomogeneousMedium* hm = scene->CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
     ModelLoaderOptions options;
@@ -81,11 +87,11 @@ std::unique_ptr<Camera> MetallicRoughness(Scene& scene)
 
     // Floor
     {
-        auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
+        auto checker = CreateSpectrumCheckerTexture(*scene, 0.75, 0.3, Point2(20));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
-        auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
+        auto floor = scene->CreateMaterial<DiffuseMaterial>(checker);
         options.fallback_material = floor;
-        LoadModel(scene, "res/background.obj", tf, options);
+        LoadModel(*scene, "res/background.obj", tf, options);
     }
 
     Float scale = 2.0f;
@@ -99,17 +105,17 @@ std::unique_ptr<Camera> MetallicRoughness(Scene& scene)
 
     const int32 count = 3;
 
-    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+    auto normalmap = CreateSpectrumImageTexture(*scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
-    outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.08f);
-    outers[1] = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.05f, 0.4f, Spectrum(1), true, normalmap);
-    outers[2] = CreateMetallicRoughnessMaterial(scene, { 80 / 255.0, 1.0, 175 / 255.0 }, 0, 0);
+    outers[0] = CreateDielectricMaterial(*scene, 1.5f, 0.08f);
+    outers[1] = CreateConductorMaterial(*scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.05f, 0.4f, Spectrum(1), true, normalmap);
+    outers[2] = CreateMetallicRoughnessMaterial(*scene, { 80 / 255.0, 1.0, 175 / 255.0 }, 0, 0);
 
     const Material* inners[count];
-    inners[0] = CreateConductorMaterial(scene, Spectrum{ 0.7f }, (0.05f), (0.4f));
-    inners[1] = CreateMirrorMaterial(scene, Spectrum(0.7f));
-    inners[2] = CreateDiffuseMaterial(scene, Spectrum(0.7));
+    inners[0] = CreateConductorMaterial(*scene, Spectrum{ 0.7f }, (0.05f), (0.4f));
+    inners[1] = CreateMirrorMaterial(*scene, Spectrum(0.7f));
+    inners[2] = CreateDiffuseMaterial(*scene, Spectrum(0.7));
 
     for (int32 j = 0; j < h; ++j)
     {
@@ -125,26 +131,16 @@ std::unique_ptr<Camera> MetallicRoughness(Scene& scene)
 
             // https://github.com/lighttransport/lighttransportequation-orb
             options.fallback_material = outers[std::min(i + j * w, count)];
-            LoadModel(scene, "res/mori_knob/base.obj", tf, options);
-            LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/base.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/outer.obj", tf, options);
 
             options.fallback_material = inners[std::min(i + j * w, count)];
-            LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
-            LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/inner.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/equation.obj", tf, options);
         }
     }
 
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
-    CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/scythian_tombs_2_4k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/solitude_night_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(-pi, y_axis)));
-    // CreateUniformInfiniteLight(scene, Spectrum(1));
+    CreateImageInfiniteLight(*scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
 
     Float aspect_ratio = 21.f / 9.f;
     int32 width = 1600;
@@ -153,18 +149,31 @@ std::unique_ptr<Camera> MetallicRoughness(Scene& scene)
     Point3 position = Point3{ 0, 1.0, 2.28 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
-    );
+    SceneInfo si;
+    si.scene = std::move(scene);
+    si.renderer_info.type = IntegratorType::path;
+    si.renderer_info.max_bounces = 64;
+    si.camera_info.type = CameraType::perspective;
+    si.camera_info.tf = Transform::LookAt(position, target, y_axis);
+    si.camera_info.fov = fov;
+    si.camera_info.aperture = aperture;
+    si.camera_info.focus_distance = Dist(position, target);
+    si.camera_info.film_info.filename = "";
+    si.camera_info.film_info.resolution = { width, height };
+    si.camera_info.sampler_info.type = SamplerType::stratified;
+    si.camera_info.sampler_info.spp = 64;
+
+    return si;
 }
 
-std::unique_ptr<Camera> Dielectrics(Scene& scene)
+SceneInfo Dielectrics()
 {
-    HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
+    auto scene = std::make_unique<Scene>();
+
+    HomogeneousMedium* hm = scene->CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
     ModelLoaderOptions options;
@@ -172,11 +181,11 @@ std::unique_ptr<Camera> Dielectrics(Scene& scene)
 
     // Floor
     {
-        auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
+        auto checker = CreateSpectrumCheckerTexture(*scene, 0.75, 0.3, Point2(20));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
-        auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
+        auto floor = scene->CreateMaterial<DiffuseMaterial>(checker);
         options.fallback_material = floor;
-        LoadModel(scene, "res/background.obj", tf, options);
+        LoadModel(*scene, "res/background.obj", tf, options);
     }
 
     Float scale = 2.0f;
@@ -190,15 +199,15 @@ std::unique_ptr<Camera> Dielectrics(Scene& scene)
 
     const int32 count = 3;
 
-    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+    auto normalmap = CreateSpectrumImageTexture(*scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
-    outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.02f);
-    outers[1] = CreateDielectricMaterial(scene, 1.5f, 0.0f);
-    outers[2] = CreateDielectricMaterial(scene, 1.5f, 0.05f);
+    outers[0] = CreateDielectricMaterial(*scene, 1.5f, 0.02f);
+    outers[1] = CreateDielectricMaterial(*scene, 1.5f, 0.0f);
+    outers[2] = CreateDielectricMaterial(*scene, 1.5f, 0.05f);
 
     const Material* inners[count];
-    inners[0] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 0.66 }, (0), (0));
+    inners[0] = CreateMetallicRoughnessMaterial(*scene, Spectrum{ 0.66 }, (0), (0));
     inners[1] = inners[0];
     inners[2] = inners[0];
 
@@ -216,26 +225,16 @@ std::unique_ptr<Camera> Dielectrics(Scene& scene)
 
             // https://github.com/lighttransport/lighttransportequation-orb
             options.fallback_material = outers[std::min(i + j * w, count)];
-            LoadModel(scene, "res/mori_knob/base.obj", tf, options);
-            LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/base.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/outer.obj", tf, options);
 
             options.fallback_material = inners[std::min(i + j * w, count)];
-            LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
-            LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/inner.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/equation.obj", tf, options);
         }
     }
 
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
-    CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/scythian_tombs_2_4k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/solitude_night_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(-pi, y_axis)));
-    // CreateUniformInfiniteLight(scene, Spectrum(1));
+    CreateImageInfiniteLight(*scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
 
     Float aspect_ratio = 21.f / 9.f;
     int32 width = 1600;
@@ -244,18 +243,31 @@ std::unique_ptr<Camera> Dielectrics(Scene& scene)
     Point3 position = Point3{ 0, 1.0, 2.28 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
-    );
+    SceneInfo si;
+    si.scene = std::move(scene);
+    si.renderer_info.type = IntegratorType::path;
+    si.renderer_info.max_bounces = 64;
+    si.camera_info.type = CameraType::perspective;
+    si.camera_info.tf = Transform::LookAt(position, target, y_axis);
+    si.camera_info.fov = fov;
+    si.camera_info.aperture = aperture;
+    si.camera_info.focus_distance = Dist(position, target);
+    si.camera_info.film_info.filename = "";
+    si.camera_info.film_info.resolution = { width, height };
+    si.camera_info.sampler_info.type = SamplerType::stratified;
+    si.camera_info.sampler_info.spp = 64;
+
+    return si;
 }
 
-std::unique_ptr<Camera> Skins(Scene& scene)
+SceneInfo Skins()
 {
-    HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
+    auto scene = std::make_unique<Scene>();
+
+    HomogeneousMedium* hm = scene->CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
     ModelLoaderOptions options;
@@ -263,11 +275,11 @@ std::unique_ptr<Camera> Skins(Scene& scene)
 
     // Floor
     {
-        auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
+        auto checker = CreateSpectrumCheckerTexture(*scene, 0.75, 0.3, Point2(20));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
-        auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
+        auto floor = scene->CreateMaterial<DiffuseMaterial>(checker);
         options.fallback_material = floor;
-        LoadModel(scene, "res/background.obj", tf, options);
+        LoadModel(*scene, "res/background.obj", tf, options);
     }
 
     Float scale = 2.0f;
@@ -281,17 +293,17 @@ std::unique_ptr<Camera> Skins(Scene& scene)
 
     const int32 count = 3;
 
-    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+    auto normalmap = CreateSpectrumImageTexture(*scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* skins[count];
     skins[1] = CreateSubsurfaceRandomWalkMaterial(
-        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 1.0, Spectrum(0.5, 0.25, 0.125) * 0.07, 1.38f, 0.1f
+        *scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 1.0, Spectrum(0.5, 0.25, 0.125) * 0.07, 1.38f, 0.1f
     );
     skins[0] = CreateSubsurfaceRandomWalkMaterial(
-        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 0.8, Spectrum(0.5, 0.25, 0.125) * 0.03, 1.38f, 0.1f
+        *scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 0.8, Spectrum(0.5, 0.25, 0.125) * 0.03, 1.38f, 0.1f
     );
     skins[2] = CreateSubsurfaceRandomWalkMaterial(
-        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 0.3, Spectrum(0.5, 0.25, 0.125) * 0.01, 1.38f, 0.1f
+        *scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 0.3, Spectrum(0.5, 0.25, 0.125) * 0.01, 1.38f, 0.1f
     );
 
     for (int32 j = 0; j < h; ++j)
@@ -308,30 +320,20 @@ std::unique_ptr<Camera> Skins(Scene& scene)
 
             // https://github.com/lighttransport/lighttransportequation-orb
             options.fallback_material = skins[std::min(i + j * w, count)];
-            LoadModel(scene, "res/mori_knob/base.obj", tf, options);
-            LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/base.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/outer.obj", tf, options);
 
             // options.fallback_material = skins[std::min(i + j * w, count)];
-            // LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
-            // LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
+            // LoadModel(*scene, "res/mori_knob/inner.obj", tf, options);
+            // LoadModel(*scene, "res/mori_knob/equation.obj", tf, options);
         }
     }
 
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
-    CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/scythian_tombs_2_4k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/solitude_night_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(-pi, y_axis)));
-    // CreateUniformInfiniteLight(scene, Spectrum(1));
+    CreateImageInfiniteLight(*scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
 
-    auto light = CreateDiffuseLightMaterial(scene, Spectrum(5.0f));
+    auto light = CreateDiffuseLightMaterial(*scene, Spectrum(5.0f));
     auto tf = Transform{ 0.0f, 0.8f, -0.5f, Quat::FromEuler({ 0, 0, 0 }), Vec3(3, 0.5, 1) };
-    CreateRectXY(scene, tf, light);
+    CreateRectXY(*scene, tf, light);
 
     Float aspect_ratio = 21.f / 9.f;
     int32 width = 1600;
@@ -340,18 +342,31 @@ std::unique_ptr<Camera> Skins(Scene& scene)
     Point3 position = Point3{ 0, 1.0, 2.28 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
-    );
+    SceneInfo si;
+    si.scene = std::move(scene);
+    si.renderer_info.type = IntegratorType::path;
+    si.renderer_info.max_bounces = 64;
+    si.camera_info.type = CameraType::perspective;
+    si.camera_info.tf = Transform::LookAt(position, target, y_axis);
+    si.camera_info.fov = fov;
+    si.camera_info.aperture = aperture;
+    si.camera_info.focus_distance = Dist(position, target);
+    si.camera_info.film_info.filename = "";
+    si.camera_info.film_info.resolution = { width, height };
+    si.camera_info.sampler_info.type = SamplerType::stratified;
+    si.camera_info.sampler_info.spp = 64;
+
+    return si;
 }
 
-std::unique_ptr<Camera> Mixtures(Scene& scene)
+SceneInfo Mixtures()
 {
-    HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
+    auto scene = std::make_unique<Scene>();
+
+    HomogeneousMedium* hm = scene->CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
     ModelLoaderOptions options;
@@ -359,11 +374,11 @@ std::unique_ptr<Camera> Mixtures(Scene& scene)
 
     // Floor
     {
-        auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
+        auto checker = CreateSpectrumCheckerTexture(*scene, 0.75, 0.3, Point2(20));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
-        auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
+        auto floor = scene->CreateMaterial<DiffuseMaterial>(checker);
         options.fallback_material = floor;
-        LoadModel(scene, "res/background.obj", tf, options);
+        LoadModel(*scene, "res/background.obj", tf, options);
     }
 
     Float scale = 2.0f;
@@ -377,25 +392,26 @@ std::unique_ptr<Camera> Mixtures(Scene& scene)
 
     const int32 count = 3;
 
-    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+    auto normalmap = CreateSpectrumImageTexture(*scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
-    auto a = CreateDielectricMaterial(scene, 1.5f, 0.0f);
-    auto b = CreateConductorMaterial(scene, { 0.7, 0.3, 0.2 }, (0.1f));
-    auto checker =
-        CreateFloatCheckerTexture(scene, CreateFloatConstantTexture(scene, 0), CreateFloatConstantTexture(scene, 1), Point2(20));
-    outers[1] = scene.CreateMaterial<MixtureMaterial>(a, b, checker);
+    auto a = CreateDielectricMaterial(*scene, 1.5f, 0.0f);
+    auto b = CreateConductorMaterial(*scene, { 0.7, 0.3, 0.2 }, (0.1f));
+    auto checker = CreateFloatCheckerTexture(
+        *scene, CreateFloatConstantTexture(*scene, 0), CreateFloatConstantTexture(*scene, 1), Point2(20)
+    );
+    outers[1] = scene->CreateMaterial<MixtureMaterial>(a, b, checker);
 
-    auto c = CreateConductorMaterial(scene, Spectrum{ 0.7f }, (0.05f), (0.4f));
-    auto d = CreateConductorMaterial(scene, Spectrum{ 0.7f }, (0.4f), (0.05f));
-    outers[0] = scene.CreateMaterial<MixtureMaterial>(c, d, checker);
+    auto c = CreateConductorMaterial(*scene, Spectrum{ 0.7f }, (0.05f), (0.4f));
+    auto d = CreateConductorMaterial(*scene, Spectrum{ 0.7f }, (0.4f), (0.05f));
+    outers[0] = scene->CreateMaterial<MixtureMaterial>(c, d, checker);
 
-    auto e = CreateDiffuseMaterial(scene, Spectrum(0.7, 0.9, 0.5));
-    auto f = CreateMirrorMaterial(scene, Spectrum(0.6, 0.5, 0.4));
-    outers[2] = scene.CreateMaterial<MixtureMaterial>(e, f, checker);
+    auto e = CreateDiffuseMaterial(*scene, Spectrum(0.7, 0.9, 0.5));
+    auto f = CreateMirrorMaterial(*scene, Spectrum(0.6, 0.5, 0.4));
+    outers[2] = scene->CreateMaterial<MixtureMaterial>(e, f, checker);
 
     const Material* inners[count];
-    inners[0] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 0.66 }, 0, 0);
+    inners[0] = CreateMetallicRoughnessMaterial(*scene, Spectrum{ 0.66 }, 0, 0);
     inners[1] = inners[0];
     inners[2] = inners[0];
 
@@ -413,26 +429,16 @@ std::unique_ptr<Camera> Mixtures(Scene& scene)
 
             // https://github.com/lighttransport/lighttransportequation-orb
             options.fallback_material = outers[std::min(i + j * w, count)];
-            LoadModel(scene, "res/mori_knob/base.obj", tf, options);
-            LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/base.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/outer.obj", tf, options);
 
             options.fallback_material = inners[std::min(i + j * w, count)];
-            LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
-            LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/inner.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/equation.obj", tf, options);
         }
     }
 
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
-    CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/scythian_tombs_2_4k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/solitude_night_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(-pi, y_axis)));
-    // CreateUniformInfiniteLight(scene, Spectrum(1));
+    CreateImageInfiniteLight(*scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
 
     Float aspect_ratio = 21.f / 9.f;
     int32 width = 1600;
@@ -441,18 +447,31 @@ std::unique_ptr<Camera> Mixtures(Scene& scene)
     Point3 position = Point3{ 0, 1.0, 2.28 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
-    );
+    SceneInfo si;
+    si.scene = std::move(scene);
+    si.renderer_info.type = IntegratorType::path;
+    si.renderer_info.max_bounces = 64;
+    si.camera_info.type = CameraType::perspective;
+    si.camera_info.tf = Transform::LookAt(position, target, y_axis);
+    si.camera_info.fov = fov;
+    si.camera_info.aperture = aperture;
+    si.camera_info.focus_distance = Dist(position, target);
+    si.camera_info.film_info.filename = "";
+    si.camera_info.film_info.resolution = { width, height };
+    si.camera_info.sampler_info.type = SamplerType::stratified;
+    si.camera_info.sampler_info.spp = 64;
+
+    return si;
 }
 
-std::unique_ptr<Camera> Alphas(Scene& scene)
+SceneInfo Alphas()
 {
-    HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
+    auto scene = std::make_unique<Scene>();
+
+    HomogeneousMedium* hm = scene->CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
     ModelLoaderOptions options;
@@ -460,11 +479,11 @@ std::unique_ptr<Camera> Alphas(Scene& scene)
 
     // Floor
     {
-        auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
+        auto checker = CreateSpectrumCheckerTexture(*scene, 0.75, 0.3, Point2(20));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
-        auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
+        auto floor = scene->CreateMaterial<DiffuseMaterial>(checker);
         options.fallback_material = floor;
-        LoadModel(scene, "res/background.obj", tf, options);
+        LoadModel(*scene, "res/background.obj", tf, options);
     }
 
     Float scale = 2.0f;
@@ -478,15 +497,15 @@ std::unique_ptr<Camera> Alphas(Scene& scene)
 
     const int32 count = 3;
 
-    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+    auto normalmap = CreateSpectrumImageTexture(*scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
-    outers[0] = CreateDiffuseMaterial(scene, Spectrum(.65f, .05f, .05f), 0, nullptr, 0.4f);
-    outers[1] = CreateDiffuseMaterial(scene, Spectrum(.12f, .45f, .15f), 0, nullptr, 0.2f);
-    outers[2] = CreateDiffuseMaterial(scene, Spectrum(.22f, .23f, .75f), 0, nullptr, 0.6f);
+    outers[0] = CreateDiffuseMaterial(*scene, Spectrum(.65f, .05f, .05f), 0, nullptr, 0.4f);
+    outers[1] = CreateDiffuseMaterial(*scene, Spectrum(.12f, .45f, .15f), 0, nullptr, 0.2f);
+    outers[2] = CreateDiffuseMaterial(*scene, Spectrum(.22f, .23f, .75f), 0, nullptr, 0.6f);
 
     const Material* inners[count];
-    inners[0] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 0.66 }, (0), (0));
+    inners[0] = CreateMetallicRoughnessMaterial(*scene, Spectrum{ 0.66 }, (0), (0));
     inners[1] = inners[0];
     inners[2] = inners[0];
 
@@ -504,26 +523,16 @@ std::unique_ptr<Camera> Alphas(Scene& scene)
 
             // https://github.com/lighttransport/lighttransportequation-orb
             options.fallback_material = outers[std::min(i + j * w, count)];
-            LoadModel(scene, "res/mori_knob/base.obj", tf, options);
-            LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/base.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/outer.obj", tf, options);
 
             options.fallback_material = inners[std::min(i + j * w, count)];
-            LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
-            LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/inner.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/equation.obj", tf, options);
         }
     }
 
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
-    CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/scythian_tombs_2_4k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/solitude_night_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(-pi, y_axis)));
-    // CreateUniformInfiniteLight(scene, Spectrum(1));
+    CreateImageInfiniteLight(*scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
 
     Float aspect_ratio = 21.f / 9.f;
     int32 width = 1600;
@@ -532,18 +541,31 @@ std::unique_ptr<Camera> Alphas(Scene& scene)
     Point3 position = Point3{ 0, 1.0, 2.28 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
-    );
+    SceneInfo si;
+    si.scene = std::move(scene);
+    si.renderer_info.type = IntegratorType::path;
+    si.renderer_info.max_bounces = 64;
+    si.camera_info.type = CameraType::perspective;
+    si.camera_info.tf = Transform::LookAt(position, target, y_axis);
+    si.camera_info.fov = fov;
+    si.camera_info.aperture = aperture;
+    si.camera_info.focus_distance = Dist(position, target);
+    si.camera_info.film_info.filename = "";
+    si.camera_info.film_info.resolution = { width, height };
+    si.camera_info.sampler_info.type = SamplerType::stratified;
+    si.camera_info.sampler_info.spp = 64;
+
+    return si;
 }
 
-std::unique_ptr<Camera> ColoredDielectrics(Scene& scene)
+SceneInfo ColoredDielectrics()
 {
-    HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
+    auto scene = std::make_unique<Scene>();
+
+    HomogeneousMedium* hm = scene->CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
     ModelLoaderOptions options;
@@ -551,11 +573,11 @@ std::unique_ptr<Camera> ColoredDielectrics(Scene& scene)
 
     // Floor
     {
-        auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
+        auto checker = CreateSpectrumCheckerTexture(*scene, 0.75, 0.3, Point2(20));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(3) };
-        auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
+        auto floor = scene->CreateMaterial<DiffuseMaterial>(checker);
         options.fallback_material = floor;
-        LoadModel(scene, "res/background.obj", tf, options);
+        LoadModel(*scene, "res/background.obj", tf, options);
     }
 
     Float scale = 2.0f;
@@ -569,15 +591,15 @@ std::unique_ptr<Camera> ColoredDielectrics(Scene& scene)
 
     const int32 count = 3;
 
-    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+    auto normalmap = CreateSpectrumImageTexture(*scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
-    outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.0f, Sqrt(Spectrum(1.0f, 0.5f, 0.8f)));
-    outers[1] = CreateDielectricMaterial(scene, 1.5f, 0.0f, Spectrum(1.0f));
-    outers[2] = CreateDielectricMaterial(scene, 1.5f, 0.0f, Spectrum(1.0f, 0.5f, 0.8f));
+    outers[0] = CreateDielectricMaterial(*scene, 1.5f, 0.0f, Sqrt(Spectrum(1.0f, 0.5f, 0.8f)));
+    outers[1] = CreateDielectricMaterial(*scene, 1.5f, 0.0f, Spectrum(1.0f));
+    outers[2] = CreateDielectricMaterial(*scene, 1.5f, 0.0f, Spectrum(1.0f, 0.5f, 0.8f));
 
     const Material* inners[count];
-    inners[0] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 0.66 }, (0), (0));
+    inners[0] = CreateMetallicRoughnessMaterial(*scene, Spectrum{ 0.66 }, (0), (0));
     inners[1] = inners[0];
     inners[2] = inners[0];
 
@@ -595,26 +617,16 @@ std::unique_ptr<Camera> ColoredDielectrics(Scene& scene)
 
             // https://github.com/lighttransport/lighttransportequation-orb
             options.fallback_material = outers[std::min(i + j * w, count)];
-            LoadModel(scene, "res/mori_knob/base.obj", tf, options);
-            LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/base.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/outer.obj", tf, options);
 
             options.fallback_material = inners[std::min(i + j * w, count)];
-            LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
-            LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/inner.obj", tf, options);
+            LoadModel(*scene, "res/mori_knob/equation.obj", tf, options);
         }
     }
 
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
-    CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/scythian_tombs_2_4k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/solitude_night_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(-pi, y_axis)));
-    // CreateUniformInfiniteLight(scene, Spectrum(1));
+    CreateImageInfiniteLight(*scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
 
     Float aspect_ratio = 21.f / 9.f;
     int32 width = 1600;
@@ -623,13 +635,24 @@ std::unique_ptr<Camera> ColoredDielectrics(Scene& scene)
     Point3 position = Point3{ 0, 1.0, 2.28 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float dist_to_focus = Dist(position, target);
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    return std::make_unique<PerspectiveCamera>(
-        Transform::LookAt(position, target, y_axis), fov, aperture, dist_to_focus, Point2i(width, height)
-    );
+    SceneInfo si;
+    si.scene = std::move(scene);
+    si.renderer_info.type = IntegratorType::path;
+    si.renderer_info.max_bounces = 64;
+    si.camera_info.type = CameraType::perspective;
+    si.camera_info.tf = Transform::LookAt(position, target, y_axis);
+    si.camera_info.fov = fov;
+    si.camera_info.aperture = aperture;
+    si.camera_info.focus_distance = Dist(position, target);
+    si.camera_info.film_info.filename = "";
+    si.camera_info.film_info.resolution = { width, height };
+    si.camera_info.sampler_info.type = SamplerType::stratified;
+    si.camera_info.sampler_info.spp = 64;
+
+    return si;
 }
 
 static int32 index0 = Sample::Register("material", MaterialTest);

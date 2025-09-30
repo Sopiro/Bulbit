@@ -13,10 +13,10 @@ using namespace bulbit;
 
 struct Sample
 {
-    using Func = std::function<std::unique_ptr<Camera>(Scene&)>;
+    using Func = std::function<SceneInfo(void)>;
 
     static int32 Register(std::string name, Func func);
-    static bool Get(std::string name, Scene* scene, std::unique_ptr<Camera>* camera);
+    static SceneInfo Get(std::string name);
 
     static inline std::unordered_map<std::string, Func> samples;
     static inline int32 count = 0;
@@ -29,13 +29,12 @@ inline int32 Sample::Register(std::string name, Func func)
     return ++count;
 }
 
-inline bool Sample::Get(std::string name, Scene* scene, std::unique_ptr<Camera>* camera)
+inline SceneInfo Sample::Get(std::string name)
 {
     if (!samples.contains(name))
     {
-        return false;
+        return {};
     }
 
-    *camera = samples.at(name)(*scene);
-    return true;
+    return samples.at(name)();
 }
