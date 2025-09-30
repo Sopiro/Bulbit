@@ -5,10 +5,26 @@
 namespace bulbit
 {
 
+enum class ReconFilterType
+{
+    box,
+    tent,
+    gaussian,
+};
+
+struct ReconFilterInfo
+{
+    ReconFilterType type = ReconFilterType::gaussian;
+    Float extent = 3;
+    Float gaussian_stddev = 0.5f;
+};
+
 struct FilmInfo
 {
     std::string filename = "bulbit_render.hdr";
     Point2i resolution = { 1280, 720 };
+
+    ReconFilterInfo recon_filter_info;
 };
 
 enum class SamplerType
@@ -38,6 +54,7 @@ struct CameraInfo
     Float fov = 35.0f;
     Float aperture_radius = 0.0f;
     Float focus_distance = 1.0f;
+    Point2 viewport_size = { 1, 1 }; // Used for orthographic camera
 
     FilmInfo film_info;
     SamplerInfo sampler_info;

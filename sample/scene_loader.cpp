@@ -291,11 +291,77 @@ static Transform ParseTransform(pugi::xml_node node, const DefaultMap& dm)
     return tf;
 }
 
+static ReconFilterInfo ParseReconFilter(pugi::xml_node node, const DefaultMap& dm)
+{
+    ReconFilterInfo ri;
+
+    std::string type = node.attribute("type").value();
+    if (type == "box")
+    {
+        ri.type = ReconFilterType::box;
+
+        Float extent = 1;
+        for (auto child : node.children())
+        {
+            if (std::string(child.attribute("name").value()) == "extent")
+            {
+                extent = ParseFloat(child.attribute("value"), dm);
+            }
+        }
+
+        ri.extent = extent;
+    }
+    else if (type == "tent")
+    {
+        ri.type = ReconFilterType::tent;
+
+        Float extent = 2;
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "radius")
+            {
+                extent = 2 * ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "extent")
+            {
+                extent = ParseFloat(child.attribute("value"), dm);
+            }
+        }
+
+        ri.extent = extent;
+    }
+    else if (type == "gaussian")
+    {
+        ri.type = ReconFilterType::gaussian;
+
+        Float extent = 3;
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "extent")
+            {
+                extent = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "stddev")
+            {
+                ri.gaussian_stddev = ParseFloat(child.attribute("value"), dm);
+            }
+        }
+
+        ri.extent = extent;
+    }
+    else
+    {
+        std::cerr << "Filter type not supported: " << type << std::endl;
+    }
+
+    return ri;
+}
+
 static FilmInfo ParseFilm(pugi::xml_node node, const DefaultMap& dm)
 {
     FilmInfo fi;
-    fi.filename = "bulbit_render.hdr";
-    fi.resolution = { 1280, 720 };
 
     for (auto child : node.children())
     {
@@ -317,7 +383,7 @@ static FilmInfo ParseFilm(pugi::xml_node node, const DefaultMap& dm)
 
         if (type == "rfilter")
         {
-            // TODO: Fill here
+            fi.recon_filter_info = ParseReconFilter(child, dm);
         }
     }
 

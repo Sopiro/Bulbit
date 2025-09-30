@@ -16,8 +16,9 @@ int main(int argc, char* argv[])
 
     std::cout << "Loading scene.." << std::endl;
     Timer timer;
+
     SceneInfo si = Sample::Get("cornell-box");
-    // SceneInfo si = LoadScene("C:/Users/sopir/Desktop/cornell-box/scene_v3.xml");
+    // SceneInfo si = LoadScene("C:/Users/sopir/Desktop/scenes/bedroom/scene_v3.xml");
     if (!si)
     {
         std::cout << "Sample not found!" << std::endl;
@@ -29,40 +30,63 @@ int main(int argc, char* argv[])
     std::cout << "Primitives: " << si.scene->GetPrimitives().size() << std::endl;
     std::cout << "Lights: " << si.scene->GetLights().size() << std::endl;
 
-    std::unique_ptr<Camera> camera;
+    const ReconFilterInfo& fi = si.camera_info.film_info.recon_filter_info;
 
-    switch (si.camera_info.type)
+    std::unique_ptr<Filter> pixel_filter;
+    switch (fi.type)
+    {
+    case ReconFilterType::box:
+        pixel_filter = std::make_unique<BoxFilter>(fi.extent);
+        break;
+    case ReconFilterType::tent:
+        pixel_filter = std::make_unique<TentFilter>(fi.extent);
+        break;
+    case ReconFilterType::gaussian:
+        pixel_filter = std::make_unique<GaussianFilter>(fi.extent, fi.gaussian_stddev);
+        break;
+
+    default:
+        return 0;
+    }
+
+    const CameraInfo& ci = si.camera_info;
+
+    std::unique_ptr<Camera> camera;
+    const Medium* camera_medium = nullptr; // TODO: handle it correctly
+    switch (ci.type)
     {
     case CameraType::perspective:
-    {
         camera = std::make_unique<PerspectiveCamera>(
-            si.camera_info.transform, si.camera_info.fov, si.camera_info.aperture_radius, si.camera_info.focus_distance,
-            si.camera_info.film_info.resolution
+            ci.transform, ci.fov, ci.aperture_radius, ci.focus_distance, ci.film_info.resolution, camera_medium,
+            pixel_filter.get()
         );
-    }
-    break;
+        break;
+    case CameraType::orthographic:
+        camera = std::make_unique<OrthographicCamera>(
+            ci.transform, ci.viewport_size, ci.film_info.resolution.x, camera_medium, pixel_filter.get()
+        );
+        break;
+    case CameraType::spherical:
+        camera = std::make_unique<SphericalCamera>(ci.transform, ci.film_info.resolution, camera_medium, pixel_filter.get());
+        break;
 
     default:
         return 0;
     }
 
     std::cout << "Building acceleration structure.." << std::endl;
-
     BVH accel(si.scene->GetPrimitives());
-    std::unique_ptr<Sampler> sampler;
-
     timer.Mark();
     std::cout << "Acceleration structure build: " << timer.Get() << "s" << std::endl;
 
-    int32 spp = si.camera_info.sampler_info.spp;
+    std::unique_ptr<Sampler> sampler;
+    int32 spp = ci.sampler_info.spp;
 
-    switch (si.camera_info.sampler_info.type)
+    switch (ci.sampler_info.type)
     {
     case SamplerType::independent:
-    {
         sampler = std::make_unique<IndependentSampler>(spp);
-    }
-    break;
+        break;
     case SamplerType::stratified:
     {
         int32 h = std::sqrt(spp);
@@ -74,20 +98,21 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    std::unique_ptr<Integrator> integrator;
-    int32 max_bounces = si.renderer_info.max_bounces;
-    int32 rr_min_bounces = si.renderer_info.rr_min_bounces;
+    const RendererInfo& ri = si.renderer_info;
+    int32 max_bounces = ri.max_bounces;
+    int32 rr_min_bounces = ri.rr_min_bounces;
 
-    switch (si.renderer_info.type)
+    std::unique_ptr<Integrator> integrator;
+    switch (ri.type)
     {
     case IntegratorType::path:
         integrator = std::make_unique<PathIntegrator>(
-            &accel, si.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces, si.renderer_info.regularize_bsdf
+            &accel, si.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces, ri.regularize_bsdf
         );
         break;
     case IntegratorType::vol_path:
         integrator = std::make_unique<VolPathIntegrator>(
-            &accel, si.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces, si.renderer_info.regularize_bsdf
+            &accel, si.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces, ri.regularize_bsdf
         );
         break;
     case IntegratorType::light_path:
@@ -110,12 +135,12 @@ int main(int argc, char* argv[])
         break;
     case IntegratorType::pm:
         integrator = std::make_unique<PhotonMappingIntegrator>(
-            &accel, si.scene->GetLights(), sampler.get(), max_bounces, si.renderer_info.n_photons, si.renderer_info.initial_radius
+            &accel, si.scene->GetLights(), sampler.get(), max_bounces, ri.n_photons, ri.initial_radius
         );
         break;
     case IntegratorType::sppm:
         integrator = std::make_unique<SPPMIntegrator>(
-            &accel, si.scene->GetLights(), sampler.get(), max_bounces, si.renderer_info.n_photons, si.renderer_info.initial_radius
+            &accel, si.scene->GetLights(), sampler.get(), max_bounces, ri.n_photons, ri.initial_radius
         );
         break;
     case IntegratorType::naive_path:
@@ -130,7 +155,7 @@ int main(int argc, char* argv[])
         integrator = std::make_unique<RandomWalkIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces);
         break;
     case IntegratorType::ao:
-        integrator = std::make_unique<AmbientOcclusion>(&accel, si.scene->GetLights(), sampler.get(), si.renderer_info.ao_range);
+        integrator = std::make_unique<AmbientOcclusion>(&accel, si.scene->GetLights(), sampler.get(), ri.ao_range);
         break;
     case IntegratorType::albedo:
         integrator = std::make_unique<AlbedoIntegrator>(&accel, si.scene->GetLights(), sampler.get());
