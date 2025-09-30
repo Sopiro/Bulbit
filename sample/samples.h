@@ -9,6 +9,8 @@
 #include "scene_loader.h"
 #include "texture_builder.h"
 
+#include <map>
+
 using namespace bulbit;
 
 struct Sample
@@ -18,7 +20,7 @@ struct Sample
     static int32 Register(std::string name, Func func);
     static SceneInfo Get(std::string name);
 
-    static inline std::unordered_map<std::string, Func> samples;
+    static inline std::map<std::string, Func> samples;
     static inline int32 count = 0;
 };
 

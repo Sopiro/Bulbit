@@ -7,8 +7,8 @@ namespace bulbit
 
 struct FilmInfo
 {
-    std::string filename;
-    Point2i resolution;
+    std::string filename = "bulbit_render.hdr";
+    Point2i resolution = { 1280, 720 };
 };
 
 enum class SamplerType
@@ -19,8 +19,8 @@ enum class SamplerType
 
 struct SamplerInfo
 {
-    SamplerType type;
-    int32 spp;
+    SamplerType type = SamplerType::independent;
+    int32 spp = 64;
 };
 
 enum class CameraType
@@ -32,12 +32,12 @@ enum class CameraType
 
 struct CameraInfo
 {
-    CameraType type;
+    CameraType type = CameraType::perspective;
 
-    Transform transform;
-    Float fov;
-    Float aperture;
-    Float focus_distance;
+    Transform transform = identity;
+    Float fov = 35.0f;
+    Float aperture_radius = 0.0f;
+    Float focus_distance = 1.0f;
 
     FilmInfo film_info;
     SamplerInfo sampler_info;
@@ -51,21 +51,27 @@ enum class IntegratorType
     light_vol_path,
     bdpt,
     vol_bdpt,
+    pm,
+    sppm,
+    naive_path,
+    naive_vol_path,
+    random_walk,
     ao,
     albedo,
     debug,
-    pm,
-    sppm,
 };
 
 struct RendererInfo
 {
-    IntegratorType type;
-    int32 max_bounces;
-    int32 rr_depth;
-    Float ao_range;
-    int32 n_photons;
-    Float initial_radius;
+    IntegratorType type = IntegratorType::path;
+    int32 max_bounces = 16;
+    int32 rr_depth = 1;
+    bool regularize_bsdf = false;
+
+    Float ao_range = 0.1f;
+
+    int32 n_photons = 100000;
+    Float initial_radius = -1;
 };
 
 struct SceneInfo

@@ -94,7 +94,7 @@ SceneInfo SSSTest()
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;
-    si.camera_info.aperture = aperture;
+    si.camera_info.aperture_radius = aperture;
     si.camera_info.focus_distance = Dist(position, target);
     si.camera_info.film_info.filename = "";
     si.camera_info.film_info.resolution = { width, height };
@@ -176,7 +176,7 @@ SceneInfo SSSTest2()
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;
-    si.camera_info.aperture = aperture;
+    si.camera_info.aperture_radius = aperture;
     si.camera_info.focus_distance = Dist(position, target);
     si.camera_info.film_info.filename = "";
     si.camera_info.film_info.resolution = { width, height };

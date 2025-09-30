@@ -113,7 +113,7 @@ SceneInfo CornellBoxVolume()
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = 28;
-    si.camera_info.aperture = 0;
+    si.camera_info.aperture_radius = 0;
     si.camera_info.focus_distance = Dist(position, target);
     si.camera_info.film_info.filename = "";
     si.camera_info.film_info.resolution = { width, width };

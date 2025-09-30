@@ -284,10 +284,10 @@ SceneInfo Principled(int32 lobe, int32 model)
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = 30;
-    si.camera_info.aperture = 0.01;
+    si.camera_info.aperture_radius = 0.01;
     si.camera_info.focus_distance = Dist(position, target);
     si.camera_info.film_info.filename = "";
-    si.camera_info.film_info.resolution = { 500, 500 };
+    si.camera_info.film_info.resolution = { width, height };
     si.camera_info.sampler_info.type = SamplerType::stratified;
     si.camera_info.sampler_info.spp = 64;
 

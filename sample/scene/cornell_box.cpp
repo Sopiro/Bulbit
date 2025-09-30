@@ -85,6 +85,9 @@ SceneInfo CornellBox()
         // CreateImageInfiniteLight(*scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(pi, y_axis)));
     }
 
+    int32 width = 500;
+    int32 height = width;
+
     Point3 position{ 0.5f, 0.5f, 2.05f };
     Point3 target{ 0.5f, 0.5f, 0.0f };
 
@@ -95,10 +98,10 @@ SceneInfo CornellBox()
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = 28;
-    si.camera_info.aperture = 0;
+    si.camera_info.aperture_radius = 0;
     si.camera_info.focus_distance = Dist(position, target);
     si.camera_info.film_info.filename = "";
-    si.camera_info.film_info.resolution = { 500, 500 };
+    si.camera_info.film_info.resolution = { width, height };
     si.camera_info.sampler_info.type = SamplerType::stratified;
     si.camera_info.sampler_info.spp = 64;
 

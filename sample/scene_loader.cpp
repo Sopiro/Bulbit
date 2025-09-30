@@ -362,7 +362,7 @@ static void ParseCamera(pugi::xml_node node, const DefaultMap& dm, CameraInfo& c
     ci.type = CameraType::perspective;
     ci.transform = identity;
     ci.fov = 35;
-    ci.aperture = 0;
+    ci.aperture_radius = 0;
     ci.focus_distance = 1;
 
     std::string type = ParseString(node.attribute("type"), dm);
@@ -389,7 +389,7 @@ static void ParseCamera(pugi::xml_node node, const DefaultMap& dm, CameraInfo& c
             }
             else if (name == "aperture_radius")
             {
-                ci.aperture = ParseFloat(child.attribute("value"), dm);
+                ci.aperture_radius = ParseFloat(child.attribute("value"), dm);
             }
         }
 
@@ -428,13 +428,6 @@ static void ParseCamera(pugi::xml_node node, const DefaultMap& dm, CameraInfo& c
 static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, RendererInfo& ri)
 {
     std::string type = ParseString(node.attribute("type"), dm);
-
-    ri.type = IntegratorType::path;
-    ri.max_bounces = 16;
-    ri.rr_depth = 1;
-    ri.ao_range = 0.1f;
-    ri.n_photons = 100000;
-    ri.initial_radius = -1;
 
     // TODO: add all types
     // clang-format off

@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
 
     std::cout << "Loading scene.." << std::endl;
     Timer timer;
-    SceneInfo si = Sample::Get("cornell-box-caustics");
+    SceneInfo si = Sample::Get("cornell-box");
     if (!si)
     {
         std::cout << "Sample not found!" << std::endl;
@@ -26,8 +26,7 @@ int main(int argc, char* argv[])
     }
 
     timer.Mark();
-    double t = timer.Get();
-    std::cout << "Scene loading: " << t << "s" << std::endl;
+    std::cout << "Scene loading: " << timer.Get() << "s" << std::endl;
     std::cout << "Primitives: " << si.scene->GetPrimitives().size() << std::endl;
     std::cout << "Lights: " << si.scene->GetLights().size() << std::endl;
 
@@ -38,7 +37,7 @@ int main(int argc, char* argv[])
     case CameraType::perspective:
     {
         camera = std::make_unique<PerspectiveCamera>(
-            si.camera_info.transform, si.camera_info.fov, si.camera_info.aperture, si.camera_info.focus_distance,
+            si.camera_info.transform, si.camera_info.fov, si.camera_info.aperture_radius, si.camera_info.focus_distance,
             si.camera_info.film_info.resolution
         );
     }
@@ -54,8 +53,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<Sampler> sampler;
 
     timer.Mark();
-    t = timer.Get();
-    std::cout << "Acceleration structure build: " << t << "s" << std::endl;
+    std::cout << "Acceleration structure build: " << timer.Get() << "s" << std::endl;
 
     int32 spp = si.camera_info.sampler_info.spp;
 
@@ -83,10 +81,14 @@ int main(int argc, char* argv[])
     switch (si.renderer_info.type)
     {
     case IntegratorType::path:
-        integrator = std::make_unique<PathIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces);
+        integrator = std::make_unique<PathIntegrator>(
+            &accel, si.scene->GetLights(), sampler.get(), max_bounces, si.renderer_info.regularize_bsdf
+        );
         break;
     case IntegratorType::vol_path:
-        integrator = std::make_unique<VolPathIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces);
+        integrator = std::make_unique<VolPathIntegrator>(
+            &accel, si.scene->GetLights(), sampler.get(), max_bounces, si.renderer_info.regularize_bsdf
+        );
         break;
     case IntegratorType::light_path:
         integrator = std::make_unique<LightPathIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces);
@@ -107,6 +109,15 @@ int main(int argc, char* argv[])
             &accel, si.scene->GetLights(), sampler.get(), max_bounces, si.renderer_info.n_photons, si.renderer_info.initial_radius
         );
         break;
+    case IntegratorType::naive_path:
+        integrator = std::make_unique<NaivePathIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces);
+        break;
+    case IntegratorType::naive_vol_path:
+        integrator = std::make_unique<NaiveVolPathIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces);
+        break;
+    case IntegratorType::random_walk:
+        integrator = std::make_unique<RandomWalkIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces);
+        break;
     case IntegratorType::ao:
         integrator = std::make_unique<AmbientOcclusion>(&accel, si.scene->GetLights(), sampler.get(), si.renderer_info.ao_range);
         break;
@@ -124,13 +135,14 @@ int main(int argc, char* argv[])
     std::unique_ptr<Rendering> rendering = integrator->Render(camera.get());
     rendering->WaitAndLogProgress();
     timer.Mark();
-    t = timer.Get();
-    std::cout << "\nComplete: " << t << 's' << std::endl;
+    double render_time = timer.Get();
+    std::cout << "\nComplete: " << render_time << 's' << std::endl;
 
     const Film& film = rendering->GetFilm();
     Image3 image = film.GetRenderedImage();
 
-    std::string filename = std::format("render_{}x{}_s{}_d{}_t{}s.hdr", image.width, image.height, spp, max_bounces, t);
+    std::string filename =
+        std::format("bulbit_render_{}x{}_s{}_d{}_t{}s.hdr", image.width, image.height, spp, max_bounces, render_time);
     WriteImage(image, filename.c_str());
 
 #if _DEBUG
