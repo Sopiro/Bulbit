@@ -1,4 +1,5 @@
 #include "bulbit/integrators.h"
+#include "bulbit/renderer_info.h"
 
 #include "bulbit/async_job.h"
 #include "bulbit/camera.h"
@@ -11,6 +12,66 @@
 
 namespace bulbit
 {
+
+Integrator* Integrator::Create(
+    Allocator& alloc,
+    const IntegratorInfo& ii,
+    const Intersectable* accel,
+    const std::vector<Light*>& lights,
+    const Sampler* sampler
+)
+{
+    int32 max_bounces = ii.max_bounces;
+    int32 rr_min_bounces = ii.rr_min_bounces;
+
+    switch (ii.type)
+    {
+    case IntegratorType::path:
+        return alloc.new_object<PathIntegrator>(accel, lights, sampler, max_bounces, rr_min_bounces, ii.regularize_bsdf);
+
+    case IntegratorType::vol_path:
+        return alloc.new_object<VolPathIntegrator>(accel, lights, sampler, max_bounces, rr_min_bounces, ii.regularize_bsdf);
+
+    case IntegratorType::light_path:
+        return alloc.new_object<LightPathIntegrator>(accel, lights, sampler, max_bounces, rr_min_bounces);
+
+    case IntegratorType::light_vol_path:
+        return alloc.new_object<LightVolPathIntegrator>(accel, lights, sampler, max_bounces, rr_min_bounces);
+
+    case IntegratorType::bdpt:
+        return alloc.new_object<BiDirectionalPathIntegrator>(accel, lights, sampler, max_bounces, rr_min_bounces);
+
+    case IntegratorType::vol_bdpt:
+        return alloc.new_object<BiDirectionalVolPathIntegrator>(accel, lights, sampler, max_bounces, rr_min_bounces);
+
+    case IntegratorType::pm:
+        return alloc.new_object<PhotonMappingIntegrator>(accel, lights, sampler, max_bounces, ii.n_photons, ii.initial_radius);
+
+    case IntegratorType::sppm:
+        return alloc.new_object<SPPMIntegrator>(accel, lights, sampler, max_bounces, ii.n_photons, ii.initial_radius);
+
+    case IntegratorType::naive_path:
+        return alloc.new_object<NaivePathIntegrator>(accel, lights, sampler, max_bounces, rr_min_bounces);
+
+    case IntegratorType::naive_vol_path:
+        return alloc.new_object<NaiveVolPathIntegrator>(accel, lights, sampler, max_bounces, rr_min_bounces);
+
+    case IntegratorType::random_walk:
+        return alloc.new_object<RandomWalkIntegrator>(accel, lights, sampler, max_bounces);
+
+    case IntegratorType::ao:
+        return alloc.new_object<AmbientOcclusion>(accel, lights, sampler, ii.ao_range);
+
+    case IntegratorType::albedo:
+        return alloc.new_object<AlbedoIntegrator>(accel, lights, sampler);
+
+    case IntegratorType::debug:
+        return alloc.new_object<DebugIntegrator>(accel, lights, sampler);
+
+    default:
+        return nullptr;
+    }
+}
 
 Integrator::Integrator(const Intersectable* accel, std::vector<Light*> lights, std::unique_ptr<LightSampler> l_sampler)
     : accel{ accel }

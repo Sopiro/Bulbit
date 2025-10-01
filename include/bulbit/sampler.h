@@ -5,9 +5,13 @@
 namespace bulbit
 {
 
+struct SamplerInfo;
+
 class Sampler
 {
 public:
+    static Sampler* Create(Allocator& alloc, const SamplerInfo& sampler_info);
+
     Sampler(int32 samples_per_pixel);
     virtual ~Sampler() = default;
 

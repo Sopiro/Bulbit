@@ -39,9 +39,12 @@ struct PrimaryRay
     Float weight;
 };
 
+struct CameraInfo;
+
 class Camera
 {
 public:
+    static Camera* Create(Allocator& alloc, const CameraInfo& camera_info, const Filter* pixel_filter);
     static inline std::unique_ptr<Filter> default_filter = std::make_unique<GaussianFilter>();
 
     Camera(const Point2i& resolution, const Medium* medium, const Filter* pixel_filter)

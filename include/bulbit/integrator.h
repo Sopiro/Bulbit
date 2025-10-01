@@ -14,9 +14,19 @@ class LightSampler;
 
 using AreaLightMap = std::unordered_map<const Primitive*, AreaLight*>;
 
+struct IntegratorInfo;
+
 class Integrator
 {
 public:
+    static Integrator* Create(
+        Allocator& alloc,
+        const IntegratorInfo& integrator_info,
+        const Intersectable* accel,
+        const std::vector<Light*>& lights,
+        const Sampler* sampler
+    );
+
     virtual ~Integrator() = default;
 
     Integrator(Integrator&) = delete;

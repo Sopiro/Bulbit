@@ -28,50 +28,21 @@ int main(int argc, char* argv[])
 
     timer.Mark();
     std::cout << "Scene loading: " << timer.Get() << "s" << std::endl;
-    std::cout << "Primitives: " << ri.scene.GetPrimitives().size() << std::endl;
-    std::cout << "Lights: " << ri.scene.GetLights().size() << std::endl;
+    std::cout << "Primitives: " << ri.scene.GetPrimitives().size() << ", Lights: " << ri.scene.GetLights().size() << std::endl;
 
-    const ReconFilterInfo& fi = ri.camera_info.film_info.recon_filter_info;
+    Allocator alloc;
 
-    std::unique_ptr<Filter> pixel_filter;
-    switch (fi.type)
+    Filter* pixel_filter = Filter::Create(alloc, ri.camera_info.film_info.recon_filter_info);
+    if (!pixel_filter)
     {
-    case ReconFilterType::box:
-        pixel_filter = std::make_unique<BoxFilter>(fi.extent);
-        break;
-    case ReconFilterType::tent:
-        pixel_filter = std::make_unique<TentFilter>(fi.extent);
-        break;
-    case ReconFilterType::gaussian:
-        pixel_filter = std::make_unique<GaussianFilter>(fi.gaussian_stddev, fi.extent);
-        break;
-
-    default:
+        std::cout << "Faild to create pixel filter" << std::endl;
         return 0;
     }
 
-    const CameraInfo& ci = ri.camera_info;
-
-    std::unique_ptr<Camera> camera;
-    const Medium* camera_medium = nullptr; // TODO: handle it correctly
-    switch (ci.type)
+    Camera* camera = Camera::Create(alloc, ri.camera_info, pixel_filter);
+    if (!camera)
     {
-    case CameraType::perspective:
-        camera = std::make_unique<PerspectiveCamera>(
-            ci.transform, ci.fov, ci.aperture_radius, ci.focus_distance, ci.film_info.resolution, camera_medium,
-            pixel_filter.get()
-        );
-        break;
-    case CameraType::orthographic:
-        camera = std::make_unique<OrthographicCamera>(
-            ci.transform, ci.viewport_size, ci.film_info.resolution.x, camera_medium, pixel_filter.get()
-        );
-        break;
-    case CameraType::spherical:
-        camera = std::make_unique<SphericalCamera>(ci.transform, ci.film_info.resolution, camera_medium, pixel_filter.get());
-        break;
-
-    default:
+        std::cout << "Faild to create camera" << std::endl;
         return 0;
     }
 
@@ -80,107 +51,38 @@ int main(int argc, char* argv[])
     timer.Mark();
     std::cout << "Acceleration structure build: " << timer.Get() << "s" << std::endl;
 
-    std::unique_ptr<Sampler> sampler;
-    int32 spp = ci.sampler_info.spp;
-
-    switch (ci.sampler_info.type)
+    Sampler* sampler = Sampler::Create(alloc, ri.camera_info.sampler_info);
+    if (!sampler)
     {
-    case SamplerType::independent:
-        sampler = std::make_unique<IndependentSampler>(spp);
-        break;
-    case SamplerType::stratified:
-    {
-        int32 h = std::sqrt(spp);
-        sampler = std::make_unique<StratifiedSampler>(h, h, true);
-    }
-    break;
-
-    default:
+        std::cout << "Faild to sampler" << std::endl;
         return 0;
     }
 
-    const IntegratorInfo& ii = ri.integrator_info;
-    int32 max_bounces = ii.max_bounces;
-    int32 rr_min_bounces = ii.rr_min_bounces;
-
-    std::unique_ptr<Integrator> integrator;
-    switch (ii.type)
+    Integrator* integrator = Integrator::Create(alloc, ri.integrator_info, &accel, ri.scene.GetLights(), sampler);
+    if (!integrator)
     {
-    case IntegratorType::path:
-        integrator = std::make_unique<PathIntegrator>(
-            &accel, ri.scene.GetLights(), sampler.get(), max_bounces, rr_min_bounces, ii.regularize_bsdf
-        );
-        break;
-    case IntegratorType::vol_path:
-        integrator = std::make_unique<VolPathIntegrator>(
-            &accel, ri.scene.GetLights(), sampler.get(), max_bounces, rr_min_bounces, ii.regularize_bsdf
-        );
-        break;
-    case IntegratorType::light_path:
-        integrator =
-            std::make_unique<LightPathIntegrator>(&accel, ri.scene.GetLights(), sampler.get(), max_bounces, rr_min_bounces);
-        break;
-    case IntegratorType::light_vol_path:
-        integrator =
-            std::make_unique<LightVolPathIntegrator>(&accel, ri.scene.GetLights(), sampler.get(), max_bounces, rr_min_bounces);
-        break;
-    case IntegratorType::bdpt:
-        integrator = std::make_unique<BiDirectionalPathIntegrator>(
-            &accel, ri.scene.GetLights(), sampler.get(), max_bounces, rr_min_bounces
-        );
-        break;
-    case IntegratorType::vol_bdpt:
-        integrator = std::make_unique<BiDirectionalVolPathIntegrator>(
-            &accel, ri.scene.GetLights(), sampler.get(), max_bounces, rr_min_bounces
-        );
-        break;
-    case IntegratorType::pm:
-        integrator = std::make_unique<PhotonMappingIntegrator>(
-            &accel, ri.scene.GetLights(), sampler.get(), max_bounces, ii.n_photons, ii.initial_radius
-        );
-        break;
-    case IntegratorType::sppm:
-        integrator = std::make_unique<SPPMIntegrator>(
-            &accel, ri.scene.GetLights(), sampler.get(), max_bounces, ii.n_photons, ii.initial_radius
-        );
-        break;
-    case IntegratorType::naive_path:
-        integrator =
-            std::make_unique<NaivePathIntegrator>(&accel, ri.scene.GetLights(), sampler.get(), max_bounces, rr_min_bounces);
-        break;
-    case IntegratorType::naive_vol_path:
-        integrator =
-            std::make_unique<NaiveVolPathIntegrator>(&accel, ri.scene.GetLights(), sampler.get(), max_bounces, rr_min_bounces);
-        break;
-    case IntegratorType::random_walk:
-        integrator = std::make_unique<RandomWalkIntegrator>(&accel, ri.scene.GetLights(), sampler.get(), max_bounces);
-        break;
-    case IntegratorType::ao:
-        integrator = std::make_unique<AmbientOcclusion>(&accel, ri.scene.GetLights(), sampler.get(), ii.ao_range);
-        break;
-    case IntegratorType::albedo:
-        integrator = std::make_unique<AlbedoIntegrator>(&accel, ri.scene.GetLights(), sampler.get());
-        break;
-    case IntegratorType::debug:
-        integrator = std::make_unique<DebugIntegrator>(&accel, ri.scene.GetLights(), sampler.get());
-        break;
-
-    default:
+        std::cout << "Faild to create integrator" << std::endl;
         return 0;
     }
 
-    std::unique_ptr<Rendering> rendering = integrator->Render(camera.get());
+    std::unique_ptr<Rendering> rendering = integrator->Render(camera);
     rendering->WaitAndLogProgress();
     timer.Mark();
     double render_time = timer.Get();
     std::cout << "\nComplete: " << render_time << 's' << std::endl;
 
-    const Film& film = rendering->GetFilm();
-    Image3 image = film.GetRenderedImage();
+    Image3 image = rendering->GetFilm().GetRenderedImage();
 
-    std::string filename =
-        std::format("bulbit_render_{}x{}_s{}_d{}_t{}s.hdr", image.width, image.height, spp, max_bounces, render_time);
+    std::string filename = std::format(
+        "bulbit_render_{}x{}_s{}_d{}_t{}s.hdr", image.width, image.height, ri.camera_info.sampler_info.spp,
+        ri.integrator_info.max_bounces, render_time
+    );
     WriteImage(image, filename.c_str());
+
+    alloc.delete_object(integrator);
+    alloc.delete_object(sampler);
+    alloc.delete_object(camera);
+    alloc.delete_object(pixel_filter);
 
 #if _DEBUG
     return 0;
