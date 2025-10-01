@@ -265,7 +265,7 @@ public:
         Float gather_radius = -1
     );
 
-    virtual std::unique_ptr<Rendering> Render(const Camera* camera) override;
+    virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
 
 private:
     void EmitPhotons(MultiPhaseRendering* progress);
@@ -299,7 +299,7 @@ public:
         Float initial_radius = -1
     );
 
-    virtual std::unique_ptr<Rendering> Render(const Camera* camera) override;
+    virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
 
 private:
     Spectrum SampleDirectLight(

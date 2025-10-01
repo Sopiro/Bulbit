@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    std::unique_ptr<Rendering> rendering = integrator->Render(camera);
+    Rendering* rendering = integrator->Render(alloc, camera);
     rendering->WaitAndLogProgress();
     timer.Mark();
     double render_time = timer.Get();
@@ -79,6 +79,7 @@ int main(int argc, char* argv[])
     );
     WriteImage(image, filename.c_str());
 
+    alloc.delete_object(rendering);
     alloc.delete_object(integrator);
     alloc.delete_object(sampler);
     alloc.delete_object(camera);

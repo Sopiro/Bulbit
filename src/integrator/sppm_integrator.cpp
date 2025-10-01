@@ -81,7 +81,7 @@ Spectrum SPPMIntegrator::SampleDirectLight(
     }
 }
 
-std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
+Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 {
     ComputeReflectanceTextures();
 
@@ -99,7 +99,7 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
         phase_works[i + 1] = size_t(photons_per_iteration);
     }
 
-    MultiPhaseRendering* progress = new MultiPhaseRendering(camera, phase_works);
+    MultiPhaseRendering* progress = alloc.new_object<MultiPhaseRendering>(camera, phase_works);
     progress->job = RunAsync([=, this]() {
         std::vector<std::unique_ptr<BufferResource>> thread_buffers;
         ThreadLocal<Allocator> thread_allocators([&thread_buffers]() {
@@ -493,7 +493,7 @@ std::unique_ptr<Rendering> SPPMIntegrator::Render(const Camera* camera)
         return true;
     });
 
-    return std::unique_ptr<Rendering>(progress);
+    return progress;
 }
 
 } // namespace bulbit

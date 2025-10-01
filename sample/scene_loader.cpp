@@ -1031,8 +1031,9 @@ static const Material* ParseMaterial(
         const Material* top = scene->CreateMaterial<DielectricMaterial>(eta, roughness, roughness, reflectance);
         const Material* bottom = scene->CreateMaterial<DiffuseMaterial>(basecolor);
 
-        const Material* mat =
-            scene->CreateMaterial<LayeredMaterial>(top, bottom, mi.two_sided, Spectrum(0), 1e-4f, 0, 16, 1, mi.normal, mi.alpha);
+        const Material* mat = scene->CreateMaterial<LayeredMaterial>(
+            top, bottom, mi.two_sided, Spectrum::black, 1e-4f, 0, 16, 1, mi.normal, mi.alpha
+        );
         mm[id] = mat;
     }
     else if (type == "roughconductor" || type == "conductor")

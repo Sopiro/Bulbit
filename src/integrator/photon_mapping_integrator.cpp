@@ -323,7 +323,7 @@ void PhotonMappingIntegrator::GatherPhotons(const Camera* camera, int32 tile_siz
     );
 }
 
-std::unique_ptr<Rendering> PhotonMappingIntegrator::Render(const Camera* camera)
+Rendering* PhotonMappingIntegrator::Render(Allocator& alloc, const Camera* camera)
 {
     ComputeReflectanceTextures();
 
@@ -334,7 +334,7 @@ std::unique_ptr<Rendering> PhotonMappingIntegrator::Render(const Camera* camera)
     int32 tile_count = num_tiles.x * num_tiles.y;
 
     std::array<size_t, 2> phase_works = { size_t(n_photons), size_t(tile_count) };
-    MultiPhaseRendering* progress = new MultiPhaseRendering(camera, phase_works);
+    MultiPhaseRendering* progress = alloc.new_object<MultiPhaseRendering>(camera, phase_works);
 
     progress->job = RunAsync([=, this]() {
         EmitPhotons(progress);
@@ -344,7 +344,7 @@ std::unique_ptr<Rendering> PhotonMappingIntegrator::Render(const Camera* camera)
         return true;
     });
 
-    return std::unique_ptr<Rendering>(progress);
+    return progress;
 }
 
 } // namespace bulbit

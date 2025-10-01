@@ -117,7 +117,7 @@ UniDirectionalRayIntegrator::UniDirectionalRayIntegrator(
 {
 }
 
-std::unique_ptr<Rendering> UniDirectionalRayIntegrator::Render(const Camera* camera)
+Rendering* UniDirectionalRayIntegrator::Render(Allocator& alloc, const Camera* camera)
 {
     ComputeReflectanceTextures();
 
@@ -129,7 +129,7 @@ std::unique_ptr<Rendering> UniDirectionalRayIntegrator::Render(const Camera* cam
     Point2i num_tiles = (resolution + (tile_size - 1)) / tile_size;
     int32 tile_count = num_tiles.x * num_tiles.y;
 
-    SinglePhaseRendering* progress = new SinglePhaseRendering(camera, size_t(tile_count));
+    SinglePhaseRendering* progress = alloc.new_object<SinglePhaseRendering>(camera, size_t(tile_count));
     progress->job = RunAsync([=, this]() {
         ParallelFor2D(
             resolution,
@@ -166,7 +166,7 @@ std::unique_ptr<Rendering> UniDirectionalRayIntegrator::Render(const Camera* cam
         return true;
     });
 
-    return std::unique_ptr<Rendering>(progress);
+    return progress;
 }
 
 BiDirectionalRayIntegrator::BiDirectionalRayIntegrator(
@@ -177,7 +177,7 @@ BiDirectionalRayIntegrator::BiDirectionalRayIntegrator(
 {
 }
 
-std::unique_ptr<Rendering> BiDirectionalRayIntegrator::Render(const Camera* camera)
+Rendering* BiDirectionalRayIntegrator::Render(Allocator& alloc, const Camera* camera)
 {
     ComputeReflectanceTextures();
 
@@ -189,7 +189,7 @@ std::unique_ptr<Rendering> BiDirectionalRayIntegrator::Render(const Camera* came
     Point2i num_tiles = (resolution + (tile_size - 1)) / tile_size;
     int32 tile_count = num_tiles.x * num_tiles.y;
 
-    SinglePhaseRendering* progress = new SinglePhaseRendering(camera, size_t(tile_count));
+    SinglePhaseRendering* progress = alloc.new_object<SinglePhaseRendering>(camera, size_t(tile_count));
     progress->job = RunAsync([=, this]() {
         ParallelFor2D(
             resolution,
@@ -227,7 +227,7 @@ std::unique_ptr<Rendering> BiDirectionalRayIntegrator::Render(const Camera* came
         return true;
     });
 
-    return std::unique_ptr<Rendering>(progress);
+    return progress;
 }
 
 } // namespace bulbit

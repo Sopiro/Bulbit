@@ -32,7 +32,7 @@ public:
     Integrator(Integrator&) = delete;
     Integrator& operator=(Integrator&) = delete;
 
-    virtual std::unique_ptr<Rendering> Render(const Camera* camera) = 0;
+    virtual Rendering* Render(Allocator& alloc, const Camera* camera) = 0;
 
     bool Intersect(Intersection* out_isect, const Ray& ray, Float t_min, Float t_max) const
     {
@@ -91,7 +91,7 @@ public:
         std::unique_ptr<LightSampler> light_sampler
     );
 
-    virtual std::unique_ptr<Rendering> Render(const Camera* camera) override;
+    virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
 
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const = 0;
 
@@ -109,7 +109,7 @@ public:
         std::unique_ptr<LightSampler> light_sampler
     );
 
-    virtual std::unique_ptr<Rendering> Render(const Camera* camera) override;
+    virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
 
     virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const = 0;
 
