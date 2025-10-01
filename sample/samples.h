@@ -15,10 +15,10 @@ using namespace bulbit;
 
 struct Sample
 {
-    using Func = std::function<SceneInfo(void)>;
+    using Func = std::function<RendererInfo(void)>;
 
     static int32 Register(std::string name, Func func);
-    static SceneInfo Get(std::string name);
+    static RendererInfo Get(std::string name);
 
     static inline std::map<std::string, Func> samples;
     static inline int32 count = 0;
@@ -31,7 +31,7 @@ inline int32 Sample::Register(std::string name, Func func)
     return ++count;
 }
 
-inline SceneInfo Sample::Get(std::string name)
+inline RendererInfo Sample::Get(std::string name)
 {
     if (!samples.contains(name))
     {

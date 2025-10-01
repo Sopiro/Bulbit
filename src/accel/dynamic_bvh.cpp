@@ -34,7 +34,7 @@ DynamicBVH::DynamicBVH(const std::vector<Primitive*>& primitives)
     }
 }
 
-DynamicBVH::~DynamicBVH() noexcept
+DynamicBVH::~DynamicBVH()
 {
     free(nodes);
     root = null_node;

@@ -23,7 +23,7 @@ enum
     cloth = 1
 };
 
-SceneInfo Principled(int32 lobe, int32 model)
+RendererInfo Principled(int32 lobe, int32 model)
 {
     auto scene = std::make_unique<Scene>();
 
@@ -277,10 +277,10 @@ SceneInfo Principled(int32 lobe, int32 model)
     Point3 position = Point3{ 0, 1.0, 2.28 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = 30;

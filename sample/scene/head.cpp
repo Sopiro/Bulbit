@@ -1,6 +1,6 @@
 #include "../samples.h"
 
-SceneInfo Head()
+RendererInfo Head()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -49,10 +49,10 @@ SceneInfo Head()
     Float aperture = 0.01f;
     Float fov = 30;
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;

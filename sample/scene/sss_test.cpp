@@ -1,6 +1,6 @@
 #include "../samples.h"
 
-SceneInfo SSSTest()
+RendererInfo SSSTest()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -87,10 +87,10 @@ SceneInfo SSSTest()
     Float aperture = 0.02f;
     Float fov = 30.0;
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;
@@ -104,7 +104,7 @@ SceneInfo SSSTest()
     return si;
 }
 
-SceneInfo SSSTest2()
+RendererInfo SSSTest2()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -169,10 +169,10 @@ SceneInfo SSSTest2()
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;

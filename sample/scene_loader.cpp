@@ -491,7 +491,7 @@ static void ParseCamera(pugi::xml_node node, const DefaultMap& dm, CameraInfo& c
     }
 }
 
-static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, RendererInfo& ri)
+static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, IntegratorInfo& ri)
 {
     std::string type = ParseString(node.attribute("type"), dm);
 
@@ -1450,9 +1450,9 @@ static void ParseLight(pugi::xml_node node, const DefaultMap& dm, Scene* scene)
     }
 }
 
-static SceneInfo ParseScene(pugi::xml_node scene_node)
+static RendererInfo ParseScene(pugi::xml_node scene_node)
 {
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::make_unique<Scene>();
 
     DefaultMap dm;
@@ -1468,7 +1468,7 @@ static SceneInfo ParseScene(pugi::xml_node scene_node)
         }
         else if (name == "integrator")
         {
-            ParseIntegrator(node, dm, si.renderer_info);
+            ParseIntegrator(node, dm, si.integrator_info);
         }
         else if (name == "sensor")
         {
@@ -1491,7 +1491,7 @@ static SceneInfo ParseScene(pugi::xml_node scene_node)
     return si;
 }
 
-SceneInfo LoadScene(std::filesystem::path filename)
+RendererInfo LoadScene(std::filesystem::path filename)
 {
     pugi::xml_document doc;
     pugi::xml_parse_result xml_result = doc.load_file(filename.c_str());
@@ -1510,7 +1510,7 @@ SceneInfo LoadScene(std::filesystem::path filename)
     return scene;
 }
 
-SceneInfo::operator bool() const
+RendererInfo::operator bool() const
 {
     return bool(scene);
 }

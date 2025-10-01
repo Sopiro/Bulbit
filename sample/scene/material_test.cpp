@@ -1,6 +1,6 @@
 #include "../samples.h"
 
-SceneInfo MaterialTest()
+RendererInfo MaterialTest()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -58,10 +58,10 @@ SceneInfo MaterialTest()
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;
@@ -75,7 +75,7 @@ SceneInfo MaterialTest()
     return si;
 }
 
-SceneInfo MetallicRoughness()
+RendererInfo MetallicRoughness()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -152,10 +152,10 @@ SceneInfo MetallicRoughness()
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;
@@ -169,7 +169,7 @@ SceneInfo MetallicRoughness()
     return si;
 }
 
-SceneInfo Dielectrics()
+RendererInfo Dielectrics()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -246,10 +246,10 @@ SceneInfo Dielectrics()
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;
@@ -263,7 +263,7 @@ SceneInfo Dielectrics()
     return si;
 }
 
-SceneInfo Skins()
+RendererInfo Skins()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -345,10 +345,10 @@ SceneInfo Skins()
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;
@@ -362,7 +362,7 @@ SceneInfo Skins()
     return si;
 }
 
-SceneInfo Mixtures()
+RendererInfo Mixtures()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -450,10 +450,10 @@ SceneInfo Mixtures()
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;
@@ -467,7 +467,7 @@ SceneInfo Mixtures()
     return si;
 }
 
-SceneInfo Alphas()
+RendererInfo Alphas()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -544,10 +544,10 @@ SceneInfo Alphas()
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;
@@ -561,7 +561,7 @@ SceneInfo Alphas()
     return si;
 }
 
-SceneInfo ColoredDielectrics()
+RendererInfo ColoredDielectrics()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -638,10 +638,10 @@ SceneInfo ColoredDielectrics()
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;

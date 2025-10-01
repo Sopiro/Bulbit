@@ -78,9 +78,10 @@ enum class IntegratorType
     debug,
 };
 
-struct RendererInfo
+struct IntegratorInfo
 {
     IntegratorType type = IntegratorType::path;
+
     int32 max_bounces = 16;
     int32 rr_min_bounces = 1;
     bool regularize_bsdf = false;
@@ -91,12 +92,12 @@ struct RendererInfo
     Float initial_radius = -1;
 };
 
-struct SceneInfo
+struct RendererInfo
 {
     std::unique_ptr<Scene> scene;
 
     CameraInfo camera_info;
-    RendererInfo renderer_info;
+    IntegratorInfo integrator_info;
 
     operator bool() const;
 };
@@ -104,6 +105,6 @@ struct SceneInfo
 // Load Mitsuba3 scene file
 // Parser implementation is based on:
 // https://github.com/BachiLi/lajolla_public/blob/main/src/parsers/parse_scene.cpp
-SceneInfo LoadScene(std::filesystem::path filename);
+RendererInfo LoadScene(std::filesystem::path filename);
 
 } // namespace bulbit

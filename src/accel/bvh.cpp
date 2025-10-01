@@ -48,7 +48,7 @@ BVH::BVH(const std::vector<Primitive*>& _primitives)
     BulbitAssert(offset == total_nodes);
 }
 
-BVH::~BVH() noexcept
+BVH::~BVH()
 {
     delete nodes;
 }

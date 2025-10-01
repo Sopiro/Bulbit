@@ -11,8 +11,9 @@ namespace bulbit
 class BVH : public Intersectable
 {
 public:
+    BVH() = default;
     BVH(const std::vector<Primitive*>& primitives);
-    ~BVH() noexcept;
+    ~BVH();
 
     virtual AABB GetAABB() const override;
     virtual bool Intersect(Intersection* out_isect, const Ray& ray, Float t_min, Float t_max) const override;

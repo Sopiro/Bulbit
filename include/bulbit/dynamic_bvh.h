@@ -37,7 +37,7 @@ public:
     DynamicBVH();
     DynamicBVH(const std::vector<Primitive*>& primitives);
 
-    virtual ~DynamicBVH() noexcept;
+    virtual ~DynamicBVH();
 
     DynamicBVH(const DynamicBVH&) = delete;
     DynamicBVH& operator=(const DynamicBVH&) = delete;

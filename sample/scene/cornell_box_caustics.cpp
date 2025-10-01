@@ -1,6 +1,6 @@
 #include "../samples.h"
 
-SceneInfo CornellBoxCaustics()
+RendererInfo CornellBoxCaustics()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -104,12 +104,12 @@ SceneInfo CornellBoxCaustics()
     Point3 position{ 0.5f, 0.5f, 2.05f };
     Point3 target{ 0.5f, 0.5f, 0.0f };
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::sppm;
-    si.renderer_info.n_photons = 10000;
-    si.renderer_info.initial_radius = -1;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::sppm;
+    si.integrator_info.n_photons = 10000;
+    si.integrator_info.initial_radius = -1;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = 28;

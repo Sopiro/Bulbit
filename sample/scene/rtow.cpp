@@ -2,7 +2,7 @@
 
 // The final scene of Ray Tracing in One Weekend
 // https://raytracing.github.io/books/RayTracingInOneWeekend.html#wherenext?/afinalrender
-SceneInfo RaytracigInOneWeekend()
+RendererInfo RaytracigInOneWeekend()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -74,10 +74,10 @@ SceneInfo RaytracigInOneWeekend()
     Point3 position{ 13, 2, 3 };
     Point3 target{ 0, 0, 0 };
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = 20;

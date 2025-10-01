@@ -15,7 +15,7 @@ class Scene
 {
 public:
     Scene();
-    ~Scene() noexcept;
+    ~Scene();
 
     Scene(const Scene&) = delete;
     Scene& operator=(const Scene&) = delete;
@@ -65,7 +65,7 @@ inline Scene::Scene()
 {
 }
 
-inline Scene::~Scene() noexcept
+inline Scene::~Scene()
 {
     for (Mesh* m : meshes)
     {

@@ -1,6 +1,6 @@
 #include "../samples.h"
 
-SceneInfo Metals()
+RendererInfo Metals()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -100,10 +100,10 @@ SceneInfo Metals()
     Float aperture = 0.0f;
     Float fov = 30.0;
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;

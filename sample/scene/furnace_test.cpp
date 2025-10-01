@@ -1,6 +1,6 @@
 #include "../samples.h"
 
-SceneInfo FurnacePrincipled()
+RendererInfo FurnacePrincipled()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -84,10 +84,10 @@ SceneInfo FurnacePrincipled()
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;
@@ -101,7 +101,7 @@ SceneInfo FurnacePrincipled()
     return si;
 }
 
-SceneInfo FurnaceDielectric()
+RendererInfo FurnaceDielectric()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -187,10 +187,10 @@ SceneInfo FurnaceDielectric()
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;
@@ -204,7 +204,7 @@ SceneInfo FurnaceDielectric()
     return si;
 }
 
-SceneInfo FurnaceConductor()
+RendererInfo FurnaceConductor()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -291,10 +291,10 @@ SceneInfo FurnaceConductor()
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = fov;

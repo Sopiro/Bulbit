@@ -17,9 +17,9 @@ int main(int argc, char* argv[])
     std::cout << "Loading scene.." << std::endl;
     Timer timer;
 
-    SceneInfo si = Sample::Get("cornell-box");
-    // SceneInfo si = LoadScene("C:/Users/sopir/Desktop/scenes/bedroom/scene_v3.xml");
-    if (!si)
+    RendererInfo ri = Sample::Get("cornell-box");
+    // RendererInfo ri = LoadScene("C:/Users/sopir/Desktop/scenes/bedroom/scene_v3.xml");
+    if (!ri)
     {
         std::cout << "Sample not found!" << std::endl;
         return 0;
@@ -27,10 +27,10 @@ int main(int argc, char* argv[])
 
     timer.Mark();
     std::cout << "Scene loading: " << timer.Get() << "s" << std::endl;
-    std::cout << "Primitives: " << si.scene->GetPrimitives().size() << std::endl;
-    std::cout << "Lights: " << si.scene->GetLights().size() << std::endl;
+    std::cout << "Primitives: " << ri.scene->GetPrimitives().size() << std::endl;
+    std::cout << "Lights: " << ri.scene->GetLights().size() << std::endl;
 
-    const ReconFilterInfo& fi = si.camera_info.film_info.recon_filter_info;
+    const ReconFilterInfo& fi = ri.camera_info.film_info.recon_filter_info;
 
     std::unique_ptr<Filter> pixel_filter;
     switch (fi.type)
@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    const CameraInfo& ci = si.camera_info;
+    const CameraInfo& ci = ri.camera_info;
 
     std::unique_ptr<Camera> camera;
     const Medium* camera_medium = nullptr; // TODO: handle it correctly
@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
     }
 
     std::cout << "Building acceleration structure.." << std::endl;
-    BVH accel(si.scene->GetPrimitives());
+    BVH accel(ri.scene->GetPrimitives());
     timer.Mark();
     std::cout << "Acceleration structure build: " << timer.Get() << "s" << std::endl;
 
@@ -98,70 +98,70 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    const RendererInfo& ri = si.renderer_info;
-    int32 max_bounces = ri.max_bounces;
-    int32 rr_min_bounces = ri.rr_min_bounces;
+    const IntegratorInfo& ii = ri.integrator_info;
+    int32 max_bounces = ii.max_bounces;
+    int32 rr_min_bounces = ii.rr_min_bounces;
 
     std::unique_ptr<Integrator> integrator;
-    switch (ri.type)
+    switch (ii.type)
     {
     case IntegratorType::path:
         integrator = std::make_unique<PathIntegrator>(
-            &accel, si.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces, ri.regularize_bsdf
+            &accel, ri.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces, ii.regularize_bsdf
         );
         break;
     case IntegratorType::vol_path:
         integrator = std::make_unique<VolPathIntegrator>(
-            &accel, si.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces, ri.regularize_bsdf
+            &accel, ri.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces, ii.regularize_bsdf
         );
         break;
     case IntegratorType::light_path:
         integrator =
-            std::make_unique<LightPathIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces);
+            std::make_unique<LightPathIntegrator>(&accel, ri.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces);
         break;
     case IntegratorType::light_vol_path:
         integrator =
-            std::make_unique<LightVolPathIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces);
+            std::make_unique<LightVolPathIntegrator>(&accel, ri.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces);
         break;
     case IntegratorType::bdpt:
         integrator = std::make_unique<BiDirectionalPathIntegrator>(
-            &accel, si.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces
+            &accel, ri.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces
         );
         break;
     case IntegratorType::vol_bdpt:
         integrator = std::make_unique<BiDirectionalVolPathIntegrator>(
-            &accel, si.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces
+            &accel, ri.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces
         );
         break;
     case IntegratorType::pm:
         integrator = std::make_unique<PhotonMappingIntegrator>(
-            &accel, si.scene->GetLights(), sampler.get(), max_bounces, ri.n_photons, ri.initial_radius
+            &accel, ri.scene->GetLights(), sampler.get(), max_bounces, ii.n_photons, ii.initial_radius
         );
         break;
     case IntegratorType::sppm:
         integrator = std::make_unique<SPPMIntegrator>(
-            &accel, si.scene->GetLights(), sampler.get(), max_bounces, ri.n_photons, ri.initial_radius
+            &accel, ri.scene->GetLights(), sampler.get(), max_bounces, ii.n_photons, ii.initial_radius
         );
         break;
     case IntegratorType::naive_path:
         integrator =
-            std::make_unique<NaivePathIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces);
+            std::make_unique<NaivePathIntegrator>(&accel, ri.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces);
         break;
     case IntegratorType::naive_vol_path:
         integrator =
-            std::make_unique<NaiveVolPathIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces);
+            std::make_unique<NaiveVolPathIntegrator>(&accel, ri.scene->GetLights(), sampler.get(), max_bounces, rr_min_bounces);
         break;
     case IntegratorType::random_walk:
-        integrator = std::make_unique<RandomWalkIntegrator>(&accel, si.scene->GetLights(), sampler.get(), max_bounces);
+        integrator = std::make_unique<RandomWalkIntegrator>(&accel, ri.scene->GetLights(), sampler.get(), max_bounces);
         break;
     case IntegratorType::ao:
-        integrator = std::make_unique<AmbientOcclusion>(&accel, si.scene->GetLights(), sampler.get(), ri.ao_range);
+        integrator = std::make_unique<AmbientOcclusion>(&accel, ri.scene->GetLights(), sampler.get(), ii.ao_range);
         break;
     case IntegratorType::albedo:
-        integrator = std::make_unique<AlbedoIntegrator>(&accel, si.scene->GetLights(), sampler.get());
+        integrator = std::make_unique<AlbedoIntegrator>(&accel, ri.scene->GetLights(), sampler.get());
         break;
     case IntegratorType::debug:
-        integrator = std::make_unique<DebugIntegrator>(&accel, si.scene->GetLights(), sampler.get());
+        integrator = std::make_unique<DebugIntegrator>(&accel, ri.scene->GetLights(), sampler.get());
         break;
 
     default:

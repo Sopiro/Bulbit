@@ -1,6 +1,6 @@
 #include "../samples.h"
 
-SceneInfo CornellBoxVolume2()
+RendererInfo CornellBoxVolume2()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -74,10 +74,10 @@ SceneInfo CornellBoxVolume2()
     Point3 position{ 0.5f, 0.5f, 2.05f };
     Point3 target{ 0.5f, 0.5f, 0.0f };
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::path;
-    si.renderer_info.max_bounces = 64;
+    si.integrator_info.type = IntegratorType::path;
+    si.integrator_info.max_bounces = 64;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = 28;

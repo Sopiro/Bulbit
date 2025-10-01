@@ -1,6 +1,6 @@
 #include "../samples.h"
 
-SceneInfo CornellBoxFog()
+RendererInfo CornellBoxFog()
 {
     auto scene = std::make_unique<Scene>();
 
@@ -89,10 +89,10 @@ SceneInfo CornellBoxFog()
     Point3 position{ 0.5f, 0.5f, 2.05f };
     Point3 target{ 0.5f, 0.5f, 0.0f };
 
-    SceneInfo si;
+    RendererInfo si;
     si.scene = std::move(scene);
-    si.renderer_info.type = IntegratorType::vol_bdpt;
-    si.renderer_info.max_bounces = 8;
+    si.integrator_info.type = IntegratorType::vol_bdpt;
+    si.integrator_info.max_bounces = 8;
     si.camera_info.type = CameraType::perspective;
     si.camera_info.transform = Transform::LookAt(position, target, y_axis);
     si.camera_info.fov = 28;
