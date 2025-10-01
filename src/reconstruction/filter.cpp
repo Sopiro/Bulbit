@@ -4,15 +4,15 @@
 namespace bulbit
 {
 
-Filter* Filter::Create(Allocator& alloc, const ReconFilterInfo& fi)
+Filter* Filter::Create(Allocator& alloc, const FilterInfo& fi)
 {
     switch (fi.type)
     {
-    case ReconFilterType::box:
+    case FilterType::box:
         return alloc.new_object<BoxFilter>(fi.extent);
-    case ReconFilterType::tent:
+    case FilterType::tent:
         return alloc.new_object<TentFilter>(fi.extent);
-    case ReconFilterType::gaussian:
+    case FilterType::gaussian:
         return alloc.new_object<GaussianFilter>(fi.gaussian_stddev, fi.extent);
 
     default:

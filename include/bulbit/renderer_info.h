@@ -5,16 +5,16 @@
 namespace bulbit
 {
 
-enum class ReconFilterType
+enum class FilterType
 {
     box,
     tent,
     gaussian,
 };
 
-struct ReconFilterInfo
+struct FilterInfo
 {
-    ReconFilterType type = ReconFilterType::gaussian;
+    FilterType type = FilterType::gaussian;
     Float extent = 3;
     Float gaussian_stddev = 0.5f;
 };
@@ -24,7 +24,7 @@ struct FilmInfo
     std::string filename = "bulbit_render.hdr";
     Point2i resolution = { 1280, 720 };
 
-    ReconFilterInfo recon_filter_info;
+    FilterInfo filter_info;
 };
 
 enum class SamplerType

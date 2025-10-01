@@ -5,13 +5,13 @@
 namespace bulbit
 {
 
-struct ReconFilterInfo;
+struct FilterInfo;
 
 // Pixel reconstruction filter
 class Filter
 {
 public:
-    static Filter* Create(Allocator& alloc, const ReconFilterInfo& filter_info);
+    static Filter* Create(Allocator& alloc, const FilterInfo& filter_info);
 
     Filter(Float extent)
         : extent{ extent }

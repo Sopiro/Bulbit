@@ -291,14 +291,14 @@ static Transform ParseTransform(pugi::xml_node node, const DefaultMap& dm)
     return tf;
 }
 
-static ReconFilterInfo ParseReconFilter(pugi::xml_node node, const DefaultMap& dm)
+static FilterInfo ParseReconFilter(pugi::xml_node node, const DefaultMap& dm)
 {
-    ReconFilterInfo ri;
+    FilterInfo ri;
 
     std::string type = node.attribute("type").value();
     if (type == "box")
     {
-        ri.type = ReconFilterType::box;
+        ri.type = FilterType::box;
 
         Float extent = 1;
         for (auto child : node.children())
@@ -313,7 +313,7 @@ static ReconFilterInfo ParseReconFilter(pugi::xml_node node, const DefaultMap& d
     }
     else if (type == "tent")
     {
-        ri.type = ReconFilterType::tent;
+        ri.type = FilterType::tent;
 
         Float extent = 2;
         for (auto child : node.children())
@@ -333,7 +333,7 @@ static ReconFilterInfo ParseReconFilter(pugi::xml_node node, const DefaultMap& d
     }
     else if (type == "gaussian")
     {
-        ri.type = ReconFilterType::gaussian;
+        ri.type = FilterType::gaussian;
 
         Float extent = 3;
         for (auto child : node.children())
@@ -383,7 +383,7 @@ static FilmInfo ParseFilm(pugi::xml_node node, const DefaultMap& dm)
 
         if (type == "rfilter")
         {
-            fi.recon_filter_info = ParseReconFilter(child, dm);
+            fi.filter_info = ParseReconFilter(child, dm);
         }
     }
 

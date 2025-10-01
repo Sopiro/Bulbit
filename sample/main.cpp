@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
 
     Allocator alloc;
 
-    Filter* pixel_filter = Filter::Create(alloc, ri.camera_info.film_info.recon_filter_info);
+    Filter* pixel_filter = Filter::Create(alloc, ri.camera_info.film_info.filter_info);
     if (!pixel_filter)
     {
         std::cout << "Faild to create pixel filter" << std::endl;
