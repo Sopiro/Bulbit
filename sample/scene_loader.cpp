@@ -1450,11 +1450,8 @@ static void ParseLight(pugi::xml_node node, const DefaultMap& dm, Scene* scene)
     }
 }
 
-static RendererInfo ParseScene(pugi::xml_node scene_node)
+static bool ParseScene(RendererInfo* ri, pugi::xml_node scene_node)
 {
-    RendererInfo si;
-    si.scene = std::make_unique<Scene>();
-
     DefaultMap dm;
     MaterialMap mm;
 
@@ -1468,30 +1465,30 @@ static RendererInfo ParseScene(pugi::xml_node scene_node)
         }
         else if (name == "integrator")
         {
-            ParseIntegrator(node, dm, si.integrator_info);
+            ParseIntegrator(node, dm, ri->integrator_info);
         }
         else if (name == "sensor")
         {
-            ParseCamera(node, dm, si.camera_info);
+            ParseCamera(node, dm, ri->camera_info);
         }
         else if (name == "bsdf")
         {
-            ParseMaterial(node, dm, mm, si.scene.get(), {});
+            ParseMaterial(node, dm, mm, &ri->scene, {});
         }
         else if (name == "shape")
         {
-            ParseShape(node, dm, mm, si.scene.get());
+            ParseShape(node, dm, mm, &ri->scene);
         }
         else if (name == "emitter")
         {
-            ParseLight(node, dm, si.scene.get());
+            ParseLight(node, dm, &ri->scene);
         }
     }
 
-    return si;
+    return true;
 }
 
-RendererInfo LoadScene(std::filesystem::path filename)
+bool LoadScene(RendererInfo* ri, std::filesystem::path filename)
 {
     pugi::xml_document doc;
     pugi::xml_parse_result xml_result = doc.load_file(filename.c_str());
@@ -1499,20 +1496,15 @@ RendererInfo LoadScene(std::filesystem::path filename)
     {
         std::cerr << "Failed to load xml.." << std::endl;
         std::cerr << "Description: " << xml_result.description() << std::endl;
-        return {};
+        return false;
     }
 
     fs::path old_path = fs::current_path();
     fs::current_path(filename.parent_path());
-    auto scene = ParseScene(doc.child("scene"));
+    bool result = ParseScene(ri, doc.child("scene"));
     fs::current_path(old_path);
 
-    return scene;
-}
-
-RendererInfo::operator bool() const
-{
-    return bool(scene);
+    return result;
 }
 
 } // namespace bulbit

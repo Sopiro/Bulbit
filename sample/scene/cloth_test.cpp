@@ -1,10 +1,10 @@
 #include "../samples.h"
 
-RendererInfo ClothTest()
+void ClothTest(RendererInfo* ri)
 {
-    auto scene = std::make_unique<Scene>();
+    Scene& scene = ri->scene;
 
-    HomogeneousMedium* hm = scene->CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
+    HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
     ModelLoaderOptions options;
@@ -12,12 +12,12 @@ RendererInfo ClothTest()
 
     // Floor
     {
-        auto checker = CreateSpectrumCheckerTexture(*scene, 0.75, 0.3, Point2(60));
+        auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(60));
         auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(10) };
-        auto floor = scene->CreateMaterial<DiffuseMaterial>(checker);
+        auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
 
         options.fallback_material = floor;
-        LoadModel(*scene, "res/background.obj", tf, options);
+        LoadModel(scene, "res/background.obj", tf, options);
     }
 
     int32 w = 5;
@@ -38,11 +38,11 @@ RendererInfo ClothTest()
     Float ior = 1.5f;
     bool energy_compensation = true;
 
-    outers[3] = CreateClothMaterial(*scene, base, sheen, 0.0f);
-    outers[1] = CreateClothMaterial(*scene, base, sheen, 0.25f);
-    outers[0] = CreateClothMaterial(*scene, base, sheen, 0.5f);
-    outers[2] = CreateClothMaterial(*scene, base, sheen, 0.75f);
-    outers[4] = CreateClothMaterial(*scene, base, sheen, 1.0f);
+    outers[3] = CreateClothMaterial(scene, base, sheen, 0.0f);
+    outers[1] = CreateClothMaterial(scene, base, sheen, 0.25f);
+    outers[0] = CreateClothMaterial(scene, base, sheen, 0.5f);
+    outers[2] = CreateClothMaterial(scene, base, sheen, 0.75f);
+    outers[4] = CreateClothMaterial(scene, base, sheen, 1.0f);
 
     const Material* inners[count];
     for (int32 i = 0; i < count; ++i)
@@ -62,19 +62,19 @@ RendererInfo ClothTest()
 
             // https://github.com/lighttransport/lighttransportequation-orb
             auto tf = Transform{ p, Quat::FromEuler({ 0, 0, 0 }), Vec3(0.25f) };
-            // LoadModel(*scene, "res/mori_knob/base.obj", tf, options);
+            // LoadModel(scene, "res/mori_knob/base.obj", tf, options);
 
             // tf = Transform{ p, Quat::FromEuler({ 0, 0, 0 }), Vec3(2.0f) };
-            // LoadModel(*scene, "res/mori_knob/outer.obj", tf, options);
-            // LoadModel(*scene, "res/mori_knob/inner.obj", tf, options);
-            // LoadModel(*scene, "res/mori_knob/equation.obj", tf, options);
-            LoadModel(*scene, "res/cloth.glb", tf, options);
+            // LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
+            // LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
+            // LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
+            LoadModel(scene, "res/cloth.glb", tf, options);
         }
     }
 
-    // CreateUniformInfiniteLight(*scene, Spectrum(1));
-    CreateImageInfiniteLight(*scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(*scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
+    // CreateUniformInfiniteLight(scene, Spectrum(1));
+    CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
+    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
 
     Float aspect_ratio = 4.f / 1.f;
     int32 width = 1000;
@@ -83,28 +83,24 @@ RendererInfo ClothTest()
     Point3 position = Point3{ 0, 1.0, 2.28 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    RendererInfo si;
-    si.scene = std::move(scene);
-    si.integrator_info.type = IntegratorType::path;
-    si.integrator_info.max_bounces = 64;
-    si.camera_info.type = CameraType::perspective;
-    si.camera_info.transform = Transform::LookAt(position, target, y_axis);
-    si.camera_info.fov = 30;
-    si.camera_info.aperture_radius = 0.01;
-    si.camera_info.focus_distance = Dist(position, target);
-    si.camera_info.film_info.filename = "";
-    si.camera_info.film_info.resolution = { width, height };
-    si.camera_info.sampler_info.type = SamplerType::stratified;
-    si.camera_info.sampler_info.spp = 64;
-
-    return si;
+    ri->integrator_info.type = IntegratorType::path;
+    ri->integrator_info.max_bounces = 64;
+    ri->camera_info.type = CameraType::perspective;
+    ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
+    ri->camera_info.fov = 30;
+    ri->camera_info.aperture_radius = 0.01;
+    ri->camera_info.focus_distance = Dist(position, target);
+    ri->camera_info.film_info.filename = "";
+    ri->camera_info.film_info.resolution = { width, height };
+    ri->camera_info.sampler_info.type = SamplerType::stratified;
+    ri->camera_info.sampler_info.spp = 64;
 }
 
-RendererInfo ClothTest2()
+void ClothTest2(RendererInfo* ri)
 {
-    auto scene = std::make_unique<Scene>();
+    Scene& scene = ri->scene;
 
-    HomogeneousMedium* hm = scene->CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
+    HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(Spectrum(0, 0, 0), Spectrum(10), Spectrum(0.0), -0.9f);
     MediumInterface mi(hm, nullptr);
 
     ModelLoaderOptions options;
@@ -112,11 +108,11 @@ RendererInfo ClothTest2()
 
     // Floor
     {
-        // auto checker = CreateSpectrumCheckerTexture(*scene, 0.75, 0.3, Point2(60));
+        // auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(60));
         // auto tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(10) };
         // auto floor = scene->CreateMaterial<DiffuseMaterial>(checker);
         // options.fallback_material = floor;
-        // LoadModel(*scene, "res/background.obj", tf, options);
+        // LoadModel(scene, "res/background.obj", tf, options);
     }
 
     int32 w = 11;
@@ -138,17 +134,17 @@ RendererInfo ClothTest2()
     Float ior = 1.5f;
     bool energy_compensation = true;
 
-    outers[9] = CreateClothMaterial(*scene, base, sheen, 0.0f);
-    outers[7] = CreateClothMaterial(*scene, base, sheen, 0.1f);
-    outers[5] = CreateClothMaterial(*scene, base, sheen, 0.2f);
-    outers[3] = CreateClothMaterial(*scene, base, sheen, 0.3f);
-    outers[1] = CreateClothMaterial(*scene, base, sheen, 0.4f);
-    outers[0] = CreateClothMaterial(*scene, base, sheen, 0.5f);
-    outers[2] = CreateClothMaterial(*scene, base, sheen, 0.6f);
-    outers[4] = CreateClothMaterial(*scene, base, sheen, 0.7f);
-    outers[6] = CreateClothMaterial(*scene, base, sheen, 0.8f);
-    outers[8] = CreateClothMaterial(*scene, base, sheen, 0.9f);
-    outers[10] = CreateClothMaterial(*scene, base, sheen, 1.0f);
+    outers[9] = CreateClothMaterial(scene, base, sheen, 0.0f);
+    outers[7] = CreateClothMaterial(scene, base, sheen, 0.1f);
+    outers[5] = CreateClothMaterial(scene, base, sheen, 0.2f);
+    outers[3] = CreateClothMaterial(scene, base, sheen, 0.3f);
+    outers[1] = CreateClothMaterial(scene, base, sheen, 0.4f);
+    outers[0] = CreateClothMaterial(scene, base, sheen, 0.5f);
+    outers[2] = CreateClothMaterial(scene, base, sheen, 0.6f);
+    outers[4] = CreateClothMaterial(scene, base, sheen, 0.7f);
+    outers[6] = CreateClothMaterial(scene, base, sheen, 0.8f);
+    outers[8] = CreateClothMaterial(scene, base, sheen, 0.9f);
+    outers[10] = CreateClothMaterial(scene, base, sheen, 1.0f);
 
     const Material* inners[count];
     for (int32 i = 0; i < count; ++i)
@@ -170,19 +166,19 @@ RendererInfo ClothTest2()
 
             // https://github.com/lighttransport/lighttransportequation-orb
             auto tf = Transform{ p, Quat::FromEuler({ 0, 0, 0 }), Vec3(0.25f) };
-            // LoadModel(*scene, "res/mori_knob/base.obj", tf, options);
+            // LoadModel(scene, "res/mori_knob/base.obj", tf, options);
 
             // tf = Transform{ p, Quat::FromEuler({ 0, 0, 0 }), Vec3(2.0f) };
-            // LoadModel(*scene, "res/mori_knob/outer.obj", tf, options);
-            // LoadModel(*scene, "res/mori_knob/inner.obj", tf, options);
-            // LoadModel(*scene, "res/mori_knob/equation.obj", tf, options);
-            LoadModel(*scene, "res/cloth.glb", tf, options);
+            // LoadModel(scene, "res/mori_knob/outer.obj", tf, options);
+            // LoadModel(scene, "res/mori_knob/inner.obj", tf, options);
+            // LoadModel(scene, "res/mori_knob/equation.obj", tf, options);
+            LoadModel(scene, "res/cloth.glb", tf, options);
         }
     }
 
-    // CreateUniformInfiniteLight(*scene, Spectrum(1));
-    CreateImageInfiniteLight(*scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(*scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
+    // CreateUniformInfiniteLight(scene, Spectrum(1));
+    CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
+    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
 
     Float aspect_ratio = 8.f / 1.f;
     int32 width = 1600;
@@ -191,21 +187,17 @@ RendererInfo ClothTest2()
     Point3 position = { 0, 0.25, 4.75 };
     Point3 target = { 0.0, 0.25, 0.0 };
 
-    RendererInfo si;
-    si.scene = std::move(scene);
-    si.integrator_info.type = IntegratorType::path;
-    si.integrator_info.max_bounces = 64;
-    si.camera_info.type = CameraType::perspective;
-    si.camera_info.transform = Transform::LookAt(position, target, y_axis);
-    si.camera_info.fov = 15;
-    si.camera_info.aperture_radius = 0.0;
-    si.camera_info.focus_distance = Dist(position, target);
-    si.camera_info.film_info.filename = "";
-    si.camera_info.film_info.resolution = { width, height };
-    si.camera_info.sampler_info.type = SamplerType::stratified;
-    si.camera_info.sampler_info.spp = 64;
-
-    return si;
+    ri->integrator_info.type = IntegratorType::path;
+    ri->integrator_info.max_bounces = 64;
+    ri->camera_info.type = CameraType::perspective;
+    ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
+    ri->camera_info.fov = 15;
+    ri->camera_info.aperture_radius = 0.0;
+    ri->camera_info.focus_distance = Dist(position, target);
+    ri->camera_info.film_info.filename = "";
+    ri->camera_info.film_info.resolution = { width, height };
+    ri->camera_info.sampler_info.type = SamplerType::stratified;
+    ri->camera_info.sampler_info.spp = 64;
 }
 
 static int32 index1 = Sample::Register("cloth", ClothTest);

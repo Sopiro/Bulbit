@@ -94,17 +94,15 @@ struct IntegratorInfo
 
 struct RendererInfo
 {
-    std::unique_ptr<Scene> scene;
+    Scene scene;
 
     CameraInfo camera_info;
     IntegratorInfo integrator_info;
-
-    operator bool() const;
 };
 
 // Load Mitsuba3 scene file
 // Parser implementation is based on:
 // https://github.com/BachiLi/lajolla_public/blob/main/src/parsers/parse_scene.cpp
-RendererInfo LoadScene(std::filesystem::path filename);
+bool LoadScene(RendererInfo* render_info, std::filesystem::path filename);
 
 } // namespace bulbit
