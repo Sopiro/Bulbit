@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
 
     RendererInfo ri;
     // bool result = LoadScene(&ri, "C:/Users/sopir/Desktop/scenes/bedroom/scene_v3.xml");
-    bool result = Sample::Get(&ri, "cornell-box-fog");
+    bool result = Sample::Get(&ri, "cornell-box");
     if (!result)
     {
         std::cout << "Sample not found!" << std::endl;
@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
         pixel_filter = std::make_unique<TentFilter>(fi.extent);
         break;
     case ReconFilterType::gaussian:
-        pixel_filter = std::make_unique<GaussianFilter>(fi.extent, fi.gaussian_stddev);
+        pixel_filter = std::make_unique<GaussianFilter>(fi.gaussian_stddev, fi.extent);
         break;
 
     default:
