@@ -106,7 +106,7 @@ void CornellBoxVolume(RendererInfo* ri)
     Point3 position{ 0.5f, 0.5f, 2.05f };
     Point3 target{ 0.5f, 0.5f, 0.0f };
 
-    ri->integrator_info.type = IntegratorType::path;
+    ri->integrator_info.type = IntegratorType::vol_path;
     ri->integrator_info.max_bounces = 64;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);

@@ -87,7 +87,7 @@ void SSSTest(RendererInfo* ri)
     Float aperture = 0.02f;
     Float fov = 30.0;
 
-    ri->integrator_info.type = IntegratorType::path;
+    ri->integrator_info.type = IntegratorType::vol_path;
     ri->integrator_info.max_bounces = 64;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
@@ -165,7 +165,7 @@ void SSSTest2(RendererInfo* ri)
     Float aperture = 0.01f;
     Float fov = 30.0;
 
-    ri->integrator_info.type = IntegratorType::path;
+    ri->integrator_info.type = IntegratorType::vol_path;
     ri->integrator_info.max_bounces = 64;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);

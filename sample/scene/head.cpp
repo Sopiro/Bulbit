@@ -12,7 +12,7 @@ void Head(RendererInfo* ri)
         auto head_albedo = CreateSpectrumImageTexture(scene, "res/head/lambertian.jpg");
 
         auto mat =
-            CreateSubsurfaceRandomWalkMaterial(scene, head_albedo, Spectrum(0.0012953, 0.00095238, 0.00067114), 1.33f, 0.1f);
+            CreateSubsurfaceRandomWalkMaterial(scene, head_albedo, Spectrum(0.0012953, 0.00095238, 0.00067114), 1.33f, 0.5f);
 
         // auto l0 = CreateDielectricMaterial(scene, 1.33, 0.3f);
         // auto l1 = scene.CreateMaterial<DiffuseMaterial>(head_albedo);
@@ -49,7 +49,7 @@ void Head(RendererInfo* ri)
     Float aperture = 0.01f;
     Float fov = 30;
 
-    ri->integrator_info.type = IntegratorType::path;
+    ri->integrator_info.type = IntegratorType::vol_path;
     ri->integrator_info.max_bounces = 64;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
