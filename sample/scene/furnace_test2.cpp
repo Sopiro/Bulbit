@@ -91,7 +91,8 @@ void FurnacePrincipled2(RendererInfo* ri)
     Float fov = 15.0;
 
     ri->integrator_info.type = IntegratorType::path;
-    ri->integrator_info.max_bounces = 64;
+    ri->integrator_info.max_bounces = 1024;
+    ri->integrator_info.rr_min_bounces = 64;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
     ri->camera_info.fov = fov;
@@ -196,7 +197,8 @@ void FurnaceDielectric2(RendererInfo* ri)
     Float fov = 15.0;
 
     ri->integrator_info.type = IntegratorType::path;
-    ri->integrator_info.max_bounces = 64;
+    ri->integrator_info.max_bounces = 1024;
+    ri->integrator_info.rr_min_bounces = 64;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
     ri->camera_info.fov = fov;
@@ -245,18 +247,19 @@ void FurnaceConductor2(RendererInfo* ri)
     Float anisotrophy = 0.0f;
     Float ior = 1.5f;
     bool energy_compensation = true;
+    Spectrum reflectance(1);
 
-    outers[9] = CreateConductorMaterial(scene, color, 0.0, energy_compensation);
-    outers[7] = CreateConductorMaterial(scene, color, 0.1, energy_compensation);
-    outers[5] = CreateConductorMaterial(scene, color, 0.2, energy_compensation);
-    outers[3] = CreateConductorMaterial(scene, color, 0.3, energy_compensation);
-    outers[1] = CreateConductorMaterial(scene, color, 0.4, energy_compensation);
-    outers[0] = CreateConductorMaterial(scene, color, 0.5, energy_compensation);
-    outers[2] = CreateConductorMaterial(scene, color, 0.6, energy_compensation);
-    outers[4] = CreateConductorMaterial(scene, color, 0.7, energy_compensation);
-    outers[6] = CreateConductorMaterial(scene, color, 0.8, energy_compensation);
-    outers[8] = CreateConductorMaterial(scene, color, 0.9, energy_compensation);
-    outers[10] = CreateConductorMaterial(scene, color, 1.0f, energy_compensation);
+    outers[9] = CreateConductorMaterial(scene, color, 0.0, reflectance, energy_compensation);
+    outers[7] = CreateConductorMaterial(scene, color, 0.1, reflectance, energy_compensation);
+    outers[5] = CreateConductorMaterial(scene, color, 0.2, reflectance, energy_compensation);
+    outers[3] = CreateConductorMaterial(scene, color, 0.3, reflectance, energy_compensation);
+    outers[1] = CreateConductorMaterial(scene, color, 0.4, reflectance, energy_compensation);
+    outers[0] = CreateConductorMaterial(scene, color, 0.5, reflectance, energy_compensation);
+    outers[2] = CreateConductorMaterial(scene, color, 0.6, reflectance, energy_compensation);
+    outers[4] = CreateConductorMaterial(scene, color, 0.7, reflectance, energy_compensation);
+    outers[6] = CreateConductorMaterial(scene, color, 0.8, reflectance, energy_compensation);
+    outers[8] = CreateConductorMaterial(scene, color, 0.9, reflectance, energy_compensation);
+    outers[10] = CreateConductorMaterial(scene, color, 1.0f, reflectance, energy_compensation);
 
     const Material* inners[count];
     for (int32 i = 0; i < count; ++i)
@@ -302,7 +305,8 @@ void FurnaceConductor2(RendererInfo* ri)
     Float fov = 15.0;
 
     ri->integrator_info.type = IntegratorType::path;
-    ri->integrator_info.max_bounces = 64;
+    ri->integrator_info.max_bounces = 1024;
+    ri->integrator_info.rr_min_bounces = 64;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
     ri->camera_info.fov = fov;
@@ -314,6 +318,6 @@ void FurnaceConductor2(RendererInfo* ri)
     ri->camera_info.sampler_info.spp = 64;
 }
 
-static int32 index0 = Sample::Register("Furnace", FurnacePrincipled2);
+static int32 index2 = Sample::Register("Furnace", FurnaceConductor2);
 static int32 index1 = Sample::Register("Furnace2", FurnaceDielectric2);
-static int32 index2 = Sample::Register("Furnace3", FurnaceConductor2);
+static int32 index0 = Sample::Register("Furnace3", FurnacePrincipled2);

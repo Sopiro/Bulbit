@@ -244,7 +244,7 @@ void Principled(RendererInfo* ri, int32 lobe, int32 model)
             else
             {
                 auto tf = Transform{ p + Vec3(0, 0.0f, 0), Quat::FromEuler({ 0, pi, 0 }), Vec3(0.25f) };
-                LoadModel(scene, "res/cloth.glb", tf);
+                LoadModel(scene, "res/cloth.glb", tf, options);
             }
 
             // options.fallback_material = inners[std::min(i + j * w, count)];
@@ -282,7 +282,7 @@ void Principled(RendererInfo* ri, int32 lobe, int32 model)
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
     ri->camera_info.fov = 30;
-    ri->camera_info.aperture_radius = 0.01;
+    ri->camera_info.aperture_radius = 0;
     ri->camera_info.focus_distance = Dist(position, target);
     ri->camera_info.film_info.filename = "";
     ri->camera_info.film_info.resolution = { width, height };

@@ -77,7 +77,7 @@ void ClothTest(RendererInfo* ri)
     // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
 
     Float aspect_ratio = 4.f / 1.f;
-    int32 width = 1000;
+    int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
     Point3 position = Point3{ 0, 1.0, 2.28 };

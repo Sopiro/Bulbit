@@ -156,13 +156,13 @@ void SSSTest2(RendererInfo* ri)
     }
 
     Float aspect_ratio = 16.f / 9.f;
-    int32 width = 960;
+    int32 width = 800;
     int32 height = int32(width / aspect_ratio);
 
     Point3 position{ 0, 1.5, 3.5 };
     Point3 target{ 0.0, 0.5, 0.0 };
 
-    Float aperture = 0.01f;
+    Float aperture = 0.005f;
     Float fov = 30.0;
 
     ri->integrator_info.type = IntegratorType::vol_path;

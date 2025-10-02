@@ -25,11 +25,11 @@ void MaterialTest(RendererInfo* ri)
     const Material* white = CreateDiffuseMaterial(scene, 1.0f);
     const Material* air = CreateDielectricMaterial(scene, 1.0f);
     const Material* glass = CreateDielectricMaterial(scene, 1.5f);
-    const Material* rough_glass = CreateDielectricMaterial(scene, 1.5f, 0.01f);
+    const Material* rough_glass = CreateDielectricMaterial(scene, 1.5f, 0.1f);
     const Material* copper = CreateConductorMaterial(scene, { 0.21100, 1.1274, 1.2444 }, { 4.1592, 2.5978, 2.433 }, 0.2f);
     const Material* patina = CreateLayeredMaterial(scene, air, copper, true, { 0.25f, 0.95f, 0.45f }, 0.2, 0.1f);
-    const Material* gold = CreateConductorMaterial(scene, { 0.161, 0.492, 1.426 }, { 4.08769, 2.32625, 1.846 }, 0.1f);
-    const Material* platinum = CreateConductorMaterial(scene, { 0.49745, 0.48267, 0.60399 }, { 6.9266, 4.8444, 3.8895 }, 0.1f);
+    const Material* gold = CreateConductorMaterial(scene, { 0.161, 0.492, 1.426 }, { 4.08769, 2.32625, 1.846 }, 0.2f);
+    const Material* platinum = CreateConductorMaterial(scene, { 0.49745, 0.48267, 0.60399 }, { 6.9266, 4.8444, 3.8895 }, 0.2f);
 
     const Material* outer = CreateLayeredMaterial(scene, rough_glass, gold, true, Spectrum(0.7, 0, 0), 0.2f, -0.3f);
     const Material* inner = CreateDiffuseMaterial(scene, 0.8f, 0.0f);
@@ -55,10 +55,10 @@ void MaterialTest(RendererInfo* ri)
     Point3 position = Point3{ 0, 1.0, 2.0 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float aperture = 0.01f;
+    Float aperture = 0.001f;
     Float fov = 30.0;
 
-    ri->integrator_info.type = IntegratorType::path;
+    ri->integrator_info.type = IntegratorType::vol_path;
     ri->integrator_info.max_bounces = 64;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
@@ -145,10 +145,10 @@ void MetallicRoughness(RendererInfo* ri)
     Point3 position = Point3{ 0, 1.0, 2.28 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float aperture = 0.01f;
+    Float aperture = 0.001f;
     Float fov = 30.0;
 
-    ri->integrator_info.type = IntegratorType::path;
+    ri->integrator_info.type = IntegratorType::vol_path;
     ri->integrator_info.max_bounces = 64;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
@@ -235,10 +235,10 @@ void Dielectrics(RendererInfo* ri)
     Point3 position = Point3{ 0, 1.0, 2.28 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float aperture = 0.01f;
+    Float aperture = 0.001f;
     Float fov = 30.0;
 
-    ri->integrator_info.type = IntegratorType::path;
+    ri->integrator_info.type = IntegratorType::vol_path;
     ri->integrator_info.max_bounces = 64;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
@@ -285,13 +285,13 @@ void Skins(RendererInfo* ri)
 
     const Material* skins[count];
     skins[1] = CreateSubsurfaceRandomWalkMaterial(
-        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 1.0, Spectrum(0.5, 0.25, 0.125) * 0.07, 1.38f, 0.1f
+        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 1.0, Spectrum(0.5, 0.25, 0.125) * 0.07, 1.38f, 0.2f
     );
     skins[0] = CreateSubsurfaceRandomWalkMaterial(
-        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 0.8, Spectrum(0.5, 0.25, 0.125) * 0.03, 1.38f, 0.1f
+        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 0.8, Spectrum(0.5, 0.25, 0.125) * 0.03, 1.38f, 0.2f
     );
     skins[2] = CreateSubsurfaceRandomWalkMaterial(
-        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 0.3, Spectrum(0.5, 0.25, 0.125) * 0.01, 1.38f, 0.1f
+        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 0.3, Spectrum(0.5, 0.25, 0.125) * 0.01, 1.38f, 0.2f
     );
 
     for (int32 j = 0; j < h; ++j)
@@ -330,10 +330,10 @@ void Skins(RendererInfo* ri)
     Point3 position = Point3{ 0, 1.0, 2.28 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float aperture = 0.01f;
+    Float aperture = 0.001f;
     Float fov = 30.0;
 
-    ri->integrator_info.type = IntegratorType::path;
+    ri->integrator_info.type = IntegratorType::vol_path;
     ri->integrator_info.max_bounces = 64;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
@@ -430,10 +430,10 @@ void Mixtures(RendererInfo* ri)
     Point3 position = Point3{ 0, 1.0, 2.28 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float aperture = 0.01f;
+    Float aperture = 0.001f;
     Float fov = 30.0;
 
-    ri->integrator_info.type = IntegratorType::path;
+    ri->integrator_info.type = IntegratorType::vol_path;
     ri->integrator_info.max_bounces = 64;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
@@ -520,10 +520,10 @@ void Alphas(RendererInfo* ri)
     Point3 position = Point3{ 0, 1.0, 2.28 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float aperture = 0.01f;
+    Float aperture = 0.001f;
     Float fov = 30.0;
 
-    ri->integrator_info.type = IntegratorType::path;
+    ri->integrator_info.type = IntegratorType::vol_path;
     ri->integrator_info.max_bounces = 64;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
@@ -610,10 +610,10 @@ void ColoredDielectrics(RendererInfo* ri)
     Point3 position = Point3{ 0, 1.0, 2.28 };
     Point3 target = Point3{ 0.0, 0.1, 0.0 };
 
-    Float aperture = 0.01f;
+    Float aperture = 0.001f;
     Float fov = 30.0;
 
-    ri->integrator_info.type = IntegratorType::path;
+    ri->integrator_info.type = IntegratorType::vol_path;
     ri->integrator_info.max_bounces = 64;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);

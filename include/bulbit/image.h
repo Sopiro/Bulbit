@@ -88,9 +88,7 @@ Image4 ReadImage4(
 
 using ToneMappingCallback = Vec3(const Vec3&);
 
-inline ToneMappingCallback* default_tonemapping_callback = [](const Vec3& RGB) -> Vec3 {
-    return sRGB_from_RGB(Tonemap_ACES(RGB));
-};
+inline ToneMappingCallback* default_tonemapping_callback = [](const Vec3& RGB) -> Vec3 { return sRGB_from_RGB(RGB); };
 
 // Tone mapping runs only when saving to LDR file
 void WriteImage(

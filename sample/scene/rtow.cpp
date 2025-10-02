@@ -68,7 +68,7 @@ void RaytracigInOneWeekend(RendererInfo* ri)
     // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
 
     Float aspect_ratio = 16.f / 9.f;
-    int32 width = 960;
+    int32 width = 1600;
     int32 height = int32(width / aspect_ratio);
 
     Point3 position{ 13, 2, 3 };

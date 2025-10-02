@@ -29,7 +29,7 @@ inline Vec3 Tonemap_ACES(const Vec3& RGB)
 
 // See below for more:
 // https://www.khronos.org/news/press/khronos-pbr-neutral-tone-mapper-released-for-true-to-life-color-rendering-of-3d-products
-inline Vec3 ToneMap_PBRNeutral(Vec3 RGB)
+inline Vec3 Tonemap_PBRNeutral(Vec3 RGB)
 {
     const Float startCompression = 0.8f - 0.04f;
     const Float desaturation = 0.15f;
