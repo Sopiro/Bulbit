@@ -26,8 +26,7 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    timer.Mark();
-    std::cout << "Scene loading: " << timer.Get() << "s" << std::endl;
+    std::cout << "Scene loading: " << timer.Mark() << "s" << std::endl;
     std::cout << "Primitives: " << ri.scene.GetPrimitives().size() << ", Lights: " << ri.scene.GetLights().size() << std::endl;
 
     Allocator alloc;
@@ -48,8 +47,8 @@ int main(int argc, char* argv[])
 
     std::cout << "Building acceleration structure.." << std::endl;
     BVH accel(ri.scene.GetPrimitives());
-    timer.Mark();
-    std::cout << "Acceleration structure build: " << timer.Get() << "s" << std::endl;
+
+    std::cout << "Acceleration structure build: " << timer.Mark() << "s" << std::endl;
 
     Sampler* sampler = Sampler::Create(alloc, ri.camera_info.sampler_info);
     if (!sampler)
@@ -67,8 +66,8 @@ int main(int argc, char* argv[])
 
     Rendering* rendering = integrator->Render(alloc, camera);
     rendering->WaitAndLogProgress();
-    timer.Mark();
-    double render_time = timer.Get();
+
+    double render_time = timer.Mark();
     std::cout << "\nComplete: " << render_time << 's' << std::endl;
 
     Image3 image = rendering->GetFilm().GetRenderedImage();

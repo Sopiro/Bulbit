@@ -20,6 +20,7 @@ struct Sample
     static int32 Register(std::string name, Func func);
     static bool Get(RendererInfo* renderer_info, std::string name);
 
+private:
     static inline std::map<std::string, Func> samples;
     static inline int32 count = 0;
 };
