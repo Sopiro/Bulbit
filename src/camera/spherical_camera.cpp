@@ -4,8 +4,8 @@
 namespace bulbit
 {
 
-SphericalCamera::SphericalCamera(const Transform& tf, const Point2i& resolution, const Medium* medium, const Filter* pixel_filter)
-    : Camera(resolution, medium, pixel_filter)
+SphericalCamera::SphericalCamera(const Transform& tf, const Point2i& resolution, const Medium* medium, const Filter* filter)
+    : Camera(resolution, medium, filter)
     , origin{ tf.p }
 {
 }

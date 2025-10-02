@@ -12,9 +12,9 @@ PerspectiveCamera::PerspectiveCamera(
     Float focus_distance,
     const Point2i& resolution,
     const Medium* medium,
-    const Filter* pixel_filter
+    const Filter* filter
 )
-    : Camera(resolution, medium, pixel_filter)
+    : Camera(resolution, medium, filter)
     , lens_radius{ aperture_radius }
     , focus_distance{ focus_distance }
 {

@@ -36,7 +36,7 @@ void Metals(RendererInfo* ri)
     Float ior = 1.5f;
     bool energy_compensation = true;
 
-    Float roughness = 0.15f;
+    Float roughness = 0.35f;
 
     // https://refractiveindex.info/
     const Material* iron = CreateConductorMaterial(scene, { 2.8653, 2.8889, 2.6260 }, { 3.1820, 2.9164, 2.7925 }, roughness);
@@ -107,7 +107,7 @@ void Metals(RendererInfo* ri)
     ri->camera_info.aperture_radius = aperture;
     ri->camera_info.focus_distance = Dist(position, target);
     ri->camera_info.film_info.filename = "";
-    ri->camera_info.film_info.resolution = { width, width };
+    ri->camera_info.film_info.resolution = { width, height };
     ri->camera_info.sampler_info.type = SamplerType::stratified;
     ri->camera_info.sampler_info.spp = 64;
 }

@@ -13,7 +13,7 @@ public:
         const Point2& viewport_size,
         int32 resolution_x,
         const Medium* medium = nullptr,
-        const Filter* pixel_filter = Camera::default_filter.get()
+        const Filter* filter = Camera::default_filter.get()
     );
 
     virtual void SampleRay(PrimaryRay* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const override;
@@ -37,7 +37,7 @@ public:
         Float focus_distance,
         const Point2i& resolution,
         const Medium* medium = nullptr,
-        const Filter* pixel_filter = Camera::default_filter.get()
+        const Filter* filter = Camera::default_filter.get()
     );
 
     virtual void SampleRay(PrimaryRay* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const override;
@@ -67,7 +67,7 @@ public:
         const Transform& tf,
         const Point2i& resolution,
         const Medium* medium = nullptr,
-        const Filter* pixel_filter = Camera::default_filter.get()
+        const Filter* filter = Camera::default_filter.get()
     );
 
     virtual void SampleRay(PrimaryRay* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const override;

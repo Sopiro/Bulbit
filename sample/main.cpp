@@ -32,14 +32,14 @@ int main(int argc, char* argv[])
 
     Allocator alloc;
 
-    Filter* pixel_filter = Filter::Create(alloc, ri.camera_info.film_info.filter_info);
-    if (!pixel_filter)
+    Filter* filter = Filter::Create(alloc, ri.camera_info.film_info.filter_info);
+    if (!filter)
     {
         std::cout << "Faild to create pixel filter" << std::endl;
         return 0;
     }
 
-    Camera* camera = Camera::Create(alloc, ri.camera_info, pixel_filter);
+    Camera* camera = Camera::Create(alloc, ri.camera_info, filter);
     if (!camera)
     {
         std::cout << "Faild to create camera" << std::endl;
@@ -73,17 +73,22 @@ int main(int argc, char* argv[])
 
     Image3 image = rendering->GetFilm().GetRenderedImage();
 
-    std::string filename = std::format(
-        "bulbit_render_{}x{}_s{}_d{}_t{}s.hdr", image.width, image.height, ri.camera_info.sampler_info.spp,
-        ri.integrator_info.max_bounces, render_time
-    );
+    std::string filename = ri.camera_info.film_info.filename;
+    if (filename.size() == 0)
+    {
+        filename = std::format(
+            "bulbit_render_{}x{}_s{}_d{}_t{}s.hdr", image.width, image.height, ri.camera_info.sampler_info.spp,
+            ri.integrator_info.max_bounces, render_time
+        );
+    }
+
     WriteImage(image, filename.c_str());
 
     alloc.delete_object(rendering);
     alloc.delete_object(integrator);
     alloc.delete_object(sampler);
     alloc.delete_object(camera);
-    alloc.delete_object(pixel_filter);
+    alloc.delete_object(filter);
 
 #if _DEBUG
     return 0;

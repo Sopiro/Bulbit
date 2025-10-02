@@ -21,7 +21,7 @@ struct FilterInfo
 
 struct FilmInfo
 {
-    std::string filename = "bulbit_render.hdr";
+    std::string filename = "";
     Point2i resolution = { 1280, 720 };
 
     FilterInfo filter_info;

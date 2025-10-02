@@ -12,7 +12,7 @@ void Head(RendererInfo* ri)
         auto head_albedo = CreateSpectrumImageTexture(scene, "res/head/lambertian.jpg");
 
         auto mat =
-            CreateSubsurfaceRandomWalkMaterial(scene, head_albedo, Spectrum(0.0012953, 0.00095238, 0.00067114), 1.33f, 0.5f);
+            CreateSubsurfaceRandomWalkMaterial(scene, head_albedo, Spectrum(0.0012953, 0.00095238, 0.00067114), 1.33f, 0.3f);
 
         // auto l0 = CreateDielectricMaterial(scene, 1.33, 0.3f);
         // auto l1 = scene.CreateMaterial<DiffuseMaterial>(head_albedo);

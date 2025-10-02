@@ -6,9 +6,9 @@ namespace bulbit
 {
 
 OrthographicCamera::OrthographicCamera(
-    const Transform& tf, const Point2& viewport_size, int32 resolution_x, const Medium* medium, const Filter* pixel_filter
+    const Transform& tf, const Point2& viewport_size, int32 resolution_x, const Medium* medium, const Filter* filter
 )
-    : Camera(Point2i(resolution_x, int32(resolution_x * viewport_size.y / viewport_size.x)), medium, pixel_filter)
+    : Camera(Point2i(resolution_x, int32(resolution_x * viewport_size.y / viewport_size.x)), medium, filter)
 {
     u = -tf.q.GetBasisX();
     v = tf.q.GetBasisY();

@@ -6,14 +6,26 @@
 namespace bulbit
 {
 
+// clang-format off
 DiffuseMaterial* CreateDiffuseMaterial(
-    Scene& scene, Float reflectance, Float roughness = 0, const SpectrumTexture* normalmap = nullptr, Float alpha = 1
+    Scene& scene,
+    Float reflectance,
+    Float roughness = 0,
+    const SpectrumTexture* normalmap = nullptr,
+    Float alpha = 1
 );
 DiffuseMaterial* CreateDiffuseMaterial(
-    Scene& scene, const Spectrum& reflectance, Float roughness = 0, const SpectrumTexture* normalmap = nullptr, Float alpha = 1
+    Scene& scene,
+    const Spectrum& reflectance,
+    Float roughness = 0,
+    const SpectrumTexture* normalmap = nullptr,
+    Float alpha = 1
 );
 DiffuseMaterial* CreateDiffuseMaterial(
-    Scene& scene, const std::string& filename, const SpectrumTexture* normalmap = nullptr, Float alpha = 1
+    Scene& scene,
+    const std::string& filename,
+    const SpectrumTexture* normalmap = nullptr,
+    Float alpha = 1
 );
 
 DielectricMaterial* CreateDielectricMaterial(
@@ -25,7 +37,11 @@ DielectricMaterial* CreateDielectricMaterial(
     const SpectrumTexture* normalmap = nullptr
 );
 
-ThinDielectricMaterial* CreateThinDielectricMaterial(Scene& scene, Float eta, Spectrum reflectance = Spectrum(1));
+ThinDielectricMaterial* CreateThinDielectricMaterial(
+    Scene& scene,
+    Float eta,
+    Spectrum reflectance = Spectrum(1)
+);
 
 ConductorMaterial* CreateConductorMaterial(
     Scene& scene,
@@ -153,14 +169,32 @@ SubsurfaceRandomWalkMaterial* CreateSubsurfaceRandomWalkMaterial(
     const SpectrumTexture* normalmap = nullptr
 );
 
-MixtureMaterial* CreateMixtureMaterial(Scene& scene, const Material* material1, const Material* material2, Float amount);
-
-MirrorMaterial* CreateMirrorMaterial(
-    Scene& scene, const Spectrum& reflectance, const SpectrumTexture* normalmap = nullptr, Float alpha = 1
+MixtureMaterial* CreateMixtureMaterial(
+    Scene& scene,
+    const Material* material1,
+    const Material* material2,
+    Float amount
 );
 
-DiffuseLightMaterial* CreateDiffuseLightMaterial(Scene& scene, Float emission, bool two_sided = false, Float alpha = 1);
-DiffuseLightMaterial* CreateDiffuseLightMaterial(Scene& scene, const Spectrum& emission, bool two_sided = false, Float alpha = 1);
+MirrorMaterial* CreateMirrorMaterial(
+    Scene& scene,
+    const Spectrum& reflectance,
+    const SpectrumTexture* normalmap = nullptr,
+    Float alpha = 1
+);
+
+DiffuseLightMaterial* CreateDiffuseLightMaterial(
+    Scene& scene,
+    Float emission,
+    bool two_sided = false,
+    Float alpha = 1
+);
+DiffuseLightMaterial* CreateDiffuseLightMaterial(
+    Scene& scene,
+    const Spectrum& emission,
+    bool two_sided = false,
+    Float alpha = 1
+);
 
 LayeredMaterial* CreateLayeredMaterial(
     Scene& scene,
@@ -175,6 +209,7 @@ LayeredMaterial* CreateLayeredMaterial(
     const SpectrumTexture* normalmap = nullptr,
     Float alpha = 1
 );
+// clang-format on
 
 const Material* CreateRandomPrincipledMaterial(Scene& scene);
 
