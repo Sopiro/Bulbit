@@ -8,6 +8,7 @@
 #include "scene_builder.h"
 #include "scene_loader.h"
 #include "texture_builder.h"
+#include "util.h"
 
 #include <map>
 

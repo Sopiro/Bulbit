@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     RendererInfo ri;
 
     // bool result = LoadScene(&ri, "C:/Users/sopir/Desktop/scenes/bedroom/scene_v3.xml");
-    bool result = Sample::Get(&ri, "cornell-box-caustics");
+    bool result = Sample::Get(&ri, "cornell-box");
     if (!result)
     {
         std::cout << "Sample not found!" << std::endl;
@@ -77,6 +77,10 @@ int main(int argc, char* argv[])
             "bulbit_render_{}x{}_s{}_d{}_t{}s.hdr", image.width, image.height, ri.camera_info.sampler_info.spp,
             ri.integrator_info.max_bounces, render_time
         );
+    }
+    else
+    {
+        filename = NextFileName(filename).string();
     }
 
     WriteImage(image, filename.c_str());

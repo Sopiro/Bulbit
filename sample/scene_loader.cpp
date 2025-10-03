@@ -4,7 +4,7 @@
 #include <pugixml.hpp>
 
 #include "model_loader.h"
-#include "string_util.h"
+#include "util.h"
 
 #include "light_builder.h"
 #include "material_builder.h"
