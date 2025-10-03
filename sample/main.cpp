@@ -14,53 +14,51 @@ int main(int argc, char* argv[])
 
     ThreadPool::global_thread_pool.reset(new ThreadPool(std::thread::hardware_concurrency()));
 
-    std::cout << "Loading scene.." << std::endl;
+    std::cout << "\rLoading scene.." << std::flush;
     Timer timer;
-
     RendererInfo ri;
+
     // bool result = LoadScene(&ri, "C:/Users/sopir/Desktop/scenes/bedroom/scene_v3.xml");
-    bool result = Sample::Get(&ri, "cornell-box");
+    bool result = Sample::Get(&ri, "cornell-box-caustics");
     if (!result)
     {
         std::cout << "Sample not found!" << std::endl;
         return 0;
     }
-
-    std::cout << "Scene loading: " << timer.Mark() << "s" << std::endl;
+    std::cout << "\rLoading scene.. " << timer.Mark() << "s" << std::endl;
     std::cout << "Primitives: " << ri.scene.GetPrimitives().size() << ", Lights: " << ri.scene.GetLights().size() << std::endl;
+
+    std::cout << "\rBuilding acceleration structure.." << std::flush;
+    BVH accel(ri.scene.GetPrimitives());
+    std::cout << "\rBuilding acceleration structure.. " << timer.Mark() << "s" << std::endl;
 
     Allocator alloc;
 
     Filter* filter = Filter::Create(alloc, ri.camera_info.film_info.filter_info);
     if (!filter)
     {
-        std::cout << "Faild to create pixel filter" << std::endl;
+        std::cerr << "Faild to create pixel filter" << std::endl;
         return 0;
     }
 
     Camera* camera = Camera::Create(alloc, ri.camera_info, filter);
     if (!camera)
     {
-        std::cout << "Faild to create camera" << std::endl;
+        std::cerr << "Faild to create camera" << std::endl;
         return 0;
     }
-
-    std::cout << "Building acceleration structure.." << std::endl;
-    BVH accel(ri.scene.GetPrimitives());
-
-    std::cout << "Acceleration structure build: " << timer.Mark() << "s" << std::endl;
 
     Sampler* sampler = Sampler::Create(alloc, ri.camera_info.sampler_info);
     if (!sampler)
     {
-        std::cout << "Faild to sampler" << std::endl;
+        std::cerr << "Faild to sampler" << std::endl;
         return 0;
     }
 
     Integrator* integrator = Integrator::Create(alloc, ri.integrator_info, &accel, ri.scene.GetLights(), sampler);
     if (!integrator)
     {
-        std::cout << "Faild to create integrator" << std::endl;
+        std::cerr << "Faild to create integrator" << std::endl;
         return 0;
     }
 
@@ -68,7 +66,7 @@ int main(int argc, char* argv[])
     rendering->WaitAndLogProgress();
 
     double render_time = timer.Mark();
-    std::cout << "\nComplete: " << render_time << 's' << std::endl;
+    std::cout << "\nComplete " << render_time << 's' << std::endl;
 
     Image3 image = rendering->GetFilm().GetRenderedImage();
 

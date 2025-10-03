@@ -79,7 +79,9 @@ public:
         size_t t = phase_works_dones[current_phase].load(std::memory_order_relaxed);
         size_t total_works = num_phase_works[current_phase];
         float p = 100.0f * t / num_phase_works[current_phase];
-        std::fprintf(stdout, "\rPhase[%zu/%zu] Rendering.. %.2f%% [%zu/%zu]", current_phase + 1, num_phases, p, t, total_works);
+        std::fprintf(
+            stdout, "\rPhase[%zu/%zu] Rendering.. %.2f%% [%zu/%zu]\033[K", current_phase + 1, num_phases, p, t, total_works
+        );
     }
 
     size_t NumPhases() const
