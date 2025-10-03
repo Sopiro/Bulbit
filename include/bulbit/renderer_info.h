@@ -58,6 +58,8 @@ struct CameraInfo
 
     FilmInfo film_info;
     SamplerInfo sampler_info;
+
+    const Medium* medium = nullptr;
 };
 
 enum class IntegratorType
