@@ -5,13 +5,13 @@
 namespace bulbit
 {
 
-AmbientOcclusion::AmbientOcclusion(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, Float ao_range)
+AOIntegrator::AOIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, Float ao_range)
     : UniDirectionalRayIntegrator(accel, std::move(lights), sampler, nullptr)
     , range{ ao_range }
 {
 }
 
-Spectrum AmbientOcclusion::Li(const Ray& primary_ray, const Medium* primary_medium, Sampler& sampler) const
+Spectrum AOIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium, Sampler& sampler) const
 {
     BulbitNotUsed(primary_medium);
 

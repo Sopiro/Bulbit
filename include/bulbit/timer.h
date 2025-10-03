@@ -21,7 +21,7 @@ private:
 
 inline Timer::Timer()
 {
-    Mark();
+    time_points.push_back(clock::now());
 }
 
 inline double Timer::Mark()

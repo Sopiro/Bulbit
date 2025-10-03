@@ -60,7 +60,7 @@ Integrator* Integrator::Create(
         return alloc.new_object<RandomWalkIntegrator>(accel, lights, sampler, max_bounces);
 
     case IntegratorType::ao:
-        return alloc.new_object<AmbientOcclusion>(accel, lights, sampler, ii.ao_range);
+        return alloc.new_object<AOIntegrator>(accel, lights, sampler, ii.ao_range);
 
     case IntegratorType::albedo:
         return alloc.new_object<AlbedoIntegrator>(accel, lights, sampler);

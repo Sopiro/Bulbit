@@ -28,10 +28,10 @@ private:
     int32 max_bounces;
 };
 
-class AmbientOcclusion : public UniDirectionalRayIntegrator
+class AOIntegrator : public UniDirectionalRayIntegrator
 {
 public:
-    AmbientOcclusion(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, Float ao_range);
+    AOIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, Float ao_range);
 
     virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
 
