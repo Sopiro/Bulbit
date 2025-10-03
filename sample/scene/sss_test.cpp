@@ -84,7 +84,7 @@ void SSSTest(RendererInfo* ri)
     Point3 position{ 0, 1.0, 3 };
     Point3 target{ 0.0, 0.3, 0.0 };
 
-    Float aperture = 0.02f;
+    Float aperture = 0.01f;
     Float fov = 30.0;
 
     ri->integrator_info.type = IntegratorType::vol_path;
@@ -162,7 +162,7 @@ void SSSTest2(RendererInfo* ri)
     Point3 position{ 0, 1.5, 3.5 };
     Point3 target{ 0.0, 0.5, 0.0 };
 
-    Float aperture = 0.005f;
+    Float aperture = 0.01f;
     Float fov = 30.0;
 
     ri->integrator_info.type = IntegratorType::vol_path;

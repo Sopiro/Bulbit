@@ -12,88 +12,168 @@ int main(int argc, char* argv[])
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-    ThreadPool::global_thread_pool.reset(new ThreadPool(std::thread::hardware_concurrency()));
-
-    std::cout << "\rLoading scene.." << std::flush;
-    Timer timer;
-    RendererInfo ri;
-
-    // bool result = LoadScene(&ri, "C:/Users/sopir/Desktop/scenes/bedroom/scene_v3.xml");
-    bool result = Sample::Get(&ri, "cornell-box");
-    if (!result)
+    if (argc <= 1 || std::string(argv[1]) == "--help")
     {
-        std::cout << "Sample not found!" << std::endl;
-        return 0;
-    }
-    std::cout << "\rLoading scene.. " << timer.Mark() << "s" << std::endl;
-    std::cout << "Primitives: " << ri.scene.GetPrimitives().size() << ", Lights: " << ri.scene.GetLights().size() << std::endl;
-
-    std::cout << "\rBuilding acceleration structure.." << std::flush;
-    BVH accel(ri.scene.GetPrimitives());
-    std::cout << "\rBuilding acceleration structure.. " << timer.Mark() << "s" << std::endl;
-
-    Allocator alloc;
-
-    Filter* filter = Filter::Create(alloc, ri.camera_info.film_info.filter_info);
-    if (!filter)
-    {
-        std::cerr << "Faild to create pixel filter" << std::endl;
+        std::cout << "\nUsage: bbrender [options] <scene.xml | sample_name> [<scene.xml | sample_name>...]\n\n";
+        std::cout << "Options:\n";
+        std::cout << "  -t <num_threads>          Number of threads to use (default: hardware concurrency)\n";
+        std::cout << "  -o <output_file>          Override output file name (default: value from scene or auto-generated)\n";
+        std::cout << "  -s <samples-per-pixel>    Override number of samples per pixel (default: value from scene)\n";
+        std::cout << "  --list-samples            Show list of available built-in sample scenes\n";
+        std::cout << "  --help                    Show this help message\n\n";
+        std::cout << "Arguments:\n";
+        std::cout << "  <scene.xml>               Path to scene file to render\n";
+        std::cout << "  <sample_name>             Name of built-in sample scene (e.g., cornell-box)\n\n";
+        std::cout << "Examples:\n";
+        std::cout << "  bbrender scene.xml\n";
+        std::cout << "  bbrender cornell-box\n";
+        std::cout << "  bbrender -t 8 -o render.hdr cornell-box\n";
         return 0;
     }
 
-    Camera* camera = Camera::Create(alloc, ri.camera_info, filter);
-    if (!camera)
+    int32 num_threads = std::thread::hardware_concurrency();
+    std::string output_file = "";
+    int32 spp = 0;
+
+    std::vector<std::string> inputs;
+
+    for (int32 i = 1; i < argc; ++i)
     {
-        std::cerr << "Faild to create camera" << std::endl;
-        return 0;
+        std::string arg = argv[i];
+
+        if (arg == "-t" && i + 1 < argc)
+        {
+            num_threads = std::stoi(argv[++i]);
+        }
+        else if (arg == "-o" && i + 1 < argc)
+        {
+            output_file = argv[++i];
+        }
+        else if (arg == "-spp" && i + 1 < argc)
+        {
+            spp = std::stoi(argv[++i]);
+        }
+        else if (arg == "--list-samples")
+        {
+            std::cout << "Available built-in samples:\n";
+            for (const auto& sample : Sample::samples)
+            {
+                std::cout << "  - " << sample.first << '\n';
+            }
+            return 0;
+        }
+        else
+        {
+            inputs.push_back(arg);
+        }
     }
 
-    Sampler* sampler = Sampler::Create(alloc, ri.camera_info.sampler_info);
-    if (!sampler)
+    if (inputs.size() == 0)
     {
-        std::cerr << "Faild to sampler" << std::endl;
-        return 0;
+        std::cerr << "Error: No scene file or sample name provided.\n";
+        return 1;
     }
 
-    Integrator* integrator = Integrator::Create(alloc, ri.integrator_info, &accel, ri.scene.GetLights(), sampler);
-    if (!integrator)
+    ThreadPool::global_thread_pool.reset(new ThreadPool(num_threads));
+
+    for (const std::string& input : inputs)
     {
-        std::cerr << "Faild to create integrator" << std::endl;
-        return 0;
+        std::cout << "\n--- " << input << " ---\n";
+        std::cout << "\rLoading scene.. " << std::flush;
+
+        Timer timer;
+        RendererInfo ri;
+
+        if (spp > 0)
+        {
+            ri.camera_info.sampler_info.spp = spp;
+        }
+
+        bool result = Sample::Get(&ri, input);
+        if (!result)
+        {
+            result = LoadScene(&ri, input.c_str());
+        }
+
+        if (!result)
+        {
+            std::cerr << "Failed to load scene or sample: " << input << '\n';
+            continue;
+        }
+
+        std::cout << "\rLoading scene.. " << timer.Mark() << "s" << std::endl;
+        std::cout << "Primitives: " << ri.scene.GetPrimitives().size() << ", Lights: " << ri.scene.GetLights().size()
+                  << std::endl;
+
+        std::cout << "\rBuilding acceleration structure.. " << std::flush;
+        BVH accel(ri.scene.GetPrimitives());
+        std::cout << "\rBuilding acceleration structure.. " << timer.Mark() << "s" << std::endl;
+
+        Allocator alloc;
+
+        Filter* filter = Filter::Create(alloc, ri.camera_info.film_info.filter_info);
+        if (!filter)
+        {
+            std::cerr << "Failed to create pixel filter" << std::endl;
+            return 0;
+        }
+
+        Camera* camera = Camera::Create(alloc, ri.camera_info, filter);
+        if (!camera)
+        {
+            std::cerr << "Failed to create camera" << std::endl;
+            return 0;
+        }
+
+        Sampler* sampler = Sampler::Create(alloc, ri.camera_info.sampler_info);
+        if (!sampler)
+        {
+            std::cerr << "Failed to sampler" << std::endl;
+            return 0;
+        }
+
+        Integrator* integrator = Integrator::Create(alloc, ri.integrator_info, &accel, ri.scene.GetLights(), sampler);
+        if (!integrator)
+        {
+            std::cerr << "Failed to create integrator" << std::endl;
+            return 0;
+        }
+
+        Rendering* rendering = integrator->Render(alloc, camera);
+        rendering->WaitAndLogProgress();
+
+        double render_time = timer.Mark();
+        std::cout << "\nComplete " << render_time << 's' << std::endl;
+
+        Image3 image = rendering->GetFilm().GetRenderedImage();
+
+        std::string filename = output_file.size() == 0 ? ri.camera_info.film_info.filename : "";
+        if (filename.size() == 0)
+        {
+            filename = std::format(
+                "bulbit_render_{}x{}_s{}_d{}_t{}s.hdr", image.width, image.height, ri.camera_info.sampler_info.spp,
+                ri.integrator_info.max_bounces, render_time
+            );
+        }
+
+        if (!(filename.ends_with(".jpg") || filename.ends_with(".png") || filename.ends_with(".hdr")))
+        {
+            std::cout << "\nWarning: Unsupported file format for '" << input << "'\n";
+            std::cout << "Supported formats are: .jpg, .png, .hdr\n";
+            std::cout << "Saving as PNG instead.\n";
+
+            std::filesystem::path original(filename);
+            filename = original.replace_extension(".png").string();
+        }
+
+        WriteImage(image, filename.c_str());
+
+        alloc.delete_object(rendering);
+        alloc.delete_object(integrator);
+        alloc.delete_object(sampler);
+        alloc.delete_object(camera);
+        alloc.delete_object(filter);
     }
 
-    Rendering* rendering = integrator->Render(alloc, camera);
-    rendering->WaitAndLogProgress();
-
-    double render_time = timer.Mark();
-    std::cout << "\nComplete " << render_time << 's' << std::endl;
-
-    Image3 image = rendering->GetFilm().GetRenderedImage();
-
-    std::string filename = ri.camera_info.film_info.filename;
-    if (filename.size() == 0)
-    {
-        filename = std::format(
-            "bulbit_render_{}x{}_s{}_d{}_t{}s.hdr", image.width, image.height, ri.camera_info.sampler_info.spp,
-            ri.integrator_info.max_bounces, render_time
-        );
-    }
-    else
-    {
-        filename = NextFileName(filename).string();
-    }
-
-    WriteImage(image, filename.c_str());
-
-    alloc.delete_object(rendering);
-    alloc.delete_object(integrator);
-    alloc.delete_object(sampler);
-    alloc.delete_object(camera);
-    alloc.delete_object(filter);
-
-#if _DEBUG
     return 0;
-#else
-    return system(filename.c_str());
-#endif
 }

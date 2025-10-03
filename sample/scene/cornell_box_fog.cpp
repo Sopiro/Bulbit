@@ -98,7 +98,7 @@ void CornellBoxFog(RendererInfo* ri)
     ri->camera_info.focus_distance = Dist(position, target);
     ri->camera_info.film_info.filename = "";
     ri->camera_info.film_info.resolution = { width, width };
-    ri->camera_info.sampler_info.type = SamplerType::stratified;
+    ri->camera_info.sampler_info.type = SamplerType::independent;
     ri->camera_info.sampler_info.spp = 64;
 }
 
