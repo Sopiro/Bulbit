@@ -10,7 +10,6 @@ void CornellBox(RendererInfo* ri)
     auto blue = CreateDiffuseMaterial(scene, Spectrum(.22f, .23f, .75f));
     auto white = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
     auto box = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
-    auto wakgood_mat = CreateDiffuseMaterial(scene, "res/wakdu.jpg");
     auto light = CreateDiffuseLightMaterial(scene, Spectrum(15.0f));
     // auto light = CreateDiffuseLightMaterial(scene, Spectrum(17.0f, 12.0f, 4.0f));
     auto mirror = CreateMirrorMaterial(scene, Spectrum(0.73f));
@@ -28,7 +27,7 @@ void CornellBox(RendererInfo* ri)
     {
         // front
         auto tf = Transform{ Vec3(0.5f, 0.5f, -1.0f), identity, Vec3(1.0f) };
-        CreateRectXY(scene, tf, wakgood_mat);
+        CreateRectXY(scene, tf, white);
 
         // left
         tf = Transform{ Vec3(0.0f, 0.5f, -0.5f), identity, Vec3(1.0f) };

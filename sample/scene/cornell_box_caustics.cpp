@@ -88,7 +88,6 @@ void CornellBoxCaustics(RendererInfo* ri)
         //     CreateSpectrumConstantTexture(scene, 0.1, 0.2, 1.9), CreateSpectrumConstantTexture(scene, 3, 2.5, 2),
         //     CreateFloatConstantTexture(scene, 0.3f), CreateFloatConstantTexture(scene, 0.1f));
         // CreateSphere(scene, Transform(Vec3(0.65f, 0.15f, -0.3f), Quat(DegToRad(0), x_axis)), 0.15f, mirror);
-        // CreateSphere(scene, Transform(Vec3(0.65f, 0.15f, -0.3f), Quat(DegToRad(45), y_axis)), 0.15f, wakgood_mat);
     }
 
     // Lights
@@ -99,7 +98,7 @@ void CornellBoxCaustics(RendererInfo* ri)
         // CreatePointLight(scene, Point3(0.5f, 0.999f, -0.5f), Spectrum(0.25f));
     }
 
-    int32 width = 1000;
+    int32 width = 500;
 
     Point3 position{ 0.5f, 0.5f, 2.05f };
     Point3 target{ 0.5f, 0.5f, 0.0f };

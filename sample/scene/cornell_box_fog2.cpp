@@ -95,7 +95,7 @@ void CornellBoxFog2(RendererInfo* ri)
         // CreatePointLight(scene, Point3(0.5f, 0.9f, -0.5f), Spectrum(0.25f));
     }
 
-    int32 width = 1000;
+    int32 width = 500;
 
     Point3 position{ 0.5f, 0.5f, 2.05f };
     Point3 target{ 0.5f, 0.5f, 0.0f };

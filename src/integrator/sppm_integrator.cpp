@@ -33,7 +33,7 @@ SPPMIntegrator::SPPMIntegrator(
         Float world_radius;
         world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
 
-        initial_radius = 2 * world_radius * 5e-3f;
+        initial_radius = 2 * world_radius * 2e-3f;
     }
 }
 

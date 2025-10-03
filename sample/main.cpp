@@ -19,6 +19,7 @@ int main(int argc, char* argv[])
         std::cout << "  -t <num_threads>          Number of threads to use (default: hardware concurrency)\n";
         std::cout << "  -o <output_file>          Override output file name (default: value from scene or auto-generated)\n";
         std::cout << "  -s <samples-per-pixel>    Override number of samples per pixel (default: value from scene)\n";
+        std::cout << "  -r <image_scale>          Scale output image (default: 1)\n";
         std::cout << "  --list-samples            Show list of available built-in sample scenes\n";
         std::cout << "  --help                    Show this help message\n\n";
         std::cout << "Arguments:\n";
@@ -27,13 +28,14 @@ int main(int argc, char* argv[])
         std::cout << "Examples:\n";
         std::cout << "  bbrender scene.xml\n";
         std::cout << "  bbrender cornell-box\n";
-        std::cout << "  bbrender -t 8 -o render.hdr cornell-box\n";
+        std::cout << "  bbrender -r 2 -o render.hdr cornell-box cornell-box-caustics\n";
         return 0;
     }
 
     int32 num_threads = std::thread::hardware_concurrency();
     std::string output_file = "";
     int32 spp = 0;
+    float scale = 1;
 
     std::vector<std::string> inputs;
 
@@ -52,6 +54,10 @@ int main(int argc, char* argv[])
         else if (arg == "-s" && i + 1 < argc)
         {
             spp = std::stoi(argv[++i]);
+        }
+        else if (arg == "-r" && i + 1 < argc)
+        {
+            scale = std::stof(argv[++i]);
         }
         else if (arg == "--list-samples")
         {
@@ -100,6 +106,7 @@ int main(int argc, char* argv[])
         {
             ri.camera_info.sampler_info.spp = spp;
         }
+        ri.camera_info.film_info.resolution *= scale;
 
         std::cout << "\rLoading scene.. " << timer.Mark() << "s" << std::endl;
         std::cout << "Primitives: " << ri.scene.GetPrimitives().size() << ", Lights: " << ri.scene.GetLights().size()
@@ -166,6 +173,7 @@ int main(int argc, char* argv[])
             filename = original.replace_extension(".png").string();
         }
 
+        filename = NextFileName(filename).string();
         WriteImage(image, filename.c_str());
 
         alloc.delete_object(rendering);

@@ -9,7 +9,6 @@ void CornellBoxVolume(RendererInfo* ri)
     auto green = CreateDiffuseMaterial(scene, Spectrum(.12f, .45f, .15f));
     auto blue = CreateDiffuseMaterial(scene, Spectrum(.22f, .23f, .75f));
     auto white = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
-    auto wakgood_mat = CreateDiffuseMaterial(scene, "res/wakdu.jpg");
     auto light = CreateDiffuseLightMaterial(scene, Spectrum(2.0f));
     // auto light = CreateDiffuseLightMaterial(scene, Spectrum(17.0f, 12.0f, 4.0f));
     auto mirror = CreateMirrorMaterial(scene, Spectrum(0.73f));
@@ -34,7 +33,7 @@ void CornellBoxVolume(RendererInfo* ri)
     {
         // front
         auto tf = Transform{ Vec3(0.5f, 0.5f, -1.0f), identity, Vec3(1.0f) };
-        CreateRectXY(scene, tf, wakgood_mat, mi_outside);
+        CreateRectXY(scene, tf, white, mi_outside);
 
         // left
         tf = Transform{ Vec3(0.0f, 0.5f, -0.5f), identity, Vec3(1.0f) };
@@ -87,7 +86,6 @@ void CornellBoxVolume(RendererInfo* ri)
         // auto mat = CreateThinDielectricMaterial(scene, 1.5f);
         // auto mat = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.3f, 0.1f);
         // CreateSphere(scene, Transform(Vec3(0.65f, 0.15f, -0.3f), Quat(DegToRad(0), x_axis)), 0.15f, mat);
-        // CreateSphere(scene, Transform(Vec3(0.65f, 0.15f, -0.3f), Quat(DegToRad(45), y_axis)), 0.15f, wakgood_mat);
     }
 
     // Lights
