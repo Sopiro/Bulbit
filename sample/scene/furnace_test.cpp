@@ -1,6 +1,6 @@
 #include "../samples.h"
 
-void FurnacePrincipled(RendererInfo* ri)
+void FurnacePrincipled(RendererInfo* ri, bool sky)
 {
     Scene& scene = ri->scene;
 
@@ -70,9 +70,15 @@ void FurnacePrincipled(RendererInfo* ri)
         }
     }
 
-    CreateUniformInfiniteLight(scene, Spectrum(1));
-    // CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
+    if (!sky)
+    {
+        CreateUniformInfiniteLight(scene, Spectrum(1));
+    }
+    else
+    {
+        // CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
+        CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
+    }
 
     Float aspect_ratio = 4.f / 1.f;
     int32 width = 1600;
@@ -98,7 +104,7 @@ void FurnacePrincipled(RendererInfo* ri)
     ri->camera_info.sampler_info.spp = 64;
 }
 
-void FurnaceDielectric(RendererInfo* ri)
+void FurnaceDielectric(RendererInfo* ri, bool sky, bool energy_compensation)
 {
     Scene& scene = ri->scene;
 
@@ -133,7 +139,6 @@ void FurnaceDielectric(RendererInfo* ri)
     Float transmission = 1.0f;
     Float anisotrophy = 0.0f;
     Float ior = 1.5f;
-    bool energy_compensation = true;
 
     outers[3] = CreateDielectricMaterial(scene, ior, 0.0f, color, energy_compensation);
     outers[1] = CreateDielectricMaterial(scene, ior, 0.01f, color, energy_compensation);
@@ -170,9 +175,15 @@ void FurnaceDielectric(RendererInfo* ri)
         }
     }
 
-    CreateUniformInfiniteLight(scene, Spectrum(1));
-    // CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
+    if (!sky)
+    {
+        CreateUniformInfiniteLight(scene, Spectrum(1));
+    }
+    else
+    {
+        // CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
+        CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
+    }
 
     Float aspect_ratio = 4.f / 1.f;
     int32 width = 1600;
@@ -198,7 +209,7 @@ void FurnaceDielectric(RendererInfo* ri)
     ri->camera_info.sampler_info.spp = 64;
 }
 
-void FurnaceConductor(RendererInfo* ri)
+void FurnaceConductor(RendererInfo* ri, bool sky, bool energy_compensation)
 {
     Scene& scene = ri->scene;
 
@@ -234,7 +245,6 @@ void FurnaceConductor(RendererInfo* ri)
     Float transmission = 1.0f;
     Float anisotrophy = 0.0f;
     Float ior = 1.5f;
-    bool energy_compensation = true;
     Spectrum reflectance(1);
 
     outers[3] = CreateConductorMaterial(scene, color, 0.0f, reflectance, energy_compensation);
@@ -272,9 +282,15 @@ void FurnaceConductor(RendererInfo* ri)
         }
     }
 
-    CreateUniformInfiniteLight(scene, Spectrum(1));
-    // CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
+    if (!sky)
+    {
+        CreateUniformInfiniteLight(scene, Spectrum(1));
+    }
+    else
+    {
+        // CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
+        CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(pi / 2, y_axis)));
+    }
 
     Float aspect_ratio = 4.f / 1.f;
     int32 width = 1600;
@@ -300,6 +316,13 @@ void FurnaceConductor(RendererInfo* ri)
     ri->camera_info.sampler_info.spp = 64;
 }
 
-static int32 index2 = Sample::Register("furnace", FurnaceConductor);
-static int32 index1 = Sample::Register("furnace2", FurnaceDielectric);
-static int32 index0 = Sample::Register("furnace3", FurnacePrincipled);
+static int32 index1 = Sample::Register("furnace1", std::bind(FurnaceConductor, std::placeholders::_1, false, true));
+static int32 index2 = Sample::Register("furnace2", std::bind(FurnaceDielectric, std::placeholders::_1, false, true));
+static int32 index3 = Sample::Register("furnace3", std::bind(FurnacePrincipled, std::placeholders::_1, false));
+static int32 index4 = Sample::Register("furnace1_sky", std::bind(FurnaceConductor, std::placeholders::_1, true, true));
+static int32 index5 = Sample::Register("furnace2_sky", std::bind(FurnaceDielectric, std::placeholders::_1, true, true));
+static int32 index6 = Sample::Register("furnace3_sky", std::bind(FurnacePrincipled, std::placeholders::_1, true));
+static int32 index7 = Sample::Register("furnace1_no", std::bind(FurnaceConductor, std::placeholders::_1, false, false));
+static int32 index8 = Sample::Register("furnace2_no", std::bind(FurnaceDielectric, std::placeholders::_1, false, false));
+static int32 index9 = Sample::Register("furnace1_no_sky", std::bind(FurnaceConductor, std::placeholders::_1, true, false));
+static int32 index10 = Sample::Register("furnace2_no_sky", std::bind(FurnaceDielectric, std::placeholders::_1, true, false));
