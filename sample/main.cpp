@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
         {
             output_file = argv[++i];
         }
-        else if (arg == "-spp" && i + 1 < argc)
+        else if (arg == "-s" && i + 1 < argc)
         {
             spp = std::stoi(argv[++i]);
         }
@@ -84,11 +84,6 @@ int main(int argc, char* argv[])
         Timer timer;
         RendererInfo ri;
 
-        if (spp > 0)
-        {
-            ri.camera_info.sampler_info.spp = spp;
-        }
-
         bool result = Sample::Get(&ri, input);
         if (!result)
         {
@@ -99,6 +94,11 @@ int main(int argc, char* argv[])
         {
             std::cerr << "Failed to load scene or sample: " << input << '\n';
             continue;
+        }
+
+        if (spp > 0)
+        {
+            ri.camera_info.sampler_info.spp = spp;
         }
 
         std::cout << "\rLoading scene.. " << timer.Mark() << "s" << std::endl;
@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
 
         Image3 image = rendering->GetFilm().GetRenderedImage();
 
-        std::string filename = output_file.size() == 0 ? ri.camera_info.film_info.filename : "";
+        std::string filename = output_file.size() == 0 ? ri.camera_info.film_info.filename : output_file;
         if (filename.size() == 0)
         {
             filename = std::format(
