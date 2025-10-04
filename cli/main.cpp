@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 
     if (argc <= 1 || std::string(argv[1]) == "--help")
     {
-        std::cout << "\nUsage: bbrender [options] <scene.xml | sample_name> [<scene.xml | sample_name>...]\n\n";
+        std::cout << "\nUsage: bbcli [options] <scene.xml | sample_name> [<scene.xml | sample_name>...]\n\n";
         std::cout << "Options:\n";
         std::cout << "  -t <num_threads>          Number of threads to use (default: hardware concurrency)\n";
         std::cout << "  -o <output_file>          Override output file name (default: value from scene or auto-generated)\n";
@@ -26,9 +26,9 @@ int main(int argc, char* argv[])
         std::cout << "  <scene.xml>               Path to scene file to render\n";
         std::cout << "  <sample_name>             Name of built-in sample scene (e.g., cornell-box)\n\n";
         std::cout << "Examples:\n";
-        std::cout << "  bbrender scene.xml\n";
-        std::cout << "  bbrender cornell-box\n";
-        std::cout << "  bbrender -r 2 -o render.hdr cornell-box cornell-box-caustics\n";
+        std::cout << "  bbcli scene.xml\n";
+        std::cout << "  bbcli cornell-box\n";
+        std::cout << "  bbcli -r 2 -o render.hdr cornell-box cornell-box-caustics\n";
         return 0;
     }
 

@@ -4,7 +4,7 @@ include(FetchContent)
 
 project(bulbit LANGUAGES CXX VERSION 0.0.1)
 
-option(BULBIT_BUILD_SAMPLES "Build Samples" ON)
+option(BULBIT_BUILD_CLI "Build CLI Renderer" ON)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
@@ -20,6 +20,6 @@ endif()
 
 add_subdirectory(src)
 
-if(BULBIT_BUILD_SAMPLES)
-    add_subdirectory(sample)
+if(BULBIT_BUILD_CLI)
+    add_subdirectory(cli)
 endif()
