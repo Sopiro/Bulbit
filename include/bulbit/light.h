@@ -36,8 +36,13 @@ struct LightSampleLe
     const Medium* medium;
 };
 
-using Lights =
-    TypePack<class PointLight, class DirectionalLight, class AreaLight, class UniformInfiniteLight, class ImageInfiniteLight>;
+using Lights = TypePack<
+    class PointLight,
+    class SpotLight,
+    class DirectionalLight,
+    class AreaLight,
+    class UniformInfiniteLight,
+    class ImageInfiniteLight>;
 
 class Light : public DynamicDispatcher<Lights>
 {

@@ -66,15 +66,31 @@ inline Float SphericalPhi(const Vec3& v)
 inline Vec3 SphericalDirection(Float theta, Float phi)
 {
     Float sin_theta = std::sin(theta);
-    return Vec3(std::cos(phi) * sin_theta, std::cos(theta), std::sin(phi) * sin_theta);
+    return Vec3(std::cos(phi) * sin_theta, std::sin(phi) * sin_theta, std::cos(theta));
 }
 
-constexpr inline Vec3 SphericalDirection(Float sin_theta, Float cos_theta, Float phi)
+inline Vec3 SphericalDirection(Float sin_theta, Float cos_theta, Float phi)
+{
+    return Vec3(std::cos(phi) * sin_theta, std::sin(phi) * sin_theta, cos_theta);
+}
+
+inline Vec3 SphericalDirection(Float sin_theta, Float cos_theta, Float sin_phi, Float cos_phi)
+{
+    return Vec3(cos_phi * sin_theta, sin_phi * sin_theta, cos_theta);
+}
+
+inline Vec3 SphericalDirectionY(Float theta, Float phi)
+{
+    Float sin_theta = std::sin(theta);
+    return Vec3(std::cos(phi) * sin_theta, std::sin(phi) * sin_theta, std::cos(theta));
+}
+
+inline Vec3 SphericalDirectionY(Float sin_theta, Float cos_theta, Float phi)
 {
     return Vec3(std::cos(phi) * sin_theta, cos_theta, std::sin(phi) * sin_theta);
 }
 
-constexpr inline Vec3 SphericalDirection(Float sin_theta, Float cos_theta, Float sin_phi, Float cos_phi)
+inline Vec3 SphericalDirectionY(Float sin_theta, Float cos_theta, Float sin_phi, Float cos_phi)
 {
     return Vec3(cos_phi * sin_theta, cos_theta, sin_phi * sin_theta);
 }

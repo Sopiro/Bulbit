@@ -37,6 +37,41 @@ private:
     const Medium* medium;
 };
 
+class SpotLight : public Light
+{
+public:
+    SpotLight(
+        const Point3& position,
+        const Vec3& direction,
+        const Spectrum& intensity,
+        Float angle_max,           // degrees
+        Float angle_falloff_start, // degrees
+        const Medium* medium
+    );
+    void Destroy() {}
+
+    void Preprocess(const AABB& world_bounds);
+
+    Spectrum Le(const Ray& ray) const;
+
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
+    Float EvaluatePDF_Li(const Ray& ray) const;
+
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
+    void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
+    void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
+
+    Spectrum Phi() const;
+
+private:
+    Point3 position;
+    Vec3 direction;
+    Float cos_theta_min, cos_theta_max;
+
+    Spectrum intensity; // radiance
+    const Medium* medium;
+};
+
 class DirectionalLight : public Light
 {
 public:
@@ -199,7 +234,7 @@ inline Spectrum Light::Phi() const
 
 inline bool Light::IsDeltaLight() const
 {
-    return Is<PointLight>() || Is<DirectionalLight>();
+    return Is<PointLight>() || Is<SpotLight>() || Is<DirectionalLight>();
 }
 
 inline bool Light::IsInfiniteLight() const

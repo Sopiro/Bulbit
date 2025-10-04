@@ -66,7 +66,7 @@ bool ImageInfiniteLight::Sample_Li(LightSampleLi* light_sample, const Intersecti
     Float cos_theta = std::cos(theta), sin_theta = std::sin(theta);
     Float sin_phi = std::sin(phi), cos_phi = std::cos(phi);
 
-    Vec3 wi = Mul(transform, SphericalDirection(sin_theta, cos_theta, sin_phi, cos_phi));
+    Vec3 wi = Mul(transform, SphericalDirectionY(sin_theta, cos_theta, sin_phi, cos_phi));
     light_sample->wi = wi;
     light_sample->normal = Vec3(0);
     light_sample->point = ref.point + wi * 2 * world_radius;
@@ -116,7 +116,7 @@ bool ImageInfiniteLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) 
     Float cos_theta = std::cos(theta), sin_theta = std::sin(theta);
     Float sin_phi = std::sin(phi), cos_phi = std::cos(phi);
 
-    Vec3 wo = -Mul(transform, SphericalDirection(sin_theta, cos_theta, sin_phi, cos_phi));
+    Vec3 wo = -Mul(transform, SphericalDirectionY(sin_theta, cos_theta, sin_phi, cos_phi));
 
     Frame frame(wo);
 

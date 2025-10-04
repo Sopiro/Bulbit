@@ -133,6 +133,20 @@ inline Point2 SampleUniformUnitDiskConcentric(Point2 u)
     return r * Point2(std::cos(theta), std::sin(theta));
 }
 
+inline Float UniformConePDF(Float cos_theta_max)
+{
+    return 1 / (two_pi * (1 - cos_theta_max));
+}
+
+inline Vec3 SampleUniformCone(Point2 u, Float cos_theta_max)
+{
+    Float cos_theta = (1 - u[0]) + u[0] * cos_theta_max;
+    Float sin_theta = SafeSqrt(1 - Sqr(cos_theta));
+    Float phi = u[1] * two_pi;
+
+    return SphericalDirection(sin_theta, cos_theta, phi);
+}
+
 // z > 0
 inline Vec3 SampleCosineHemisphere(Point2 u)
 {

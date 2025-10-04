@@ -20,6 +20,25 @@ PointLight* CreatePointLight(
     const Medium* medium = nullptr
 );
 
+SpotLight* CreateSpotLight(
+    Scene& scene,
+    const Point3& position,
+    const Vec3& direction,
+    const Spectrum& intensity,
+    Float angle_max,
+    Float angle_falloff_start,
+    const Medium* medium = nullptr
+);
+SpotLight* CreateSpotLight(
+    Scene& scene,
+    const Point3& position,
+    const Vec3& direction,
+    Float intensity,
+    Float angle_max,
+    Float angle_falloff_start,
+    const Medium* medium = nullptr
+);
+
 DirectionalLight* CreateDirectionalLight(
     Scene& scene,
     const Vec3& direction,

@@ -72,6 +72,17 @@ constexpr inline V<T> NormalizeSafe(const V<T>& v)
     return v * inv_length;
 }
 
+constexpr inline Float SmoothStep(Float a, Float b, Float x)
+{
+    if (a == b)
+    {
+        return (x < a) ? 0 : 1;
+    }
+
+    Float t = Clamp((x - a) / (b - a), 0, 1);
+    return t * t * (3 - 2 * t);
+}
+
 template <typename V, typename T>
 constexpr inline V Lerp(const V& start, const V& end, T t)
 {

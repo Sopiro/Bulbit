@@ -14,6 +14,32 @@ PointLight* CreatePointLight(Scene& scene, const Point3& position, Float intensi
     return scene.CreateLight<PointLight>(position, Spectrum{ intensity }, medium);
 }
 
+SpotLight* CreateSpotLight(
+    Scene& scene,
+    const Point3& position,
+    const Vec3& direction,
+    const Spectrum& intensity,
+    Float angle_max,
+    Float angle_falloff_start,
+    const Medium* medium
+)
+{
+    return scene.CreateLight<SpotLight>(position, direction, intensity, angle_max, angle_falloff_start, medium);
+}
+
+SpotLight* CreateSpotLight(
+    Scene& scene,
+    const Point3& position,
+    const Vec3& direction,
+    Float intensity,
+    Float angle_max,
+    Float angle_falloff_start,
+    const Medium* medium
+)
+{
+    return scene.CreateLight<SpotLight>(position, direction, Spectrum(intensity), angle_max, angle_falloff_start, medium);
+}
+
 DirectionalLight* CreateDirectionalLight(Scene& scene, const Vec3& direction, const Spectrum& intensity)
 {
     return scene.CreateLight<DirectionalLight>(direction, intensity);
