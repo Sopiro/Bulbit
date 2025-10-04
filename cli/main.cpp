@@ -14,7 +14,8 @@ int main(int argc, char* argv[])
 
     if (argc <= 1 || std::string(argv[1]) == "--help")
     {
-        std::cout << "\nUsage: bbcli [options] <scene.xml | sample_name> [<scene.xml | sample_name>...]\n\n";
+        std::cout << "\nUsage:\n";
+        std::cout << "  bbcli [options] <scene.xml | sample_name> [<scene.xml | sample_name>...]\n\n";
         std::cout << "Options:\n";
         std::cout << "  -t <num_threads>          Number of threads to use (default: hardware concurrency)\n";
         std::cout << "  -o <output_file>          Override output file name (default: value from scene or auto-generated)\n";
