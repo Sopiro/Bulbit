@@ -13,8 +13,8 @@ SpotLight::SpotLight(
     const Medium* medium
 )
     : Light(TypeIndexOf<SpotLight>())
-    , position{ position }
-    , direction{ Normalize(direction) }
+    , p{ position }
+    , frame{ -Normalize(direction) }
     , cos_theta_min{ std::cos(DegToRad(angle_falloff_start)) }
     , cos_theta_max{ std::cos(DegToRad(angle_max)) }
     , intensity{ intensity }
@@ -39,21 +39,16 @@ bool SpotLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2
 {
     BulbitNotUsed(u);
 
-    Vec3 wi = position - ref.point;
+    Vec3 wi = p - ref.point;
     Float distance = wi.Normalize();
 
-    Frame f(direction);
-
-    Vec3 wi_local = f.ToLocal(wi);
-
-    Spectrum l = SmoothStep(cos_theta_max, cos_theta_min, CosTheta(wi_local)) * intensity;
-
+    Spectrum l = SmoothStep(cos_theta_max, cos_theta_min, CosTheta(-frame.ToLocal(wi))) * intensity;
     if (l.IsBlack())
     {
         return false;
     }
 
-    sample->point = position;
+    sample->point = p;
     sample->normal = Vec3(0);
 
     sample->wi = wi;
@@ -77,11 +72,8 @@ bool SpotLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 
     Vec3 w = SampleUniformCone(u1, cos_theta_max);
 
-    Frame f(-direction);
-
     sample->Le = SmoothStep(cos_theta_max, cos_theta_min, CosTheta(w)) * intensity;
-
-    sample->ray = Ray(position, f.FromLocal(w));
+    sample->ray = Ray(p, frame.FromLocal(w));
     sample->normal = Vec3(0);
     sample->pdf_p = 1;
     sample->pdf_w = UniformConePDF(cos_theta_max);
@@ -94,10 +86,8 @@ void SpotLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const
 {
     BulbitNotUsed(ray);
 
-    Frame f(-direction);
-
     *pdf_p = 0;
-    *pdf_w = (CosTheta(f.ToLocal(ray.d)) >= cos_theta_max) ? UniformConePDF(cos_theta_max) : 0;
+    *pdf_w = (CosTheta(frame.ToLocal(ray.d)) >= cos_theta_max) ? UniformConePDF(cos_theta_max) : 0;
 }
 
 void SpotLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const

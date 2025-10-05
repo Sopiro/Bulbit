@@ -32,7 +32,7 @@ public:
     Spectrum Phi() const;
 
 private:
-    Point3 position;
+    Point3 p;
     Spectrum intensity; // radiance
     const Medium* medium;
 };
@@ -42,7 +42,7 @@ class SpotLight : public Light
 public:
     SpotLight(
         const Point3& position,
-        const Vec3& direction,
+        const Vec3& direction,     // Incident direction
         const Spectrum& intensity,
         Float angle_max,           // degrees
         Float angle_falloff_start, // degrees
@@ -64,8 +64,8 @@ public:
     Spectrum Phi() const;
 
 private:
-    Point3 position;
-    Vec3 direction;
+    Point3 p;
+    Frame frame;
     Float cos_theta_min, cos_theta_max;
 
     Spectrum intensity; // radiance
@@ -75,8 +75,10 @@ private:
 class DirectionalLight : public Light
 {
 public:
-    // Incident light direction
-    DirectionalLight(const Vec3& direction, const Spectrum& intensity);
+    DirectionalLight(
+        const Vec3& direction, // Incident direction
+        const Spectrum& intensity
+    );
     void Destroy() {}
 
     void Preprocess(const AABB& world_bounds);
@@ -93,7 +95,7 @@ public:
     Spectrum Phi() const;
 
 private:
-    Vec3 wo;
+    Vec3 w;
     Spectrum intensity; // radiance
 
     Point3 world_center;

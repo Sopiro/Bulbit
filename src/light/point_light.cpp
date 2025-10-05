@@ -6,7 +6,7 @@ namespace bulbit
 
 PointLight::PointLight(const Point3& position, const Spectrum& intensity, const Medium* medium)
     : Light(TypeIndexOf<PointLight>())
-    , position{ position }
+    , p{ position }
     , intensity{ intensity }
     , medium{ medium }
 {
@@ -28,10 +28,10 @@ bool PointLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point
 {
     BulbitNotUsed(u);
 
-    Vec3 wi = position - ref.point;
+    Vec3 wi = p - ref.point;
     Float distance = wi.Normalize();
 
-    sample->point = position;
+    sample->point = p;
     sample->normal = Vec3(0);
 
     sample->wi = wi;
@@ -56,7 +56,7 @@ bool PointLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
     Vec3 w = SampleUniformSphere(u1);
 
     sample->Le = intensity;
-    sample->ray = Ray(position, w);
+    sample->ray = Ray(p, w);
     sample->normal = Vec3(0);
     sample->pdf_p = 1;
     sample->pdf_w = UniformSpherePDF();
