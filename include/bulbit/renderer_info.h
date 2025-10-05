@@ -78,6 +78,7 @@ enum class IntegratorType
     ao,
     albedo,
     debug,
+    count,
 };
 
 struct IntegratorInfo

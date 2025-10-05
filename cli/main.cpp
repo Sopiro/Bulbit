@@ -17,11 +17,13 @@ int main(int argc, char* argv[])
         std::cout << "\nUsage:\n";
         std::cout << "  bbcli [options] <scene.xml | sample_name> [<scene.xml | sample_name>...]\n\n";
         std::cout << "Options:\n";
-        std::cout << "  -t <num_threads>          Number of threads to use (default: hardware concurrency)\n";
-        std::cout << "  -o <output_file>          Override output file name (default: value from scene or auto-generated)\n";
-        std::cout << "  -s <samples-per-pixel>    Override number of samples per pixel (default: value from scene)\n";
-        std::cout << "  -b <max_bounces>          Override number of maximum bounces (default: value from scene)\n";
-        std::cout << "  -r <image_scale>          Scale output image (default: 1)\n";
+        std::cout << "  -t <num_threads>          Number of threads to use  (default: hardware concurrency)\n";
+        std::cout << "  -o <output_file>          Override output file name  (default: value from scene or auto-generated)\n";
+        std::cout << "  -s <samples-per-pixel>    Override number of samples per pixel  (default: value from scene)\n";
+        std::cout << "  -b <max_bounces>          Override number of maximum bounces  (default: value from scene)\n";
+        std::cout << "  -i <integrator>           Override integrator  (default: value from scene)\n";
+        std::cout << "  -r <image_scale>          Scale output image  (default: 1)\n";
+        std::cout << "  --list-integrators        Show list of available integrators\n";
         std::cout << "  --list-samples            Show list of available built-in sample scenes\n";
         std::cout << "  --help                    Show this help message\n\n";
         std::cout << "Arguments:\n";
@@ -38,6 +40,7 @@ int main(int argc, char* argv[])
     std::string output_file = "";
     int32 spp = 0;
     int32 max_bounces = -1;
+    int32 integrator = -1;
     float scale = 1;
 
     std::vector<std::string> inputs;
@@ -62,6 +65,10 @@ int main(int argc, char* argv[])
         {
             max_bounces = std::stoi(argv[++i]);
         }
+        else if (arg == "-i" && i + 1 < argc)
+        {
+            integrator = std::stoi(argv[++i]);
+        }
         else if (arg == "-r" && i + 1 < argc)
         {
             scale = std::stof(argv[++i]);
@@ -73,6 +80,15 @@ int main(int argc, char* argv[])
             {
                 std::cout << "  - " << sample.first << '\n';
             }
+            return 0;
+        }
+        else if (arg == "--list-integrators")
+        {
+            for (size_t i = 0; i < integrator_list.size(); ++i)
+            {
+                std::cout << std::format("  - {:>2}: {}", i, integrator_list[i]) << '\n';
+            }
+
             return 0;
         }
         else
@@ -111,6 +127,7 @@ int main(int argc, char* argv[])
 
         if (spp > 0) ri.camera_info.sampler_info.spp = spp;
         if (max_bounces >= 0) ri.integrator_info.max_bounces = max_bounces;
+        if (integrator >= 0 && integrator < integrator_list.size()) ri.integrator_info.type = IntegratorType(integrator);
         ri.camera_info.film_info.resolution *= scale;
 
         std::cout << "\rLoading scene.. " << timer.Mark() << "s" << std::endl;

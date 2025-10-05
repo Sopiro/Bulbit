@@ -45,3 +45,20 @@ inline bool Sample::Get(RendererInfo* renderer_info, std::string name)
     iter->second(renderer_info);
     return true;
 }
+
+inline constexpr std::array<std::string_view, size_t(IntegratorType::count)> integrator_list = {
+    "Path tracing",
+    "Volumetric path tracing",
+    "Light path tracing",
+    "Volumetric light path tracing",
+    "Bidirectional path tracing",
+    "Volumetric bidirectional path tracing",
+    "Photon mapping",
+    "Stochastic progressive photon mapping",
+    "Naive path tracing",
+    "Naive volumetric path tracing",
+    "Random walk ray tracing",
+    "Ambient occlusion",
+    "Albedo",
+    "Debug",
+};
