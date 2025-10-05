@@ -20,6 +20,7 @@ int main(int argc, char* argv[])
         std::cout << "  -t <num_threads>          Number of threads to use (default: hardware concurrency)\n";
         std::cout << "  -o <output_file>          Override output file name (default: value from scene or auto-generated)\n";
         std::cout << "  -s <samples-per-pixel>    Override number of samples per pixel (default: value from scene)\n";
+        std::cout << "  -b <max_bounces>          Override number of maximum bounces (default: value from scene)\n";
         std::cout << "  -r <image_scale>          Scale output image (default: 1)\n";
         std::cout << "  --list-samples            Show list of available built-in sample scenes\n";
         std::cout << "  --help                    Show this help message\n\n";
@@ -36,6 +37,7 @@ int main(int argc, char* argv[])
     int32 num_threads = std::thread::hardware_concurrency();
     std::string output_file = "";
     int32 spp = 0;
+    int32 max_bounces = -1;
     float scale = 1;
 
     std::vector<std::string> inputs;
@@ -55,6 +57,10 @@ int main(int argc, char* argv[])
         else if (arg == "-s" && i + 1 < argc)
         {
             spp = std::stoi(argv[++i]);
+        }
+        else if (arg == "-b" && i + 1 < argc)
+        {
+            max_bounces = std::stoi(argv[++i]);
         }
         else if (arg == "-r" && i + 1 < argc)
         {
@@ -103,10 +109,8 @@ int main(int argc, char* argv[])
             continue;
         }
 
-        if (spp > 0)
-        {
-            ri.camera_info.sampler_info.spp = spp;
-        }
+        if (spp > 0) ri.camera_info.sampler_info.spp = spp;
+        if (max_bounces >= 0) ri.integrator_info.max_bounces = max_bounces;
         ri.camera_info.film_info.resolution *= scale;
 
         std::cout << "\rLoading scene.. " << timer.Mark() << "s" << std::endl;
