@@ -1376,6 +1376,36 @@ static void ParseLight(pugi::xml_node node, const DefaultMap& dm, Scene* scene)
 
         scene->CreateLight<PointLight>(Mul(to_world, position), intensity, nullptr);
     }
+    else if (type == "spot")
+    {
+        Spectrum intensity(1);
+        Float cutoff_angle = 20;
+        Float beam_width = cutoff_angle * 3 / 4.0f;
+        Transform to_world = identity;
+
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "intensity")
+            {
+                intensity = ParseIntensity(child, dm);
+            }
+            else if (name == "cutoff_angle")
+            {
+                cutoff_angle = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "beam_width")
+            {
+                beam_width = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "to_world")
+            {
+                to_world = ParseTransform(child, dm);
+            }
+        }
+
+        scene->CreateLight<SpotLight>(to_world.p, to_world.q.GetBasisZ(), intensity, cutoff_angle, beam_width, nullptr);
+    }
     else if (type == "directional")
     {
         Spectrum irradiance(1);
@@ -1448,6 +1478,10 @@ static void ParseLight(pugi::xml_node node, const DefaultMap& dm, Scene* scene)
         {
             std::cerr << "Filename unspecified for envmap" << std::endl;
         }
+    }
+    else
+    {
+        std::cerr << "Light not supported: " << type << std::endl;
     }
 }
 
