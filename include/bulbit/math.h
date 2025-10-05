@@ -76,7 +76,7 @@ constexpr inline Float SmoothStep(Float a, Float b, Float x)
 {
     if (a == b)
     {
-        return (x < a) ? 0 : 1;
+        return (x < a) ? Float(0) : Float(1);
     }
 
     Float t = Clamp((x - a) / (b - a), 0, 1);
