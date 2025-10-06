@@ -3,6 +3,15 @@
 #include "medium.h"
 #include "random.h"
 #include "sampling.h"
+#include "voxel_grid.h"
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-braces"
+#pragma clang diagnostic ignored "-Wunused-value"
+#define NANOVDB_USE_ZIP 1
+#include <nanovdb/NanoVDB.h>
+#include <nanovdb/util/IO.h>
+#pragma clang diagnostic pop
 
 namespace bulbit
 {
@@ -62,7 +71,7 @@ public:
     using MajorantIterator = HomogeneousMajorantIterator;
 
     HomogeneousMedium(Spectrum sigma_a, Spectrum sigma_s, Spectrum Le, Float g)
-        : Medium(0)
+        : Medium(TypeIndexOf<HomogeneousMedium>())
         , sigma_a{ sigma_a }
         , sigma_s{ sigma_s }
         , Le{ Le }
@@ -97,6 +106,35 @@ public:
 private:
     Spectrum sigma_a, sigma_s, Le;
     HenyeyGreensteinPhaseFunction phase;
+};
+
+class NanoVDBMedium : public Medium
+{
+public:
+    using MajorantIterator = HomogeneousMajorantIterator;
+
+    NanoVDBMedium(
+        const Transform& transform,
+        Spectrum sigma_a,
+        Spectrum sigma_s,
+        Float sigma_scale,
+        Float g,
+        nanovdb::GridHandle<nanovdb::HostBuffer> density_grid
+    );
+
+    bool IsEmissive() const;
+    MediumSample SamplePoint(Point3 p) const;
+    HomogeneousMajorantIterator SampleRay(Ray ray, Float t_max) const;
+    RayMajorantIterator* SampleRay(Ray ray, Float t_max, Allocator& alloc) const;
+
+private:
+    AABB3 bounds;
+    Transform transform;
+    Spectrum sigma_a, sigma_s;
+    HenyeyGreensteinPhaseFunction phase;
+    VoxelGrid<Float> majorant_grid;
+    nanovdb::GridHandle<nanovdb::HostBuffer> density_grid;
+    const nanovdb::FloatGrid* density_float_grid = nullptr;
 };
 
 inline bool Medium::IsEmissive() const

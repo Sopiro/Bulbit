@@ -289,8 +289,9 @@ void DynamicBVH::RayCast(const Ray& r, Float t_min, Float t_max, T* callback) co
             NodeIndex child1 = node->child1;
             NodeIndex child2 = node->child2;
 
-            Float dist1 = nodes[child1].aabb.Intersect(r, t_min, t_max);
-            Float dist2 = nodes[child2].aabb.Intersect(r, t_min, t_max);
+            Float dist1 = infinity, dist2 = infinity;
+            nodes[child1].aabb.Intersect(r, t_min, t_max, &dist1);
+            nodes[child2].aabb.Intersect(r, t_min, t_max, &dist2);
 
             if (dist2 < dist1)
             {

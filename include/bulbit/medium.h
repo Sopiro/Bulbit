@@ -46,7 +46,7 @@ public:
     virtual bool Next(RayMajorantSegment* next_segment) = 0;
 };
 
-using Media = TypePack<class HomogeneousMedium>;
+using Media = TypePack<class HomogeneousMedium, class NanoVDBMedium>;
 
 class Medium : public DynamicDispatcher<Media>
 {

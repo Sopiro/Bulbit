@@ -3,11 +3,14 @@
 
 #define TINYOBJLOADER_IMPLEMENTATION
 // #define TINYOBJLOADER_USE_MAPBOX_EARCUT
-#include "tiny_obj_loader.h"
+#include <tiny_obj_loader.h>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-literal-operator"
 #define TINYGLTF_NO_STB_IMAGE
 #define TINYGLTF_IMPLEMENTATION
-#include "tiny_gltf.h"
+#include <tiny_gltf.h>
+#pragma clang diagnostic pop
 
 #include "material_builder.h"
 #include "texture_builder.h"
