@@ -5,13 +5,25 @@
 #include "sampling.h"
 #include "voxel_grid.h"
 
+#if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #pragma clang diagnostic ignored "-Wunused-value"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+#pragma GCC diagnostic ignored "-Wunused-value"
+#endif
+
 #define NANOVDB_USE_ZIP 1
 #include <nanovdb/NanoVDB.h>
 #include <nanovdb/util/IO.h>
+
+#if defined(__clang__)
 #pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 namespace bulbit
 {
