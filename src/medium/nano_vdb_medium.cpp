@@ -47,10 +47,12 @@ NanoVDBMedium::NanoVDBMedium(
         sub_bounds.max = Lerp(bounds.min, bounds.max, t1);
 
         // Compute corresponding NanoVDB index-space bounds in floating-point
-        nanovdb::Vec3R i0 =
-            density_float_grid->worldToIndexF(nanovdb::Vec3R(sub_bounds.min.x, sub_bounds.min.y, sub_bounds.min.z));
-        nanovdb::Vec3R i1 =
-            density_float_grid->worldToIndexF(nanovdb::Vec3R(sub_bounds.max.x, sub_bounds.max.y, sub_bounds.max.z));
+        nanovdb::Vec3f i0 = density_float_grid->worldToIndexF<nanovdb::Vec3f>(
+            nanovdb::Vec3f(sub_bounds.min.x, sub_bounds.min.y, sub_bounds.min.z)
+        );
+        nanovdb::Vec3f i1 = density_float_grid->worldToIndexF<nanovdb::Vec3f>(
+            nanovdb::Vec3f(sub_bounds.max.x, sub_bounds.max.y, sub_bounds.max.z)
+        );
 
         nanovdb::BBox<nanovdb::Coord> bbox = density_float_grid->indexBBox();
 
