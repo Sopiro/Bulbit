@@ -5,10 +5,7 @@
 #include "sampling.h"
 #include "voxel_grid.h"
 
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4324 4456 4459 4702)
-#elif defined(__clang__)
+#if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #pragma clang diagnostic ignored "-Wunused-value"
@@ -18,18 +15,21 @@
 #pragma GCC diagnostic ignored "-Wmissing-braces"
 #pragma GCC diagnostic ignored "-Wunused-value"
 #pragma GCC diagnostic ignored "-Wpadded"
+#elif defined(_MSVC_LANG)
+#pragma warning(push)
+#pragma warning(disable : 4324 4456 4459 4702)
 #endif
 
 #define NANOVDB_USE_ZIP 1
 #include <nanovdb/NanoVDB.h>
 #include <nanovdb/util/IO.h>
 
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#elif defined(__clang__)
+#if defined(__clang__)
 #pragma clang diagnostic pop
 #elif defined(__GNUC__)
 #pragma GCC diagnostic pop
+#elif defined(_MSVC_LANG)
+#pragma warning(pop)
 #endif
 
 namespace bulbit
@@ -89,38 +89,12 @@ class HomogeneousMedium : public Medium
 public:
     using MajorantIterator = HomogeneousMajorantIterator;
 
-    HomogeneousMedium(Spectrum sigma_a, Spectrum sigma_s, Spectrum Le, Float g)
-        : Medium(TypeIndexOf<HomogeneousMedium>())
-        , sigma_a{ sigma_a }
-        , sigma_s{ sigma_s }
-        , Le{ Le }
-        , phase{ g }
-    {
-    }
+    HomogeneousMedium(Spectrum sigma_a, Spectrum sigma_s, Spectrum Le, Float g);
 
-    bool IsEmissive() const
-    {
-        return !Le.IsBlack();
-    }
-
-    MediumSample SamplePoint(Point3 p) const
-    {
-        BulbitNotUsed(p);
-        return MediumSample{ sigma_a, sigma_s, Le, &phase };
-    }
-
-    HomogeneousMajorantIterator SampleRay(Ray ray, Float t_max) const
-    {
-        BulbitNotUsed(ray);
-        BulbitNotUsed(t_max);
-        return HomogeneousMajorantIterator(Float(0), t_max, sigma_a + sigma_s);
-    }
-
-    RayMajorantIterator* SampleRay(Ray ray, Float t_max, Allocator& alloc) const
-    {
-        BulbitNotUsed(ray);
-        return alloc.new_object<HomogeneousMajorantIterator>(Float(0), t_max, sigma_a + sigma_s);
-    }
+    bool IsEmissive() const;
+    MediumSample SamplePoint(Point3 p) const;
+    HomogeneousMajorantIterator SampleRay(Ray ray, Float t_max) const;
+    RayMajorantIterator* SampleRay(Ray ray, Float t_max, Allocator& alloc) const;
 
 private:
     Spectrum sigma_a, sigma_s, Le;
