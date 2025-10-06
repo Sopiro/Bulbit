@@ -5,21 +5,28 @@
 #include "sampling.h"
 #include "voxel_grid.h"
 
-#if defined(__clang__)
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4324 4456 4459 4702)
+#elif defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #pragma clang diagnostic ignored "-Wunused-value"
+#pragma clang diagnostic ignored "-Wpadded"
 #elif defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-braces"
 #pragma GCC diagnostic ignored "-Wunused-value"
+#pragma GCC diagnostic ignored "-Wpadded"
 #endif
 
 #define NANOVDB_USE_ZIP 1
 #include <nanovdb/NanoVDB.h>
 #include <nanovdb/util/IO.h>
 
-#if defined(__clang__)
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#elif defined(__clang__)
 #pragma clang diagnostic pop
 #elif defined(__GNUC__)
 #pragma GCC diagnostic pop
