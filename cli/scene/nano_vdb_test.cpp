@@ -58,7 +58,7 @@ void NanoVDBTest(RendererInfo* ri)
     MediumInterface mi_inside(medium, nullptr);
     MediumInterface mi_two_sided(medium, medium);
 
-    CreateBox(scene, Transform(Point3::zero, tf.q, extents * tf.s), nullptr, mi_inside);
+    CreateBox(scene, Transform(tf.p, tf.q, extents * tf.s), nullptr, mi_inside);
 
     // CreateImageInfiniteLight(scene, "res/HDR/small_rural_road_1k.hdr", Transform(Quat(0, y_axis)), 2);
     // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(pi / 2, y_axis)));
@@ -156,7 +156,7 @@ void NanoVDBTest2(RendererInfo* ri)
     MediumInterface mi_inside(medium, nullptr);
     MediumInterface mi_two_sided(medium, medium);
 
-    CreateBox(scene, Transform(Point3::zero, tf.q, extents * tf.s), nullptr, mi_inside);
+    CreateBox(scene, Transform(tf.p, tf.q, extents * tf.s), nullptr, mi_inside);
 
     // CreateImageInfiniteLight(scene, "res/HDR/small_rural_road_1k.hdr", Transform(Quat(0, y_axis)), 2);
     // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(pi / 2, y_axis)));

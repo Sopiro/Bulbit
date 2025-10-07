@@ -89,7 +89,9 @@ struct Transform
 
     constexpr Transform GetInverse() const
     {
-        return Transform{ q.RotateInv(-p), q.GetConjugate(), 1 / s };
+        Quat inv_q = q.GetConjugate();
+        Vec3 inv_s = Vec3(1) / s;
+        return Transform{ inv_q.Rotate(-(p * inv_s)), inv_q, inv_s };
     }
 
     static Transform Translate(const Vec3& position)
@@ -131,29 +133,29 @@ constexpr inline Vec3 Mul(const Transform& t, const Vec3& v)
     return t.q.Rotate(t.s * v) + t.p;
 }
 
-// A^T * V
+// A^{-1} * V
 constexpr inline Vec3 MulT(const Transform& t, const Vec3& v)
 {
-    return t.q.RotateInv(Float(1) / t.s * v - t.p);
+    return t.q.RotateInv(v - t.p) / t.s;
 }
 
 constexpr inline Transform operator*(const Transform& a, const Transform& b)
 {
-    return Transform{ a.q.Rotate(b.p) + a.p, a.q * b.q, a.s * b.s };
+    return Transform{ a.q.Rotate(a.s * b.p) + a.p, a.q * b.q, a.s * b.s };
 }
 
 // A * B
 constexpr inline Transform Mul(const Transform& a, const Transform& b)
 {
-    return Transform{ a.q.Rotate(b.p) + a.p, a.q * b.q, a.s * b.s };
+    return Transform{ a.q.Rotate(a.s * b.p) + a.p, a.q * b.q, a.s * b.s };
 }
 
-// A^T * B
+// A^{-1} * B
 constexpr inline Transform MulT(const Transform& a, const Transform& b)
 {
-    Quat invQ = a.q.GetConjugate();
-
-    return Transform{ invQ.Rotate(b.p - a.p), invQ * b.q, (1 / a.s) * b.s };
+    Quat inv_q = a.q.GetConjugate();
+    Vec3 inv_s = Vec3(1) / a.s;
+    return Transform{ inv_q.Rotate((b.p - a.p) * inv_s), inv_q * b.q, inv_s * b.s };
 }
 
 constexpr inline Transform& Transform::operator*=(const Transform& other)
