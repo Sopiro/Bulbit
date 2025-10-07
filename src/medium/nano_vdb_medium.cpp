@@ -28,7 +28,7 @@ NanoVDBMedium::NanoVDBMedium(
         Point3(Float(aabb.max()[0]), Float(aabb.max()[1]), Float(aabb.max()[2]))
     );
 
-    const Point3i res(1);
+    const Point3i res(64);
     majorant_grid = VoxelGrid<Float>(bounds, res);
 
     int32 grid_size = res.x * res.y * res.z;
@@ -94,7 +94,7 @@ MediumSample NanoVDBMedium::SamplePoint(Point3 p) const
     return MediumSample{ sigma_a * density, sigma_s * density, Spectrum::black, &phase };
 }
 
-HomogeneousMajorantIterator NanoVDBMedium::SampleRay(Ray ray, Float t_max) const
+DDAMajorantIterator NanoVDBMedium::SampleRay(Ray ray, Float t_max) const
 {
     Ray ray_medium = MulT(transform, ray);
     Float t_hit0, t_hit1;
@@ -103,16 +103,19 @@ HomogeneousMajorantIterator NanoVDBMedium::SampleRay(Ray ray, Float t_max) const
         return {};
     }
 
-    return HomogeneousMajorantIterator(t_hit0, t_hit1, (sigma_a + sigma_s) * majorant_grid(0, 0, 0));
+    return DDAMajorantIterator(ray_medium, t_hit0, t_hit1, &majorant_grid, sigma_a + sigma_s);
 }
 
 RayMajorantIterator* NanoVDBMedium::SampleRay(Ray ray, Float t_max, Allocator& alloc) const
 {
-    BulbitNotUsed(ray);
-    BulbitNotUsed(t_max);
-    BulbitNotUsed(alloc);
+    Ray ray_medium = MulT(transform, ray);
+    Float t_hit0, t_hit1;
+    if (!bounds.Intersect(ray_medium, 0, t_max, &t_hit0, &t_hit1))
+    {
+        return nullptr;
+    }
 
-    return nullptr;
+    return alloc.new_object<DDAMajorantIterator>(ray_medium, t_hit0, t_hit1, &majorant_grid, sigma_a + sigma_s);
 }
 
 } // namespace bulbit

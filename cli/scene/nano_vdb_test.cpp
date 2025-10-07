@@ -49,7 +49,7 @@ void NanoVDBTest(RendererInfo* ri)
 
     Spectrum sigma_a(.1);
     Spectrum sigma_s(1);
-    Float sigma_scale = 1;
+    Float sigma_scale = 10;
     Float g = 0.0;
 
     NanoVDBMedium* medium =

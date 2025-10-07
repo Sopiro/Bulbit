@@ -95,7 +95,7 @@ void CornellBoxCloud(RendererInfo* ri)
     }
 
     Float aspect_ratio = 1;
-    int32 width = 1000;
+    int32 width = 500;
     int32 height = int32(width / aspect_ratio);
 
     Point3 position{ 0.5f, 0.5f, 2.05f };
@@ -104,7 +104,7 @@ void CornellBoxCloud(RendererInfo* ri)
     Float aperture = 0.0f;
     Float fov = 28;
 
-    ri->integrator_info.type = IntegratorType::vol_bdpt;
+    ri->integrator_info.type = IntegratorType::vol_path;
     ri->integrator_info.max_bounces = 1024;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
@@ -114,7 +114,7 @@ void CornellBoxCloud(RendererInfo* ri)
     ri->camera_info.film_info.filename = "";
     ri->camera_info.film_info.resolution = { width, height };
     ri->camera_info.sampler_info.type = SamplerType::independent;
-    ri->camera_info.sampler_info.spp = 64;
+    ri->camera_info.sampler_info.spp = 8;
 }
 
 static int32 sample_index = Sample::Register("cornell-box-cloud", CornellBoxCloud);
