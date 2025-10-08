@@ -1011,7 +1011,7 @@ static const Material* ParseMaterial(
 
         mat = scene->CreateMaterial<DiffuseMaterial>(reflectance, roughness, mi.normal, mi.alpha);
     }
-    else if (type == "roughplastic" || type == "plastic")
+    else if (type == "plastic" || type == "roughplastic" || type == "rough_plastic")
     {
         Float int_ior = 1.49f;
         Float ext_ior = 1.000277f;
@@ -1031,7 +1031,7 @@ static const Material* ParseMaterial(
         for (auto child : node.children())
         {
             std::string name = child.attribute("name").value();
-            if (name == "diffuse_reflectance")
+            if (name == "diffuse_reflectance" || name == "reflectance")
             {
                 basecolor = ParseSpectrumTexture(child, dm, scene);
             }
@@ -1105,7 +1105,7 @@ static const Material* ParseMaterial(
             {
                 k = ParseSpectrumTexture(child, dm, scene, true);
             }
-            else if (name == "specular_reflectance")
+            else if (name == "specular_reflectance" || name == "reflectance")
             {
                 reflectance = ParseSpectrumTexture(child, dm, scene);
             }
@@ -1242,7 +1242,7 @@ static const Material* ParseMaterial(
         for (auto child : node.children())
         {
             std::string name = child.attribute("name").value();
-            if (name == "basecolor")
+            if (name == "basecolor" || name == "reflectance")
             {
                 basecolor = ParseSpectrumTexture(child, dm, scene);
             }
@@ -1345,6 +1345,35 @@ static const Material* ParseMaterial(
         }
 
         mat = scene->CreateMaterial<SubsurfaceRandomWalkMaterial>(reflectance, mfp, eta, u_roughness, v_roughness, g, mi.normal);
+    }
+    else if (type == "cloth")
+    {
+        const SpectrumTexture* basecolor = CreateSpectrumConstantTexture(*scene, 1);
+        const SpectrumTexture* sheen_color = CreateSpectrumConstantTexture(*scene, 1, 0, 1);
+        const FloatTexture* roughness = CreateFloatConstantTexture(*scene, 0.3f);
+
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "basecolor" || name == "reflectance")
+            {
+                basecolor = ParseSpectrumTexture(child, dm, scene);
+            }
+            else if (name == "sheen_color")
+            {
+                sheen_color = ParseSpectrumTexture(child, dm, scene);
+            }
+            else if (name == "roughness")
+            {
+                roughness = ParseFloatTexture(child, dm, scene);
+            }
+            else
+            {
+                std::cerr << "Invalid parameter for cloth material: " << name << std::endl;
+            }
+        }
+
+        mat = scene->CreateMaterial<ClothMaterial>(basecolor, sheen_color, roughness, mi.normal, mi.alpha);
     }
     else
     {
