@@ -58,6 +58,8 @@ public:
     {
     }
 
+    ~Medium();
+
     bool IsEmissive() const;
     MediumSample SamplePoint(Point3 p) const;
     RayMajorantIterator* SampleRay(Ray ray, Float t_max, Allocator& alloc) const;

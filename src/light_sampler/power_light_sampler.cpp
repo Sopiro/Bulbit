@@ -27,6 +27,11 @@ bool PowerLightSampler::Sample(SampledLight* sampled_light, const Intersection& 
 {
     BulbitNotUsed(isect);
 
+    if (lights.size() == 0)
+    {
+        return false;
+    }
+
     Float pmf;
     int32 index = distribution.SampleDiscrete(u, &pmf);
 

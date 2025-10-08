@@ -12,7 +12,11 @@ NanoVDBMedium::NanoVDBMedium(
     Spectrum sigma_s,
     Float sigma_scale,
     Float g,
-    nanovdb::GridHandle<nanovdb::HostBuffer> dg
+    nanovdb::GridHandle<nanovdb::HostBuffer> dg,
+    nanovdb::GridHandle<nanovdb::HostBuffer> tg,
+    Float Le_scale,
+    Float temperature_offset,
+    Float temperature_scale
 )
     : Medium(TypeIndexOf<NanoVDBMedium>())
     , transform{ transform }
@@ -20,13 +24,31 @@ NanoVDBMedium::NanoVDBMedium(
     , sigma_s{ sigma_s * sigma_scale }
     , phase{ g }
     , density_grid{ std::move(dg) }
-    , density_float_grid{ density_grid.grid<float>() }
+    , temperature_grid{ std::move(tg) }
+    , Le_scale{ Le_scale }
+    , temperature_offset{ temperature_offset }
+    , temperature_scale{ temperature_scale }
 {
+    density_float_grid = density_grid.grid<float>();
     nanovdb::BBox<nanovdb::Vec3R> aabb = density_float_grid->worldBBox();
     bounds = AABB3(
         Point3(Float(aabb.min()[0]), Float(aabb.min()[1]), Float(aabb.min()[2])),
         Point3(Float(aabb.max()[0]), Float(aabb.max()[1]), Float(aabb.max()[2]))
     );
+
+    // Init temperature grid if provided
+    if (temperature_grid)
+    {
+        temperature_float_grid = temperature_grid.grid<float>();
+        float min, max;
+        temperature_float_grid->tree().extrema(min, max);
+
+        nanovdb::BBox<nanovdb::Vec3R> aabb = temperature_float_grid->worldBBox();
+        bounds = AABB::Union(
+            bounds,
+            AABB3(Point3(aabb.min()[0], aabb.min()[1], aabb.min()[2]), Point3(aabb.max()[0], aabb.max()[1], aabb.max()[2]))
+        );
+    }
 
     const Point3i res(64);
     majorant_grid = VoxelGrid<Float>(bounds, res);
@@ -77,6 +99,16 @@ NanoVDBMedium::NanoVDBMedium(
     });
 }
 
+void NanoVDBMedium::Destroy()
+{
+    majorant_grid.~VoxelGrid();
+
+    density_grid.reset();
+    density_float_grid = nullptr;
+    temperature_grid.reset();
+    temperature_float_grid = nullptr;
+}
+
 bool NanoVDBMedium::IsEmissive() const
 {
     return false;
@@ -85,13 +117,25 @@ bool NanoVDBMedium::IsEmissive() const
 MediumSample NanoVDBMedium::SamplePoint(Point3 p) const
 {
     Point3 p_medium = MulT(transform, p);
-    nanovdb::Vec3<float> pIndex = density_float_grid->worldToIndexF(nanovdb::Vec3<float>(p_medium.x, p_medium.y, p_medium.z));
+    nanovdb::Vec3<float> p_index = density_float_grid->worldToIndexF(nanovdb::Vec3<float>(p_medium.x, p_medium.y, p_medium.z));
 
     // Get medium density using trilinear sampler
     using Sampler = nanovdb::SampleFromVoxels<nanovdb::FloatGrid::TreeType, 1, false>;
-    Float density = Sampler(density_float_grid->tree())(pIndex);
+    Float density = Sampler(density_float_grid->tree())(p_index);
 
-    return MediumSample{ sigma_a * density, sigma_s * density, Spectrum::black, &phase };
+    Spectrum Le = Spectrum::black;
+    if (temperature_float_grid)
+    {
+        p_index = temperature_float_grid->worldToIndexF(nanovdb::Vec3<float>(p_medium.x, p_medium.y, p_medium.z));
+        Float temperature = Sampler(temperature_float_grid->tree())(p_index);
+        temperature = (temperature - temperature_offset) * temperature_scale;
+        if (temperature > 100.0f)
+        {
+            Le = Le_scale * spectral::BlackbodyRGB(temperature);
+        }
+    }
+
+    return MediumSample{ sigma_a * density, sigma_s * density, Le, &phase };
 }
 
 DDAMajorantIterator NanoVDBMedium::SampleRay(Ray ray, Float t_max) const

@@ -257,4 +257,104 @@ constexpr inline RGBSpectrum Clamp(const RGBSpectrum& sp, U left, V right)
     return RGBSpectrum(Clamp(sp.r, left, right), Clamp(sp.g, left, right), Clamp(sp.b, left, right));
 }
 
+namespace spectral
+{
+
+// Analytic fit of CIE XYZ curve proposed by Wyman et al.: https://jcgt.org/published/0002/02/01/
+inline Float X_Fit_1931(Float wavelength)
+{
+    Float d_param_1 = (wavelength - Float(442.0)) * ((wavelength < Float(442.0)) ? Float(0.0624) : Float(0.0374));
+    Float d_param_2 = (wavelength - Float(599.8)) * ((wavelength < Float(599.8)) ? Float(0.0264) : Float(0.0323));
+    Float d_param_3 = (wavelength - Float(501.1)) * ((wavelength < Float(501.1)) ? Float(0.0490) : Float(0.0382));
+    return Float(0.362) * std::exp(-Float(0.5) * d_param_1 * d_param_1) +
+           Float(1.056) * std::exp(-Float(0.5) * d_param_2 * d_param_2) -
+           Float(0.065) * std::exp(-Float(0.5) * d_param_3 * d_param_3);
+}
+
+inline Float Y_Fit_1931(Float wavelength)
+{
+    Float d_param_1 = (wavelength - Float(568.8)) * ((wavelength < Float(568.8)) ? Float(0.0213) : Float(0.0247));
+    Float d_param_2 = (wavelength - Float(530.9)) * ((wavelength < Float(530.9)) ? Float(0.0613) : Float(0.0322));
+    return Float(0.821) * std::exp(-Float(0.5) * d_param_1 * d_param_1) +
+           Float(0.286) * std::exp(-Float(0.5) * d_param_2 * d_param_2);
+}
+
+inline Float Z_Fit_1931(Float wavelength)
+{
+    Float d_param_1 = (wavelength - Float(437.0)) * ((wavelength < Float(437.0)) ? Float(0.0845) : Float(0.0278));
+    Float d_param_2 = (wavelength - Float(459.0)) * ((wavelength < Float(459.0)) ? Float(0.0385) : Float(0.0725));
+    return Float(1.217) * std::exp(-Float(0.5) * d_param_1 * d_param_1) +
+           Float(0.681) * std::exp(-Float(0.5) * d_param_2 * d_param_2);
+}
+
+inline Vec3 XYZ_integral_coeff(Float wavelength)
+{
+    return Vec3{ X_Fit_1931(wavelength), Y_Fit_1931(wavelength), Z_Fit_1931(wavelength) };
+}
+
+inline Vec3 XYZ_to_sRGB(const Vec3& xyz)
+{
+    // clang-format off
+    Mat3 m(
+        Vec3(3.2404542f, -0.9692660f, 0.0556434f),
+        Vec3(-1.5371385f, 1.8760108f, -0.2040259f),
+        Vec3(-0.4985314f, 0.0415560f, 1.0572252f)
+    );
+    // clang-format on
+
+    return Mul(m, xyz);
+}
+
+constexpr inline Float Blackbody(Float lambda, Float T)
+{
+    if (T <= 0)
+    {
+        return 0;
+    }
+
+    constexpr Float h = 6.62606957e-34f; // Planck constant (J·s)
+    constexpr Float c = 299792458.0f;    // Speed of light (m/s)
+    constexpr Float kb = 1.3806488e-23f; // Boltzmann constant (J/K)
+
+    Float l = lambda * 1e-9f;            // nm -> m
+    Float exponent = (h * c) / (l * kb * T);
+
+    if (exponent > 80.0f)
+    {
+        return 0;
+    }
+
+    Float Le = (2 * h * c * c) / (std::pow(l, 5) * std::expm1(exponent));
+    return Le;
+}
+
+inline Spectrum BlackbodyRGB(Float T, Float step = 10)
+{
+    constexpr Float wavelength_begin = 400.0f;
+    constexpr Float wavelength_end = 700.0f;
+
+    Vec3 XYZ(0);
+
+    for (Float wavelength = wavelength_begin; wavelength <= wavelength_end; wavelength += step)
+    {
+        Float Le = Blackbody(wavelength, T);
+        Vec3 coeff = XYZ_integral_coeff(wavelength);
+
+        XYZ += coeff * Le;
+    }
+
+    // Convert to xyY(Y=1) and back to XYZ
+    Float Y = XYZ[1];
+    if (Y > 0)
+    {
+        XYZ /= Y;
+    }
+
+    // XYZ to linear sRGB
+    Spectrum RGB = XYZ_to_sRGB(XYZ);
+    return Max(RGB, 0);
+}
+
+} // namespace spectral
+
 } // namespace bulbit

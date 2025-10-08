@@ -196,5 +196,105 @@ void NanoVDBTest2(RendererInfo* ri)
     ri->camera_info.sampler_info.spp = 8;
 }
 
+void NanoVDBTest3(RendererInfo* ri)
+{
+    Scene& scene = ri->scene;
+
+    ModelLoaderOptions options;
+    options.use_fallback_material = true;
+
+    std::vector<nanovdb::GridHandle<nanovdb::HostBuffer>> handles;
+    try
+    {
+        handles = nanovdb::io::readGrids("C:/Users/sopir/Desktop/fire.nvdb");
+    }
+    catch (std::exception& e)
+    {
+        std::cout << e.what() << std::endl;
+    }
+
+    if (handles.size() == 0)
+    {
+        std::cerr << "Failed to read NanoVDB file!\n";
+        exit(1);
+    }
+
+    const nanovdb::NanoGrid<float>* grid = handles[0].grid<float>();
+
+    if (!grid)
+    {
+        std::cerr << "Not a float grid!\n";
+        exit(1);
+    }
+
+    std::cout << "Grid name: " << grid->gridName() << std::endl;
+    auto bbox = grid->worldBBox();
+    Vec3 min(bbox.min()[0], bbox.min()[1], bbox.min()[2]);
+    Vec3 max(bbox.max()[0], bbox.max()[1], bbox.max()[2]);
+    Vec3 center = (min + max) / 2;
+    Vec3 extents = (max - min);
+
+    std::cout << "BBox min: " << min.ToString() << std::endl;
+    std::cout << "BBox max: " << max.ToString() << std::endl;
+    std::cout << "BBox center: " << center.ToString() << std::endl;
+    std::cout << "BBox extents: " << extents.ToString() << std::endl;
+    std::cout << "Value range: " << grid->tree().root().minimum() << " ~ " << grid->tree().root().maximum() << std::endl;
+
+    Transform to_origin(-center);
+    Transform tf(0, 0, 0, Quat(-pi / 2, y_axis), Vec3(0.5));
+
+    Spectrum sigma_a(10);
+    Spectrum sigma_s(6);
+    Float sigma_scale = 4;
+    Float g = 0.0;
+    Float Le_scale = 5;
+    Float temperature_offset = 3;
+    Float temperature_scale = 100;
+
+    NanoVDBMedium* medium = scene.CreateMedium<NanoVDBMedium>(
+        tf * to_origin, sigma_a, sigma_s, sigma_scale, g, std::move(handles[0]), std::move(handles[1]), Le_scale,
+        temperature_offset, temperature_scale
+    );
+    MediumInterface mi_outside(nullptr, medium);
+    MediumInterface mi_inside(medium, nullptr);
+    MediumInterface mi_two_sided(medium, medium);
+
+    auto white = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
+    CreateBox(scene, Transform(tf.p, tf.q, extents * tf.s), nullptr, mi_inside);
+
+    auto checker = CreateSpectrumCheckerTexture(scene, 0.75, 0.3, Point2(20));
+    tf = Transform{ Vec3(0, -22.4, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(100) };
+    auto floor = scene.CreateMaterial<DiffuseMaterial>(checker);
+    options.fallback_material = floor;
+    LoadModel(scene, "res/background.obj", tf, options);
+
+    // CreateImageInfiniteLight(scene, "res/HDR/sunset.hdr", Transform(Quat(-pi / 2, y_axis)));
+    CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr", Transform(Quat(pi / 4, y_axis)));
+    // CreateUniformInfiniteLight(scene, Spectrum(.4));
+
+    Float aspect_ratio = 3 / 4.;
+    int32 width = 900;
+    int32 height = int32(width / aspect_ratio);
+
+    Point3 position = Point3{ 0, 0, 100 };
+    Point3 target = Point3{ 0, 0, 0 };
+
+    Float aperture = 0.0f;
+    Float fov = 30;
+
+    ri->integrator_info.type = IntegratorType::vol_path;
+    ri->integrator_info.max_bounces = 1024;
+    ri->camera_info.type = CameraType::perspective;
+    ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
+    ri->camera_info.fov = fov;
+    ri->camera_info.aperture_radius = aperture;
+    ri->camera_info.focus_distance = Dist(position, target);
+    ri->camera_info.film_info.filename = "";
+    ri->camera_info.film_info.resolution = { width, height };
+    ri->camera_info.sampler_info.type = SamplerType::independent;
+    ri->camera_info.sampler_info.spp = 8;
+}
+
 static int32 sample_index1 = Sample::Register("nvdb", NanoVDBTest);
 static int32 sample_index2 = Sample::Register("nvdb2", NanoVDBTest2);
+static int32 sample_index3 = Sample::Register("nvdb3", NanoVDBTest3);

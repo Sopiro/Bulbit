@@ -184,6 +184,7 @@ public:
     using MajorantIterator = HomogeneousMajorantIterator;
 
     HomogeneousMedium(Spectrum sigma_a, Spectrum sigma_s, Spectrum Le, Float g);
+    void Destroy() {}
 
     bool IsEmissive() const;
     MediumSample SamplePoint(Point3 p) const;
@@ -206,8 +207,13 @@ public:
         Spectrum sigma_s,
         Float sigma_scale,
         Float g,
-        nanovdb::GridHandle<nanovdb::HostBuffer> density_grid
+        nanovdb::GridHandle<nanovdb::HostBuffer> density_grid,
+        nanovdb::GridHandle<nanovdb::HostBuffer> temperature_grid = {},
+        Float Le_scale = 1,
+        Float temperature_offset = 0,
+        Float temperature_scale = 1
     );
+    void Destroy();
 
     bool IsEmissive() const;
     MediumSample SamplePoint(Point3 p) const;
@@ -217,12 +223,24 @@ public:
 private:
     AABB3 bounds;
     Transform transform;
+
     Spectrum sigma_a, sigma_s;
     HenyeyGreensteinPhaseFunction phase;
     VoxelGrid<Float> majorant_grid;
+
     nanovdb::GridHandle<nanovdb::HostBuffer> density_grid;
     const nanovdb::FloatGrid* density_float_grid = nullptr;
+    nanovdb::GridHandle<nanovdb::HostBuffer> temperature_grid;
+    const nanovdb::FloatGrid* temperature_float_grid = nullptr;
+
+    Float Le_scale;
+    Float temperature_offset, temperature_scale;
 };
+
+inline Medium::~Medium()
+{
+    Dispatch([](auto medium) { return medium->Destroy(); });
+}
 
 inline bool Medium::IsEmissive() const
 {
