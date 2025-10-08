@@ -324,7 +324,7 @@ constexpr inline Float Blackbody(Float lambda, Float T)
         return 0;
     }
 
-    Float Le = (2 * h * c * c) / (std::powf(l, 5.0f) * std::expm1f(exponent));
+    Float Le = (2 * h * c * c) / (std::pow(l, Float(5)) * std::expm1(exponent));
     return Le;
 }
 
