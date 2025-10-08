@@ -45,8 +45,10 @@ NanoVDBMedium::NanoVDBMedium(
 
         aabb = temperature_float_grid->worldBBox();
         bounds = AABB::Union(
-            bounds,
-            AABB3(Point3(aabb.min()[0], aabb.min()[1], aabb.min()[2]), Point3(aabb.max()[0], aabb.max()[1], aabb.max()[2]))
+            bounds, AABB3(
+                        Point3(Float(aabb.min()[0]), Float(aabb.min()[1]), Float(aabb.min()[2])),
+                        Point3(Float(aabb.max()[0]), Float(aabb.max()[1]), Float(aabb.max()[2]))
+                    )
         );
     }
 
