@@ -108,7 +108,7 @@ public:
             // Compute current voxel for axis and handle negative zero direction
             const int32 resolution = grid->res[axis];
 
-            current_voxel[axis] = Clamp(grid_isect[axis] * resolution, 0, resolution - 1);
+            current_voxel[axis] = int32(Clamp(grid_isect[axis] * resolution, 0, resolution - 1));
             delta_t[axis] = 1 / (std::abs(ray_grid.d[axis]) * resolution);
 
             if (ray_grid.d[axis] >= 0)

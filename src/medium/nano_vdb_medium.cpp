@@ -43,7 +43,7 @@ NanoVDBMedium::NanoVDBMedium(
         float min, max;
         temperature_float_grid->tree().extrema(min, max);
 
-        nanovdb::BBox<nanovdb::Vec3R> aabb = temperature_float_grid->worldBBox();
+        aabb = temperature_float_grid->worldBBox();
         bounds = AABB::Union(
             bounds,
             AABB3(Point3(aabb.min()[0], aabb.min()[1], aabb.min()[2]), Point3(aabb.max()[0], aabb.max()[1], aabb.max()[2]))
