@@ -609,6 +609,7 @@ struct TextureInfo
     Spectrum color0, color1; // for checkerboard
     Point2 scale;
     TexCoordFilter wrap_mode;
+    int32 channel;
 };
 
 static TextureInfo ParseTexture(pugi::xml_node node, const DefaultMap& dm)
@@ -620,6 +621,7 @@ static TextureInfo ParseTexture(pugi::xml_node node, const DefaultMap& dm)
     ti.color1 = { 0.2f, 0.2f, 0.2f };
     ti.scale = { 1, 1 };
     ti.wrap_mode = repeat;
+    ti.channel = 0;
 
     std::string type = node.attribute("type").value();
     if (type == "bitmap")
@@ -637,6 +639,10 @@ static TextureInfo ParseTexture(pugi::xml_node node, const DefaultMap& dm)
             else if (name == "wrap_mode")
             {
                 wm = ParseString(child.attribute("value"), dm);
+            }
+            else if (name == "channel")
+            {
+                ti.channel = ParseInteger(child.attribute("value"), dm);
             }
         }
 
@@ -701,7 +707,7 @@ static FloatTexture* ParseFloatTexture(
 
         if (t.type == TextureType::bitmap)
         {
-            return CreateFloatImageTexture(*scene, t.filename.string(), 0, true, std::move(transform));
+            return CreateFloatImageTexture(*scene, t.filename.string(), t.channel, true, std::move(transform));
         }
         else if (t.type == TextureType::checkboard)
         {
@@ -977,6 +983,7 @@ static const Material* ParseMaterial(
     else if (type == "diffuse")
     {
         SpectrumTexture* reflectance = CreateSpectrumConstantTexture(*scene, 1, 0, 1);
+        FloatTexture* roughness = nullptr;
         for (auto child : node.children())
         {
             std::string name = child.attribute("name").value();
@@ -984,9 +991,13 @@ static const Material* ParseMaterial(
             {
                 reflectance = ParseSpectrumTexture(child, dm, scene);
             }
+            else if (name == "roughness")
+            {
+                roughness = ParseFloatTexture(child, dm, scene);
+            }
         }
 
-        mat = scene->CreateMaterial<DiffuseMaterial>(reflectance, nullptr, mi.normal, mi.alpha);
+        mat = scene->CreateMaterial<DiffuseMaterial>(reflectance, roughness, mi.normal, mi.alpha);
     }
     else if (type == "roughplastic" || type == "plastic")
     {
@@ -1184,6 +1195,79 @@ static const Material* ParseMaterial(
 
         Float eta = int_ior / ext_ior;
         mat = scene->CreateMaterial<ThinDielectricMaterial>(eta, reflectance);
+    }
+    else if (type == "principled")
+    {
+        const SpectrumTexture* basecolor = CreateSpectrumConstantTexture(*scene, 1);
+        const FloatTexture* metallic = CreateFloatConstantTexture(*scene, 0);
+        const FloatTexture* roughness = CreateFloatConstantTexture(*scene, 1);
+        const FloatTexture* anisotropy = CreateFloatConstantTexture(*scene, 0);
+        Float ior = 1.5f;
+        const FloatTexture* transmission = CreateFloatConstantTexture(*scene, 0);
+        const FloatTexture* clearcoat = CreateFloatConstantTexture(*scene, 0);
+        const FloatTexture* clearcoat_roughness = CreateFloatConstantTexture(*scene, 0);
+        const SpectrumTexture* clearcoat_color = CreateSpectrumConstantTexture(*scene, 1);
+        const FloatTexture* sheen = CreateFloatConstantTexture(*scene, 0);
+        const FloatTexture* sheen_roughness = CreateFloatConstantTexture(*scene, 0);
+        const SpectrumTexture* sheen_color = CreateSpectrumConstantTexture(*scene, 1);
+
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "basecolor")
+            {
+                basecolor = ParseSpectrumTexture(child, dm, scene);
+            }
+            else if (name == "metallic")
+            {
+                metallic = ParseFloatTexture(child, dm, scene);
+            }
+            else if (name == "roughness")
+            {
+                roughness = ParseFloatTexture(child, dm, scene);
+            }
+            else if (name == "anisotropy")
+            {
+                anisotropy = ParseFloatTexture(child, dm, scene);
+            }
+            else if (name == "ior")
+            {
+                ior = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "transmission")
+            {
+                transmission = ParseFloatTexture(child, dm, scene);
+            }
+            else if (name == "clearcoat")
+            {
+                clearcoat = ParseFloatTexture(child, dm, scene);
+            }
+            else if (name == "clearcoat_roughness")
+            {
+                clearcoat_roughness = ParseFloatTexture(child, dm, scene);
+            }
+            else if (name == "clearcoat_color")
+            {
+                clearcoat_color = ParseSpectrumTexture(child, dm, scene);
+            }
+            else if (name == "sheen")
+            {
+                sheen = ParseFloatTexture(child, dm, scene);
+            }
+            else if (name == "sheen_roughness")
+            {
+                sheen_roughness = ParseFloatTexture(child, dm, scene);
+            }
+            else if (name == "sheen_color")
+            {
+                sheen_color = ParseSpectrumTexture(child, dm, scene);
+            }
+        }
+
+        mat = scene->CreateMaterial<PrincipledMaterial>(
+            basecolor, metallic, roughness, anisotropy, ior, transmission, clearcoat, clearcoat_roughness, clearcoat_color, sheen,
+            sheen_roughness, sheen_color, nullptr, mi.normal, mi.alpha
+        );
     }
     else
     {
@@ -1578,6 +1662,8 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
         std::string filename;
         Mat4 to_world = identity;
         bool face_normals = false;
+        bool use_model_material = false;
+
         for (auto child : node.children())
         {
             std::string name = child.attribute("name").value();
@@ -1596,15 +1682,19 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
             {
                 face_normals = ParseBoolean(child.attribute("value"), dm);
             }
+            else if (name == "use_model_material")
+            {
+                use_model_material = ParseBoolean(child.attribute("value"), dm);
+            }
         }
 
         ModelLoaderOptions options;
         options.gen_smooth_normal = true;
-        options.use_fallback_material = true;
+        options.use_fallback_material = !use_model_material;
         options.fallback_material = mat;
         options.fallback_medium_interface = mi;
 
-        LoadOBJ(*scene, filename, to_world, options);
+        LoadModel(*scene, filename, to_world, options);
     }
     else
     {
