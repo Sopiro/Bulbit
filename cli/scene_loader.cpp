@@ -823,7 +823,7 @@ static const Material* ParseMaterial(
             }
         }
     }
-    else if (type == "normalmap")
+    else if (type == "normalmap" || type == "normal")
     {
         const SpectrumTexture* normalmap = nullptr;
 
@@ -851,7 +851,7 @@ static const Material* ParseMaterial(
             }
         }
     }
-    else if (type == "blendbsdf")
+    else if (type == "blendbsdf" || type == "blend")
     {
         const FloatTexture* weight = nullptr;
 
@@ -861,6 +861,10 @@ static const Material* ParseMaterial(
             if (name == "weight")
             {
                 weight = ParseFloatTexture(child, dm, scene);
+            }
+            else
+            {
+                std::cerr << "Invalid parameter for blend material: " << name << std::endl;
             }
         }
 
@@ -915,7 +919,7 @@ static const Material* ParseMaterial(
             }
         }
     }
-    else if (type == "twosided")
+    else if (type == "twosided" || type == "two_sided")
     {
         for (auto child : node.children())
         {
@@ -958,6 +962,10 @@ static const Material* ParseMaterial(
             {
                 samples = ParseInteger(child.attribute("value"), dm);
             }
+            else
+            {
+                std::cerr << "Invalid parameter for layered material: " << name << std::endl;
+            }
         }
 
         int32 index = 0;
@@ -994,6 +1002,10 @@ static const Material* ParseMaterial(
             else if (name == "roughness")
             {
                 roughness = ParseFloatTexture(child, dm, scene);
+            }
+            else
+            {
+                std::cerr << "Invalid parameter for diffuse material: " << name << std::endl;
             }
         }
 
@@ -1036,6 +1048,10 @@ static const Material* ParseMaterial(
             {
                 ext_ior = ParseFloat(child.attribute("value"), dm);
             }
+            else
+            {
+                std::cerr << "Invalid parameter for (rough)plastic material: " << name << std::endl;
+            }
         }
 
         Float eta = int_ior / ext_ior;
@@ -1048,7 +1064,7 @@ static const Material* ParseMaterial(
             top, bottom, mi.two_sided, Spectrum::black, 1e-4f, 0, 16, 1, mi.normal, mi.alpha
         );
     }
-    else if (type == "roughconductor" || type == "conductor")
+    else if (type == "conductor" || type == "roughconductor" || type == "tough_conductor")
     {
         const SpectrumTexture* reflectance = nullptr;
         const SpectrumTexture* eta = nullptr;
@@ -1106,6 +1122,10 @@ static const Material* ParseMaterial(
             {
                 v_roughness = ParseFloatTexture(child, dm, scene, [](Float alpha) { return std::sqrt(alpha); });
             }
+            else
+            {
+                std::cerr << "Invalid parameter for (rough)conductor material: " << name << std::endl;
+            }
         }
 
         if (eta == nullptr && k == nullptr)
@@ -1119,7 +1139,7 @@ static const Material* ParseMaterial(
             );
         }
     }
-    else if (type == "roughdielectric" || type == "dielectric")
+    else if (type == "dielectric" || type == "roughdielectric" || type == "rough_dielectric")
     {
         Float int_ior = 1.5046f;
         Float ext_ior = 1.000277f;
@@ -1165,12 +1185,16 @@ static const Material* ParseMaterial(
             {
                 reflectance = ParseSpectrumTexture(child, dm, scene);
             }
+            else
+            {
+                std::cerr << "Invalid parameter for (rough)dielectric material: " << name << std::endl;
+            }
         }
 
         Float eta = int_ior / ext_ior;
         mat = scene->CreateMaterial<DielectricMaterial>(eta, u_roughness, v_roughness, reflectance, true, mi.normal);
     }
-    else if (type == "thindielectric")
+    else if (type == "thindielectric" || type == "thin_dielectric")
     {
         Float int_ior = 1.5046f;
         Float ext_ior = 1.000277f;
@@ -1190,6 +1214,10 @@ static const Material* ParseMaterial(
             else if (name == "reflectance")
             {
                 reflectance = ParseSpectrumTexture(child, dm, scene);
+            }
+            else
+            {
+                std::cerr << "Invalid parameter for thindielectric material: " << name << std::endl;
             }
         }
 
@@ -1262,12 +1290,61 @@ static const Material* ParseMaterial(
             {
                 sheen_color = ParseSpectrumTexture(child, dm, scene);
             }
+            else
+            {
+                std::cerr << "Invalid parameter for principled material: " << name << std::endl;
+            }
         }
 
         mat = scene->CreateMaterial<PrincipledMaterial>(
             basecolor, metallic, roughness, anisotropy, ior, transmission, clearcoat, clearcoat_roughness, clearcoat_color, sheen,
             sheen_roughness, sheen_color, nullptr, mi.normal, mi.alpha
         );
+    }
+    else if (type == "subsurface")
+    {
+        const SpectrumTexture* reflectance = CreateSpectrumConstantTexture(*scene, 1);
+        Spectrum mfp(0.01f);
+        Float eta = 1.5f;
+        const FloatTexture* u_roughness = CreateFloatConstantTexture(*scene, 0.3f);
+        const FloatTexture* v_roughness = u_roughness;
+        Float g = 0;
+
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "reflectance")
+            {
+                reflectance = ParseSpectrumTexture(child, dm, scene);
+            }
+            else if (name == "mfp")
+            {
+                mfp = ParseColor(child, dm);
+            }
+            else if (name == "rougness")
+            {
+                u_roughness = ParseFloatTexture(child, dm, scene);
+                v_roughness = u_roughness;
+            }
+            else if (name == "u_roughness")
+            {
+                u_roughness = ParseFloatTexture(child, dm, scene);
+            }
+            else if (name == "v_roughness")
+            {
+                v_roughness = ParseFloatTexture(child, dm, scene);
+            }
+            else if (name == "g")
+            {
+                g = ParseFloat(child.attribute("value"), dm);
+            }
+            else
+            {
+                std::cerr << "Invalid parameter for subsurface material: " << name << std::endl;
+            }
+        }
+
+        mat = scene->CreateMaterial<SubsurfaceRandomWalkMaterial>(reflectance, mfp, eta, u_roughness, v_roughness, g, mi.normal);
     }
     else
     {
