@@ -18,6 +18,7 @@ namespace bulbit
 
 using DefaultMap = std::unordered_map<std::string, std::string>;
 using MaterialMap = std::unordered_map<std::string, const Material*>;
+using MediumMap = std::unordered_map<std::string, const Medium*>;
 
 static Float VFovToHFov(Float vfov, Float aspect)
 {
@@ -803,6 +804,8 @@ static const Material* ParseMaterial(
         id = node.attribute("id").value();
     }
 
+    const Material* mat = nullptr;
+
     if (type == "bumpmap")
     {
         std::cerr << "Bumpmap not supported" << std::endl;
@@ -861,13 +864,13 @@ static const Material* ParseMaterial(
         }
 
         int32 index = 0;
-        const Material* mat[2];
+        const Material* m[2];
         for (auto child : node.children())
         {
             std::string type = child.name();
             if (type == "bsdf")
             {
-                mat[index++] = ParseMaterial(child, dm, mm, scene, mi, id);
+                m[index++] = ParseMaterial(child, dm, mm, scene, mi);
             }
 
             if (index == 2)
@@ -876,7 +879,7 @@ static const Material* ParseMaterial(
             }
         }
 
-        return scene->CreateMaterial<MixtureMaterial>(mat[0], mat[1], weight, mi.alpha);
+        mat = scene->CreateMaterial<MixtureMaterial>(m[0], m[1], weight, mi.alpha);
     }
     else if (type == "mask")
     {
@@ -952,13 +955,13 @@ static const Material* ParseMaterial(
         }
 
         int32 index = 0;
-        const Material* mat[2];
+        const Material* m[2];
         for (auto child : node.children())
         {
             std::string type = child.name();
             if (type == "bsdf")
             {
-                mat[index++] = ParseMaterial(child, dm, mm, scene, mi, id);
+                m[index++] = ParseMaterial(child, dm, mm, scene, mi, id);
             }
 
             if (index == 2)
@@ -967,8 +970,8 @@ static const Material* ParseMaterial(
             }
         }
 
-        return scene->CreateMaterial<LayeredMaterial>(
-            mat[0], mat[1], mi.two_sided, albedo, thickness, g, max_bounces, samples, mi.normal, mi.alpha
+        mat = scene->CreateMaterial<LayeredMaterial>(
+            m[0], m[1], mi.two_sided, albedo, thickness, g, max_bounces, samples, mi.normal, mi.alpha
         );
     }
     else if (type == "diffuse")
@@ -983,8 +986,7 @@ static const Material* ParseMaterial(
             }
         }
 
-        const Material* mat = scene->CreateMaterial<DiffuseMaterial>(reflectance, nullptr, mi.normal, mi.alpha);
-        mm[id] = mat;
+        mat = scene->CreateMaterial<DiffuseMaterial>(reflectance, nullptr, mi.normal, mi.alpha);
     }
     else if (type == "roughplastic" || type == "plastic")
     {
@@ -1031,10 +1033,9 @@ static const Material* ParseMaterial(
         const Material* top = scene->CreateMaterial<DielectricMaterial>(eta, roughness, roughness, reflectance);
         const Material* bottom = scene->CreateMaterial<DiffuseMaterial>(basecolor);
 
-        const Material* mat = scene->CreateMaterial<LayeredMaterial>(
+        mat = scene->CreateMaterial<LayeredMaterial>(
             top, bottom, mi.two_sided, Spectrum::black, 1e-4f, 0, 16, 1, mi.normal, mi.alpha
         );
-        mm[id] = mat;
     }
     else if (type == "roughconductor" || type == "conductor")
     {
@@ -1096,7 +1097,6 @@ static const Material* ParseMaterial(
             }
         }
 
-        const Material* mat;
         if (eta == nullptr && k == nullptr)
         {
             mat = scene->CreateMaterial<MirrorMaterial>(CreateSpectrumConstantTexture(*scene, 1), mi.normal, mi.alpha);
@@ -1107,9 +1107,6 @@ static const Material* ParseMaterial(
                 eta, k, u_roughness, v_roughness, reflectance, true, mi.normal, mi.alpha
             );
         }
-
-        mm[id] = mat;
-        return mat;
     }
     else if (type == "roughdielectric" || type == "dielectric")
     {
@@ -1160,10 +1157,7 @@ static const Material* ParseMaterial(
         }
 
         Float eta = int_ior / ext_ior;
-        const Material* mat =
-            scene->CreateMaterial<DielectricMaterial>(eta, u_roughness, v_roughness, reflectance, true, mi.normal);
-        mm[id] = mat;
-        return mat;
+        mat = scene->CreateMaterial<DielectricMaterial>(eta, u_roughness, v_roughness, reflectance, true, mi.normal);
     }
     else if (type == "thindielectric")
     {
@@ -1189,21 +1183,229 @@ static const Material* ParseMaterial(
         }
 
         Float eta = int_ior / ext_ior;
-        const Material* mat = scene->CreateMaterial<ThinDielectricMaterial>(eta, reflectance);
-        mm[id] = mat;
-        return mat;
+        mat = scene->CreateMaterial<ThinDielectricMaterial>(eta, reflectance);
     }
     else
     {
         std::cerr << "BSDF not supported: " << type << std::endl;
     }
 
-    return nullptr;
+    if (!id.empty() && mat != nullptr)
+    {
+        mm[id] = mat;
+    }
+
+    return mat;
 }
 
-static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& mm, Scene* scene)
+static const Float ParsePhaseFunction(pugi::xml_node node, const DefaultMap& dm)
+{
+    std::string type = node.attribute("type").value();
+
+    if (type == "isotropic")
+    {
+        return 0;
+    }
+    else if (type == "hg")
+    {
+        Float g = 0;
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "g")
+            {
+                g = ParseFloat(child.attribute("value"), dm);
+            }
+        }
+
+        return g;
+    }
+    else
+    {
+        std::cerr << "Phase function not supported: " + type << std::endl;
+        return 0;
+    }
+}
+
+static const Medium* ParseMedium(pugi::xml_node node, const DefaultMap& dm, MediumMap& mdm, Scene* scene)
+{
+    Float g = 0;
+    std::string type = node.attribute("type").value();
+    std::string id = "";
+    if (!node.attribute("id").empty())
+    {
+        id = node.attribute("id").value();
+    }
+
+    const Medium* medium = nullptr;
+
+    if (type == "homogeneous")
+    {
+        Spectrum albedo(0.75f); // = sigma_s / sigma_t
+        Spectrum sigma_t(1.0f); // = sigma_a + sigma_s
+        Float scale = 1;
+        Spectrum emission(0);
+
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "albedo")
+            {
+                albedo = ParseColor(child, dm);
+            }
+            else if (name == "sigma_t")
+            {
+                // Assume sigma_a = 0
+                sigma_t = ParseColor(child, dm);
+            }
+            else if (name == "emission")
+            {
+                emission = ParseColor(child, dm);
+            }
+            else if (name == "scale")
+            {
+                scale = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (std::string(child.name()) == "phase")
+            {
+                g = ParsePhaseFunction(child, dm);
+            }
+        }
+
+        Spectrum sigma_s = albedo * sigma_t;
+        Spectrum sigma_a = sigma_t - sigma_s;
+
+        medium = scene->CreateMedium<HomogeneousMedium>(sigma_a * scale, sigma_s * scale, emission, g);
+    }
+    else if (type == "nvdb")
+    {
+        Transform transform = identity;
+        Spectrum sigma_a(0);
+        Spectrum sigma_s(1);
+        Float sigma_scale = 1;
+        Float g = 0;
+        std::string filename = "";
+        int32 density_index = 0;
+        int32 temperature_index = -1;
+        Float Le_scale = 1;
+        Float temperature_offset = 0;
+        Float temperature_scale = 1;
+
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "to_world")
+            {
+                if (std::string(child.name()) == "transform")
+                {
+                    transform = ParseTransform(child, dm);
+                }
+            }
+            else if (name == "sigma_a")
+            {
+                sigma_a = ParseColor(child, dm);
+            }
+            else if (name == "sigma_s")
+            {
+                sigma_s = ParseColor(child, dm);
+            }
+            else if (name == "sigma_scale")
+            {
+                sigma_scale = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "g")
+            {
+                g = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "Le_scale")
+            {
+                Le_scale = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "temperature_offset")
+            {
+                temperature_offset = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "temperature_scale")
+            {
+                temperature_scale = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "grid")
+            {
+                filename = ParseString(child.attribute("value"), dm);
+            }
+            else if (name == "density_index")
+            {
+                density_index = ParseInteger(child.attribute("value"), dm);
+            }
+            else if (name == "temperature_index")
+            {
+                temperature_index = ParseInteger(child.attribute("value"), dm);
+            }
+        }
+
+        if (filename.empty())
+        {
+            std::cerr << "grid not provided" << std::endl;
+            return nullptr;
+        }
+
+        std::vector<nanovdb::GridHandle<nanovdb::HostBuffer>> handles;
+        try
+        {
+            handles = nanovdb::io::readGrids(filename);
+        }
+        catch (std::exception& e)
+        {
+            std::cout << e.what() << std::endl;
+        }
+
+        if (handles.size() == 0)
+        {
+            std::cerr << "Failed to read NanoVDB file: " << filename << std::endl;
+            return nullptr;
+        }
+
+        if (density_index >= handles.size())
+        {
+            std::cerr << "Invalid density grid index: " << density_index << std::endl;
+        }
+
+        if (temperature_index >= handles.size())
+        {
+            std::cerr << "Invalid temperature grid index: " << temperature_index << std::endl;
+        }
+
+        if (temperature_index < 0)
+        {
+            medium = scene->CreateMedium<NanoVDBMedium>(
+                transform, sigma_a, sigma_s, sigma_scale, g, std::move(handles[density_index])
+            );
+        }
+        else
+        {
+            medium = scene->CreateMedium<NanoVDBMedium>(
+                transform, sigma_a, sigma_s, sigma_scale, g, std::move(handles[density_index]),
+                std::move(handles[temperature_index]), Le_scale, temperature_offset, temperature_scale
+            );
+        }
+    }
+    else
+    {
+        std::cerr << "Medium not supported: " << type << std::endl;
+    }
+
+    if (!id.empty() && medium != nullptr)
+    {
+        mdm[id] = medium;
+    }
+
+    return medium;
+}
+
+static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& mm, MediumMap& mdm, Scene* scene)
 {
     const Material* mat = nullptr;
+    MediumInterface mi(nullptr, nullptr);
     bool emitter = false;
     Spectrum radiance(1);
 
@@ -1214,19 +1416,56 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
         if (name == "ref")
         {
             std::string name_value = child.attribute("name").value();
-            pugi::xml_attribute id = child.attribute("id");
-            if (id.empty())
+            std::string id_value = child.attribute("id").value();
+
+            if (id_value.empty())
             {
                 std::cerr << "Material/medium reference id not specified." << std::endl;
             }
-            else if (!mm.contains(id.value()))
+
+            if (name_value == "interior")
             {
-                std::cerr << "Material not found by id: " << id.value() << std::endl;
-                mat = mm["fallback"];
+                if (!mdm.contains(id_value))
+                {
+                    std::cerr << "Medium interior reference not found: " + id_value << std::endl;
+                }
+
+                mi.inside = mdm.at(id_value);
+            }
+            else if (name_value == "exterior")
+            {
+                if (!mdm.contains(id_value))
+                {
+                    std::cerr << "Medium exterior reference not found: " + id_value << std::endl;
+                }
+
+                mi.outside = mdm.at(id_value);
+            }
+            else if (name_value == "two_sided")
+            {
+                if (!mdm.contains(id_value))
+                {
+                    std::cerr << "Medium two_sided reference not found: " + id_value << std::endl;
+                }
+
+                mi.inside = mdm.at(id_value);
+                mi.outside = mi.inside;
             }
             else
             {
-                mat = mm.at(id.value());
+                if (!mm.contains(id_value))
+                {
+                    if (!mm.contains("fallback"))
+                    {
+                        std::cerr << "Material not found by id: " << id_value << std::endl;
+                    }
+                    else
+                    {
+                        std::cout << "here" << std::endl;
+                    }
+                }
+
+                mat = mm.at(id_value);
             }
         }
         else if (name == "emitter")
@@ -1243,6 +1482,31 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
             }
 
             mat = CreateDiffuseLightMaterial(*scene, radiance);
+        }
+        else if (name == "bsdf")
+        {
+            mat = ParseMaterial(child, dm, mm, scene, {});
+        }
+        else if (name == "medium")
+        {
+            std::string name_value = child.attribute("name").value();
+            if (name_value == "interior")
+            {
+                mi.inside = ParseMedium(child, dm, mdm, scene);
+            }
+            else if (name_value == "exterior")
+            {
+                mi.outside = ParseMedium(child, dm, mdm, scene);
+            }
+            else if (name_value == "two_sided")
+            {
+                mi.inside = ParseMedium(child, dm, mdm, scene);
+                mi.outside = mi.inside;
+            }
+            else
+            {
+                std::cerr << "Invalid medium name: " + name_value << std::endl;
+            }
         }
     }
 
@@ -1266,7 +1530,7 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
             }
         }
 
-        CreateSphere(*scene, center, radius, mat, {}, emitter);
+        CreateSphere(*scene, center, radius, mat, mi, emitter);
     }
     else if (shape_type == "rectangle")
     {
@@ -1289,7 +1553,7 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
             }
         }
 
-        CreateRectXY(*scene, Mul(to_world, Transform(0, 0, 0, identity, Point3{ 2 })), mat, {}, { 1, 1 }, emitter);
+        CreateRectXY(*scene, Mul(to_world, Transform(0, 0, 0, identity, Point3{ 2 })), mat, mi, { 1, 1 }, emitter);
     }
     else if (shape_type == "cube")
     {
@@ -1307,7 +1571,7 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
             }
         }
 
-        CreateBox(*scene, to_world * Transform(0, 0, 0, identity, { 2, 2, 2 }), mat, {}, { 1, 1 }, emitter);
+        CreateBox(*scene, to_world * Transform(0, 0, 0, identity, { 2, 2, 2 }), mat, mi, { 1, 1 }, emitter);
     }
     else if (shape_type == "obj" || shape_type == "gltf")
     {
@@ -1338,6 +1602,7 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
         options.gen_smooth_normal = true;
         options.use_fallback_material = true;
         options.fallback_material = mat;
+        options.fallback_medium_interface = mi;
 
         LoadOBJ(*scene, filename, to_world, options);
     }
@@ -1489,6 +1754,7 @@ static bool ParseScene(RendererInfo* ri, pugi::xml_node scene_node)
 {
     DefaultMap dm;
     MaterialMap mm;
+    MediumMap mdm;
 
     for (auto node : scene_node.children())
     {
@@ -1510,13 +1776,17 @@ static bool ParseScene(RendererInfo* ri, pugi::xml_node scene_node)
         {
             ParseMaterial(node, dm, mm, &ri->scene, {});
         }
-        else if (name == "shape")
+        else if (name == "medium")
         {
-            ParseShape(node, dm, mm, &ri->scene);
+            ParseMedium(node, dm, mdm, &ri->scene);
         }
         else if (name == "emitter")
         {
             ParseLight(node, dm, &ri->scene);
+        }
+        else if (name == "shape")
+        {
+            ParseShape(node, dm, mm, mdm, &ri->scene);
         }
     }
 
