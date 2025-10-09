@@ -189,7 +189,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 else if (has_area_light)
                                 {
                                     // Evaluate BSDF sample with MIS for area light
-                                    DiffuseAreaLight* area_light = area_lights.at(isect.primitive);
+                                    const Light* area_light = area_lights.at(isect.primitive);
 
                                     Float light_pdf =
                                         isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);

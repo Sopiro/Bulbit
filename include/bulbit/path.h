@@ -17,7 +17,7 @@ class Integrator;
 struct SurfaceVertex
 {
     const Primitive* primitive;
-    const DiffuseAreaLight* area_light;
+    const Light* area_light;
     bool front_face;
 
     BSDF bsdf;
