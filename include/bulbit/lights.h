@@ -189,6 +189,29 @@ private:
     Float world_radius;
 };
 
+class DirectionalAreaLight : public Light
+{
+public:
+    DirectionalAreaLight(const Primitive* primitive, bool two_sided);
+    void Destroy() {}
+
+    void Preprocess(const AABB& world_bounds);
+
+    Spectrum Le(const Ray& ray) const;
+
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
+    Float EvaluatePDF_Li(const Ray& ray) const;
+
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
+    void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
+
+    Spectrum Phi() const;
+
+private:
+    const Primitive* primitive;
+    bool two_sided;
+};
+
 inline Light::~Light()
 {
     Dispatch([&](auto light) { light->Destroy(); });
@@ -236,7 +259,7 @@ inline Spectrum Light::Phi() const
 
 inline bool Light::IsDeltaLight() const
 {
-    return Is<PointLight>() || Is<SpotLight>() || Is<DirectionalLight>();
+    return Is<PointLight>() || Is<SpotLight>() || Is<DirectionalLight>() || Is<DirectionalAreaLight>();
 }
 
 inline bool Light::IsInfiniteLight() const

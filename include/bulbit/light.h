@@ -42,7 +42,8 @@ using Lights = TypePack<
     class DirectionalLight,
     class AreaLight,
     class UniformInfiniteLight,
-    class ImageInfiniteLight>;
+    class ImageInfiniteLight,
+    class DirectionalAreaLight>;
 
 class Light : public DynamicDispatcher<Lights>
 {
