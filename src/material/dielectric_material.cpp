@@ -32,10 +32,8 @@ Spectrum DielectricMaterial::Le(const Intersection& isect, const Vec3& wo) const
     return Spectrum::black;
 }
 
-bool DielectricMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool DielectricMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
 {
-    BulbitNotUsed(wo);
-
     Float eta_p = isect.front_face ? eta : 1 / eta;
 
     Spectrum r = reflectance->Evaluate(isect.uv);
@@ -60,11 +58,10 @@ bool DielectricMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Ve
     return true;
 }
 
-bool DielectricMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool DielectricMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
-    BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
 }

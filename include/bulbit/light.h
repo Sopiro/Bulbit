@@ -41,9 +41,9 @@ using Lights = TypePack<
     class SpotLight,
     class DirectionalLight,
     class DiffuseAreaLight,
+    class DirectionalAreaLight,
     class UniformInfiniteLight,
-    class ImageInfiniteLight,
-    class DirectionalAreaLight>;
+    class ImageInfiniteLight>;
 
 class Light : public DynamicDispatcher<Lights>
 {
@@ -71,6 +71,7 @@ public:
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
     Spectrum Phi() const;
+
     bool IsDeltaLight() const;
     bool IsInfiniteLight() const;
 };

@@ -19,24 +19,20 @@ Spectrum MirrorMaterial::Le(const Intersection& isect, const Vec3& wo) const
 {
     BulbitNotUsed(isect);
     BulbitNotUsed(wo);
-
     return Spectrum::black;
 }
 
-bool MirrorMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool MirrorMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
 {
-    BulbitNotUsed(wo);
-
     Spectrum r = reflectance->Evaluate(isect.uv);
     *bsdf = BSDF(isect.shading.normal, isect.shading.tangent, alloc.new_object<SpecularReflectionBxDF>(r));
     return true;
 }
 
-bool MirrorMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool MirrorMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
-    BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
 }

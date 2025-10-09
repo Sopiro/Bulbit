@@ -30,10 +30,8 @@ Spectrum ClothMaterial::Le(const Intersection& isect, const Vec3& wo) const
     return Spectrum::black;
 }
 
-bool ClothMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool ClothMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
 {
-    BulbitNotUsed(wo);
-
     Spectrum base = basecolor->Evaluate(isect.uv);
     Spectrum sheen = sheen_color->Evaluate(isect.uv);
     Float alpha = std::fmax(TrowbridgeReitzDistribution::RoughnessToAlpha(roughness->Evaluate(isect.uv)), 1e-3f);
@@ -44,11 +42,10 @@ bool ClothMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& w
     return true;
 }
 
-bool ClothMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool ClothMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
-    BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
 }

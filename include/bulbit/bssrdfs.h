@@ -10,8 +10,8 @@ namespace bulbit
 class DisneyBSSRDF : public SeparableBSSRDF
 {
 public:
-    DisneyBSSRDF(const Spectrum& R, const Spectrum& d, const Intersection& po, const Vec3& wo, Float eta)
-        : SeparableBSSRDF(po, wo, eta)
+    DisneyBSSRDF(const Spectrum& R, const Spectrum& d, const Intersection& po, Float eta)
+        : SeparableBSSRDF(po, eta)
         , R{ R }
         , d{ d }
     {
@@ -30,8 +30,8 @@ private:
 class GaussianBSSRDF : public SeparableBSSRDF
 {
 public:
-    GaussianBSSRDF(const Spectrum& R, const Spectrum& sigma, const Intersection& po, const Vec3& wo, Float eta)
-        : SeparableBSSRDF(po, wo, eta)
+    GaussianBSSRDF(const Spectrum& R, const Spectrum& sigma, const Intersection& po, Float eta)
+        : SeparableBSSRDF(po, eta)
         , R{ R }
         , sigma{ sigma }
     {

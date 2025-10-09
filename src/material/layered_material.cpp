@@ -40,14 +40,13 @@ Spectrum LayeredMaterial::Le(const Intersection& isect, const Vec3& wo) const
 {
     BulbitNotUsed(isect);
     BulbitNotUsed(wo);
-
     return Spectrum::black;
 }
 
-bool LayeredMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool LayeredMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
 {
     BSDF top_bsdf, bottom_bsdf;
-    if (!top->GetBSDF(&top_bsdf, isect, wo, alloc) || !bottom->GetBSDF(&bottom_bsdf, isect, wo, alloc))
+    if (!top->GetBSDF(&top_bsdf, isect, alloc) || !bottom->GetBSDF(&bottom_bsdf, isect, alloc))
     {
         return false;
     }
@@ -62,11 +61,10 @@ bool LayeredMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3&
     return true;
 }
 
-bool LayeredMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool LayeredMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
-    BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
 }

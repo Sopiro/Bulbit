@@ -11,8 +11,8 @@ public:
     AreaLightMaterial(const SpectrumTexture* emission, bool two_sided, bool directional, const FloatTexture* alpha = nullptr);
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
     const SpectrumTexture* GetEmissionTexture() const;
@@ -40,8 +40,8 @@ public:
     );
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
     const SpectrumTexture* GetEmissionTexture() const;
@@ -63,8 +63,8 @@ public:
     );
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
     const SpectrumTexture* GetEmissionTexture() const;
@@ -90,8 +90,8 @@ public:
     );
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
     const SpectrumTexture* GetEmissionTexture() const;
@@ -115,8 +115,8 @@ public:
     ThinDielectricMaterial(Float eta, const SpectrumTexture* reflectance);
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
     const SpectrumTexture* GetEmissionTexture() const;
@@ -139,8 +139,8 @@ public:
     );
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
     const SpectrumTexture* GetEmissionTexture() const;
@@ -179,8 +179,8 @@ public:
     );
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
     const SpectrumTexture* GetEmissionTexture() const;
@@ -215,8 +215,8 @@ public:
     );
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
     const SpectrumTexture* GetEmissionTexture() const;
@@ -255,8 +255,8 @@ public:
     );
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
     const SpectrumTexture* GetEmissionTexture() const;
@@ -289,8 +289,8 @@ public:
     );
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
     const SpectrumTexture* GetEmissionTexture() const;
@@ -318,8 +318,8 @@ public:
     );
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
     const SpectrumTexture* GetEmissionTexture() const;
@@ -351,8 +351,8 @@ public:
     );
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
     const SpectrumTexture* GetEmissionTexture() const;
@@ -386,8 +386,8 @@ public:
     );
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
     const SpectrumTexture* GetEmissionTexture() const;
@@ -413,14 +413,14 @@ inline Spectrum Material::Le(const Intersection& isect, const Vec3& wo) const
     return Dispatch([&](auto mat) { return mat->Le(isect, wo); });
 }
 
-inline bool Material::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+inline bool Material::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
 {
-    return Dispatch([&](auto mat) { return mat->GetBSDF(bsdf, isect, wo, alloc); });
+    return Dispatch([&](auto mat) { return mat->GetBSDF(bsdf, isect, alloc); });
 }
 
-inline bool Material::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+inline bool Material::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
 {
-    return Dispatch([&](auto mat) { return mat->GetBSSRDF(bssrdf, isect, wo, alloc); });
+    return Dispatch([&](auto mat) { return mat->GetBSSRDF(bssrdf, isect, alloc); });
 }
 
 inline const FloatTexture* Material::GetAlphaTexture() const

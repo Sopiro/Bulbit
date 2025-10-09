@@ -8,7 +8,7 @@
 namespace bulbit
 {
 
-Spectrum SeparableBSSRDF::S(const Intersection& pi, const Vec3& wi, TransportDirection direction) const
+Spectrum SeparableBSSRDF::S(const Intersection& pi, const Vec3& wo, const Vec3& wi, TransportDirection direction) const
 {
     // Fresnel transmittance when the ray exits a material into direction w_o
     Float F_t = 1 - FresnelDielectric(Dot(wo, po.shading.normal), eta);

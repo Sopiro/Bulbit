@@ -22,15 +22,14 @@ struct BSSRDFSample
 class BSSRDF
 {
 public:
-    BSSRDF(const Intersection& po, const Vec3& wo, Float eta)
+    BSSRDF(const Intersection& po, Float eta)
         : po{ po }
-        , wo{ wo }
         , eta{ eta }
     {
     }
 
     virtual Spectrum S(
-        const Intersection& pi, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight
+        const Intersection& pi, const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight
     ) const = 0;
     virtual bool Sample_S(
         BSSRDFSample* bssrdf_sample,
@@ -43,21 +42,20 @@ public:
 
 protected:
     const Intersection& po;
-    const Vec3& wo;
     Float eta;
 };
 
 class SeparableBSSRDF : public BSSRDF
 {
 public:
-    SeparableBSSRDF(const Intersection& po, const Vec3& wo, Float eta)
-        : BSSRDF(po, wo, eta)
+    SeparableBSSRDF(const Intersection& po, Float eta)
+        : BSSRDF(po, eta)
         , sw{ eta }
     {
     }
 
     virtual Spectrum S(
-        const Intersection& pi, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight
+        const Intersection& pi, const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight
     ) const override;
     Spectrum Sw(const Intersection& pi, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const;
     Spectrum Sp(const Intersection& pi) const;
@@ -87,15 +85,9 @@ class RandomWalkBSSRDF : public BSSRDF
 {
 public:
     RandomWalkBSSRDF(
-        const Spectrum& R,
-        const Spectrum& sigma_a,
-        const Spectrum& sigma_s,
-        const Intersection& po,
-        const Vec3& wo,
-        Float eta,
-        Float g
+        const Spectrum& R, const Spectrum& sigma_a, const Spectrum& sigma_s, const Intersection& po, Float eta, Float g
     )
-        : BSSRDF(po, wo, eta)
+        : BSSRDF(po, eta)
         , R{ R }
         , sigma_t{ sigma_a + sigma_s }
         , albedo{ sigma_s / (sigma_a + sigma_s) }
@@ -105,7 +97,7 @@ public:
     }
 
     virtual Spectrum S(
-        const Intersection& pi, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight
+        const Intersection& pi, const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight
     ) const override;
     virtual bool Sample_S(
         BSSRDFSample* bssrdf_sample,

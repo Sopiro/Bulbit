@@ -20,20 +20,17 @@ Spectrum ThinDielectricMaterial::Le(const Intersection& isect, const Vec3& wo) c
     return Spectrum::black;
 }
 
-bool ThinDielectricMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool ThinDielectricMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
 {
-    BulbitNotUsed(wo);
-
     Spectrum r = reflectance->Evaluate(isect.uv);
     *bsdf = BSDF(isect.shading.normal, isect.shading.tangent, alloc.new_object<ThinDielectricBxDF>(eta, r));
     return true;
 }
 
-bool ThinDielectricMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool ThinDielectricMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
-    BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
 }

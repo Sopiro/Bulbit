@@ -25,10 +25,8 @@ Spectrum DiffuseMaterial::Le(const Intersection& isect, const Vec3& wo) const
     return Spectrum::black;
 }
 
-bool DiffuseMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool DiffuseMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
 {
-    BulbitNotUsed(wo);
-
     Float r = roughness ? roughness->Evaluate(isect.uv) : 0;
     Spectrum rho = reflectance->Evaluate(isect.uv);
 
@@ -44,11 +42,10 @@ bool DiffuseMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3&
     return true;
 }
 
-bool DiffuseMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool DiffuseMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
-    BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
 }

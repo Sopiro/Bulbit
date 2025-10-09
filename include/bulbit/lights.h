@@ -153,6 +153,11 @@ public:
 
     Spectrum Phi() const;
 
+    const Primitive* GetPrimitive() const
+    {
+        return primitive;
+    }
+
 private:
     const Primitive* primitive;
     bool two_sided;

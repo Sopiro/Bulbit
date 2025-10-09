@@ -49,15 +49,8 @@ Spectrum PrincipledMaterial::Le(const Intersection& isect, const Vec3& wo) const
     return emissive ? emissive->Evaluate(isect.uv) : Spectrum::black;
 }
 
-bool PrincipledMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool PrincipledMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
 {
-    Vec3 n = isect.shading.normal;
-    if (Dot(n, wo) < 0)
-    {
-        // Resolve back facing normal by flipping method
-        n = Reflect(n, isect.normal);
-    }
-
     Float eta = isect.front_face ? ior : 1 / ior;
 
     Spectrum color = basecolor->Evaluate(isect.uv);
@@ -77,7 +70,7 @@ bool PrincipledMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Ve
     Float sh_alpha = PrincipledBxDF::RoughnessToAlpha(sh_rough);
 
     *bsdf = BSDF(
-        n, isect.shading.tangent,
+        isect.shading.normal, isect.shading.tangent,
         alloc.new_object<PrincipledBxDF>(
             color, metal, TrowbridgeReitzDistribution(alpha.x, alpha.y), eta, trans, cc,
             TrowbridgeReitzDistribution(cc_alpha, cc_alpha), cc_color, sh, CharlieSheenDistribution(sh_alpha), sh_color
@@ -86,11 +79,10 @@ bool PrincipledMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Ve
     return true;
 }
 
-bool PrincipledMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool PrincipledMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
-    BulbitNotUsed(wo);
     BulbitNotUsed(alloc);
     return false;
 }

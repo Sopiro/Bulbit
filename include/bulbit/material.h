@@ -38,8 +38,8 @@ protected:
 
 public:
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
     const SpectrumTexture* GetEmissionTexture() const;
