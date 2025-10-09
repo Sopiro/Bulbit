@@ -11,6 +11,7 @@ class BSDF;
 class BSSRDF;
 
 using Materials = TypePack<
+    class AreaLightMaterial,
     class DiffuseMaterial,
     class MirrorMaterial,
     class DielectricMaterial,
@@ -19,7 +20,6 @@ using Materials = TypePack<
     class ConductorMaterial,
     class MetallicRoughnessMaterial,
     class PrincipledMaterial,
-    class AreaLightMaterial,
     class MixtureMaterial,
     class SubsurfaceDiffusionMaterial,
     class SubsurfaceRandomWalkMaterial,

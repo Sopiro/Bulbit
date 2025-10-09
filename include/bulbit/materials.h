@@ -5,6 +5,30 @@
 namespace bulbit
 {
 
+class AreaLightMaterial : public Material
+{
+public:
+    AreaLightMaterial(const SpectrumTexture* emission, bool two_sided, bool directional, const FloatTexture* alpha = nullptr);
+
+    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
+
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetEmissionTexture() const;
+    const SpectrumTexture* GetNormalTexture() const;
+
+    bool IsTwoSided() const;
+    bool IsDirectional() const;
+
+private:
+    const SpectrumTexture* emission;
+    const FloatTexture* alpha;
+
+    bool two_sided;
+    bool directional;
+};
+
 class DiffuseMaterial : public Material
 {
 public:
@@ -255,30 +279,6 @@ private:
     const SpectrumTexture* emissive;
     const SpectrumTexture* normal;
     const FloatTexture* alpha;
-};
-
-class AreaLightMaterial : public Material
-{
-public:
-    AreaLightMaterial(const SpectrumTexture* emission, bool two_sided, bool directional, const FloatTexture* alpha = nullptr);
-
-    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
-
-    const FloatTexture* GetAlphaTexture() const;
-    const SpectrumTexture* GetEmissionTexture() const;
-    const SpectrumTexture* GetNormalTexture() const;
-
-    bool IsTwoSided() const;
-    bool IsDirectional() const;
-
-private:
-    const SpectrumTexture* emission;
-    const FloatTexture* alpha;
-
-    bool two_sided;
-    bool directional;
 };
 
 class MixtureMaterial : public Material
