@@ -64,7 +64,7 @@ void CornellBoxCloud(RendererInfo* ri)
         auto red = CreateDiffuseMaterial(scene, Spectrum(.65f, .05f, .05f));
         auto green = CreateDiffuseMaterial(scene, Spectrum(.12f, .45f, .15f));
         auto white = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
-        auto light = CreateDiffuseLightMaterial(scene, Spectrum(15.0f));
+        auto light = CreateAreaLightMaterial(scene, Spectrum(15.0f));
 
         // front
         auto tf = Transform{ Vec3(0.5f, 0.5f, -1.0f), identity, Vec3(1.0f) };

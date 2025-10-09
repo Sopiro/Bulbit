@@ -268,17 +268,19 @@ MirrorMaterial* CreateMirrorMaterial(Scene& scene, const Spectrum& reflectance, 
     );
 }
 
-DiffuseLightMaterial* CreateDiffuseLightMaterial(Scene& scene, Float emission, bool two_sided, Float alpha)
+AreaLightMaterial* CreateAreaLightMaterial(Scene& scene, Float emission, bool two_sided, bool directional_light, Float alpha)
 {
-    return scene.CreateMaterial<DiffuseLightMaterial>(
-        CreateSpectrumConstantTexture(scene, emission), two_sided, CreateFloatConstantTexture(scene, alpha)
+    return scene.CreateMaterial<AreaLightMaterial>(
+        CreateSpectrumConstantTexture(scene, emission), two_sided, directional_light, CreateFloatConstantTexture(scene, alpha)
     );
 }
 
-DiffuseLightMaterial* CreateDiffuseLightMaterial(Scene& scene, const Spectrum& emission, bool two_sided, Float alpha)
+AreaLightMaterial* CreateAreaLightMaterial(
+    Scene& scene, const Spectrum& emission, bool two_sided, bool directional_light, Float alpha
+)
 {
-    return scene.CreateMaterial<DiffuseLightMaterial>(
-        CreateSpectrumConstantTexture(scene, emission), two_sided, CreateFloatConstantTexture(scene, alpha)
+    return scene.CreateMaterial<AreaLightMaterial>(
+        CreateSpectrumConstantTexture(scene, emission), two_sided, directional_light, CreateFloatConstantTexture(scene, alpha)
     );
 }
 

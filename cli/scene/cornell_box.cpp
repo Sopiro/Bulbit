@@ -10,7 +10,7 @@ void CornellBox(RendererInfo* ri)
     auto blue = CreateDiffuseMaterial(scene, Spectrum(.22f, .23f, .75f));
     auto white = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
     auto box = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
-    auto light = CreateDiffuseLightMaterial(scene, Spectrum(15.0f));
+    auto light = CreateAreaLightMaterial(scene, Spectrum(15.0f), false, false);
     // auto light = CreateDiffuseLightMaterial(scene, Spectrum(17.0f, 12.0f, 4.0f));
     auto mirror = CreateMirrorMaterial(scene, Spectrum(0.73f));
     auto mix = CreateMixtureMaterial(scene, red, blue, 0.5f);

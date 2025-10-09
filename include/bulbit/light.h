@@ -40,7 +40,7 @@ using Lights = TypePack<
     class PointLight,
     class SpotLight,
     class DirectionalLight,
-    class AreaLight,
+    class DiffuseAreaLight,
     class UniformInfiniteLight,
     class ImageInfiniteLight,
     class DirectionalAreaLight>;

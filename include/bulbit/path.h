@@ -9,7 +9,7 @@ namespace bulbit
 class Primitive;
 class Camera;
 class Light;
-class AreaLight;
+class DiffuseAreaLight;
 class PhaseFunction;
 class LightSampler;
 class Integrator;
@@ -17,7 +17,7 @@ class Integrator;
 struct SurfaceVertex
 {
     const Primitive* primitive;
-    const AreaLight* area_light;
+    const DiffuseAreaLight* area_light;
     bool front_face;
 
     BSDF bsdf;

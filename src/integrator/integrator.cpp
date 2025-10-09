@@ -92,9 +92,9 @@ Integrator::Integrator(const Intersectable* accel, std::vector<Light*> lights, s
             infinite_lights.push_back(light);
         }
         break;
-        case Light::TypeIndexOf<AreaLight>():
+        case Light::TypeIndexOf<DiffuseAreaLight>():
         {
-            AreaLight* area_light = light->Cast<AreaLight>();
+            DiffuseAreaLight* area_light = light->Cast<DiffuseAreaLight>();
             area_lights.emplace(area_light->GetPrimitive(), area_light);
         }
         break;

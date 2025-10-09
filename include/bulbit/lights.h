@@ -102,10 +102,10 @@ private:
     Float world_radius;
 };
 
-class AreaLight : public Light
+class DiffuseAreaLight : public Light
 {
 public:
-    AreaLight(const Primitive* primitive, bool two_sided);
+    DiffuseAreaLight(const Primitive* primitive, bool two_sided);
     void Destroy() {}
 
     void Preprocess(const AABB& world_bounds);
@@ -125,6 +125,33 @@ public:
     {
         return primitive;
     }
+
+private:
+    const Primitive* primitive;
+    bool two_sided;
+};
+
+class DirectionalAreaLight : public Light
+{
+    // This light can only be rendered correctly with integrators that support particle traced light transport,
+    // such as LightPathIntegrator or BidirectionalPathIntegrator,
+    // and also will not rendered correctly with photon mapping based integrators
+    // that explicitly sample direct illumination, since it cannot be sampled directly.
+public:
+    DirectionalAreaLight(const Primitive* primitive, bool two_sided);
+    void Destroy() {}
+
+    void Preprocess(const AABB& world_bounds);
+
+    Spectrum Le(const Ray& ray) const;
+
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
+    Float EvaluatePDF_Li(const Ray& ray) const;
+
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
+    void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
+
+    Spectrum Phi() const;
 
 private:
     const Primitive* primitive;
@@ -187,29 +214,6 @@ private:
 
     Point3 world_center;
     Float world_radius;
-};
-
-class DirectionalAreaLight : public Light
-{
-public:
-    DirectionalAreaLight(const Primitive* primitive, bool two_sided);
-    void Destroy() {}
-
-    void Preprocess(const AABB& world_bounds);
-
-    Spectrum Le(const Ray& ray) const;
-
-    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
-    Float EvaluatePDF_Li(const Ray& ray) const;
-
-    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
-    void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
-
-    Spectrum Phi() const;
-
-private:
-    const Primitive* primitive;
-    bool two_sided;
 };
 
 inline Light::~Light()

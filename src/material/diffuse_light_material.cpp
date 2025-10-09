@@ -7,17 +7,21 @@
 namespace bulbit
 {
 
-DiffuseLightMaterial::DiffuseLightMaterial(const SpectrumTexture* emission, bool two_sided, const FloatTexture* alpha)
-    : Material(TypeIndexOf<DiffuseLightMaterial>())
+AreaLightMaterial::AreaLightMaterial(const SpectrumTexture* emission, bool two_sided, bool directional, const FloatTexture* alpha)
+    : Material(TypeIndexOf<AreaLightMaterial>())
     , emission{ emission }
     , alpha{ alpha }
     , two_sided{ two_sided }
+    , directional{ directional }
 {
 }
 
-Spectrum DiffuseLightMaterial::Le(const Intersection& isect, const Vec3& wo) const
+Spectrum AreaLightMaterial::Le(const Intersection& isect, const Vec3& wo) const
 {
-    BulbitNotUsed(wo);
+    if (directional && wo != Vec3::zero)
+    {
+        return Spectrum::black;
+    }
 
     Float a = alpha ? alpha->Evaluate(isect.uv) : 1;
     if (a < 1 && HashFloat(isect, wo) > a)
@@ -35,15 +39,15 @@ Spectrum DiffuseLightMaterial::Le(const Intersection& isect, const Vec3& wo) con
     }
 }
 
-bool DiffuseLightMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool AreaLightMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
 {
     BulbitNotUsed(wo);
 
-    *bsdf = BSDF(isect.shading.normal, isect.shading.tangent, alloc.new_object<LambertianBxDF>(Spectrum::black));
+    *bsdf = BSDF(isect.shading.normal, isect.shading.tangent, alloc.new_object<LambertianBxDF>(Spectrum(1)));
     return true;
 }
 
-bool DiffuseLightMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
+bool AreaLightMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
@@ -52,24 +56,29 @@ bool DiffuseLightMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect,
     return false;
 }
 
-const FloatTexture* DiffuseLightMaterial::GetAlphaTexture() const
+const FloatTexture* AreaLightMaterial::GetAlphaTexture() const
 {
     return alpha;
 }
 
-const SpectrumTexture* DiffuseLightMaterial::GetEmissionTexture() const
+const SpectrumTexture* AreaLightMaterial::GetEmissionTexture() const
 {
     return emission;
 }
 
-const SpectrumTexture* DiffuseLightMaterial::GetNormalTexture() const
+const SpectrumTexture* AreaLightMaterial::GetNormalTexture() const
 {
     return nullptr;
 }
 
-bool DiffuseLightMaterial::IsTwoSided() const
+bool AreaLightMaterial::IsTwoSided() const
 {
     return two_sided;
+}
+
+bool AreaLightMaterial::IsDirectional() const
+{
+    return directional;
 }
 
 } // namespace bulbit

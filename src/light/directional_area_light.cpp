@@ -78,7 +78,9 @@ bool DirectionalAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1
     isect.front_face = front_face;
     isect.primitive = primitive;
 
-    sample->Le = primitive->GetMaterial()->Le(isect, -w);
+    // Passing wo with zero to directional light will return emission,
+    // otherwise it will return 0
+    sample->Le = primitive->GetMaterial()->Le(isect, Vec3::zero);
 
     MediumInterface medium_interface = primitive->GetMediumInterface();
     sample->medium = front_face ? medium_interface.outside : medium_interface.inside;

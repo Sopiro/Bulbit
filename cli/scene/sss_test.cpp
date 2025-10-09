@@ -61,7 +61,7 @@ void SSSTest(RendererInfo* ri)
     // CreateUniformInfiniteLight(scene, Spectrum(1));
 
     {
-        auto light = CreateDiffuseLightMaterial(scene, Spectrum(5.0f));
+        auto light = CreateAreaLightMaterial(scene, Spectrum(5.0f));
         auto tf = Transform{ 0, 2.0f, 0, Quat(pi, x_axis), Vec3(1.5f) };
         CreateRectXZ(scene, tf, light);
     }
@@ -151,7 +151,7 @@ void SSSTest2(RendererInfo* ri)
 
     {
         auto tf = Transform{ 0, 3.0f, 0, Quat(pi, x_axis), Vec3(5.0f, 1, 1) };
-        auto light = CreateDiffuseLightMaterial(scene, Spectrum(5.0f));
+        auto light = CreateAreaLightMaterial(scene, Spectrum(5.0f));
         CreateRectXZ(scene, tf, light);
     }
 

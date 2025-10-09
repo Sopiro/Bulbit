@@ -319,7 +319,7 @@ void Skins(RendererInfo* ri)
 
     CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
 
-    auto light = CreateDiffuseLightMaterial(scene, Spectrum(5.0f));
+    auto light = CreateAreaLightMaterial(scene, Spectrum(5.0f));
     auto tf = Transform{ 0.0f, 0.8f, -0.5f, Quat::FromEuler({ 0, 0, 0 }), Vec3(3, 0.5, 1) };
     CreateRectXY(scene, tf, light);
 

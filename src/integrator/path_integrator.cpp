@@ -74,7 +74,7 @@ Spectrum PathIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium
             else if (has_area_light)
             {
                 // Evaluate BSDF sample with MIS for area light
-                AreaLight* area_light = area_lights.at(isect.primitive);
+                DiffuseAreaLight* area_light = area_lights.at(isect.primitive);
 
                 Float light_pdf = isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
                 Float mis_weight = PowerHeuristic(1, prev_bsdf_pdf, 1, light_pdf);

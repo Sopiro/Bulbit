@@ -9,7 +9,7 @@ void CornellBoxFog(RendererInfo* ri)
     auto green = CreateDiffuseMaterial(scene, Spectrum(.12f, .45f, .15f));
     auto blue = CreateDiffuseMaterial(scene, Spectrum(.22f, .23f, .75f));
     auto white = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
-    auto light = CreateDiffuseLightMaterial(scene, Spectrum(15.0f));
+    auto light = CreateAreaLightMaterial(scene, Spectrum(15.0f), false, false);
     auto glass = CreateDielectricMaterial(scene, 1.5f);
     auto mirror = CreateMirrorMaterial(scene, Spectrum(0.73f));
     auto mix = CreateMixtureMaterial(scene, red, blue, 0.5f);
@@ -111,7 +111,7 @@ void CornellBoxFog2(RendererInfo* ri)
     auto green = CreateDiffuseMaterial(scene, Spectrum(.12f, .45f, .15f));
     auto blue = CreateDiffuseMaterial(scene, Spectrum(.22f, .23f, .75f));
     auto white = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
-    auto light = CreateDiffuseLightMaterial(scene, Spectrum(1000000.0f));
+    auto light = CreateAreaLightMaterial(scene, Spectrum(1000000.0f));
     auto glass = CreateDielectricMaterial(scene, 1.5f);
     auto rough_glass = CreateDielectricMaterial(scene, 1.5f, 0.1f);
     auto mirror = CreateMirrorMaterial(scene, Spectrum(1));

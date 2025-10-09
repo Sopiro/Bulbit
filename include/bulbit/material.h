@@ -19,7 +19,7 @@ using Materials = TypePack<
     class ConductorMaterial,
     class MetallicRoughnessMaterial,
     class PrincipledMaterial,
-    class DiffuseLightMaterial,
+    class AreaLightMaterial,
     class MixtureMaterial,
     class SubsurfaceDiffusionMaterial,
     class SubsurfaceRandomWalkMaterial,

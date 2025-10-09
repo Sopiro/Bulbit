@@ -223,7 +223,7 @@ Spectrum VolPathIntegrator::Li(const Ray& primary_ray, const Medium* primary_med
             else if (has_area_light)
             {
                 // Add emission from area light source
-                AreaLight* area_light = area_lights.at(isect.primitive);
+                DiffuseAreaLight* area_light = area_lights.at(isect.primitive);
 
                 Ray r(last_scattering_vertex, ray.d);
                 Float light_pdf = area_light->EvaluatePDF_Li(r) * light_sampler->EvaluatePMF(area_light);

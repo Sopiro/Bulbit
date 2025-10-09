@@ -12,7 +12,7 @@ class Film;
 class Sampler;
 class LightSampler;
 
-using AreaLightMap = std::unordered_map<const Primitive*, AreaLight*>;
+using AreaLightMap = std::unordered_map<const Primitive*, DiffuseAreaLight*>;
 
 struct IntegratorInfo;
 

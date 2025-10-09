@@ -183,16 +183,18 @@ MirrorMaterial* CreateMirrorMaterial(
     Float alpha = 1
 );
 
-DiffuseLightMaterial* CreateDiffuseLightMaterial(
+AreaLightMaterial* CreateAreaLightMaterial(
     Scene& scene,
     Float emission,
     bool two_sided = false,
+    bool directional_light = false,
     Float alpha = 1
 );
-DiffuseLightMaterial* CreateDiffuseLightMaterial(
+AreaLightMaterial* CreateAreaLightMaterial(
     Scene& scene,
     const Spectrum& emission,
     bool two_sided = false,
+    bool directional_light = false,
     Float alpha = 1
 );
 

@@ -7,19 +7,19 @@
 namespace bulbit
 {
 
-AreaLight::AreaLight(const Primitive* primitive, bool two_sided)
-    : Light(TypeIndexOf<AreaLight>())
+DiffuseAreaLight::DiffuseAreaLight(const Primitive* primitive, bool two_sided)
+    : Light(TypeIndexOf<DiffuseAreaLight>())
     , primitive{ primitive }
     , two_sided{ two_sided }
 {
 }
 
-void AreaLight::Preprocess(const AABB& world_bounds)
+void DiffuseAreaLight::Preprocess(const AABB& world_bounds)
 {
     BulbitNotUsed(world_bounds);
 }
 
-Spectrum AreaLight::Le(const Ray& ray) const
+Spectrum DiffuseAreaLight::Le(const Ray& ray) const
 {
     BulbitAssert(false);
 
@@ -32,7 +32,7 @@ Spectrum AreaLight::Le(const Ray& ray) const
     return primitive->GetMaterial()->Le(isect, -ray.d);
 }
 
-bool AreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
+bool DiffuseAreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
 {
     ShapeSample shape_sample = primitive->GetShape()->Sample(ref.point, u);
     Vec3 wi = shape_sample.point - ref.point;
@@ -60,12 +60,12 @@ bool AreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2
     return true;
 }
 
-Float AreaLight::EvaluatePDF_Li(const Ray& ray) const
+Float DiffuseAreaLight::EvaluatePDF_Li(const Ray& ray) const
 {
     return primitive->GetShape()->EvaluatePDF(ray);
 }
 
-bool AreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
+bool DiffuseAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 {
     ShapeSample shape_sample = primitive->GetShape()->Sample(u0);
     sample->pdf_p = shape_sample.pdf;
@@ -121,7 +121,7 @@ bool AreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
     return true;
 }
 
-void AreaLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const
+void DiffuseAreaLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const
 {
     // This function shouldn't be called by AreaLight
     BulbitNotUsed(pdf_p);
@@ -129,13 +129,13 @@ void AreaLight::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const
     BulbitNotUsed(ray);
 }
 
-void AreaLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const
+void DiffuseAreaLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const
 {
     *pdf_p = primitive->GetShape()->PDF(isect);
     *pdf_w = CosineHemispherePDF(AbsDot(isect.normal, w)) * (two_sided ? 0.5f : 1);
 }
 
-Spectrum AreaLight::Phi() const
+Spectrum DiffuseAreaLight::Phi() const
 {
     const SpectrumTexture* emission = primitive->GetMaterial()->GetEmissionTexture();
     const Shape* shape = primitive->GetShape();

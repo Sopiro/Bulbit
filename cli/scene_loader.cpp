@@ -1671,7 +1671,7 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
                 }
             }
 
-            mat = CreateDiffuseLightMaterial(*scene, radiance);
+            mat = CreateAreaLightMaterial(*scene, radiance);
         }
         else if (name == "bsdf")
         {

@@ -257,10 +257,10 @@ private:
     const FloatTexture* alpha;
 };
 
-class DiffuseLightMaterial : public Material
+class AreaLightMaterial : public Material
 {
 public:
-    DiffuseLightMaterial(const SpectrumTexture* emission, bool two_sided = false, const FloatTexture* alpha = nullptr);
+    AreaLightMaterial(const SpectrumTexture* emission, bool two_sided, bool directional, const FloatTexture* alpha = nullptr);
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, const Vec3& wo, Allocator& alloc) const;
@@ -271,12 +271,14 @@ public:
     const SpectrumTexture* GetNormalTexture() const;
 
     bool IsTwoSided() const;
+    bool IsDirectional() const;
 
 private:
     const SpectrumTexture* emission;
     const FloatTexture* alpha;
 
     bool two_sided;
+    bool directional;
 };
 
 class MixtureMaterial : public Material
