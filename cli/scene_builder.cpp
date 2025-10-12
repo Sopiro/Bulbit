@@ -49,19 +49,20 @@ void CreateSphere(
     if (area_light)
     {
         const SpectrumTexture* emission = get_emission_texture(scene, area_light.value());
-        if (area_light->is_directional)
+
+        switch (area_light->type)
         {
+        case AreaLightType::diffuse:
+            scene.CreateLight<DiffuseAreaLight>(primitive, emission, area_light->two_sided);
+            break;
+        case AreaLightType::directional:
             scene.CreateLight<DirectionalAreaLight>(primitive, emission, area_light->two_sided);
-        }
-        else if (area_light->is_spot)
-        {
+            break;
+        case AreaLightType::spot:
             scene.CreateLight<SpotAreaLight>(
                 primitive, emission, area_light->angle_max, area_light->angle_falloff_start, area_light->two_sided
             );
-        }
-        else
-        {
-            scene.CreateLight<DiffuseAreaLight>(primitive, emission, area_light->two_sided);
+            break;
         }
     }
 }
@@ -82,19 +83,20 @@ void CreateTriangles(
         if (area_light)
         {
             const SpectrumTexture* emission = get_emission_texture(scene, area_light.value());
-            if (area_light->is_directional)
+
+            switch (area_light->type)
             {
+            case AreaLightType::diffuse:
+                scene.CreateLight<DiffuseAreaLight>(primitive, emission, area_light->two_sided);
+                break;
+            case AreaLightType::directional:
                 scene.CreateLight<DirectionalAreaLight>(primitive, emission, area_light->two_sided);
-            }
-            else if (area_light->is_spot)
-            {
+                break;
+            case AreaLightType::spot:
                 scene.CreateLight<SpotAreaLight>(
                     primitive, emission, area_light->angle_max, area_light->angle_falloff_start, area_light->two_sided
                 );
-            }
-            else
-            {
-                scene.CreateLight<DiffuseAreaLight>(primitive, emission, area_light->two_sided);
+                break;
             }
         }
     }

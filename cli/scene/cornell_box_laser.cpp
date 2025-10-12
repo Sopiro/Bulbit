@@ -70,7 +70,7 @@ void CornellBoxLaser(RendererInfo* ri)
         // CreateRectXZ(scene, tf, white, mi_two_sided, AreaLightInfo{ .emission = 2.0f });
 
         tf = Transform::LookAt({ 0.99, 0.5, -0.5 }, { 0.5, 0.3, -0.5 }, y_axis) * Transform::Scale(Vec3{ 0.01f });
-        CreateRectXY(scene, tf, white, mi_two_sided, AreaLightInfo{ .is_directional = true, .emission = 50000.0f });
+        CreateRectXY(scene, tf, white, mi_two_sided, AreaLightInfo{ .type = AreaLightType::directional, .emission = 50000.0f });
 
         // int32 s = 10;
         // Float d = 1.0f / s;

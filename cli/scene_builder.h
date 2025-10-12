@@ -12,15 +12,23 @@ class Mesh;
 class Material;
 class Scene;
 
+enum class AreaLightType
+{
+    diffuse,
+    directional,
+    spot,
+};
+
 struct AreaLightInfo
 {
-    bool is_directional = false;
-
-    bool is_spot = false;
-    Float angle_max = 40;           // degrees
-    Float angle_falloff_start = 30; // degrees
+    AreaLightType type = AreaLightType::diffuse;
 
     bool two_sided = false;
+
+    // Used for spot light, degrees
+    Float angle_max = 40;
+    Float angle_falloff_start = 30;
+
     std::variant<Float, Spectrum, const SpectrumTexture*> emission = 0.0f;
 };
 

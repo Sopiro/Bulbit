@@ -1684,7 +1684,7 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
         else if (name == "emitter")
         {
             ali.emplace();
-            ali->is_directional = false;
+            ali->type = AreaLightType::diffuse;
             ali->two_sided = false;
             ali->emission = 0.0f;
 

@@ -302,7 +302,7 @@ void CornellBoxFog3(RendererInfo* ri)
     // Lights
     {
         auto tf = Transform{ p_light, Quat(pi, x_axis), Vec3(0.1f) };
-        CreateRectXZ(scene, tf, white, mi_two_sided, AreaLightInfo{ .is_directional = true, .emission = 500.0f });
+        CreateRectXZ(scene, tf, white, mi_two_sided, AreaLightInfo{ .type = AreaLightType::directional, .emission = 500.0f });
 
         // CreatePointLight(scene, Point3(0.5f, 0.9f, -0.5f), Spectrum(0.25f));
     }

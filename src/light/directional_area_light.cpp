@@ -87,7 +87,6 @@ bool DirectionalAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1
 {
     ShapeSample shape_sample = primitive->GetShape()->Sample(u0);
     sample->pdf_p = shape_sample.pdf;
-    sample->normal = shape_sample.normal;
 
     Vec3 w = shape_sample.normal;
     bool front_face = true;
@@ -113,11 +112,8 @@ bool DirectionalAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1
     }
 
     sample->ray = Ray(shape_sample.point, w);
-
-    Intersection isect;
-    isect.uv = shape_sample.uv;
-    isect.front_face = front_face;
-    sample->Le = Le(isect, Vec3::zero);
+    sample->normal = Vec3(0);
+    sample->Le = emission->Evaluate(shape_sample.uv);
 
     MediumInterface medium_interface = primitive->GetMediumInterface();
     sample->medium = front_face ? medium_interface.outside : medium_interface.inside;
