@@ -41,39 +41,10 @@ Spectrum DirectionalAreaLight::Le(const Ray& ray) const
 
 bool DirectionalAreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
 {
-    // This sampling scheme only works for planar shapes
-    const Shape* shape = primitive->GetShape();
-    ShapeSample shape_sample = shape->Sample(ref.point, u);
-
-    Vec3 wi = shape_sample.point - ref.point;
-    bool front_face = Dot(shape_sample.normal, wi) < 0;
-
-    Vec3 normal = shape_sample.normal;
-    if (!front_face)
-    {
-        normal.Negate();
-    }
-
-    Intersection isect;
-    if (!shape->Intersect(&isect, Ray(ref.point, -normal), 0, infinity))
-    {
-        return false;
-    }
-
-    if (!two_sided && !isect.front_face)
-    {
-        return false;
-    }
-
-    sample->point = isect.point;
-    sample->normal = isect.normal;
-
-    sample->wi = -isect.normal;
-    sample->visibility = isect.t - Ray::epsilon;
-
-    sample->Li = emission->Evaluate(isect.uv);
-    sample->pdf = 1;
-    return true;
+    BulbitNotUsed(sample);
+    BulbitNotUsed(ref);
+    BulbitNotUsed(u);
+    return false;
 }
 
 Float DirectionalAreaLight::EvaluatePDF_Li(const Ray& ray) const

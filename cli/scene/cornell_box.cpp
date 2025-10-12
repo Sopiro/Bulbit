@@ -77,11 +77,11 @@ void CornellBox(RendererInfo* ri)
         auto tf = Transform{ 0.5f, 0.995f, -0.5f, Quat(pi, x_axis), Vec3(0.25f) };
         CreateRectXZ(scene, tf, white, {}, AreaLightInfo{ .emission = 15.0f });
 
-        // CreateRectXZ(scene, tf, white, {}, AreaLightInfo{ .is_directional = true, .emission = 15.0f });
+        // CreateRectXZ(scene, tf, white, {}, AreaLightInfo{ .type = AreaLightType::directional, .emission = 15.0f });
 
         // CreateRectXZ(
-        //     scene, tf, white, {}, AreaLightInfo{ .is_spot = true, .angle_max = 40, .angle_falloff_start = 30, .emission = 15.0f
-        //     }
+        //     scene, tf, white, {},
+        //     AreaLightInfo{ .type = AreaLightType::spot, .angle_max = 40, .angle_falloff_start = 30, .emission = 15.0f }
         // );
 
         // CreatePointLight(scene, Point3(0.5f, 0.9f, -0.5f), Spectrum(0.25f));

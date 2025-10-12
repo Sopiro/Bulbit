@@ -134,9 +134,10 @@ private:
 
 class DirectionalAreaLight : public Light
 {
-    // This light can only be rendered correctly with planar shapes.
-    // For other shapes, only integrators that support particle-traced light transport,
-    // such as LightPathIntegrator or BidirectionalPathIntegrator, will render it correctly.
+    // This light can only be rendered correctly with integrators that support particle traced light transport,
+    // such as LightPathIntegrator or BidirectionalPathIntegrator,
+    // and also will not rendered correctly with photon mapping based integrators
+    // that explicitly sample direct illumination, since it cannot be sampled directly.
 public:
     DirectionalAreaLight(const Primitive* primitive, const SpectrumTexture* emission, bool two_sided);
     void Destroy() {}
