@@ -140,15 +140,13 @@ MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
     const Spectrum& basecolor,
     Float metallic,
     Float roughness,
-    const Spectrum& emission,
     const SpectrumTexture* normalmap,
     const FloatTexture* alpha
 )
 {
     return scene.CreateMaterial<MetallicRoughnessMaterial>(
         CreateSpectrumConstantTexture(scene, basecolor), CreateFloatConstantTexture(scene, metallic),
-        CreateFloatConstantTexture(scene, roughness), CreateFloatConstantTexture(scene, roughness),
-        CreateSpectrumConstantTexture(scene, emission), normalmap, alpha
+        CreateFloatConstantTexture(scene, roughness), CreateFloatConstantTexture(scene, roughness), normalmap, alpha
     );
 }
 
@@ -158,15 +156,13 @@ MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
     Float metallic,
     Float u_roughness,
     Float v_roughness,
-    const Spectrum& emission,
     const SpectrumTexture* normalmap,
     const FloatTexture* alpha
 )
 {
     return scene.CreateMaterial<MetallicRoughnessMaterial>(
         CreateSpectrumConstantTexture(scene, basecolor), CreateFloatConstantTexture(scene, metallic),
-        CreateFloatConstantTexture(scene, u_roughness), CreateFloatConstantTexture(scene, v_roughness),
-        CreateSpectrumConstantTexture(scene, emission), normalmap, alpha
+        CreateFloatConstantTexture(scene, u_roughness), CreateFloatConstantTexture(scene, v_roughness), normalmap, alpha
     );
 }
 
@@ -184,7 +180,6 @@ PrincipledMaterial* CreatePrincipledMaterial(
     Float sheen,
     Float sheen_roughness,
     const Spectrum& sheen_color,
-    const Spectrum& emission,
     const SpectrumTexture* normalmap,
     const FloatTexture* alpha
 )
@@ -195,7 +190,7 @@ PrincipledMaterial* CreatePrincipledMaterial(
         CreateFloatConstantTexture(scene, transmission), CreateFloatConstantTexture(scene, clearcoat),
         CreateFloatConstantTexture(scene, clearcoat_roughness), CreateSpectrumConstantTexture(scene, clearcoat_color),
         CreateFloatConstantTexture(scene, sheen), CreateFloatConstantTexture(scene, sheen_roughness),
-        CreateSpectrumConstantTexture(scene, sheen_color), CreateSpectrumConstantTexture(scene, emission), normalmap, alpha
+        CreateSpectrumConstantTexture(scene, sheen_color), normalmap, alpha
     );
 }
 
@@ -268,22 +263,6 @@ MirrorMaterial* CreateMirrorMaterial(Scene& scene, const Spectrum& reflectance, 
     );
 }
 
-AreaLightMaterial* CreateAreaLightMaterial(Scene& scene, Float emission, bool two_sided, bool directional_light, Float alpha)
-{
-    return scene.CreateMaterial<AreaLightMaterial>(
-        CreateSpectrumConstantTexture(scene, emission), two_sided, directional_light, CreateFloatConstantTexture(scene, alpha)
-    );
-}
-
-AreaLightMaterial* CreateAreaLightMaterial(
-    Scene& scene, const Spectrum& emission, bool two_sided, bool directional_light, Float alpha
-)
-{
-    return scene.CreateMaterial<AreaLightMaterial>(
-        CreateSpectrumConstantTexture(scene, emission), two_sided, directional_light, CreateFloatConstantTexture(scene, alpha)
-    );
-}
-
 LayeredMaterial* CreateLayeredMaterial(
     Scene& scene,
     const Material* top,
@@ -311,8 +290,7 @@ const Material* CreateRandomPrincipledMaterial(Scene& scene)
         basecolor,
         Rand() > 0.5f ? 1.0f : 0.0f,
         (Float)std::sqrt(Rand(0.1f, 1.0f)),
-        (Float)std::sqrt(Rand(0.1f, 1.0f)),
-        basecolor * (Rand() < 0.08f ? Rand(0.0f, 0.3f) : 0.0f)
+        (Float)std::sqrt(Rand(0.1f, 1.0f))
     );
     // clang-format on
 }

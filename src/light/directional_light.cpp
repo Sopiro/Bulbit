@@ -16,6 +16,14 @@ void DirectionalLight::Preprocess(const AABB& world_bounds)
     world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
 }
 
+Spectrum DirectionalLight::Le(const Intersection& isect, const Vec3& wo) const
+{
+    BulbitAssert(false);
+    BulbitNotUsed(isect);
+    BulbitNotUsed(wo);
+    return Spectrum::black;
+}
+
 Spectrum DirectionalLight::Le(const Ray& ray) const
 {
     BulbitAssert(false);

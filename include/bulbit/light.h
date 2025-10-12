@@ -61,6 +61,7 @@ public:
 
     void Preprocess(const AABB& world_bounds);
 
+    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     Spectrum Le(const Ray& ray) const;
 
     bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;

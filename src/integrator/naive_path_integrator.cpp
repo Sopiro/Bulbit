@@ -42,7 +42,10 @@ Spectrum NaivePathIntegrator::Li(const Ray& primary_ray, const Medium* primary_m
         Vec3 wo = Normalize(-ray.d);
 
         // Add surface emission
-        L += beta * isect.Le(wo);
+        if (const Light* area_light = GetAreaLight(isect); area_light)
+        {
+            L += beta * area_light->Le(isect, wo);
+        }
 
         if (bounce++ >= max_bounces)
         {
@@ -116,7 +119,10 @@ Spectrum NaivePathIntegrator::Li(const Ray& ray, Sampler& sampler, int32 depth) 
 
     Vec3 wo = Normalize(-ray.d);
 
-    L += isect.Le(wo);
+    if (const Light* area_light = GetAreaLight(isect); area_light)
+    {
+        L += area_light->Le(isect, wo);
+    }
 
     int8 mem[max_bxdf_size];
     BufferResource res(mem, sizeof(mem));

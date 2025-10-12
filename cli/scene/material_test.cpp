@@ -319,9 +319,9 @@ void Skins(RendererInfo* ri)
 
     CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
 
-    auto light = CreateAreaLightMaterial(scene, Spectrum(5.0f));
     auto tf = Transform{ 0.0f, 0.8f, -0.5f, Quat::FromEuler({ 0, 0, 0 }), Vec3(3, 0.5, 1) };
-    CreateRectXY(scene, tf, light);
+    auto white = CreateDiffuseMaterial(scene, 1.0f);
+    CreateRectXY(scene, tf, white, {}, AreaLightInfo{ .emission = 5.0f });
 
     Float aspect_ratio = 21.f / 9.f;
     int32 width = 1600;

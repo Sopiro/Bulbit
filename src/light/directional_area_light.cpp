@@ -7,9 +7,10 @@
 namespace bulbit
 {
 
-DirectionalAreaLight::DirectionalAreaLight(const Primitive* primitive, bool two_sided)
+DirectionalAreaLight::DirectionalAreaLight(const Primitive* primitive, const SpectrumTexture* emission, bool two_sided)
     : Light(TypeIndexOf<DirectionalAreaLight>())
     , primitive{ primitive }
+    , emission{ emission }
     , two_sided{ two_sided }
 {
 }
@@ -17,6 +18,18 @@ DirectionalAreaLight::DirectionalAreaLight(const Primitive* primitive, bool two_
 void DirectionalAreaLight::Preprocess(const AABB& world_bounds)
 {
     BulbitNotUsed(world_bounds);
+}
+
+Spectrum DirectionalAreaLight::Le(const Intersection& isect, const Vec3& wo) const
+{
+    if (wo == Vec3::zero)
+    {
+        return emission->Evaluate(isect.uv);
+    }
+    else
+    {
+        return Spectrum::black;
+    }
 }
 
 Spectrum DirectionalAreaLight::Le(const Ray& ray) const
@@ -73,14 +86,9 @@ bool DirectionalAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1
     sample->ray = Ray(shape_sample.point, w);
 
     Intersection isect;
-    isect.point = shape_sample.point;
-    isect.normal = shape_sample.normal;
+    isect.uv = shape_sample.uv;
     isect.front_face = front_face;
-    isect.primitive = primitive;
-
-    // Passing wo with zero to directional light will return emission,
-    // otherwise it will return 0
-    sample->Le = primitive->GetMaterial()->Le(isect, Vec3::zero);
+    sample->Le = Le(isect, Vec3::zero);
 
     MediumInterface medium_interface = primitive->GetMediumInterface();
     sample->medium = front_face ? medium_interface.outside : medium_interface.inside;
@@ -97,7 +105,6 @@ void DirectionalAreaLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection
 
 Spectrum DirectionalAreaLight::Phi() const
 {
-    const SpectrumTexture* emission = primitive->GetMaterial()->GetEmissionTexture();
     const Shape* shape = primitive->GetShape();
     return emission->Average() * shape->Area() * (two_sided ? 2 : 1);
 }

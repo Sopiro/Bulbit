@@ -20,6 +20,7 @@ public:
 
     void Preprocess(const AABB& world_bounds);
 
+    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     Spectrum Le(const Ray& ray) const;
 
     bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
@@ -52,6 +53,7 @@ public:
 
     void Preprocess(const AABB& world_bounds);
 
+    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     Spectrum Le(const Ray& ray) const;
 
     bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
@@ -83,6 +85,7 @@ public:
 
     void Preprocess(const AABB& world_bounds);
 
+    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     Spectrum Le(const Ray& ray) const;
 
     bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
@@ -105,11 +108,12 @@ private:
 class DiffuseAreaLight : public Light
 {
 public:
-    DiffuseAreaLight(const Primitive* primitive, bool two_sided);
+    DiffuseAreaLight(const Primitive* primitive, const SpectrumTexture* emission, bool two_sided);
     void Destroy() {}
 
     void Preprocess(const AABB& world_bounds);
 
+    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     Spectrum Le(const Ray& ray) const;
 
     bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
@@ -128,6 +132,7 @@ public:
 
 private:
     const Primitive* primitive;
+    const SpectrumTexture* emission;
     bool two_sided;
 };
 
@@ -138,11 +143,12 @@ class DirectionalAreaLight : public Light
     // and also will not rendered correctly with photon mapping based integrators
     // that explicitly sample direct illumination, since it cannot be sampled directly.
 public:
-    DirectionalAreaLight(const Primitive* primitive, bool two_sided);
+    DirectionalAreaLight(const Primitive* primitive, const SpectrumTexture* emission, bool two_sided);
     void Destroy() {}
 
     void Preprocess(const AABB& world_bounds);
 
+    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     Spectrum Le(const Ray& ray) const;
 
     bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
@@ -160,6 +166,7 @@ public:
 
 private:
     const Primitive* primitive;
+    const SpectrumTexture* emission;
     bool two_sided;
 };
 
@@ -171,6 +178,7 @@ public:
 
     void Preprocess(const AABB& world_bounds);
 
+    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     Spectrum Le(const Ray& ray) const;
 
     bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
@@ -202,6 +210,7 @@ public:
 
     void Preprocess(const AABB& world_bounds);
 
+    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     Spectrum Le(const Ray& ray) const;
 
     bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
@@ -229,6 +238,11 @@ inline Light::~Light()
 inline void Light::Preprocess(const AABB& world_bounds)
 {
     Dispatch([&](auto light) { light->Preprocess(world_bounds); });
+}
+
+inline Spectrum Light::Le(const Intersection& isect, const Vec3& wo) const
+{
+    return Dispatch([&](auto light) { return light->Le(isect, wo); });
 }
 
 inline Spectrum Light::Le(const Ray& ray) const

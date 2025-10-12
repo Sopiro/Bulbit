@@ -43,7 +43,10 @@ Spectrum AlbedoIntegrator::Li(const Ray& ray, const Medium* medium, Sampler& sam
 
     Vec3 wo = Normalize(-ray.d);
 
-    L += isect.Le(wo);
+    if (const Light* area_light = GetAreaLight(isect); area_light)
+    {
+        L += area_light->Le(isect, wo);
+    }
 
     int8 mem[max_bxdf_size];
     BufferResource res(mem, sizeof(mem));

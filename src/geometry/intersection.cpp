@@ -29,22 +29,6 @@ static void NormalMapping(Intersection* isect, const Vec3& wo, const SpectrumTex
     isect->shading.tangent = t;
 }
 
-Spectrum Intersection::Le(const Vec3& wo) const
-{
-    const Material* mat = primitive->GetMaterial();
-    if (!mat)
-    {
-        return Spectrum::black;
-    }
-
-    while (mat->Is<MixtureMaterial>())
-    {
-        mat = ((MixtureMaterial*)mat)->ChooseMaterial(*this, wo);
-    }
-
-    return mat->Le(*this, wo);
-}
-
 bool Intersection::GetBSDF(BSDF* bsdf, const Vec3& wo, Allocator& alloc)
 {
     const Material* mat = primitive->GetMaterial();

@@ -74,12 +74,11 @@ int32 RandomWalk(
 
         // Create surface vertex
         {
-            const AreaLightMap& area_lights = I->AreaLights();
-
             vertex.type = VertexType::surface;
             vertex.sv.primitive = isect.primitive;
-            vertex.sv.area_light = area_lights.contains(isect.primitive) ? area_lights.at(isect.primitive) : nullptr;
+            vertex.sv.area_light = I->GetAreaLight(isect);
             vertex.sv.front_face = isect.front_face;
+            vertex.sv.uv = isect.uv;
             vertex.sv.bsdf = bsdf;
 
             vertex.point = isect.point;
@@ -357,12 +356,11 @@ int32 RandomWalkVol(
 
         // Create surface vertex
         {
-            const AreaLightMap& area_lights = I->AreaLights();
-
             vertex.type = VertexType::surface;
             vertex.sv.primitive = isect.primitive;
-            vertex.sv.area_light = area_lights.contains(isect.primitive) ? area_lights.at(isect.primitive) : nullptr;
+            vertex.sv.area_light = I->GetAreaLight(isect);
             vertex.sv.front_face = isect.front_face;
+            vertex.sv.uv = isect.uv;
             vertex.sv.bsdf = bsdf;
             vertex.medium = nullptr;
 

@@ -11,7 +11,6 @@ MetallicRoughnessMaterial::MetallicRoughnessMaterial(
     const FloatTexture* metallic,
     const FloatTexture* u_roughness,
     const FloatTexture* v_roughness,
-    const SpectrumTexture* emissive,
     const SpectrumTexture* normal,
     const FloatTexture* alpha
 
@@ -21,16 +20,9 @@ MetallicRoughnessMaterial::MetallicRoughnessMaterial(
     , metallic{ metallic }
     , u_roughness{ u_roughness }
     , v_roughness{ v_roughness }
-    , emissive{ emissive }
     , normal{ normal }
     , alpha{ alpha }
 {
-}
-
-Spectrum MetallicRoughnessMaterial::Le(const Intersection& isect, const Vec3& wo) const
-{
-    BulbitNotUsed(wo);
-    return emissive ? emissive->Evaluate(isect.uv) : Spectrum::black;
 }
 
 bool MetallicRoughnessMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
@@ -58,11 +50,6 @@ bool MetallicRoughnessMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& i
 const FloatTexture* MetallicRoughnessMaterial::GetAlphaTexture() const
 {
     return alpha;
-}
-
-const SpectrumTexture* MetallicRoughnessMaterial::GetEmissionTexture() const
-{
-    return nullptr;
 }
 
 const SpectrumTexture* MetallicRoughnessMaterial::GetNormalTexture() const

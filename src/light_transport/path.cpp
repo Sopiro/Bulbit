@@ -90,8 +90,8 @@ Spectrum Vertex::Le(const Vertex& v, const Integrator* I) const
             return Spectrum::black;
         }
 
-        Intersection isect{ .normal = normal, .front_face = sv.front_face };
-        return sv.primitive->GetMaterial()->Le(isect, wo);
+        Intersection isect{ .uv = sv.uv, .front_face = sv.front_face };
+        return sv.area_light->Le(isect, wo);
     }
 }
 

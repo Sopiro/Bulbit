@@ -10,7 +10,6 @@ void CornellBoxCaustics(RendererInfo* ri)
     auto blue = CreateDiffuseMaterial(scene, Spectrum(.22f, .23f, .75f));
     auto white = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
     auto box = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
-    auto light = CreateAreaLightMaterial(scene, Spectrum(250000.0f));
     auto mirror = CreateMirrorMaterial(scene, Spectrum(0.73f));
     auto mix = CreateMixtureMaterial(scene, red, blue, 0.5f);
     auto ss = CreateSubsurfaceRandomWalkMaterial(scene, Spectrum(1.0), Spectrum(0.5, 0.25, 0.125) * 0.03, 1.0f, 0.0f);
@@ -93,7 +92,7 @@ void CornellBoxCaustics(RendererInfo* ri)
     // Lights
     {
         auto tf = Transform{ 0.5f, 0.995f, -0.5f, Quat(pi, x_axis), Vec3(0.002f) };
-        CreateRectXZ(scene, tf, light);
+        CreateRectXZ(scene, tf, white, {}, AreaLightInfo{ .emission = 250000.0f });
 
         // CreatePointLight(scene, Point3(0.5f, 0.999f, -0.5f), Spectrum(0.25f));
     }

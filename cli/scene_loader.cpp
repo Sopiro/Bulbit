@@ -864,7 +864,7 @@ static const Material* ParseMaterial(
             }
             else
             {
-                std::cerr << "Invalid parameter for blend material: " << name << std::endl;
+                std::cerr << "Unsupported parameter for blend material: " << name << std::endl;
             }
         }
 
@@ -964,7 +964,7 @@ static const Material* ParseMaterial(
             }
             else
             {
-                std::cerr << "Invalid parameter for layered material: " << name << std::endl;
+                std::cerr << "Unsupported parameter for layered material: " << name << std::endl;
             }
         }
 
@@ -1005,7 +1005,7 @@ static const Material* ParseMaterial(
             }
             else
             {
-                std::cerr << "Invalid parameter for diffuse material: " << name << std::endl;
+                std::cerr << "Unsupported parameter for diffuse material: " << name << std::endl;
             }
         }
 
@@ -1048,9 +1048,17 @@ static const Material* ParseMaterial(
             {
                 ext_ior = ParseFloat(child.attribute("value"), dm);
             }
+            else if (name == "distribution")
+            {
+                std::string mf = ParseString(child.attribute("value"), dm);
+                if (mf != "ggx")
+                {
+                    std::cerr << "Only GGX distribution is supported: " << mf << std::endl;
+                }
+            }
             else
             {
-                std::cerr << "Invalid parameter for (rough)plastic material: " << name << std::endl;
+                std::cerr << "Unsupported parameter for (rough)plastic material: " << name << std::endl;
             }
         }
 
@@ -1122,9 +1130,17 @@ static const Material* ParseMaterial(
             {
                 v_roughness = ParseFloatTexture(child, dm, scene, [](Float alpha) { return std::sqrt(alpha); });
             }
+            else if (name == "distribution")
+            {
+                std::string mf = ParseString(child.attribute("value"), dm);
+                if (mf != "ggx")
+                {
+                    std::cerr << "Only GGX distribution is supported: " << mf << std::endl;
+                }
+            }
             else
             {
-                std::cerr << "Invalid parameter for (rough)conductor material: " << name << std::endl;
+                std::cerr << "Unsupported parameter for (rough)conductor material: " << name << std::endl;
             }
         }
 
@@ -1181,13 +1197,21 @@ static const Material* ParseMaterial(
             {
                 ext_ior = ParseFloat(child.attribute("value"), dm);
             }
-            else if (name == "reflectance")
+            else if (name == "reflectance" || name == "specular_transmittance")
             {
                 reflectance = ParseSpectrumTexture(child, dm, scene);
             }
+            else if (name == "distribution")
+            {
+                std::string mf = ParseString(child.attribute("value"), dm);
+                if (mf != "ggx")
+                {
+                    std::cerr << "Only GGX distribution is supported: " << mf << std::endl;
+                }
+            }
             else
             {
-                std::cerr << "Invalid parameter for (rough)dielectric material: " << name << std::endl;
+                std::cerr << "Unsupported parameter for (rough)dielectric material: " << name << std::endl;
             }
         }
 
@@ -1217,7 +1241,7 @@ static const Material* ParseMaterial(
             }
             else
             {
-                std::cerr << "Invalid parameter for thindielectric material: " << name << std::endl;
+                std::cerr << "Unsupported parameter for thindielectric material: " << name << std::endl;
             }
         }
 
@@ -1292,13 +1316,13 @@ static const Material* ParseMaterial(
             }
             else
             {
-                std::cerr << "Invalid parameter for principled material: " << name << std::endl;
+                std::cerr << "Unsupported parameter for principled material: " << name << std::endl;
             }
         }
 
         mat = scene->CreateMaterial<PrincipledMaterial>(
             basecolor, metallic, roughness, anisotropy, ior, transmission, clearcoat, clearcoat_roughness, clearcoat_color, sheen,
-            sheen_roughness, sheen_color, nullptr, mi.normal, mi.alpha
+            sheen_roughness, sheen_color, mi.normal, mi.alpha
         );
     }
     else if (type == "subsurface")
@@ -1340,7 +1364,7 @@ static const Material* ParseMaterial(
             }
             else
             {
-                std::cerr << "Invalid parameter for subsurface material: " << name << std::endl;
+                std::cerr << "Unsupported parameter for subsurface material: " << name << std::endl;
             }
         }
 
@@ -1369,7 +1393,7 @@ static const Material* ParseMaterial(
             }
             else
             {
-                std::cerr << "Invalid parameter for cloth material: " << name << std::endl;
+                std::cerr << "Unsupported parameter for cloth material: " << name << std::endl;
             }
         }
 
@@ -1596,8 +1620,7 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
 {
     const Material* mat = nullptr;
     MediumInterface mi(nullptr, nullptr);
-    bool emitter = false;
-    Spectrum radiance(1);
+    std::optional<AreaLightInfo> ali = {};
 
     for (auto child : node.children())
     {
@@ -1660,18 +1683,19 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
         }
         else if (name == "emitter")
         {
-            emitter = true;
+            ali.emplace();
+            ali->is_directional = false;
+            ali->two_sided = false;
+            ali->emission = 0.0f;
 
             for (auto grand_child : child.children())
             {
                 std::string name = grand_child.attribute("name").value();
                 if (name == "radiance")
                 {
-                    radiance = ParseIntensity(grand_child, dm);
+                    ali->emission = ParseIntensity(grand_child, dm);
                 }
             }
-
-            mat = CreateAreaLightMaterial(*scene, radiance);
         }
         else if (name == "bsdf")
         {
@@ -1720,7 +1744,7 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
             }
         }
 
-        CreateSphere(*scene, center, radius, mat, mi, emitter);
+        CreateSphere(*scene, center, radius, mat, mi, ali);
     }
     else if (shape_type == "rectangle")
     {
@@ -1743,7 +1767,7 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
             }
         }
 
-        CreateRectXY(*scene, Mul(to_world, Transform(0, 0, 0, identity, Point3{ 2 })), mat, mi, { 1, 1 }, emitter);
+        CreateRectXY(*scene, Mul(to_world, Transform(0, 0, 0, identity, Point3{ 2 })), mat, mi, ali);
     }
     else if (shape_type == "cube")
     {
@@ -1761,7 +1785,7 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
             }
         }
 
-        CreateBox(*scene, to_world * Transform(0, 0, 0, identity, { 2, 2, 2 }), mat, mi, { 1, 1 }, emitter);
+        CreateBox(*scene, to_world * Transform(0, 0, 0, identity, { 2, 2, 2 }), mat, mi, ali);
     }
     else if (shape_type == "obj" || shape_type == "gltf")
     {

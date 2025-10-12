@@ -25,13 +25,6 @@ SubsurfaceDiffusionMaterial::SubsurfaceDiffusionMaterial(
 {
 }
 
-Spectrum SubsurfaceDiffusionMaterial::Le(const Intersection& isect, const Vec3& wo) const
-{
-    BulbitNotUsed(isect);
-    BulbitNotUsed(wo);
-    return Spectrum::black;
-}
-
 bool SubsurfaceDiffusionMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
 {
     Float alpha_x = TrowbridgeReitzDistribution::RoughnessToAlpha(u_roughness->Evaluate(isect.uv));
@@ -58,11 +51,6 @@ bool SubsurfaceDiffusionMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection&
 }
 
 const FloatTexture* SubsurfaceDiffusionMaterial::GetAlphaTexture() const
-{
-    return nullptr;
-}
-
-const SpectrumTexture* SubsurfaceDiffusionMaterial::GetEmissionTexture() const
 {
     return nullptr;
 }

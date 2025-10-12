@@ -17,6 +17,14 @@ void PointLight::Preprocess(const AABB& world_bounds)
     BulbitNotUsed(world_bounds);
 }
 
+Spectrum PointLight::Le(const Intersection& isect, const Vec3& wo) const
+{
+    BulbitAssert(false);
+    BulbitNotUsed(isect);
+    BulbitNotUsed(wo);
+    return Spectrum::black;
+}
+
 Spectrum PointLight::Le(const Ray& ray) const
 {
     BulbitAssert(false);

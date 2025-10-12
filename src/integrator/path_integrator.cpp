@@ -64,22 +64,22 @@ Spectrum PathIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium
 
         Vec3 wo = Normalize(-ray.d);
 
-        if (Spectrum Le = isect.Le(wo); !Le.IsBlack())
+        if (const Light* area_light = GetAreaLight(isect); area_light)
         {
-            bool has_area_light = area_lights.contains(isect.primitive);
-            if (bounce == 0 || specular_bounce || !has_area_light)
+            if (Spectrum Le = area_light->Le(isect, wo); !Le.IsBlack())
             {
-                L += beta * Le;
-            }
-            else if (has_area_light)
-            {
-                // Evaluate BSDF sample with MIS for area light
-                const Light* area_light = area_lights.at(isect.primitive);
+                if (bounce == 0 || specular_bounce)
+                {
+                    L += beta * Le;
+                }
+                else
+                {
+                    // Evaluate BSDF sample with MIS for area light
+                    Float light_pdf = isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
+                    Float mis_weight = PowerHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
 
-                Float light_pdf = isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
-                Float mis_weight = PowerHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
-
-                L += beta * mis_weight * Le;
+                    L += beta * mis_weight * Le;
+                }
             }
         }
 

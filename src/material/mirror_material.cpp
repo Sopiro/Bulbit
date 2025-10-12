@@ -15,13 +15,6 @@ MirrorMaterial::MirrorMaterial(const SpectrumTexture* reflectance, const Spectru
 {
 }
 
-Spectrum MirrorMaterial::Le(const Intersection& isect, const Vec3& wo) const
-{
-    BulbitNotUsed(isect);
-    BulbitNotUsed(wo);
-    return Spectrum::black;
-}
-
 bool MirrorMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
 {
     Spectrum r = reflectance->Evaluate(isect.uv);
@@ -40,11 +33,6 @@ bool MirrorMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Alloc
 const FloatTexture* MirrorMaterial::GetAlphaTexture() const
 {
     return alpha;
-}
-
-const SpectrumTexture* MirrorMaterial::GetEmissionTexture() const
-{
-    return nullptr;
 }
 
 const SpectrumTexture* MirrorMaterial::GetNormalTexture() const

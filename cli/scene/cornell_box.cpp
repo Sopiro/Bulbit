@@ -9,9 +9,8 @@ void CornellBox(RendererInfo* ri)
     auto green = CreateDiffuseMaterial(scene, Spectrum(.12f, .45f, .15f));
     auto blue = CreateDiffuseMaterial(scene, Spectrum(.22f, .23f, .75f));
     auto white = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
+    auto black = CreateDiffuseMaterial(scene, Spectrum(0));
     auto box = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
-    auto light = CreateAreaLightMaterial(scene, Spectrum(15.0f), false, false);
-    // auto light = CreateDiffuseLightMaterial(scene, Spectrum(17.0f, 12.0f, 4.0f));
     auto mirror = CreateMirrorMaterial(scene, Spectrum(0.73f));
     auto mix = CreateMixtureMaterial(scene, red, blue, 0.5f);
     auto ss = CreateSubsurfaceRandomWalkMaterial(scene, Spectrum(1.0), Spectrum(0.5, 0.25, 0.125) * 0.03, 1.0f, 0.0f);
@@ -76,9 +75,8 @@ void CornellBox(RendererInfo* ri)
     // Lights
     {
         auto tf = Transform{ 0.5f, 0.995f, -0.5f, Quat(pi, x_axis), Vec3(0.25f) };
-        CreateRectXZ(scene, tf, light);
+        CreateRectXZ(scene, tf, white, {}, AreaLightInfo{ .emission = 15.0f });
 
-        // CreateSphere(scene, Vec3(0.5f, 0.9f, -0.5f), 0.05f, light);
         // CreatePointLight(scene, Point3(0.5f, 0.9f, -0.5f), Spectrum(0.25f));
         // CreateSpotLight(scene, Point3(0.5f, 0.9f, -0.5f), Vec3(0, 1, 0), 5.0f, 30, 30 * 3 / 4.0f);
         // CreateDirectionalLight(scene,  Normalize(Vec3(1, 1, 1)), Vec3(5.0f), 0.05f);

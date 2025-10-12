@@ -11,7 +11,6 @@ class BSDF;
 class BSSRDF;
 
 using Materials = TypePack<
-    class AreaLightMaterial,
     class DiffuseMaterial,
     class MirrorMaterial,
     class DielectricMaterial,
@@ -37,12 +36,10 @@ protected:
     }
 
 public:
-    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
-    const SpectrumTexture* GetEmissionTexture() const;
     const SpectrumTexture* GetNormalTexture() const;
 };
 

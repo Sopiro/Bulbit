@@ -42,8 +42,6 @@ Spectrum VolPathIntegrator::Li(const Ray& primary_ray, const Medium* primary_med
 
     const Medium* medium = primary_medium;
 
-    Point3 last_scattering_vertex;
-
     while (true)
     {
         Vec3 wo = Normalize(-ray.d);
@@ -122,7 +120,6 @@ Spectrum VolPathIntegrator::Li(const Ray& primary_ray, const Medium* primary_med
                         // Add direct light
                         Intersection medium_isect{ .point = p };
                         L += SampleDirectLight(wo, medium_isect, medium, nullptr, ms.phase, wavelength, sampler, beta, r_u);
-                        last_scattering_vertex = p;
 
                         // Sample phase function to find next path direction
                         PhaseFunctionSample phase_sample;
@@ -203,7 +200,6 @@ Spectrum VolPathIntegrator::Li(const Ray& primary_ray, const Medium* primary_med
             {
                 for (Light* light : infinite_lights)
                 {
-                    Ray r(last_scattering_vertex, ray.d);
                     Float light_pdf = light->EvaluatePDF_Li(ray) * light_sampler->EvaluatePMF(light);
                     r_l *= light_pdf;
                     L += beta * light->Le(ray) / (r_u + r_l).Average();
@@ -213,22 +209,21 @@ Spectrum VolPathIntegrator::Li(const Ray& primary_ray, const Medium* primary_med
             break;
         }
 
-        if (Spectrum Le = isect.Le(wo); !Le.IsBlack())
+        if (const Light* area_light = GetAreaLight(isect); area_light)
         {
-            bool has_area_light = area_lights.contains(isect.primitive);
-            if (bounce == 0 || specular_bounce || !has_area_light)
+            if (Spectrum Le = area_light->Le(isect, wo); !Le.IsBlack())
             {
-                L += beta * Le / r_u.Average();
-            }
-            else if (has_area_light)
-            {
-                // Add emission from area light source
-                const Light* area_light = area_lights.at(isect.primitive);
-
-                Ray r(last_scattering_vertex, ray.d);
-                Float light_pdf = area_light->EvaluatePDF_Li(r) * light_sampler->EvaluatePMF(area_light);
-                r_l *= light_pdf;
-                L += beta * Le / (r_u + r_l).Average();
+                if (bounce == 0 || specular_bounce)
+                {
+                    L += beta * Le / r_u.Average();
+                }
+                else
+                {
+                    // Add emission from area light source
+                    Float light_pdf = isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
+                    r_l *= light_pdf;
+                    L += beta * Le / (r_u + r_l).Average();
+                }
             }
         }
 
@@ -260,7 +255,6 @@ Spectrum VolPathIntegrator::Li(const Ray& primary_ray, const Medium* primary_med
         {
             L += SampleDirectLight(wo, isect, nullptr, &bsdf, nullptr, wavelength, sampler, beta, r_u);
         }
-        last_scattering_vertex = isect.point;
 
         BSDFSample bsdf_sample;
         if (!bsdf.Sample_f(&bsdf_sample, wo, sampler.Next1D(), sampler.Next2D()))
@@ -315,7 +309,6 @@ Spectrum VolPathIntegrator::Li(const Ray& primary_ray, const Medium* primary_med
 
             // Add subsurface scattered direct light
             L += SampleDirectLight(bssrdf_sample.wo, bssrdf_sample.pi, nullptr, &Sw, nullptr, wavelength, sampler, beta, r_u);
-            last_scattering_vertex = bssrdf_sample.pi.point;
 
             // Handle subsurface scattering for indirect light
             if (!Sw.Sample_f(&bsdf_sample, bssrdf_sample.wo, sampler.Next1D(), sampler.Next2D()))

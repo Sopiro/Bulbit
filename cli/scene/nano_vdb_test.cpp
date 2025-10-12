@@ -145,7 +145,7 @@ void NanoVDBTest2(RendererInfo* ri)
     Transform to_origin(-center);
     Transform tf(0, 0, 0, Quat(-pi / 2, y_axis), Vec3(1));
 
-    Spectrum sigma_a(.01f);
+    Spectrum sigma_a(0.001f);
     Spectrum sigma_s(1);
     Float sigma_scale = 1;
     Float g = 0.7;

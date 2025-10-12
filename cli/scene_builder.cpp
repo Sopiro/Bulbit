@@ -6,24 +6,41 @@
 #include "bulbit/shapes.h"
 
 #include "scene_builder.h"
+#include "texture_builder.h"
 
 namespace bulbit
 {
 
-static bool g_create_area_light_source = true;
-
-bool GetAreaLightSourceCreationEnabled()
+static const SpectrumTexture* get_emission_texture(Scene& scene, const AreaLightInfo& ali)
 {
-    return g_create_area_light_source;
-}
+    struct eval
+    {
+        const SpectrumTexture* operator()(Float e)
+        {
+            return CreateSpectrumConstantTexture(scene, e);
+        }
+        const SpectrumTexture* operator()(Spectrum e)
+        {
+            return CreateSpectrumConstantTexture(scene, e);
+        }
+        const SpectrumTexture* operator()(const SpectrumTexture* e)
+        {
+            return e;
+        }
 
-void SetAreaLightSourceCreationEnabled(bool enabled)
-{
-    g_create_area_light_source = enabled;
+        Scene& scene;
+    };
+
+    return std::visit(eval{ scene }, ali.emission);
 }
 
 void CreateSphere(
-    Scene& scene, Transform tf, Float radius, const Material* material, const MediumInterface& medium_interface, bool area_light
+    Scene& scene,
+    Transform tf,
+    Float radius,
+    const Material* material,
+    const MediumInterface& medium_interface,
+    std::optional<AreaLightInfo> area_light
 )
 {
     Sphere* sphere = scene.CreateShape<Sphere>(tf, radius);
@@ -31,25 +48,24 @@ void CreateSphere(
 
     if (area_light)
     {
-        scene.CreateLight<DiffuseAreaLight>(primitive, false);
-    }
-    else if (g_create_area_light_source && material && material->Is<AreaLightMaterial>())
-    {
-        const AreaLightMaterial* m = material->Cast<AreaLightMaterial>();
-
-        if (m->IsDirectional())
+        const SpectrumTexture* emission = get_emission_texture(scene, area_light.value());
+        if (area_light->is_directional)
         {
-            scene.CreateLight<DirectionalAreaLight>(primitive, m->IsTwoSided());
+            scene.CreateLight<DirectionalAreaLight>(primitive, emission, area_light->two_sided);
         }
         else
         {
-            scene.CreateLight<DiffuseAreaLight>(primitive, m->IsTwoSided());
+            scene.CreateLight<DiffuseAreaLight>(primitive, emission, area_light->two_sided);
         }
     }
 }
 
 void CreateTriangles(
-    Scene& scene, const Mesh* mesh, const Material* material, const MediumInterface& medium_interface, bool area_light
+    Scene& scene,
+    const Mesh* mesh,
+    const Material* material,
+    const MediumInterface& medium_interface,
+    std::optional<AreaLightInfo> area_light
 )
 {
     for (int32 i = 0; i < mesh->GetTriangleCount(); ++i)
@@ -59,19 +75,14 @@ void CreateTriangles(
 
         if (area_light)
         {
-            scene.CreateLight<DiffuseAreaLight>(primitive, false);
-        }
-        else if (g_create_area_light_source && material && material->Is<AreaLightMaterial>())
-        {
-            const AreaLightMaterial* m = material->Cast<AreaLightMaterial>();
-
-            if (m->IsDirectional())
+            const SpectrumTexture* emission = get_emission_texture(scene, area_light.value());
+            if (area_light->is_directional)
             {
-                scene.CreateLight<DirectionalAreaLight>(primitive, m->IsTwoSided());
+                scene.CreateLight<DirectionalAreaLight>(primitive, emission, area_light->two_sided);
             }
             else
             {
-                scene.CreateLight<DiffuseAreaLight>(primitive, m->IsTwoSided());
+                scene.CreateLight<DiffuseAreaLight>(primitive, emission, area_light->two_sided);
             }
         }
     }
@@ -82,8 +93,8 @@ void CreateRectXY(
     const Transform& tf,
     const Material* mat,
     const MediumInterface& medium_interface,
-    const Point2& tc,
-    bool area_light
+    std::optional<AreaLightInfo> area_light,
+    const Point2& tc
 )
 {
     Point3 p0 = { -0.5, -0.5, 0.0 };
@@ -108,8 +119,8 @@ void CreateRectXZ(
     const Transform& tf,
     const Material* mat,
     const MediumInterface& medium_interface,
-    const Point2& tc,
-    bool area_light
+    std::optional<AreaLightInfo> area_light,
+    const Point2& tc
 )
 {
     Point3 p0 = { -0.5, 0.0, 0.5 };
@@ -134,8 +145,8 @@ void CreateRectYZ(
     const Transform& tf,
     const Material* mat,
     const MediumInterface& medium_interface,
-    const Point2& tc,
-    bool area_light
+    std::optional<AreaLightInfo> area_light,
+    const Point2& tc
 )
 {
     Point3 p0 = { 0.0, -0.5, 0.5 };
@@ -160,8 +171,8 @@ void CreateBox(
     const Transform& tf,
     const Material* mat,
     const MediumInterface& medium_interface,
-    const Point2& tc,
-    bool area_light
+    std::optional<AreaLightInfo> area_light,
+    const Point2& tc
 )
 {
     /*

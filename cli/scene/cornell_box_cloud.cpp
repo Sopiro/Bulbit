@@ -64,7 +64,6 @@ void CornellBoxCloud(RendererInfo* ri)
         auto red = CreateDiffuseMaterial(scene, Spectrum(.65f, .05f, .05f));
         auto green = CreateDiffuseMaterial(scene, Spectrum(.12f, .45f, .15f));
         auto white = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
-        auto light = CreateAreaLightMaterial(scene, Spectrum(15.0f));
 
         // front
         auto tf = Transform{ Vec3(0.5f, 0.5f, -1.0f), identity, Vec3(1.0f) };
@@ -91,7 +90,7 @@ void CornellBoxCloud(RendererInfo* ri)
         CreateRectXY(scene, tf, nullptr, mi_outside);
 
         tf = Transform{ 0.5f, 0.995f, -0.5f, Quat(pi, x_axis), Vec3(0.25f) };
-        CreateRectXZ(scene, tf, light, mi_two_sided);
+        CreateRectXZ(scene, tf, white, mi_two_sided, AreaLightInfo{ .emission = 15.0f });
     }
 
     Float aspect_ratio = 1;

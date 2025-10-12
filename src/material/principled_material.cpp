@@ -19,7 +19,6 @@ PrincipledMaterial::PrincipledMaterial(
     const FloatTexture* sheen,
     const FloatTexture* sheen_roughness,
     const SpectrumTexture* sheen_color,
-    const SpectrumTexture* emissive,
     const SpectrumTexture* normal,
     const FloatTexture* alpha
 
@@ -37,16 +36,9 @@ PrincipledMaterial::PrincipledMaterial(
     , sheen{ sheen }
     , sheen_roughness{ sheen_roughness }
     , sheen_color{ sheen_color }
-    , emissive{ emissive }
     , normal{ normal }
     , alpha{ alpha }
 {
-}
-
-Spectrum PrincipledMaterial::Le(const Intersection& isect, const Vec3& wo) const
-{
-    BulbitNotUsed(wo);
-    return emissive ? emissive->Evaluate(isect.uv) : Spectrum::black;
 }
 
 bool PrincipledMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
@@ -90,11 +82,6 @@ bool PrincipledMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, A
 const FloatTexture* PrincipledMaterial::GetAlphaTexture() const
 {
     return alpha;
-}
-
-const SpectrumTexture* PrincipledMaterial::GetEmissionTexture() const
-{
-    return emissive;
 }
 
 const SpectrumTexture* PrincipledMaterial::GetNormalTexture() const

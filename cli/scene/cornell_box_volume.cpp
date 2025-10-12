@@ -9,8 +9,6 @@ void CornellBoxVolume(RendererInfo* ri)
     auto green = CreateDiffuseMaterial(scene, Spectrum(.12f, .45f, .15f));
     auto blue = CreateDiffuseMaterial(scene, Spectrum(.22f, .23f, .75f));
     auto white = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
-    auto light = CreateAreaLightMaterial(scene, Spectrum(2.0f));
-    // auto light = CreateDiffuseLightMaterial(scene, Spectrum(17.0f, 12.0f, 4.0f));
     auto mirror = CreateMirrorMaterial(scene, Spectrum(0.73f));
     auto mix = CreateMixtureMaterial(scene, red, blue, 0.5f);
 
@@ -91,9 +89,8 @@ void CornellBoxVolume(RendererInfo* ri)
     // Lights
     {
         auto tf = Transform{ 0.5f, 0.995f, -0.5f, Quat(pi, x_axis), Vec3(0.7f) };
-        CreateRectXZ(scene, tf, light, mi_two_sided);
+        CreateRectXZ(scene, tf, white, mi_two_sided, AreaLightInfo{ .emission = 2.0f });
 
-        // CreateSphere(scene, Vec3(0.5f, 0.9f, -0.5f), 0.05f, light);
         // CreatePointLight(scene, Point3(0.5f, 0.9f, -0.5f), Spectrum(0.25f));
         // CreateDirectionalLight(scene,  Normalize(Vec3(1, 1, 1)), Vec3(5.0f));
         // CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(pi, y_axis)));

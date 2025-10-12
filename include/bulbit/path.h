@@ -18,6 +18,7 @@ struct SurfaceVertex
 {
     const Primitive* primitive;
     const Light* area_light;
+    Point2 uv;
     bool front_face;
 
     BSDF bsdf;

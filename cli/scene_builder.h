@@ -3,6 +3,8 @@
 #include "bulbit/medium.h"
 #include "bulbit/transform.h"
 
+#include <variant>
+
 namespace bulbit
 {
 
@@ -10,8 +12,12 @@ class Mesh;
 class Material;
 class Scene;
 
-bool GetAreaLightSourceCreationEnabled();
-void SetAreaLightSourceCreationEnabled(bool enabled);
+struct AreaLightInfo
+{
+    bool is_directional = false;
+    bool two_sided = false;
+    std::variant<Float, Spectrum, const SpectrumTexture*> emission = 0.0f;
+};
 
 void CreateSphere(
     Scene& scene,
@@ -19,14 +25,14 @@ void CreateSphere(
     Float radius,
     const Material* material,
     const MediumInterface& medium_interface = {},
-    bool area_light = false
+    std::optional<AreaLightInfo> area_light = {}
 );
 void CreateTriangles(
     Scene& scene,
     const Mesh* mesh,
     const Material* material,
     const MediumInterface& medium_interface = {},
-    bool area_light = false
+    std::optional<AreaLightInfo> area_light = {}
 );
 
 void CreateRectXY(
@@ -34,32 +40,32 @@ void CreateRectXY(
     const Transform& transform,
     const Material* material,
     const MediumInterface& medium_interface = {},
-    const Point2& tex_coord = Point2(1, 1),
-    bool area_light = false
+    std::optional<AreaLightInfo> area_light = {},
+    const Point2& tex_coord = { 1, 1 }
 );
 void CreateRectXZ(
     Scene& scene,
     const Transform& transform,
     const Material* material,
     const MediumInterface& medium_interface = {},
-    const Point2& tex_coord = Point2(1, 1),
-    bool area_light = false
+    std::optional<AreaLightInfo> area_light = {},
+    const Point2& tex_coord = { 1, 1 }
 );
 void CreateRectYZ(
     Scene& scene,
     const Transform& transform,
     const Material* material,
     const MediumInterface& medium_interface = {},
-    const Point2& tex_coord = Point2(1, 1),
-    bool area_light = false
+    std::optional<AreaLightInfo> area_light = {},
+    const Point2& tex_coord = { 1, 1 }
 );
 void CreateBox(
     Scene& scene,
     const Transform& transform,
     const Material* material,
     const MediumInterface& medium_interface = {},
-    const Point2& tex_coord = Point2(1, 1),
-    bool area_light = false
+    std::optional<AreaLightInfo> area_light = {},
+    const Point2& tex_coord = { 1, 1 }
 );
 
 } // namespace bulbit

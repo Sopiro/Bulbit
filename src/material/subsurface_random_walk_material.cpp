@@ -27,13 +27,6 @@ SubsurfaceRandomWalkMaterial::SubsurfaceRandomWalkMaterial(
 {
 }
 
-Spectrum SubsurfaceRandomWalkMaterial::Le(const Intersection& isect, const Vec3& wo) const
-{
-    BulbitNotUsed(isect);
-    BulbitNotUsed(wo);
-    return Spectrum::black;
-}
-
 bool SubsurfaceRandomWalkMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
 {
     Float alpha_x = TrowbridgeReitzDistribution::RoughnessToAlpha(u_roughness->Evaluate(isect.uv));
@@ -59,11 +52,6 @@ bool SubsurfaceRandomWalkMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection
 }
 
 const FloatTexture* SubsurfaceRandomWalkMaterial::GetAlphaTexture() const
-{
-    return nullptr;
-}
-
-const SpectrumTexture* SubsurfaceRandomWalkMaterial::GetEmissionTexture() const
 {
     return nullptr;
 }

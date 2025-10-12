@@ -16,6 +16,14 @@ void UniformInfiniteLight::Preprocess(const AABB& world_bounds)
     world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
 }
 
+Spectrum UniformInfiniteLight::Le(const Intersection& isect, const Vec3& wo) const
+{
+    BulbitAssert(false);
+    BulbitNotUsed(isect);
+    BulbitNotUsed(wo);
+    return Spectrum::black;
+}
+
 Spectrum UniformInfiniteLight::Le(const Ray& ray) const
 {
     BulbitNotUsed(ray);

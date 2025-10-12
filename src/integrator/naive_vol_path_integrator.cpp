@@ -156,9 +156,12 @@ Spectrum NaiveVolPathIntegrator::Li(const Ray& primary_ray, const Medium* primar
         }
 
         // Add surface emission
-        if (Spectrum Le = isect.Le(wo); !Le.IsBlack())
+        if (const Light* area_light = GetAreaLight(isect); area_light)
         {
-            L += beta * Le / r_u.Average();
+            if (Spectrum Le = area_light->Le(isect, wo); !Le.IsBlack())
+            {
+                L += beta * Le / r_u.Average();
+            }
         }
 
         if (bounce++ >= max_bounces)

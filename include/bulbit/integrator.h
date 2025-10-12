@@ -69,6 +69,19 @@ public:
         return light_sampler.get();
     }
 
+    const Light* GetAreaLight(const Intersection& isect) const
+    {
+        auto iter = area_lights.find(isect.primitive);
+        if (iter == area_lights.end())
+        {
+            return nullptr;
+        }
+        else
+        {
+            return iter->second;
+        }
+    }
+
 protected:
     Integrator(const Intersectable* accel, std::vector<Light*> lights, std::unique_ptr<LightSampler> light_sampler);
 

@@ -178,27 +178,28 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             Vec3 wo = Normalize(-ray.d);
 
-                            if (Spectrum Le = isect.Le(wo); !Le.IsBlack())
+                            if (const Light* area_light = GetAreaLight(isect); area_light)
                             {
-                                Spectrum L(0);
-                                bool has_area_light = area_lights.contains(isect.primitive);
-                                if (bounce == 0 || specular_bounce || !has_area_light)
+                                if (Spectrum Le = area_light->Le(isect, wo); !Le.IsBlack())
                                 {
-                                    L += beta * Le;
+                                    Spectrum L(0);
+
+                                    if (bounce == 0 || specular_bounce)
+                                    {
+                                        L += beta * Le;
+                                    }
+                                    else
+                                    {
+                                        // Evaluate BSDF sample with MIS for area light
+                                        Float light_pdf =
+                                            isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
+                                        Float mis_weight = PowerHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
+
+                                        L += beta * mis_weight * Le;
+                                    }
+
+                                    vp.Ld += L;
                                 }
-                                else if (has_area_light)
-                                {
-                                    // Evaluate BSDF sample with MIS for area light
-                                    const Light* area_light = area_lights.at(isect.primitive);
-
-                                    Float light_pdf =
-                                        isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
-                                    Float mis_weight = PowerHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
-
-                                    L += beta * mis_weight * Le;
-                                }
-
-                                vp.Ld += L;
                             }
 
                             if (bounce++ >= max_bounces || found_visible_point)

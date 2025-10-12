@@ -217,11 +217,14 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
 
         Vec3 wo = Normalize(-ray.d);
 
-        if (Spectrum Le = isect.Le(wo); !Le.IsBlack())
+        if (const Light* area_light = GetAreaLight(isect); area_light)
         {
-            if (bounce == 0 || was_specular_bounce)
+            if (Spectrum Le = area_light->Le(isect, wo); !Le.IsBlack())
             {
-                L += beta * isect.Le(-ray.d);
+                if (bounce == 0 || was_specular_bounce)
+                {
+                    L += beta * Le;
+                }
             }
         }
 

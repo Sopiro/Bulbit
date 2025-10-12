@@ -28,6 +28,14 @@ void SpotLight::Preprocess(const AABB& world_bounds)
     BulbitNotUsed(world_bounds);
 }
 
+Spectrum SpotLight::Le(const Intersection& isect, const Vec3& wo) const
+{
+    BulbitAssert(false);
+    BulbitNotUsed(isect);
+    BulbitNotUsed(wo);
+    return Spectrum::black;
+}
+
 Spectrum SpotLight::Le(const Ray& ray) const
 {
     BulbitAssert(false);

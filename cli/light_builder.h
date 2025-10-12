@@ -50,6 +50,34 @@ DirectionalLight* CreateDirectionalLight(
     Float intensity
 );
 
+DiffuseAreaLight* CreateDiffuseAreaLight(
+    Scene& scene,
+    const Primitive* primitive,
+    const Spectrum& emission,
+    bool two_sided
+);
+
+DiffuseAreaLight* CreateDiffuseAreaLight(
+    Scene& scene,
+    const Primitive* primitive,
+    Float emission,
+    bool two_sided
+);
+
+DirectionalAreaLight* CreateDirectionalAreaLight(
+    Scene& scene,
+    const Primitive* primitive,
+    const Spectrum& emission,
+    bool two_sided
+);
+
+DirectionalAreaLight* CreateDirectionalAreaLight(
+    Scene& scene,
+    const Primitive* primitive,
+    Float emission,
+    bool two_sided
+);
+
 UniformInfiniteLight* CreateUniformInfiniteLight(
     Scene& scene,
     const Spectrum& l,

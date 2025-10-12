@@ -18,13 +18,6 @@ DiffuseMaterial::DiffuseMaterial(
 {
 }
 
-Spectrum DiffuseMaterial::Le(const Intersection& isect, const Vec3& wo) const
-{
-    BulbitNotUsed(isect);
-    BulbitNotUsed(wo);
-    return Spectrum::black;
-}
-
 bool DiffuseMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
 {
     Float r = roughness ? roughness->Evaluate(isect.uv) : 0;
@@ -53,11 +46,6 @@ bool DiffuseMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allo
 const FloatTexture* DiffuseMaterial::GetAlphaTexture() const
 {
     return alpha;
-}
-
-const SpectrumTexture* DiffuseMaterial::GetEmissionTexture() const
-{
-    return nullptr;
 }
 
 const SpectrumTexture* DiffuseMaterial::GetNormalTexture() const

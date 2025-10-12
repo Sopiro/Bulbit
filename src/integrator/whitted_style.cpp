@@ -35,8 +35,11 @@ Spectrum WhittedStyle::Li(const Ray& ray, Sampler& sampler, int32 depth) const
 
     Vec3 wo = Normalize(-ray.d);
 
-    // Evaluate emitted light
-    L += isect.Le(wo);
+    // Evaluate surface emission
+    if (const Light* area_light = GetAreaLight(isect); area_light)
+    {
+        L += area_light->Le(isect, wo);
+    }
 
     int8 mem[max_bxdf_size];
     BufferResource res(mem, sizeof(mem));

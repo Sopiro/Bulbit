@@ -41,6 +41,14 @@ void ImageInfiniteLight::Preprocess(const AABB& world_bounds)
     world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
 }
 
+Spectrum ImageInfiniteLight::Le(const Intersection& isect, const Vec3& wo) const
+{
+    BulbitAssert(false);
+    BulbitNotUsed(isect);
+    BulbitNotUsed(wo);
+    return Spectrum::black;
+}
+
 Spectrum ImageInfiniteLight::Le(const Ray& ray) const
 {
     Vec3 w = MulT(transform, Normalize(ray.d));

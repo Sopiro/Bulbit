@@ -36,13 +36,6 @@ LayeredMaterial::LayeredMaterial(
     BulbitAssert(bottom != nullptr);
 }
 
-Spectrum LayeredMaterial::Le(const Intersection& isect, const Vec3& wo) const
-{
-    BulbitNotUsed(isect);
-    BulbitNotUsed(wo);
-    return Spectrum::black;
-}
-
 bool LayeredMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
 {
     BSDF top_bsdf, bottom_bsdf;
@@ -72,11 +65,6 @@ bool LayeredMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allo
 const FloatTexture* LayeredMaterial::GetAlphaTexture() const
 {
     return alpha;
-}
-
-const SpectrumTexture* LayeredMaterial::GetEmissionTexture() const
-{
-    return nullptr;
 }
 
 const SpectrumTexture* LayeredMaterial::GetNormalTexture() const

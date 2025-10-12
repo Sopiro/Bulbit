@@ -61,9 +61,9 @@ void SSSTest(RendererInfo* ri)
     // CreateUniformInfiniteLight(scene, Spectrum(1));
 
     {
-        auto light = CreateAreaLightMaterial(scene, Spectrum(5.0f));
+        auto white = CreateDiffuseMaterial(scene, 1.0f);
         auto tf = Transform{ 0, 2.0f, 0, Quat(pi, x_axis), Vec3(1.5f) };
-        CreateRectXZ(scene, tf, light);
+        CreateRectXZ(scene, tf, white, {}, AreaLightInfo{ .emission = 5.0f });
     }
 
     {
@@ -150,9 +150,9 @@ void SSSTest2(RendererInfo* ri)
     }
 
     {
+        auto white = CreateDiffuseMaterial(scene, 1.0f);
         auto tf = Transform{ 0, 3.0f, 0, Quat(pi, x_axis), Vec3(5.0f, 1, 1) };
-        auto light = CreateAreaLightMaterial(scene, Spectrum(5.0f));
-        CreateRectXZ(scene, tf, light);
+        CreateRectXZ(scene, tf, white, {}, AreaLightInfo{ .emission = 5.0f });
     }
 
     Float aspect_ratio = 16.f / 9.f;

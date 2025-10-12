@@ -33,7 +33,10 @@ static bool HasExtension(const tinygltf::Material& material, const char* extensi
 }
 
 static void LoadMaterials(
-    Scene& scene, tinygltf::Model& model, const std::string& base_path, std::vector<const Material*>& materials
+    Scene& scene,
+    tinygltf::Model& model,
+    const std::string& base_path,
+    std::vector<std::pair<const Material*, const SpectrumTexture*>> materials
 )
 {
     for (int32 i = 0; i < int32(model.materials.size()); i++)
@@ -391,18 +394,14 @@ static void LoadMaterials(
             }
         }
 
-#if 0
-        materials.push_back(scene.CreateMaterial<MetallicRoughnessMaterial>(
-            basecolor_texture, metallic_texture, roughness_texture, roughness_texture, emission_texture, normal_texture,
-            alpha_texture
-        ));
-#else
-        materials.push_back(scene.CreateMaterial<PrincipledMaterial>(
-            basecolor_texture, metallic_texture, roughness_texture, anisotropy_texture, ior_factor, transmission_texture,
-            clearcoat_texture, clearcoat_roughness_texture, clearcoat_color_texture, sheen_texture, sheen_roughness_texture,
-            sheen_color_texture, emission_texture, normal_texture, alpha_texture
-        ));
-#endif
+        materials.push_back(
+            { scene.CreateMaterial<PrincipledMaterial>(
+                  basecolor_texture, metallic_texture, roughness_texture, anisotropy_texture, ior_factor, transmission_texture,
+                  clearcoat_texture, clearcoat_roughness_texture, clearcoat_color_texture, sheen_texture, sheen_roughness_texture,
+                  sheen_color_texture, normal_texture, alpha_texture
+              ),
+              emission_texture }
+        );
     }
 }
 
@@ -411,7 +410,7 @@ static bool LoadMesh(
     tinygltf::Model& model,
     tinygltf::Mesh& mesh,
     const Mat4& transform,
-    const std::vector<const Material*> materials,
+    std::vector<std::pair<const Material*, const SpectrumTexture*>> materials,
     const ModelLoaderOptions& options
 )
 {
@@ -594,9 +593,18 @@ static bool LoadMesh(
             std::move(positions), std::move(normals), std::move(tangents), std::move(texcoords), std::move(indices), transform
         );
 
+        const Material* material = materials[primitive.material].first;
+        const SpectrumTexture* emission = materials[primitive.material].second;
+
+        std::optional<AreaLightInfo> ali = {};
+        if (emission)
+        {
+            ali.emplace();
+            ali->emission = emission;
+        }
+
         CreateTriangles(
-            scene, m, options.use_fallback_material ? options.fallback_material : materials[primitive.material],
-            options.fallback_medium_interface
+            scene, m, options.use_fallback_material ? options.fallback_material : material, options.fallback_medium_interface, ali
         );
     }
 
@@ -608,7 +616,7 @@ static void ProcessNode(
     tinygltf::Model& model,
     tinygltf::Node& node,
     const Mat4& parent_transform,
-    const std::vector<const Material*> materials,
+    std::vector<std::pair<const Material*, const SpectrumTexture*>> materials,
     const ModelLoaderOptions& options
 )
 {
@@ -646,7 +654,7 @@ static void LoadScene(
     Scene& scene,
     tinygltf::Model& model,
     const Transform& transform,
-    const std::vector<const Material*> materials,
+    std::vector<std::pair<const Material*, const SpectrumTexture*>> materials,
     const ModelLoaderOptions& options
 )
 {
@@ -705,7 +713,7 @@ void LoadGLTF(Scene& scene, std::filesystem::path filename, const Transform& tra
         return;
     }
 
-    std::vector<const Material*> materials;
+    std::vector<std::pair<const Material*, const SpectrumTexture*>> materials;
     std::string base_path = filename.remove_filename().string();
     if (!options.use_fallback_material)
     {
@@ -714,7 +722,9 @@ void LoadGLTF(Scene& scene, std::filesystem::path filename, const Transform& tra
     LoadScene(scene, model, transform, materials, options);
 }
 
-const Material* CreateOBJMaterial(Scene& scene, const tinyobj::material_t& mat, const std::string& root)
+std::pair<const Material*, const SpectrumTexture*> CreateOBJMaterial(
+    Scene& scene, const tinyobj::material_t& mat, const std::string& root
+)
 {
     Spectrum basecolor_factor = { Float(mat.diffuse[0]), Float(mat.diffuse[1]), Float(mat.diffuse[2]) };
     Float metallic_factor = 0;
@@ -756,9 +766,10 @@ const Material* CreateOBJMaterial(Scene& scene, const tinyobj::material_t& mat, 
         emission_texture = CreateSpectrumConstantTexture(scene, emission_factor);
     }
 
-    return scene.CreateMaterial<MetallicRoughnessMaterial>(
-        basecolor_texture, metallic_texture, roughness_texture, roughness_texture, emission_texture, normal_texture, alpha_texture
-    );
+    return { scene.CreateMaterial<MetallicRoughnessMaterial>(
+                 basecolor_texture, metallic_texture, roughness_texture, roughness_texture, normal_texture, alpha_texture
+             ),
+             emission_texture };
 }
 
 // Structure to accumulate mesh data grouped by material.
@@ -809,7 +820,7 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
     const auto& obj_materials = reader.GetMaterials();
 
     // Convert OBJ materials to engine Materials. The index corresponds to the material ID.
-    std::vector<const Material*> materials;
+    std::vector<std::pair<const Material*, const SpectrumTexture*>> materials;
     if (!options.use_fallback_material)
     {
         materials.resize(obj_materials.size());
@@ -973,7 +984,9 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
                 std::move(group.indices), transform
             );
 
-            const Material* material;
+            const Material* material = nullptr;
+            const SpectrumTexture* emission = nullptr;
+
             if (material_id < 0 || size_t(material_id) >= materials.size())
             {
                 if (options.fallback_material)
@@ -992,11 +1005,20 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
             }
             else
             {
-                material = materials[material_id];
+                material = materials[material_id].first;
+                emission = materials[material_id].second;
+            }
+
+            std::optional<AreaLightInfo> ali = {};
+            if (emission)
+            {
+                ali.emplace();
+                ali->emission = emission;
             }
 
             CreateTriangles(
-                scene, m, options.use_fallback_material ? options.fallback_material : material, options.fallback_medium_interface
+                scene, m, options.use_fallback_material ? options.fallback_material : material, options.fallback_medium_interface,
+                ali
             );
         }
     }

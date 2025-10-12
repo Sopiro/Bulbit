@@ -98,7 +98,6 @@ MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
     const Spectrum& basecolor,
     Float metallic,
     Float roughness,
-    const Spectrum& emission = Spectrum::black,
     const SpectrumTexture* normalmap = nullptr,
     const FloatTexture* alpha = nullptr
 );
@@ -108,7 +107,6 @@ MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
     Float metallic,
     Float u_roughness,
     Float v_roughness,
-    const Spectrum& emission = Spectrum::black,
     const SpectrumTexture* normalmap = nullptr,
     const FloatTexture* alpha = nullptr
 );
@@ -127,7 +125,6 @@ PrincipledMaterial* CreatePrincipledMaterial(
     Float sheen = 0,
     Float sheen_roughness = 0,
     const Spectrum& sheen_color = Spectrum(1),
-    const Spectrum& emission = Spectrum::black,
     const SpectrumTexture* normalmap = nullptr,
     const FloatTexture* alpha = nullptr
 );
@@ -180,21 +177,6 @@ MirrorMaterial* CreateMirrorMaterial(
     Scene& scene,
     const Spectrum& reflectance,
     const SpectrumTexture* normalmap = nullptr,
-    Float alpha = 1
-);
-
-AreaLightMaterial* CreateAreaLightMaterial(
-    Scene& scene,
-    Float emission,
-    bool two_sided = false,
-    bool directional_light = false,
-    Float alpha = 1
-);
-AreaLightMaterial* CreateAreaLightMaterial(
-    Scene& scene,
-    const Spectrum& emission,
-    bool two_sided = false,
-    bool directional_light = false,
     Float alpha = 1
 );
 

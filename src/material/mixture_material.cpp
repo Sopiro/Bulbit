@@ -20,14 +20,6 @@ MixtureMaterial::MixtureMaterial(
     materials[1] = material2;
 }
 
-Spectrum MixtureMaterial::Le(const Intersection& isect, const Vec3& wo) const
-{
-    BulbitAssert(false);
-    BulbitNotUsed(isect);
-    BulbitNotUsed(wo);
-    return Spectrum::black;
-}
-
 bool MixtureMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
 {
     BulbitAssert(false);
@@ -71,11 +63,6 @@ bool MixtureMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allo
 const FloatTexture* MixtureMaterial::GetAlphaTexture() const
 {
     return alpha;
-}
-
-const SpectrumTexture* MixtureMaterial::GetEmissionTexture() const
-{
-    return nullptr;
 }
 
 const SpectrumTexture* MixtureMaterial::GetNormalTexture() const

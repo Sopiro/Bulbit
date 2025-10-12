@@ -7,9 +7,10 @@
 namespace bulbit
 {
 
-DiffuseAreaLight::DiffuseAreaLight(const Primitive* primitive, bool two_sided)
+DiffuseAreaLight::DiffuseAreaLight(const Primitive* primitive, const SpectrumTexture* emission, bool two_sided)
     : Light(TypeIndexOf<DiffuseAreaLight>())
     , primitive{ primitive }
+    , emission{ emission }
     , two_sided{ two_sided }
 {
 }
@@ -19,17 +20,24 @@ void DiffuseAreaLight::Preprocess(const AABB& world_bounds)
     BulbitNotUsed(world_bounds);
 }
 
-Spectrum DiffuseAreaLight::Le(const Ray& ray) const
+Spectrum DiffuseAreaLight::Le(const Intersection& isect, const Vec3& wo) const
 {
-    BulbitAssert(false);
-
-    Intersection isect;
-    if (!primitive->Intersect(&isect, ray, epsilon, infinity))
+    BulbitNotUsed(wo);
+    if (isect.front_face || two_sided)
+    {
+        return emission->Evaluate(isect.uv);
+    }
+    else
     {
         return Spectrum::black;
     }
+}
 
-    return primitive->GetMaterial()->Le(isect, -ray.d);
+Spectrum DiffuseAreaLight::Le(const Ray& ray) const
+{
+    BulbitAssert(false);
+    BulbitNotUsed(ray);
+    return Spectrum::black;
 }
 
 bool DiffuseAreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
@@ -52,10 +60,8 @@ bool DiffuseAreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref,
 
     Intersection isect;
     isect.front_face = front_face;
-    isect.primitive = primitive;
-    isect.normal = normal;
     isect.uv = shape_sample.uv;
-    sample->Li = isect.Le(-wi);
+    sample->Li = Le(isect, -wi);
 
     return true;
 }
@@ -109,9 +115,9 @@ bool DiffuseAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) co
     w = f.FromLocal(w);
 
     Intersection isect;
-    isect.point = shape_sample.point;
+    isect.uv = shape_sample.uv;
     isect.front_face = front_face;
-    sample->Le = primitive->GetMaterial()->Le(isect, -w);
+    sample->Le = Le(isect, -w);
 
     MediumInterface medium_interface = primitive->GetMediumInterface();
     sample->medium = front_face ? medium_interface.outside : medium_interface.inside;
@@ -137,9 +143,7 @@ void DiffuseAreaLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& is
 
 Spectrum DiffuseAreaLight::Phi() const
 {
-    const SpectrumTexture* emission = primitive->GetMaterial()->GetEmissionTexture();
     const Shape* shape = primitive->GetShape();
-
     return emission->Average() * shape->Area() * pi * (two_sided ? 2 : 1);
 }
 

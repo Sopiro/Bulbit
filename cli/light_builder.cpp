@@ -50,6 +50,28 @@ DirectionalLight* CreateDirectionalLight(Scene& scene, const Vec3& direction, Fl
     return scene.CreateLight<DirectionalLight>(direction, Spectrum{ intensity });
 }
 
+DiffuseAreaLight* CreateDiffuseAreaLight(Scene& scene, const Primitive* primitive, const Spectrum& emission, bool two_sided)
+{
+    return scene.CreateLight<DiffuseAreaLight>(primitive, CreateSpectrumConstantTexture(scene, emission), two_sided);
+}
+
+DiffuseAreaLight* CreateDiffuseAreaLight(Scene& scene, const Primitive* primitive, Float emission, bool two_sided)
+{
+    return scene.CreateLight<DiffuseAreaLight>(primitive, CreateSpectrumConstantTexture(scene, emission), two_sided);
+}
+
+DirectionalAreaLight* CreateDirectionalAreaLight(
+    Scene& scene, const Primitive* primitive, const Spectrum& emission, bool two_sided
+)
+{
+    return scene.CreateLight<DirectionalAreaLight>(primitive, CreateSpectrumConstantTexture(scene, emission), two_sided);
+}
+
+DirectionalAreaLight* CreateDirectionalAreaLight(Scene& scene, const Primitive* primitive, Float emission, bool two_sided)
+{
+    return scene.CreateLight<DirectionalAreaLight>(primitive, CreateSpectrumConstantTexture(scene, emission), two_sided);
+}
+
 UniformInfiniteLight* CreateUniformInfiniteLight(Scene& scene, const Spectrum& l, Float scale)
 {
     return scene.CreateLight<UniformInfiniteLight>(l, scale);

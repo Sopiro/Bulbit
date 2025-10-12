@@ -38,7 +38,10 @@ Spectrum RandomWalkIntegrator::Li(const Ray& primary_ray, const Medium* primary_
         Vec3 wo = Normalize(-ray.d);
 
         // Add surface emission
-        L += beta * isect.Le(wo);
+        if (const Light* area_light = GetAreaLight(isect); area_light)
+        {
+            L += beta * area_light->Le(isect, wo);
+        }
 
         if (bounce++ >= max_bounces)
         {
