@@ -50,15 +50,6 @@ class Light : public DynamicDispatcher<Lights>
 public:
     using Types = Lights;
 
-protected:
-    Light(int32 type_index)
-        : DynamicDispatcher(type_index)
-    {
-    }
-
-public:
-    ~Light();
-
     void Preprocess(const AABB& world_bounds);
 
     Spectrum Le(const Intersection& isect, const Vec3& wo) const;
@@ -75,6 +66,14 @@ public:
 
     bool IsDeltaLight() const;
     bool IsInfiniteLight() const;
+
+    ~Light();
+
+protected:
+    Light(int32 type_index)
+        : DynamicDispatcher(type_index)
+    {
+    }
 };
 
 } // namespace bulbit

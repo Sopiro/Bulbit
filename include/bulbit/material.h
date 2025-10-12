@@ -29,18 +29,17 @@ class Material : public DynamicDispatcher<Materials>
 public:
     using Types = Materials;
 
-protected:
-    Material(int32 type_index)
-        : DynamicDispatcher(type_index)
-    {
-    }
-
-public:
     bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
     bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
     const SpectrumTexture* GetNormalTexture() const;
+
+protected:
+    Material(int32 type_index)
+        : DynamicDispatcher(type_index)
+    {
+    }
 };
 
 } // namespace bulbit

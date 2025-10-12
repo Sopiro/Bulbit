@@ -53,16 +53,17 @@ class Medium : public DynamicDispatcher<Media>
 public:
     using Types = Media;
 
+    bool IsEmissive() const;
+    MediumSample SamplePoint(Point3 p) const;
+    RayMajorantIterator* SampleRay(Ray ray, Float t_max, Allocator& alloc) const;
+
+    ~Medium();
+
+protected:
     Medium(int32 index)
         : DynamicDispatcher(index)
     {
     }
-
-    ~Medium();
-
-    bool IsEmissive() const;
-    MediumSample SamplePoint(Point3 p) const;
-    RayMajorantIterator* SampleRay(Ray ray, Float t_max, Allocator& alloc) const;
 };
 
 struct MediumInterface
