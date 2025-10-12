@@ -95,8 +95,15 @@ Integrator::Integrator(const Intersectable* accel, std::vector<Light*> lights, s
         case Light::TypeIndexOf<DiffuseAreaLight>():
         {
             DiffuseAreaLight* area_light = light->Cast<DiffuseAreaLight>();
-            area_lights.emplace(area_light->GetPrimitive(), area_light);
+            area_lights.emplace(area_light->primitive, area_light);
         }
+        break;
+        case Light::TypeIndexOf<SpotAreaLight>():
+        {
+            SpotAreaLight* area_light = light->Cast<SpotAreaLight>();
+            area_lights.emplace(area_light->primitive, area_light);
+        }
+        // We don't need to add directional area light because it's delta light
         break;
         default:
             break;

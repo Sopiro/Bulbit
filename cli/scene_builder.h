@@ -15,6 +15,11 @@ class Scene;
 struct AreaLightInfo
 {
     bool is_directional = false;
+
+    bool is_spot = false;
+    Float angle_max = 40;           // degrees
+    Float angle_falloff_start = 30; // degrees
+
     bool two_sided = false;
     std::variant<Float, Spectrum, const SpectrumTexture*> emission = 0.0f;
 };

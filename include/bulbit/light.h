@@ -42,6 +42,7 @@ using Lights = TypePack<
     class DirectionalLight,
     class DiffuseAreaLight,
     class DirectionalAreaLight,
+    class SpotAreaLight,
     class UniformInfiniteLight,
     class ImageInfiniteLight>;
 

@@ -125,13 +125,9 @@ public:
 
     Spectrum Phi() const;
 
-    const Primitive* GetPrimitive() const
-    {
-        return primitive;
-    }
+    const Primitive* primitive;
 
 private:
-    const Primitive* primitive;
     const SpectrumTexture* emission;
     bool two_sided;
 };
@@ -158,14 +154,49 @@ public:
 
     Spectrum Phi() const;
 
-    const Primitive* GetPrimitive() const
-    {
-        return primitive;
-    }
+    const Primitive* primitive;
 
 private:
-    const Primitive* primitive;
     const SpectrumTexture* emission;
+    bool two_sided;
+};
+
+class SpotAreaLight : public Light
+{
+    // Spot area light emits light from a surface primitive within a cone.
+    // Each point on the primitive behaves like a spot light with
+    // angular falloff defined by angle_max and angle_falloff_start.
+public:
+    SpotAreaLight(
+        const Primitive* primitive,
+        const SpectrumTexture* emission,
+        Float angle_max,           // degrees
+        Float angle_falloff_start, // degrees
+        bool two_sided = false
+    );
+
+    void Destroy() {}
+
+    void Preprocess(const AABB& world_bounds);
+
+    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
+    Spectrum Le(const Ray& ray) const;
+
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
+    Float EvaluatePDF_Li(const Ray& ray) const;
+
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
+    void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
+    void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
+
+    Spectrum Phi() const;
+
+    const Primitive* primitive;
+
+private:
+    const SpectrumTexture* emission;
+
+    Float cos_theta_min, cos_theta_max;
     bool two_sided;
 };
 
