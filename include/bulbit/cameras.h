@@ -18,12 +18,18 @@ public:
 
     virtual void SampleRay(PrimaryRay* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const override;
 
+    virtual Spectrum We(const Ray& ray, Point2* p_raster = nullptr) const override;
+    virtual void PDF_We(Float* pdf_p, Float* pdf_w, const Ray& ray) const override;
+    virtual bool SampleWi(CameraSampleWi* sample, const Intersection& ref, Point2 u) const override;
+
 private:
     Point3 origin;
     Point3 lower_left;
-    Vec3 horizontal, vertical;
+    Vec3 horizontal, vertical; // world space vectors
 
-    // Local coordinate frame
+    Float A_viewport;
+
+    // Left-handed local coordinate frame
     Vec3 u, v, w;
 };
 
@@ -49,14 +55,14 @@ public:
 private:
     Point3 origin;
     Point3 lower_left;
-    Vec3 horizontal, vertical;
+    Vec3 horizontal, vertical; // world space vectors
 
     Float lens_radius;
     Float focus_distance;
 
     Float A_viewport, A_lens;
 
-    // Local coordinate frame
+    // Left-handed local coordinate frame
     Vec3 u, v, w;
 };
 

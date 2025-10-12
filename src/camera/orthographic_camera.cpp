@@ -18,6 +18,9 @@ OrthographicCamera::OrthographicCamera(
     horizontal = viewport_size.x * u;
     vertical = viewport_size.y * v;
     lower_left = origin - horizontal / 2 - vertical / 2;
+
+    // viewport(image plane) area in world units
+    A_viewport = Length(horizontal) * Length(vertical);
 }
 
 void OrthographicCamera::SampleRay(PrimaryRay* ray, const Point2i& pixel, Point2 u0, Point2 u1) const
@@ -30,6 +33,75 @@ void OrthographicCamera::SampleRay(PrimaryRay* ray, const Point2i& pixel, Point2
 
     ray->ray = Ray(origin, w);
     ray->weight = 1;
+}
+
+Spectrum OrthographicCamera::We(const Ray& ray, Point2* p_raster) const
+{
+    BulbitNotUsed(ray);
+    BulbitNotUsed(p_raster);
+    return Spectrum::black;
+}
+
+void OrthographicCamera::PDF_We(Float* pdf_p, Float* pdf_w, const Ray& ray) const
+{
+    *pdf_w = 0;
+    // *pdf_p = 0;
+
+    Float cos_theta = Dot(w, ray.d);
+    if (cos_theta <= 0)
+    {
+        *pdf_p = 0;
+        return;
+    }
+
+    Float t = Dot(w, origin - ray.o) / cos_theta;
+
+    Point3 p_image = ray.At(t);
+    Vec3 ll2p = p_image - lower_left;
+    Float w2 = Length2(horizontal);
+    Float h2 = Length2(vertical);
+
+    Float px = resolution.x * Dot(horizontal, ll2p) / w2;
+    Float py = resolution.y * Dot(vertical, ll2p) / h2;
+
+    if (px < 0 || px >= resolution.x || py < 0 || py >= resolution.y)
+    {
+        *pdf_p = 0;
+    }
+    else
+    {
+        *pdf_p = 1 / A_viewport;
+    }
+}
+
+bool OrthographicCamera::SampleWi(CameraSampleWi* sample, const Intersection& ref, Point2 u) const
+{
+    BulbitNotUsed(u); // deterministic projection, it importance samples direc delta function
+
+    Vec3 d = ref.point - lower_left;
+    if (Dot(d, w) <= 0)
+    {
+        return false;
+    }
+
+    Point3 p = ref.point - Dot(w, ref.point - lower_left) * w;
+
+    Vec3 ll2p = p - lower_left;
+    Float w2 = Length2(horizontal);
+    Float h2 = Length2(vertical);
+
+    Float px = resolution.x * Dot(horizontal, ll2p) / w2;
+    Float py = resolution.y * Dot(vertical, ll2p) / h2;
+
+    if (px < 0 || px >= resolution.x || py < 0 || py >= resolution.y)
+    {
+        return false;
+    }
+
+    Spectrum Wi = Spectrum(1 / A_viewport);
+
+    *sample = CameraSampleWi(Wi, -w, 1, Point2(px, py), p, w, medium);
+    return true;
 }
 
 } // namespace bulbit
