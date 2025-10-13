@@ -314,8 +314,7 @@ void CornellBoxFog3(RendererInfo* ri)
 
     ri->integrator_info.type = IntegratorType::vol_bdpt;
     ri->integrator_info.max_bounces = 16;
-    // ri->camera_info.type = CameraType::perspective;
-    ri->camera_info.type = CameraType::orthographic;
+    ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
     ri->camera_info.fov = 28;
     ri->camera_info.aperture_radius = 0;

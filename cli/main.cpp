@@ -21,6 +21,7 @@ int main(int argc, char* argv[])
         std::cout << "  -o <output_file>          Override output file name  (default: value from scene or auto-generated)\n";
         std::cout << "  -s <samples-per-pixel>    Override number of samples per pixel  (default: value from scene)\n";
         std::cout << "  -b <max_bounces>          Override number of maximum bounces  (default: value from scene)\n";
+        std::cout << "  -p <num_photons>          Override number of photons  (default: value from scene)\n";
         std::cout << "  -i <integrator>           Override integrator  (default: value from scene)\n";
         std::cout << "  -r <image_scale>          Scale output image  (default: 1)\n";
         std::cout << "  --list-integrators        Show list of available integrators\n";
@@ -40,6 +41,7 @@ int main(int argc, char* argv[])
     std::string output_file = "";
     int32 spp = 0;
     int32 max_bounces = -1;
+    int32 num_photons = -1;
     int32 integrator = -1;
     float scale = 1;
 
@@ -64,6 +66,10 @@ int main(int argc, char* argv[])
         else if (arg == "-b" && i + 1 < argc)
         {
             max_bounces = std::stoi(argv[++i]);
+        }
+        else if (arg == "-p" && i + 1 < argc)
+        {
+            num_photons = std::stoi(argv[++i]);
         }
         else if (arg == "-i" && i + 1 < argc)
         {
@@ -127,6 +133,7 @@ int main(int argc, char* argv[])
 
         if (spp > 0) ri.camera_info.sampler_info.spp = spp;
         if (max_bounces >= 0) ri.integrator_info.max_bounces = max_bounces;
+        if (num_photons >= 0) ri.integrator_info.n_photons = num_photons;
         if (integrator >= 0 && integrator < integrator_list.size()) ri.integrator_info.type = IntegratorType(integrator);
         ri.camera_info.film_info.resolution *= scale;
 
