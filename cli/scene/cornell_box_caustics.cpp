@@ -104,7 +104,7 @@ void CornellBoxCaustics(RendererInfo* ri)
 
     ri->integrator_info.type = IntegratorType::sppm;
     ri->integrator_info.n_photons = 100000;
-    ri->integrator_info.initial_radius = -1;
+    ri->integrator_info.initial_radius_surface = -1;
     ri->integrator_info.max_bounces = 64;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);

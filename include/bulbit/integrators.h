@@ -262,7 +262,8 @@ public:
         const Sampler* sampler,
         int32 max_bounces,
         int32 n_photons,
-        Float gather_radius = -1
+        Float gather_radius = -1,
+        bool sample_direct_light = true
     );
 
     virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
@@ -281,6 +282,7 @@ private:
 
     int32 n_photons;
     Float gather_radius;
+    bool sample_dl;
 
     std::vector<Photon> photons;
     HashGrid photon_map;
@@ -295,8 +297,9 @@ public:
         const Sampler* sampler,
         int32 max_bounces,
         int32 n_photons,
-        Float gather_radius = -1,
-        Float vol_gather_radius = -1
+        Float gather_radius_surface = -1,
+        Float gather_radius_volume = -1,
+        bool sample_direct_light = true
     );
 
     virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
@@ -305,6 +308,18 @@ private:
     void EmitPhotons(MultiPhaseRendering* progress);
     void GatherPhotons(const Camera* camera, int32 tile_size, MultiPhaseRendering* progress);
 
+    Spectrum SampleDirectLight(
+        const Vec3& wo,
+        const Intersection& isect,
+        const Medium* medium,
+        const BSDF* bsdf,
+        const PhaseFunction* phase,
+        int32 wavelength,
+        Sampler& sampler,
+        const Spectrum& beta,
+        Spectrum r_p
+    ) const;
+
     Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const;
 
     const Sampler* sampler_prototype;
@@ -312,6 +327,7 @@ private:
 
     int32 n_photons;
     Float radius, vol_radius;
+    bool sample_dl;
 
     std::vector<Photon> photons, vol_photons;
     HashGrid photon_map, vol_photon_map;

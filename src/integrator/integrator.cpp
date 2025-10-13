@@ -45,13 +45,18 @@ Integrator* Integrator::Create(
         return alloc.new_object<BiDirectionalVolPathIntegrator>(accel, lights, sampler, max_bounces, rr_min_bounces);
 
     case IntegratorType::pm:
-        return alloc.new_object<PhotonMappingIntegrator>(accel, lights, sampler, max_bounces, ii.n_photons, ii.initial_radius);
+        return alloc.new_object<PhotonMappingIntegrator>(
+            accel, lights, sampler, max_bounces, ii.n_photons, ii.initial_radius_surface, ii.sample_direct_light
+        );
 
     case IntegratorType::vol_pm:
-        return alloc.new_object<VolPhotonMappingIntegrator>(accel, lights, sampler, max_bounces, ii.n_photons, ii.initial_radius);
+        return alloc.new_object<VolPhotonMappingIntegrator>(
+            accel, lights, sampler, max_bounces, ii.n_photons, ii.initial_radius_surface, ii.initial_radius_volume,
+            ii.sample_direct_light
+        );
 
     case IntegratorType::sppm:
-        return alloc.new_object<SPPMIntegrator>(accel, lights, sampler, max_bounces, ii.n_photons, ii.initial_radius);
+        return alloc.new_object<SPPMIntegrator>(accel, lights, sampler, max_bounces, ii.n_photons, ii.initial_radius_surface);
 
     case IntegratorType::naive_path:
         return alloc.new_object<NaivePathIntegrator>(accel, lights, sampler, max_bounces, rr_min_bounces);

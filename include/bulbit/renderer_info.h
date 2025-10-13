@@ -93,7 +93,9 @@ struct IntegratorInfo
     Float ao_range = 0.1f;
 
     int32 n_photons = 100000;
-    Float initial_radius = -1;
+    Float initial_radius_surface = -1;
+    Float initial_radius_volume = -1;
+    bool sample_direct_light = true;
 };
 
 struct RendererInfo

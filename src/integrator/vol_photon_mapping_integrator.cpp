@@ -19,15 +19,17 @@ VolPhotonMappingIntegrator::VolPhotonMappingIntegrator(
     const Sampler* sampler,
     int32 max_bounces,
     int32 n_photons,
-    Float gather_radius,
-    Float vol_gather_radius
+    Float gather_radius_surface,
+    Float gather_radius_volume,
+    bool sample_direct_light
 )
     : Integrator(accel, std::move(lights), std::make_unique<PowerLightSampler>())
     , sampler_prototype{ sampler }
     , max_bounces{ max_bounces }
     , n_photons{ n_photons }
-    , radius{ gather_radius }
-    , vol_radius{ vol_gather_radius }
+    , radius{ gather_radius_surface }
+    , vol_radius{ gather_radius_volume }
+    , sample_dl{ sample_direct_light }
 {
     AABB world_bounds = accel->GetAABB();
     Point3 world_center;
@@ -141,6 +143,7 @@ void VolPhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
                             r_u *= T_maj * ms.sigma_s / pdf;
 
                             // Store volume photon
+                            if (!sample_dl || bounce > 1)
                             {
                                 Photon vp;
                                 vp.primitive = nullptr;
@@ -234,7 +237,7 @@ void VolPhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
             }
 
             // Store photon to non specular surface
-            if (IsNonSpecular(bsdf.Flags()))
+            if ((!sample_dl || (bounce > 1)) && IsNonSpecular(bsdf.Flags()))
             {
                 Photon p;
                 p.primitive = isect.primitive;
@@ -296,6 +299,59 @@ void VolPhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
 
     photon_map.Build(photons, radius);
     vol_photon_map.Build(vol_photons, vol_radius);
+}
+
+Spectrum VolPhotonMappingIntegrator::SampleDirectLight(
+    const Vec3& wo,
+    const Intersection& isect,
+    const Medium* medium,
+    const BSDF* bsdf,
+    const PhaseFunction* phase,
+    int32 wavelength,
+    Sampler& sampler,
+    const Spectrum& beta,
+    Spectrum r_p
+) const
+{
+
+    BulbitNotUsed(r_p);
+
+    SampledLight sampled_light;
+    if (!light_sampler->Sample(&sampled_light, isect, sampler.Next1D()))
+    {
+        return Spectrum::black;
+    }
+
+    LightSampleLi light_sample;
+    if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler.Next2D()))
+    {
+        return Spectrum::black;
+    }
+
+    if (light_sample.Li.IsBlack())
+    {
+        return Spectrum::black;
+    }
+
+    Spectrum V = Tr(this, isect.point, light_sample.point, medium, wavelength);
+    if (V.IsBlack())
+    {
+        return Spectrum::black;
+    }
+
+    Float pdf = light_sample.pdf * sampled_light.pmf;
+    Spectrum l = beta * light_sample.Li * V / pdf;
+
+    if (bsdf)
+    {
+        l *= bsdf->f(wo, light_sample.wi) * AbsDot(isect.shading.normal, light_sample.wi);
+    }
+    else
+    {
+        l *= phase->p(wo, light_sample.wi);
+    }
+
+    return l;
 }
 
 Spectrum VolPhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium, Sampler& sampler) const
@@ -373,7 +429,13 @@ Spectrum VolPhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* pr
                         beta *= T_maj * ms.sigma_s / pdf;
                         r_u *= T_maj * ms.sigma_s / pdf;
 
-                        // Estimate volumetric light contribution using volume photon map
+                        if (sample_dl)
+                        {
+                            Intersection medium_isect{ .point = point };
+                            L += SampleDirectLight(wo, medium_isect, medium, nullptr, ms.phase, wavelength, sampler, beta, r_u);
+                        }
+
+                        // Estimate volumetric indirect light contribution using volume photon map
                         Spectrum L_i(0);
 
                         vol_photon_map.Query<Photon>(vol_photons, point, vol_radius, [&](const Photon& p) {
@@ -476,7 +538,10 @@ Spectrum VolPhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* pr
         if (IsNonSpecular(bsdf.Flags()))
         {
             // Estimate direct light
-            // L += SampleDirectLight(wo, isect, medium, &bsdf, nullptr, wavelength, sampler, beta, r_u);
+            if (sample_dl)
+            {
+                L += SampleDirectLight(wo, isect, medium, &bsdf, nullptr, wavelength, sampler, beta, r_u);
+            }
 
             // Estimate indirect light by gathering nearby photons
             Spectrum L_i(0);

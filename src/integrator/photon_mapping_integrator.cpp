@@ -18,13 +18,15 @@ PhotonMappingIntegrator::PhotonMappingIntegrator(
     const Sampler* sampler,
     int32 max_bounces,
     int32 n_photons,
-    Float radius
+    Float radius,
+    bool sample_direct_light
 )
     : Integrator(accel, std::move(lights), std::make_unique<PowerLightSampler>())
     , sampler_prototype{ sampler }
     , max_bounces{ max_bounces }
     , n_photons{ n_photons }
     , gather_radius{ radius }
+    , sample_dl{ sample_direct_light }
 {
     if (gather_radius <= 0)
     {
@@ -100,7 +102,7 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
             }
 
             // Store photon to non specular surface
-            if (bounce > 1 && IsNonSpecular(bsdf.Flags()))
+            if ((!sample_dl || (bounce > 1)) && IsNonSpecular(bsdf.Flags()))
             {
                 Photon p;
                 p.primitive = isect.primitive;
@@ -247,7 +249,10 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
         if (IsNonSpecular(bsdf.Flags()))
         {
             // Estimate direct light
-            L += SampleDirectLight(wo, isect, &bsdf, sampler, beta);
+            if (sample_dl)
+            {
+                L += SampleDirectLight(wo, isect, &bsdf, sampler, beta);
+            }
 
             // Estimate indirect light by gathering nearby photons
             Spectrum L_i(0);
