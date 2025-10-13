@@ -93,6 +93,7 @@ private:
     friend class PhotonMappingIntegrator;
     friend class VolPhotonMappingIntegrator;
     friend class SPPMIntegrator;
+    friend class VolSPPMIntegrator;
 
     size_t num_phases;
     std::vector<size_t> num_phase_works;

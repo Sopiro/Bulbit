@@ -23,7 +23,7 @@ struct Photon
 
 struct VisiblePoint
 {
-    Float radius;
+    Float radius, radius_vol;
 
     const Primitive* primitive;
     Point3 p;
@@ -31,15 +31,20 @@ struct VisiblePoint
 
     Vec3 wo;
     BSDF bsdf;
+    const PhaseFunction* phase;
 
     Spectrum Ld{ 0 };
     Spectrum beta{ 0 };
 
     Float n = 0;
+    Float n_vol = 0;
     std::atomic<int32> m{ 0 };
+    std::atomic<int32> m_vol{ 0 };
 
     std::atomic<Float> phi_i[3]{ 0, 0, 0 };
+    std::atomic<Float> phi_i_vol[3]{ 0, 0, 0 };
     Spectrum tau{ 0 };
+    Spectrum tau_vol{ 0 };
 };
 
 // Spatial hash grid implementation adapted from

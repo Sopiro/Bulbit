@@ -73,6 +73,7 @@ enum class IntegratorType
     pm,
     vol_pm,
     sppm,
+    vol_sppm,
     naive_path,
     naive_vol_path,
     random_walk,

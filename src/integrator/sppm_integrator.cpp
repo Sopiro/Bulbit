@@ -33,7 +33,7 @@ SPPMIntegrator::SPPMIntegrator(
         Float world_radius;
         world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
 
-        initial_radius = 2 * world_radius * 2e-3f;
+        initial_radius = 2 * world_radius * 3e-3f;
     }
 }
 
@@ -442,7 +442,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             // Update τ, the accumulated flux scaled to remain consistent after the radius update:
                             // tau_{i+1} = (tau_i + phi_i) * (r_{i+1}^2 / r_i^2)
                             Spectrum phi_i(vp.phi_i[0], vp.phi_i[1], vp.phi_i[2]);
-                            vp.tau = (vp.tau + phi_i) * Sqr(r_new / vp.radius);
+                            vp.tau = (vp.tau + vp.beta * phi_i) * Sqr(r_new / vp.radius);
 
                             vp.n = n_new;
                             vp.radius = r_new;

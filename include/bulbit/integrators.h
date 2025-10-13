@@ -360,4 +360,40 @@ private:
     Float initial_radius;
 };
 
+// Volumetric SPPM
+class VolSPPMIntegrator : public Integrator
+{
+public:
+    VolSPPMIntegrator(
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        int32 max_bounces,
+        int32 photons_per_interation,
+        Float initial_radius_surface = -1,
+        Float initial_radius_volume = -1
+    );
+
+    virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
+
+private:
+    Spectrum SampleDirectLight(
+        const Vec3& wo,
+        const Intersection& isect,
+        const Medium* medium,
+        const BSDF* bsdf,
+        const PhaseFunction* phase,
+        int32 wavelength,
+        Sampler& sampler,
+        Spectrum beta,
+        Spectrum r_p
+    ) const;
+
+    const Sampler* sampler_prototype;
+    int32 max_bounces;
+
+    int32 photons_per_iteration;
+    Float initial_radius_surface, initial_radius_volume;
+};
+
 } // namespace bulbit

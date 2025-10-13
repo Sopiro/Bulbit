@@ -51,7 +51,7 @@ void VolPhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
     const int32 min_bounces = 2;
 
     ThreadLocal<std::vector<Photon>> tl_photons;
-    ThreadLocal<std::vector<Photon>> tl_photons2;
+    ThreadLocal<std::vector<Photon>> tl_photons_vol;
 
     ParallelFor(0, n_photons, [&](int32 i) {
         RNG rng(Hash(n_photons, radius, vol_radius), Hash(i));
@@ -60,7 +60,7 @@ void VolPhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
         auto Next2D = [&]() { return Point2{ rng.NextFloat(), rng.NextFloat() }; };
 
         std::vector<Photon>& ps = tl_photons.Get();
-        std::vector<Photon>& ps2 = tl_photons2.Get();
+        std::vector<Photon>& ps_vol = tl_photons_vol.Get();
 
         SampledLight sampled_light;
         if (!light_sampler->Sample(&sampled_light, Intersection{}, rng.NextFloat()))
@@ -152,7 +152,7 @@ void VolPhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
                                 vp.wi = wo;
                                 vp.beta = beta;
 
-                                ps2.push_back(vp);
+                                ps_vol.push_back(vp);
                             }
 
                             // Sample phase function to find next path direction
@@ -292,7 +292,7 @@ void VolPhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
         photons.insert(photons.end(), ps.begin(), ps.end());
     });
 
-    tl_photons2.ForEach([&](std::thread::id tid, std::vector<Photon>& ps) {
+    tl_photons_vol.ForEach([&](std::thread::id tid, std::vector<Photon>& ps) {
         BulbitNotUsed(tid);
         vol_photons.insert(vol_photons.end(), ps.begin(), ps.end());
     });
