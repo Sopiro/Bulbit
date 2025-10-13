@@ -22,14 +22,9 @@ void DirectionalAreaLight::Preprocess(const AABB& world_bounds)
 
 Spectrum DirectionalAreaLight::Le(const Intersection& isect, const Vec3& wo) const
 {
-    if (wo == Vec3::zero)
-    {
-        return emission->Evaluate(isect.uv);
-    }
-    else
-    {
-        return Spectrum::black;
-    }
+    BulbitNotUsed(isect);
+    BulbitNotUsed(wo);
+    return Spectrum::black;
 }
 
 Spectrum DirectionalAreaLight::Le(const Ray& ray) const

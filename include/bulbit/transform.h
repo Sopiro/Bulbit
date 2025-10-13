@@ -85,6 +85,11 @@ struct Transform
         s.Set(1, 1, 1);
     }
 
+    std::string ToString() const
+    {
+        return std::format("p:{}\nq:{}\ns:{}", p.ToString(), q.ToString(), s.ToString());
+    }
+
     constexpr Transform& operator*=(const Transform& other);
 
     constexpr Transform GetInverse() const

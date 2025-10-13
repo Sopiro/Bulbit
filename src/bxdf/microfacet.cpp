@@ -201,13 +201,14 @@ void DielectricMultiScatteringBxDF::ComputeReflectanceTexture(int32 texture_size
     E_inv_avg_texture = std::make_unique<FloatImageTexture>(std::move(image_e_inv_avg), TexCoordFilter::clamp);
 }
 
-void ComputeReflectanceTextures()
+void ComputeReflectanceTextures(int32 texture_size, int32 num_samples)
 {
-    int32 texture_size = 32;
-
-    int32 x_samples = 16;
+    int32 x_samples = int32(std::sqrt(num_samples));
     int32 y_samples = x_samples;
+
     int32 samples = x_samples * y_samples;
+    BulbitAssert(num_samples == samples);
+
     std::vector<Float> u0(samples);
     std::vector<Point2> u12(samples);
 

@@ -8,7 +8,7 @@
 namespace bulbit
 {
 
-void ComputeReflectanceTextures();
+void ComputeReflectanceTextures(int32 texture_size = 32, int32 num_samples = 256);
 
 class TrowbridgeReitzDistribution
 {
