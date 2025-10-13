@@ -286,6 +286,37 @@ private:
     HashGrid photon_map;
 };
 
+class VolPhotonMappingIntegrator : public Integrator
+{
+public:
+    VolPhotonMappingIntegrator(
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        int32 max_bounces,
+        int32 n_photons,
+        Float gather_radius = -1,
+        Float vol_gather_radius = -1
+    );
+
+    virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
+
+private:
+    void EmitPhotons(MultiPhaseRendering* progress);
+    void GatherPhotons(const Camera* camera, int32 tile_size, MultiPhaseRendering* progress);
+
+    Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const;
+
+    const Sampler* sampler_prototype;
+    int32 max_bounces;
+
+    int32 n_photons;
+    Float radius, vol_radius;
+
+    std::vector<Photon> photons, vol_photons;
+    HashGrid photon_map, vol_photon_map;
+};
+
 // Stochastic Progressive Photon Mapping
 class SPPMIntegrator : public Integrator
 {

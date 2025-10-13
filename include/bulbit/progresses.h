@@ -91,6 +91,7 @@ public:
 
 private:
     friend class PhotonMappingIntegrator;
+    friend class VolPhotonMappingIntegrator;
     friend class SPPMIntegrator;
 
     size_t num_phases;

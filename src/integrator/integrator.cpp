@@ -47,6 +47,9 @@ Integrator* Integrator::Create(
     case IntegratorType::pm:
         return alloc.new_object<PhotonMappingIntegrator>(accel, lights, sampler, max_bounces, ii.n_photons, ii.initial_radius);
 
+    case IntegratorType::vol_pm:
+        return alloc.new_object<VolPhotonMappingIntegrator>(accel, lights, sampler, max_bounces, ii.n_photons, ii.initial_radius);
+
     case IntegratorType::sppm:
         return alloc.new_object<SPPMIntegrator>(accel, lights, sampler, max_bounces, ii.n_photons, ii.initial_radius);
 

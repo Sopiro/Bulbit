@@ -71,6 +71,7 @@ enum class IntegratorType
     bdpt,
     vol_bdpt,
     pm,
+    vol_pm,
     sppm,
     naive_path,
     naive_vol_path,
