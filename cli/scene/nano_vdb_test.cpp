@@ -241,14 +241,14 @@ void NanoVDBTest3(RendererInfo* ri)
     std::cout << "Value range: " << grid->tree().root().minimum() << " ~ " << grid->tree().root().maximum() << std::endl;
 
     Transform to_origin(-center);
-    Transform tf(0, 0, 0, Quat(-pi / 2, y_axis), Vec3(0.5));
+    Transform tf(0, 0, 0, Quat(0, y_axis), Vec3(0.5));
 
     Spectrum sigma_a(10);
     Spectrum sigma_s(6);
-    Float sigma_scale = 4;
+    Float sigma_scale = 1;
     Float g = 0.0;
     Float Le_scale = 5;
-    Float temperature_offset = 3;
+    Float temperature_offset = 1;
     Float temperature_scale = 100;
 
     NanoVDBMedium* medium = scene.CreateMedium<NanoVDBMedium>(
@@ -283,7 +283,7 @@ void NanoVDBTest3(RendererInfo* ri)
     Float fov = 30;
 
     ri->integrator_info.type = IntegratorType::vol_path;
-    ri->integrator_info.max_bounces = 1024;
+    ri->integrator_info.max_bounces = 32;
     ri->camera_info.type = CameraType::perspective;
     ri->camera_info.transform = Transform::LookAt(position, target, y_axis);
     ri->camera_info.fov = fov;

@@ -343,12 +343,12 @@ inline Spectrum BlackbodyRGB(Float T, Float step = 10)
         XYZ += coeff * Le;
     }
 
-    // Convert to xyY(Y=1) and back to XYZ
-    Float Y = XYZ[1];
-    if (Y > 0)
-    {
-        XYZ /= Y;
-    }
+    // Wien’s displacement constant
+    constexpr Float b = 2.8977721e-3f;
+    Float lambda_max = b / T;
+    Float normalization = 1 / Blackbody(lambda_max * 1e9f, T);
+
+    XYZ *= normalization;
 
     // XYZ to linear sRGB
     Spectrum RGB = XYZ_to_sRGB(XYZ);
