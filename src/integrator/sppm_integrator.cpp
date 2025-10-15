@@ -18,13 +18,15 @@ SPPMIntegrator::SPPMIntegrator(
     const Sampler* sampler,
     int32 max_bounces,
     int32 photons_per_iteration,
-    Float radius
+    Float radius,
+    bool sample_direct_light
 )
     : Integrator(accel, std::move(lights), std::make_unique<PowerLightSampler>())
     , sampler_prototype{ sampler }
     , max_bounces{ max_bounces }
     , photons_per_iteration{ photons_per_iteration }
     , initial_radius{ radius }
+    , sample_dl{ sample_direct_light }
 {
     if (initial_radius <= 0)
     {
@@ -153,7 +155,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             if (!Intersect(&isect, ray, Ray::epsilon, infinity))
                             {
                                 Spectrum L(0);
-                                if (bounce == 0 || specular_bounce)
+                                if (bounce == 0 || specular_bounce || !sample_dl)
                                 {
                                     for (Light* light : infinite_lights)
                                     {
@@ -184,7 +186,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 {
                                     Spectrum L(0);
 
-                                    if (bounce == 0 || specular_bounce)
+                                    if (bounce == 0 || specular_bounce || !sample_dl)
                                     {
                                         L += beta * Le;
                                     }
@@ -216,7 +218,10 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 continue;
                             }
 
-                            vp.Ld += SampleDirectLight(wo, isect, &bsdf, *sampler, beta);
+                            if (sample_dl)
+                            {
+                                vp.Ld += SampleDirectLight(wo, isect, &bsdf, *sampler, beta);
+                            }
 
                             BxDF_Flags flags = bsdf.Flags();
                             if (IsDiffuse(flags) || (IsGlossy(flags) && bounce == max_bounces))
@@ -228,6 +233,11 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 vp.wo = wo;
                                 vp.bsdf = bsdf;
                                 vp.beta = beta;
+
+                                if (sample_dl)
+                                {
+                                    break;
+                                }
 
                                 found_visible_point = true;
                                 // Trace one bounce more for the unidirectional MIS contribution
@@ -344,7 +354,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         Vec3 wo = Normalize(-ray.d);
 
-                        if (bounce > 1)
+                        if (!sample_dl || bounce > 1)
                         {
                             // Query hash grid for nearby visible points
                             grid.Query<VisiblePoint>(visible_points, isect.point, [&](VisiblePoint& vp) {

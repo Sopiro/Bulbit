@@ -20,7 +20,9 @@ VolSPPMIntegrator::VolSPPMIntegrator(
     int32 max_bounces,
     int32 photons_per_iteration,
     Float radius_surface,
-    Float radius_volume
+    Float radius_volume,
+    bool sample_direct_light
+
 )
     : Integrator(accel, std::move(lights), std::make_unique<PowerLightSampler>())
     , sampler_prototype{ sampler }
@@ -28,6 +30,7 @@ VolSPPMIntegrator::VolSPPMIntegrator(
     , photons_per_iteration{ photons_per_iteration }
     , initial_radius_surface{ radius_surface }
     , initial_radius_volume{ radius_volume }
+    , sample_dl{ sample_direct_light }
 {
     AABB world_bounds = accel->GetAABB();
     Point3 world_center;
@@ -341,10 +344,13 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                             r_u *= T_maj * ms.sigma_s / pdf;
 
                                             // Add direct light
-                                            Intersection medium_isect{ .point = point };
-                                            vp.Ld += SampleDirectLight(
-                                                wo, medium_isect, medium, nullptr, ms.phase, wavelength, *sampler, beta, r_u
-                                            );
+                                            if (sample_dl)
+                                            {
+                                                Intersection medium_isect{ .point = point };
+                                                vp.Ld += SampleDirectLight(
+                                                    wo, medium_isect, medium, nullptr, ms.phase, wavelength, *sampler, beta, r_u
+                                                );
+                                            }
 
                                             // Create visible point inside medium
                                             {
@@ -355,6 +361,12 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                                 vp.bsdf = {};
                                                 vp.phase = ms.phase;
                                                 vp.beta = beta;
+
+                                                if (sample_dl)
+                                                {
+                                                    terminated = true;
+                                                    return false;
+                                                }
 
                                                 found_visible_point = true;
                                             }
@@ -428,7 +440,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             if (!found_intersection)
                             {
                                 Spectrum L(0);
-                                if (bounce == 0 || specular_bounce)
+                                if (bounce == 0 || specular_bounce || !sample_dl)
                                 {
                                     for (Light* light : infinite_lights)
                                     {
@@ -456,7 +468,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 {
                                     Spectrum L(0);
 
-                                    if (bounce == 0 || specular_bounce)
+                                    if (bounce == 0 || specular_bounce || !sample_dl)
                                     {
                                         L += beta * Le / r_u.Average();
                                     }
@@ -488,7 +500,10 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 continue;
                             }
 
-                            vp.Ld += SampleDirectLight(wo, isect, medium, &bsdf, nullptr, wavelength, *sampler, beta, r_u);
+                            if (sample_dl)
+                            {
+                                vp.Ld += SampleDirectLight(wo, isect, medium, &bsdf, nullptr, wavelength, *sampler, beta, r_u);
+                            }
 
                             BxDF_Flags flags = bsdf.Flags();
                             if (IsDiffuse(flags) || (IsGlossy(flags) && bounce == max_bounces))
@@ -501,6 +516,11 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 vp.bsdf = bsdf;
                                 vp.phase = nullptr;
                                 vp.beta = beta;
+
+                                if (sample_dl)
+                                {
+                                    break;
+                                }
 
                                 found_visible_point = true;
                                 // Trace one bounce more for the unidirectional MIS contribution
@@ -670,7 +690,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         Float pdf = T_maj[wavelength] * ms.sigma_s[wavelength];
                                         beta *= T_maj * ms.sigma_s / pdf;
 
-                                        if (bounce > 1)
+                                        if (!sample_dl || bounce > 1)
                                         {
                                             grid.Query<VisiblePoint>(visible_points, point, [&](VisiblePoint& vp) {
                                                 if (vp.primitive || !vp.phase)
@@ -759,7 +779,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             break;
                         }
 
-                        if (bounce > 1)
+                        if (!sample_dl || bounce > 1)
                         {
                             // Query hash grid for nearby visible points
                             grid.Query<VisiblePoint>(visible_points, isect.point, [&](VisiblePoint& vp) {

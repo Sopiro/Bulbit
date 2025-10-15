@@ -496,7 +496,7 @@ Spectrum VolPhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* pr
 
         if (!found_intersection)
         {
-            if (bounce == 0 || was_specular_bounce)
+            if (bounce == 0 || was_specular_bounce || !sample_dl)
             {
                 for (Light* light : infinite_lights)
                 {
@@ -511,7 +511,7 @@ Spectrum VolPhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* pr
         {
             if (Spectrum Le = area_light->Le(isect, wo); !Le.IsBlack())
             {
-                if (bounce == 0 || was_specular_bounce)
+                if (bounce == 0 || was_specular_bounce || !sample_dl)
                 {
                     L += beta * Le;
                 }

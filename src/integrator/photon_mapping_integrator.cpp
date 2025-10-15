@@ -206,7 +206,7 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
         Intersection isect;
         if (!Intersect(&isect, ray, Ray::epsilon, infinity))
         {
-            if (bounce == 0 || was_specular_bounce)
+            if (bounce == 0 || was_specular_bounce || !sample_dl)
             {
                 for (Light* light : infinite_lights)
                 {
@@ -223,7 +223,7 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
         {
             if (Spectrum Le = area_light->Le(isect, wo); !Le.IsBlack())
             {
-                if (bounce == 0 || was_specular_bounce)
+                if (bounce == 0 || was_specular_bounce || !sample_dl)
                 {
                     L += beta * Le;
                 }

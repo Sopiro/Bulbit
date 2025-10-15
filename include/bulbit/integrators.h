@@ -343,7 +343,8 @@ public:
         const Sampler* sampler,
         int32 max_bounces,
         int32 photons_per_interation,
-        Float initial_radius = -1
+        Float initial_radius = -1,
+        bool sample_direct_light = true
     );
 
     virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
@@ -358,6 +359,7 @@ private:
 
     int32 photons_per_iteration;
     Float initial_radius;
+    bool sample_dl;
 };
 
 // Volumetric SPPM
@@ -371,7 +373,8 @@ public:
         int32 max_bounces,
         int32 photons_per_interation,
         Float initial_radius_surface = -1,
-        Float initial_radius_volume = -1
+        Float initial_radius_volume = -1,
+        bool sample_direct_light = true
     );
 
     virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
@@ -394,6 +397,7 @@ private:
 
     int32 photons_per_iteration;
     Float initial_radius_surface, initial_radius_volume;
+    bool sample_dl;
 };
 
 } // namespace bulbit

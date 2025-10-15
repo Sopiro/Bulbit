@@ -56,11 +56,14 @@ Integrator* Integrator::Create(
         );
 
     case IntegratorType::sppm:
-        return alloc.new_object<SPPMIntegrator>(accel, lights, sampler, max_bounces, ii.n_photons, ii.initial_radius_surface);
+        return alloc.new_object<SPPMIntegrator>(
+            accel, lights, sampler, max_bounces, ii.n_photons, ii.initial_radius_surface, ii.sample_direct_light
+        );
 
     case IntegratorType::vol_sppm:
         return alloc.new_object<VolSPPMIntegrator>(
-            accel, lights, sampler, max_bounces, ii.n_photons, ii.initial_radius_surface, ii.initial_radius_volume
+            accel, lights, sampler, max_bounces, ii.n_photons, ii.initial_radius_surface, ii.initial_radius_volume,
+            ii.sample_direct_light
         );
 
     case IntegratorType::naive_path:
