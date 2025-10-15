@@ -29,7 +29,7 @@ VolPhotonMappingIntegrator::VolPhotonMappingIntegrator(
     , n_photons{ n_photons }
     , radius{ gather_radius_surface }
     , vol_radius{ gather_radius_volume }
-    , sample_dl{ sample_direct_light }
+    , sample_direct_light{ sample_direct_light }
 {
     AABB world_bounds = accel->GetAABB();
     Point3 world_center;
@@ -143,7 +143,7 @@ void VolPhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
                             r_u *= T_maj * ms.sigma_s / pdf;
 
                             // Store volume photon
-                            if (!sample_dl || bounce > 1)
+                            if (!sample_direct_light || bounce > 1)
                             {
                                 Photon vp;
                                 vp.primitive = nullptr;
@@ -237,7 +237,7 @@ void VolPhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
             }
 
             // Store photon to non specular surface
-            if ((!sample_dl || (bounce > 1)) && IsNonSpecular(bsdf.Flags()))
+            if (IsNonSpecular(bsdf.Flags()) && (!sample_direct_light || (bounce > 1)))
             {
                 Photon p;
                 p.primitive = isect.primitive;
@@ -362,7 +362,7 @@ Spectrum VolPhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* pr
     Spectrum beta(1);
     Spectrum r_u(1);
 
-    bool was_specular_bounce = false;
+    bool specular_bounce = false;
 
     Ray ray = primary_ray;
     const Medium* medium = primary_medium;
@@ -429,7 +429,7 @@ Spectrum VolPhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* pr
                         beta *= T_maj * ms.sigma_s / pdf;
                         r_u *= T_maj * ms.sigma_s / pdf;
 
-                        if (sample_dl)
+                        if (sample_direct_light)
                         {
                             Intersection medium_isect{ .point = point };
                             L += SampleDirectLight(wo, medium_isect, medium, nullptr, ms.phase, wavelength, sampler, beta, r_u);
@@ -496,7 +496,7 @@ Spectrum VolPhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* pr
 
         if (!found_intersection)
         {
-            if (bounce == 0 || was_specular_bounce || !sample_dl)
+            if (bounce == 0 || specular_bounce)
             {
                 for (Light* light : infinite_lights)
                 {
@@ -511,7 +511,7 @@ Spectrum VolPhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* pr
         {
             if (Spectrum Le = area_light->Le(isect, wo); !Le.IsBlack())
             {
-                if (bounce == 0 || was_specular_bounce || !sample_dl)
+                if (bounce == 0 || specular_bounce)
                 {
                     L += beta * Le;
                 }
@@ -538,7 +538,7 @@ Spectrum VolPhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* pr
         if (IsNonSpecular(bsdf.Flags()))
         {
             // Estimate direct light
-            if (sample_dl)
+            if (sample_direct_light)
             {
                 L += SampleDirectLight(wo, isect, medium, &bsdf, nullptr, wavelength, sampler, beta, r_u);
             }
@@ -566,10 +566,6 @@ Spectrum VolPhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* pr
             // Done!
             break;
         }
-        else
-        {
-            was_specular_bounce = true;
-        }
 
         BSDFSample bsdf_sample;
         if (!bsdf.Sample_f(&bsdf_sample, wo, sampler.Next1D(), sampler.Next2D()))
@@ -577,6 +573,7 @@ Spectrum VolPhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* pr
             break;
         }
 
+        specular_bounce = bsdf_sample.IsSpecular();
         ray = Ray(isect.point, bsdf_sample.wi);
         beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
     }

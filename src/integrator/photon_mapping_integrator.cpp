@@ -26,7 +26,7 @@ PhotonMappingIntegrator::PhotonMappingIntegrator(
     , max_bounces{ max_bounces }
     , n_photons{ n_photons }
     , gather_radius{ radius }
-    , sample_dl{ sample_direct_light }
+    , sample_direct_light{ sample_direct_light }
 {
     if (gather_radius <= 0)
     {
@@ -102,7 +102,7 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
             }
 
             // Store photon to non specular surface
-            if ((!sample_dl || (bounce > 1)) && IsNonSpecular(bsdf.Flags()))
+            if (IsNonSpecular(bsdf.Flags()) && (!sample_direct_light || (bounce > 1)))
             {
                 Photon p;
                 p.primitive = isect.primitive;
@@ -199,14 +199,14 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
     Spectrum beta(1);
 
     Ray ray = primary_ray;
-    bool was_specular_bounce = false;
+    bool specular_bounce = false;
 
     while (true)
     {
         Intersection isect;
         if (!Intersect(&isect, ray, Ray::epsilon, infinity))
         {
-            if (bounce == 0 || was_specular_bounce || !sample_dl)
+            if (bounce == 0 || specular_bounce)
             {
                 for (Light* light : infinite_lights)
                 {
@@ -223,7 +223,7 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
         {
             if (Spectrum Le = area_light->Le(isect, wo); !Le.IsBlack())
             {
-                if (bounce == 0 || was_specular_bounce || !sample_dl)
+                if (bounce == 0 || specular_bounce)
                 {
                     L += beta * Le;
                 }
@@ -249,7 +249,7 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
         if (IsNonSpecular(bsdf.Flags()))
         {
             // Estimate direct light
-            if (sample_dl)
+            if (sample_direct_light)
             {
                 L += SampleDirectLight(wo, isect, &bsdf, sampler, beta);
             }
@@ -277,10 +277,6 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
             // Done!
             break;
         }
-        else
-        {
-            was_specular_bounce = true;
-        }
 
         BSDFSample bsdf_sample;
         if (!bsdf.Sample_f(&bsdf_sample, wo, sampler.Next1D(), sampler.Next2D()))
@@ -288,6 +284,7 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
             break;
         }
 
+        specular_bounce = bsdf_sample.IsSpecular();
         ray = Ray(isect.point, bsdf_sample.wi);
         beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
     }

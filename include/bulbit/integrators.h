@@ -282,7 +282,7 @@ private:
 
     int32 n_photons;
     Float gather_radius;
-    bool sample_dl;
+    bool sample_direct_light;
 
     std::vector<Photon> photons;
     HashGrid photon_map;
@@ -327,7 +327,7 @@ private:
 
     int32 n_photons;
     Float radius, vol_radius;
-    bool sample_dl;
+    bool sample_direct_light;
 
     std::vector<Photon> photons, vol_photons;
     HashGrid photon_map, vol_photon_map;
@@ -359,7 +359,7 @@ private:
 
     int32 photons_per_iteration;
     Float initial_radius;
-    bool sample_dl;
+    bool sample_direct_light;
 };
 
 // Volumetric SPPM
@@ -397,7 +397,7 @@ private:
 
     int32 photons_per_iteration;
     Float initial_radius_surface, initial_radius_volume;
-    bool sample_dl;
+    bool sample_direct_light;
 };
 
 } // namespace bulbit
