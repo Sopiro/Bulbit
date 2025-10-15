@@ -15,21 +15,26 @@ int main(int argc, char* argv[])
     if (argc <= 1 || std::string(argv[1]) == "--help")
     {
         std::cout << "\nUsage:\n";
-        std::cout << "  bbcli [options] <scene.xml | sample_name> [<scene.xml | sample_name>...]\n\n";
+        std::cout << "  bbcli [options] <scene.xml | sample_name> [<scene.xml | sample_name>...]\n";
+        std::cout << "\n";
         std::cout << "Options:\n";
         std::cout << "  -t <num_threads>          Number of threads to use  (default: hardware concurrency)\n";
-        std::cout << "  -o <output_file>          Override output file name  (default: value from scene or auto-generated)\n";
-        std::cout << "  -s <samples-per-pixel>    Override number of samples per pixel  (default: value from scene)\n";
-        std::cout << "  -b <max_bounces>          Override number of maximum bounces  (default: value from scene)\n";
-        std::cout << "  -p <num_photons>          Override number of photons  (default: value from scene)\n";
-        std::cout << "  -i <integrator>           Override integrator  (default: value from scene)\n";
-        std::cout << "  -r <image_scale>          Scale output image  (default: 1)\n";
-        std::cout << "  --list-integrators        Show list of available integrators\n";
-        std::cout << "  --list-samples            Show list of available built-in sample scenes\n";
-        std::cout << "  --help                    Show this help message\n\n";
+        std::cout << "  -o <output_file>          Output file name  (default: from scene or auto-generated)\n";
+        std::cout << "  -s <samples_per_pixel>    Samples per pixel  (default: from scene)\n";
+        std::cout << "  -b <max_bounces>          Maximum path bounces  (default: from scene)\n";
+        std::cout << "  -p <num_photons>          Number of photons  (default: from scene)\n";
+        std::cout << "  -d <sample_direct_light>  Enable direct light sampling (0 = off, 1 = on) (default: from scene) \n";
+        std::cout << "                            * Only applicable to photon mapping integrators\n";
+        std::cout << "  -i <integrator>           Select integrator by index  (default: from scene)\n";
+        std::cout << "  -r <image_scale>          Scale the output image resolution  (default: 1)\n";
+        std::cout << "  --list-integrators        List all available integrators\n";
+        std::cout << "  --list-samples            List all built-in sample scenes\n";
+        std::cout << "  --help                    Show this help message\n";
+        std::cout << "\n";
         std::cout << "Arguments:\n";
         std::cout << "  <scene.xml>               Path to scene file to render\n";
-        std::cout << "  <sample_name>             Name of built-in sample scene (e.g., cornell-box)\n\n";
+        std::cout << "  <sample_name>             Name of built-in sample scene (e.g., cornell-box)\n";
+        std::cout << "\n";
         std::cout << "Examples:\n";
         std::cout << "  bbcli scene.xml\n";
         std::cout << "  bbcli cornell-box\n";
@@ -42,6 +47,7 @@ int main(int argc, char* argv[])
     int32 spp = 0;
     int32 max_bounces = -1;
     int32 num_photons = -1;
+    int32 sample_direct_light = -1;
     int32 integrator = -1;
     float scale = 1;
 
@@ -70,6 +76,10 @@ int main(int argc, char* argv[])
         else if (arg == "-p" && i + 1 < argc)
         {
             num_photons = std::stoi(argv[++i]);
+        }
+        else if (arg == "-d" && i + 1 < argc)
+        {
+            sample_direct_light = std::stoi(argv[++i]);
         }
         else if (arg == "-i" && i + 1 < argc)
         {
@@ -134,6 +144,7 @@ int main(int argc, char* argv[])
         if (spp > 0) ri.camera_info.sampler_info.spp = spp;
         if (max_bounces >= 0) ri.integrator_info.max_bounces = max_bounces;
         if (num_photons >= 0) ri.integrator_info.n_photons = num_photons;
+        if (sample_direct_light >= 0) ri.integrator_info.sample_direct_light = bool(sample_direct_light);
         if (integrator >= 0 && integrator < integrator_list.size()) ri.integrator_info.type = IntegratorType(integrator);
         ri.camera_info.film_info.resolution *= scale;
 
