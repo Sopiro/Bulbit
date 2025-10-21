@@ -179,6 +179,7 @@ int main(int argc, char* argv[])
             return 0;
         }
 
+        std::cout << "\rInitializing integrator.. " << std::flush;
         Integrator* integrator = Integrator::Create(alloc, ri.integrator_info, &accel, ri.scene.GetLights(), sampler);
         if (!integrator)
         {
@@ -186,6 +187,7 @@ int main(int argc, char* argv[])
             return 0;
         }
 
+        std::cout << "\rInitializing integrator.. " << timer.Mark() << "s" << std::endl;
         Rendering* rendering = integrator->Render(alloc, camera);
         rendering->WaitAndLogProgress();
 
