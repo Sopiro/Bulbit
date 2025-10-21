@@ -593,8 +593,26 @@ static bool LoadMesh(
             std::move(positions), std::move(normals), std::move(tangents), std::move(texcoords), std::move(indices), transform
         );
 
-        const Material* material = materials[primitive.material].first;
-        const SpectrumTexture* emission = materials[primitive.material].second;
+        const Material* material;
+        const SpectrumTexture* emission = nullptr;
+
+        if (primitive.material < 0)
+        {
+            if (options.fallback_material)
+            {
+                material = options.fallback_material;
+            }
+            else
+            {
+                std::cerr << "No valid material found and no fallback specified" << std::endl;
+                material = CreateDiffuseMaterial(scene, Spectrum{ 1, 0, 1 });
+            }
+        }
+        else
+        {
+            material = materials[primitive.material].first;
+            emission = materials[primitive.material].second;
+        }
 
         std::optional<AreaLightInfo> ali = {};
         if (emission)
