@@ -130,6 +130,10 @@ Integrator::Integrator(const Intersectable* accel, std::vector<Light*> lights, s
     {
         light_sampler->Init(all_lights);
     }
+
+    const int32 texture_size = 32;
+    const int32 num_samples = 256;
+    ComputeReflectanceTextures(texture_size, num_samples);
 }
 
 UniDirectionalRayIntegrator::UniDirectionalRayIntegrator(
@@ -142,8 +146,6 @@ UniDirectionalRayIntegrator::UniDirectionalRayIntegrator(
 
 Rendering* UniDirectionalRayIntegrator::Render(Allocator& alloc, const Camera* camera)
 {
-    ComputeReflectanceTextures();
-
     Point2i resolution = camera->GetScreenResolution();
 
     const int32 spp = sampler_prototype->samples_per_pixel;
@@ -202,8 +204,6 @@ BiDirectionalRayIntegrator::BiDirectionalRayIntegrator(
 
 Rendering* BiDirectionalRayIntegrator::Render(Allocator& alloc, const Camera* camera)
 {
-    ComputeReflectanceTextures();
-
     Point2i resolution = camera->GetScreenResolution();
 
     const int32 spp = sampler_prototype->samples_per_pixel;

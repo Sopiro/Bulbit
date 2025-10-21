@@ -15,11 +15,6 @@ void TrowbridgeReitzDistribution::ComputeReflectanceTexture(int32 texture_size, 
 {
     BulbitNotUsed(u0);
 
-    if (E_texture && E_avg_texture)
-    {
-        return;
-    }
-
     Image1f image_e(texture_size, texture_size);
     Image1f image_e_avg(texture_size, 1);
 
@@ -53,19 +48,13 @@ void TrowbridgeReitzDistribution::ComputeReflectanceTexture(int32 texture_size, 
     WriteImage(image_e_avg, "E_avg_tr.hdr");
 #endif
 
-    TrowbridgeReitzDistribution::E_texture = std::make_unique<FloatImageTexture>(std::move(image_e), TexCoordFilter::clamp);
-    TrowbridgeReitzDistribution::E_avg_texture =
-        std::make_unique<FloatImageTexture>(std::move(image_e_avg), TexCoordFilter::clamp);
+    E_texture = std::make_unique<FloatImageTexture>(std::move(image_e), TexCoordFilter::clamp);
+    E_avg_texture = std::make_unique<FloatImageTexture>(std::move(image_e_avg), TexCoordFilter::clamp);
 }
 
 void CharlieSheenDistribution::ComputeReflectanceTexture(int32 texture_size, std::span<Float> u0, std::span<Point2> u12)
 {
     BulbitNotUsed(u0);
-
-    if (E_texture)
-    {
-        return;
-    }
 
     Image1f image(texture_size, texture_size);
 
@@ -91,16 +80,11 @@ void CharlieSheenDistribution::ComputeReflectanceTexture(int32 texture_size, std
     WriteImage(image, "E_cs.hdr");
 #endif
 
-    CharlieSheenDistribution::E_texture = std::make_unique<FloatImageTexture>(std::move(image), TexCoordFilter::clamp);
+    E_texture = std::make_unique<FloatImageTexture>(std::move(image), TexCoordFilter::clamp);
 }
 
 void DielectricBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Float> u0, std::span<Point2> u12)
 {
-    if (E_texture && E_inv_texture)
-    {
-        return;
-    }
-
     Image3D1f image_e(texture_size, texture_size, texture_size);
     Image3D1f image_e_inv(texture_size, texture_size, texture_size);
 
@@ -139,11 +123,6 @@ void DielectricBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Flo
 
 void DielectricMultiScatteringBxDF::ComputeReflectanceTexture(int32 texture_size, std::span<Float> u0, std::span<Point2> u12)
 {
-    if (E_texture && E_inv_texture && E_avg_texture && E_inv_avg_texture)
-    {
-        return;
-    }
-
     Image3D1f image_e(texture_size, texture_size, texture_size);
     Image3D1f image_e_inv(texture_size, texture_size, texture_size);
     Image1f image_e_avg(texture_size, texture_size);
