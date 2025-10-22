@@ -23,13 +23,9 @@ Image1 ReadImage1(
     int32 components_per_pixel;
     float* data = stbi_loadf(filename.string().c_str(), &width, &height, &components_per_pixel, STBI_rgb_alpha);
 
-    if (!data)
+    if (!data || channel < 0 || channel >= components_per_pixel)
     {
-        return {};
-    }
-
-    if (channel < 0 || channel >= components_per_pixel)
-    {
+        std::cerr << "Failed to read image1: " << filename.string().c_str() << std::endl;
         return {};
     }
 
@@ -102,6 +98,7 @@ Image3 ReadImage3(const std::filesystem::path& filename, bool non_color, std::fu
 
     if (!data)
     {
+        std::cerr << "Failed to read image3: " << filename.string().c_str() << std::endl;
         return {};
     }
 
@@ -156,6 +153,7 @@ Image4 ReadImage4(const std::filesystem::path& filename, bool non_color, std::fu
 
     if (!data)
     {
+        std::cerr << "Failed to read image4: " << filename.string().c_str() << std::endl;
         return {};
     }
 
@@ -259,8 +257,8 @@ void WriteImage(const Image3& image, const std::filesystem::path& filename, Tone
     }
     else
     {
-        std::cout << "Faild to write image, extention not supported: " << extension << std::endl;
-        std::cout << "Supported extensions: .jpg .png .hdr" << std::endl;
+        std::cerr << "Faild to write image, extention not supported: " << extension << std::endl;
+        std::cerr << "Supported extensions: .jpg .png .hdr" << std::endl;
     }
 }
 
@@ -310,8 +308,8 @@ void WriteImage(const Image1& image, const std::filesystem::path& filename, Tone
     }
     else
     {
-        std::cout << "Faild to write image, extention not supported: " << extension << std::endl;
-        std::cout << "Supported extensions: .jpg .png .hdr" << std::endl;
+        std::cerr << "Faild to write image, extention not supported: " << extension << std::endl;
+        std::cerr << "Supported extensions: .jpg .png .hdr" << std::endl;
     }
 }
 

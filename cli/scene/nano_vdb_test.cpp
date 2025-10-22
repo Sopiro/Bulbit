@@ -10,7 +10,7 @@ void NanoVDBTest(RendererInfo* ri)
     nanovdb::GridHandle<nanovdb::HostBuffer> handle;
     try
     {
-        handle = nanovdb::io::readGrid("C:/Users/sopir/Desktop/bunny_cloud.nvdb");
+        handle = nanovdb::io::readGrid("res/volumes/bunny_cloud.nvdb");
     }
     catch (std::exception& e)
     {
@@ -108,7 +108,7 @@ void NanoVDBTest2(RendererInfo* ri)
     nanovdb::GridHandle<nanovdb::HostBuffer> handle;
     try
     {
-        handle = nanovdb::io::readGrid("C:/Users/sopir/Desktop/wdas_cloud_quarter.nvdb");
+        handle = nanovdb::io::readGrid("res/volumes/wdas_cloud_quarter.nvdb");
     }
     catch (std::exception& e)
     {
@@ -206,7 +206,7 @@ void NanoVDBTest3(RendererInfo* ri)
     std::vector<nanovdb::GridHandle<nanovdb::HostBuffer>> handles;
     try
     {
-        handles = nanovdb::io::readGrids("C:/Users/sopir/Desktop/fire.nvdb");
+        handles = nanovdb::io::readGrids("res/volumes/fire.nvdb");
     }
     catch (std::exception& e)
     {

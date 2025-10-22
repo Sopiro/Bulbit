@@ -23,26 +23,19 @@ Image3D1 ReadImage3D(
     int32 components_per_pixel;
     float* data = stbi_loadf(filename.string().c_str(), &dim_x, &dim_y, &components_per_pixel, STBI_rgb_alpha);
 
-    if (!data)
+    if (!data || channel < 0 || channel >= components_per_pixel)
     {
-        return {};
-    }
-
-    if (channel < 0 || channel >= components_per_pixel)
-    {
-        return {};
-    }
-
-    if (dim_x != resolution.x || dim_y != resolution.y * resolution.z)
-    {
+        std::cerr << "Failed to read image3D1: " << filename.string().c_str() << std::endl;
         return {};
     }
 
     dim_z = dim_y / resolution.y;
     dim_y /= resolution.z;
 
-    if (dim_y != resolution.y || dim_z != resolution.z)
+    if (dim_x != resolution.x || dim_y != resolution.y || dim_z != resolution.z)
     {
+        std::cerr << "Failed to read image3D1: " << filename.string().c_str() << "\n";
+        std::cerr << "Dimension not matched: (" << dim_x << ", " << dim_y << ", " << dim_z << ")" << std::endl;
         return {};
     }
 
@@ -122,19 +115,17 @@ Image3D3 ReadImage3D(
 
     if (!data)
     {
-        return {};
-    }
-
-    if (dim_x != resolution.x || dim_y != resolution.y * resolution.z)
-    {
+        std::cerr << "Failed to read image3D3: " << filename.string().c_str() << std::endl;
         return {};
     }
 
     dim_z = dim_y / resolution.y;
     dim_y /= resolution.z;
 
-    if (dim_y != resolution.y || dim_z != resolution.z)
+    if (dim_x != resolution.x || dim_y != resolution.y || dim_z != resolution.z)
     {
+        std::cerr << "Failed to read image3D3: " << filename.string().c_str() << "\n";
+        std::cerr << "Dimension not matched: (" << dim_x << ", " << dim_y << ", " << dim_z << ")" << std::endl;
         return {};
     }
 
@@ -190,8 +181,8 @@ void WriteImage3D(const Image3D1& image, const std::filesystem::path& filename)
     }
     else
     {
-        std::cout << "Faild to write image, extention not supported: " << extension << std::endl;
-        std::cout << "Supported extensions: .hdr" << std::endl;
+        std::cerr << "Faild to write image3D, extention not supported: " << extension << std::endl;
+        std::cerr << "Supported extensions: .hdr" << std::endl;
     }
 }
 
@@ -207,8 +198,8 @@ void WriteImage3D(const Image3D3& image, const std::filesystem::path& filename)
     }
     else
     {
-        std::cout << "Faild to write image, extention not supported: " << extension << std::endl;
-        std::cout << "Supported extensions: .hdr" << std::endl;
+        std::cerr << "Faild to write image3D, extention not supported: " << extension << std::endl;
+        std::cerr << "Supported extensions: .hdr" << std::endl;
     }
 }
 
