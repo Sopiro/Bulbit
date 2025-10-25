@@ -201,8 +201,7 @@ Spectrum VolPathIntegrator::Li(const Ray& primary_ray, const Medium* primary_med
                 for (Light* light : infinite_lights)
                 {
                     Float light_pdf = light->EvaluatePDF_Li(ray) * light_sampler->EvaluatePMF(light);
-                    r_l *= light_pdf;
-                    L += beta * light->Le(ray) / (r_u + r_l).Average();
+                    L += beta * light->Le(ray) / (r_u + r_l * light_pdf).Average();
                 }
             }
 
@@ -221,8 +220,7 @@ Spectrum VolPathIntegrator::Li(const Ray& primary_ray, const Medium* primary_med
                 {
                     // Add emission from area light source
                     Float light_pdf = isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
-                    r_l *= light_pdf;
-                    L += beta * Le / (r_u + r_l).Average();
+                    L += beta * Le / (r_u + r_l * light_pdf).Average();
                 }
             }
         }

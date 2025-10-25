@@ -454,8 +454,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     for (Light* light : infinite_lights)
                                     {
                                         Float light_pdf = light->EvaluatePDF_Li(ray) * light_sampler->EvaluatePMF(light);
-                                        r_l *= light_pdf;
-                                        L += beta * light->Le(ray) / (r_u + r_l).Average();
+                                        L += beta * light->Le(ray) / (r_u + r_l * light_pdf).Average();
                                     }
                                 }
 
@@ -478,8 +477,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         // Evaluate BSDF sample with MIS for area light
                                         Float light_pdf =
                                             isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
-                                        r_l *= light_pdf;
-                                        L += beta * Le / (r_u + r_l).Average();
+                                        L += beta * Le / (r_u + r_l * light_pdf).Average();
                                     }
 
                                     vp.Ld += L;
