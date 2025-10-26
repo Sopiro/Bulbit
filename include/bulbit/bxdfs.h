@@ -114,7 +114,7 @@ public:
 
     virtual void Regularize() override;
 
-    static void ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
+    static void PrepareReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
 
     static Float E(Vec3 wo, Float eta, Float alpha)
     {
@@ -211,7 +211,7 @@ public:
         }
     }
 
-    static void ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
+    static void PrepareReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
 
 private:
     static inline std::unique_ptr<FloatImageTexture3D> E_texture = nullptr;

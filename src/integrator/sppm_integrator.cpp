@@ -85,8 +85,6 @@ Spectrum SPPMIntegrator::SampleDirectLight(
 
 Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 {
-    ComputeReflectanceTextures();
-
     const int32 n_interations = sampler_prototype->samples_per_pixel;
     const int32 tile_size = 16;
 

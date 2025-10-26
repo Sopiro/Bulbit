@@ -8,7 +8,7 @@
 namespace bulbit
 {
 
-void ComputeReflectanceTextures(int32 texture_size = 32, int32 num_samples = 256);
+void PrepareReflectanceTextures(int32 texture_size = 32, int32 num_samples = 256);
 
 class TrowbridgeReitzDistribution
 {
@@ -159,7 +159,7 @@ public:
         return std::sqrt(alpha_x * alpha_y);
     }
 
-    static void ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
+    static void PrepareReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
 
 private:
     static inline std::unique_ptr<FloatImageTexture> E_texture = nullptr;
@@ -257,7 +257,7 @@ public:
         return E_texture->Evaluate({ wo.z, alpha });
     }
 
-    static void ComputeReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
+    static void PrepareReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
 
 private:
     static inline std::unique_ptr<FloatImageTexture> E_texture = nullptr;

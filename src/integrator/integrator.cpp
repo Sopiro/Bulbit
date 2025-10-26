@@ -132,8 +132,8 @@ Integrator::Integrator(const Intersectable* accel, std::vector<Light*> lights, s
     }
 
     const int32 texture_size = 32;
-    const int32 num_samples = 256;
-    ComputeReflectanceTextures(texture_size, num_samples);
+    const int32 num_samples = 1024;
+    PrepareReflectanceTextures(texture_size, num_samples);
 }
 
 UniDirectionalRayIntegrator::UniDirectionalRayIntegrator(

@@ -330,8 +330,6 @@ void PhotonMappingIntegrator::GatherPhotons(const Camera* camera, int32 tile_siz
 
 Rendering* PhotonMappingIntegrator::Render(Allocator& alloc, const Camera* camera)
 {
-    ComputeReflectanceTextures();
-
     const int32 tile_size = 16;
 
     Point2i res = camera->GetScreenResolution();
