@@ -104,12 +104,12 @@ void MetallicRoughness(RendererInfo* ri)
     auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
-    outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.08f);
-    outers[1] = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.05f, 0.4f, Spectrum(1), true, normalmap);
+    outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.3f);
+    outers[1] = CreateConductorMaterial(scene, { 0.1, 0.2, 1.9 }, { 3, 2.5, 2 }, 0.2f, 0.4f, Spectrum(1), true, normalmap);
     outers[2] = CreateMetallicRoughnessMaterial(scene, { 80 / 255.0, 1.0, 175 / 255.0 }, 0, 0);
 
     const Material* inners[count];
-    inners[0] = CreateConductorMaterial(scene, Spectrum{ 0.7f }, (0.05f), (0.4f));
+    inners[0] = CreateConductorMaterial(scene, Spectrum{ 0.7f }, (0.2f), (0.4f));
     inners[1] = CreateMirrorMaterial(scene, Spectrum(0.7f));
     inners[2] = CreateDiffuseMaterial(scene, Spectrum(0.7));
 
@@ -194,9 +194,9 @@ void Dielectrics(RendererInfo* ri)
     auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
-    outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.02f);
+    outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.15f);
     outers[1] = CreateDielectricMaterial(scene, 1.5f, 0.0f);
-    outers[2] = CreateDielectricMaterial(scene, 1.5f, 0.05f);
+    outers[2] = CreateDielectricMaterial(scene, 1.5f, 0.25f);
 
     const Material* inners[count];
     inners[0] = CreateMetallicRoughnessMaterial(scene, Spectrum{ 0.66 }, (0), (0));
@@ -385,8 +385,8 @@ void Mixtures(RendererInfo* ri)
         CreateFloatCheckerTexture(scene, CreateFloatConstantTexture(scene, 0), CreateFloatConstantTexture(scene, 1), Point2(20));
     outers[1] = scene.CreateMaterial<MixtureMaterial>(a, b, checker);
 
-    auto c = CreateConductorMaterial(scene, Spectrum{ 0.7f }, (0.05f), (0.4f));
-    auto d = CreateConductorMaterial(scene, Spectrum{ 0.7f }, (0.4f), (0.05f));
+    auto c = CreateConductorMaterial(scene, Spectrum{ 0.7f }, (0.1f), (0.3f));
+    auto d = CreateConductorMaterial(scene, Spectrum{ 0.7f }, (0.3f), (0.1f));
     outers[0] = scene.CreateMaterial<MixtureMaterial>(c, d, checker);
 
     auto e = CreateDiffuseMaterial(scene, Spectrum(0.7, 0.9, 0.5));
