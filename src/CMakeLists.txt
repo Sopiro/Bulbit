@@ -45,6 +45,10 @@ target_precompile_headers(bulbit
 target_include_directories(bulbit
     PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
+)
+
+target_include_directories(bulbit
+    SYSTEM PUBLIC
     ${stb_SOURCE_DIR}
     ${nanovdb_SOURCE_DIR}/nanovdb/nanovdb
 )
