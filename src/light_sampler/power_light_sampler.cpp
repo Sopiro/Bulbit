@@ -16,7 +16,7 @@ void PowerLightSampler::Init(std::span<Light*> all_lights)
     {
         const Light* light = lights[i];
         powers[i] = light->Phi().Luminance();
-        light_to_index[light] = i;
+        light_to_index.Insert(light, i);
     }
 
     distribution = Distribution1D(&powers[0], light_count);
@@ -43,7 +43,7 @@ bool PowerLightSampler::Sample(SampledLight* sampled_light, const Intersection& 
 
 Float PowerLightSampler::EvaluatePMF(const Light* light) const
 {
-    return distribution.DiscretePDF(light_to_index.at(light));
+    return distribution.DiscretePDF(light_to_index.At(light));
 }
 
 } // namespace bulbit

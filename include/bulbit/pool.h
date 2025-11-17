@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include "hash_map.h"
 
 namespace bulbit
 {
@@ -17,7 +17,7 @@ public:
     bool Delete(const Key& key);
     void Clear();
 
-    std::unordered_map<Key, Type*, Hash>& GetObjectMap();
+    HashMap<Key, Type*, Hash>& GetObjectMap();
     int32 PoolCount() const;
 
 private:
@@ -25,7 +25,7 @@ private:
     std::pmr::polymorphic_allocator<std::byte> allocator;
 
     int32 count = 0;
-    std::unordered_map<Key, Type*, Hash> objects;
+    HashMap<Key, Type*, Hash> objects;
 };
 
 template <typename Key, typename Type, typename Hash>
@@ -45,17 +45,16 @@ template <typename Key, typename Type, typename Hash>
 template <typename... Args>
 inline Type* Pool<Key, Type, Hash>::Create(const Key& key, Args&&... args)
 {
-    auto it = objects.find(key);
-    if (it != objects.end())
+    if (const auto* entry = objects.Contains(key))
     {
         // Already in pool
-        return it->second;
+        return entry->value;
     }
 
     // Create new object using pool allocator
     Type* object = allocator.new_object<Type>(std::forward<Args>(args)...);
 
-    objects.emplace(key, object);
+    objects.Insert(key, object);
     ++count;
 
     return object;
@@ -64,11 +63,10 @@ inline Type* Pool<Key, Type, Hash>::Create(const Key& key, Args&&... args)
 template <typename Key, typename Type, typename Hash>
 inline bool Pool<Key, Type, Hash>::Delete(const Key& key)
 {
-    auto it = objects.find(key);
-    if (it != objects.end())
+    if (const auto* entry = objects.Contains(key))
     {
-        allocator.delete_object(it->second);
-        objects.erase(it);
+        allocator.delete_object(entry->value);
+        objects.Erase(key);
 
         return true;
     }
@@ -79,16 +77,16 @@ inline bool Pool<Key, Type, Hash>::Delete(const Key& key)
 template <typename Key, typename Type, typename Hash>
 inline void Pool<Key, Type, Hash>::Clear()
 {
-    for (auto& kv : objects)
+    for (auto& entry : objects)
     {
-        allocator.delete_object(kv.second);
+        allocator.delete_object(entry.value);
     }
 
-    objects.clear();
+    objects.Clear();
 }
 
 template <typename Key, typename Type, typename Hash>
-inline std::unordered_map<Key, Type*, Hash>& Pool<Key, Type, Hash>::GetObjectMap()
+inline HashMap<Key, Type*, Hash>& Pool<Key, Type, Hash>::GetObjectMap()
 {
     return objects;
 }

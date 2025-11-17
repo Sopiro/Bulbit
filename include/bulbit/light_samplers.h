@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hash_map.h"
 #include "light_sampler.h"
 #include "sampling.h"
 
@@ -23,7 +24,7 @@ public:
 
 private:
     Distribution1D distribution;
-    std::unordered_map<const Light*, int32> light_to_index;
+    HashMap<const Light*, int32> light_to_index;
 };
 
 } // namespace bulbit

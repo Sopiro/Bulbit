@@ -12,7 +12,7 @@ class Film;
 class Sampler;
 class LightSampler;
 
-using AreaLightMap = std::unordered_map<const Primitive*, const Light*>;
+using AreaLightMap = HashMap<const Primitive*, const Light*>;
 
 struct IntegratorInfo;
 
@@ -71,14 +71,13 @@ public:
 
     const Light* GetAreaLight(const Intersection& isect) const
     {
-        auto iter = area_lights.find(isect.primitive);
-        if (iter == area_lights.end())
+        if (const AreaLightMap::Entry* e = area_lights.Contains(isect.primitive))
         {
-            return nullptr;
+            return e->value;
         }
         else
         {
-            return iter->second;
+            return nullptr;
         }
     }
 
