@@ -535,7 +535,7 @@ inline std::string BoundingBox3<T>::ToString() const
 
 // Iterators
 
-class IteratorB2i : public std::forward_iterator_tag
+class IteratorB2i
 {
 public:
     IteratorB2i(const AABB2i& b, const Point2i& p)
@@ -587,7 +587,7 @@ private:
     const AABB2i* bounds;
 };
 
-class IteratorB3i : public std::forward_iterator_tag
+class IteratorB3i
 {
 public:
     IteratorB3i(const AABB3i& b, const Point3i& p)
