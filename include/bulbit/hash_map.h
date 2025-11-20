@@ -8,13 +8,6 @@ namespace bulbit
 template <typename K, typename V, typename Hasher>
 class HashMapIterator;
 
-enum class BucketState
-{
-    empty,
-    occupied,
-    deleted
-};
-
 template <typename K, typename V, typename Hasher = std::hash<K>>
 class HashMap
 {
@@ -26,160 +19,209 @@ public:
     };
 
     HashMap()
-        : table{ 32 }
-        , states{ 32, BucketState::empty }
-        , occupied{ 0 }
+        : occupied{ 0 }
     {
+        // Initial size must be power of two
+        Resize(32);
     }
 
     bool Insert(K key, V value)
     {
-        constexpr float max_load = 0.7f;
-        if (float(occupied) / table.size() > max_load)
+        if (occupied >= table.size() * 0.7f)
         {
-            Rehash();
+            Rehash(table.size() * 2);
         }
 
-        size_t capacity = table.size();
-        size_t base = HashKey(key) & (capacity - 1);
-        size_t i = 0;
+        size_t mask = table.size() - 1;
 
-        while (i < capacity)
+        size_t hash = HashKey(key);
+        size_t current_dist = 0; // Distance from initial bucket
+        size_t index = hash & mask;
+
+        Entry entry = { std::move(key), std::move(value) };
+        while (true)
         {
-            size_t probe = (base + (i * i + i) / 2) & (capacity - 1);
-            if (states[probe] == BucketState::empty || states[probe] == BucketState::deleted)
+            // Found empty bucket
+            if (dists[index] == -1)
             {
-                table[probe] = Entry{ std::move(key), std::move(value) };
-                states[probe] = BucketState::occupied;
+                table[index] = std::move(entry);
+                dists[index] = int32(current_dist);
                 ++occupied;
-
                 return true;
             }
 
-            if (table[probe].key == key && states[probe] != BucketState::deleted)
+            // Update value
+            if (table[index].key == entry.key)
             {
-                table[probe].value = value; // update
-
+                table[index].value = std::move(entry.value);
                 return false;
             }
 
-            ++i;
-        }
+            // The Robin Hood step
+            if (int32(current_dist) > dists[index])
+            {
+                std::swap(entry, table[index]);
 
-        return false;
+                int32 old_dist = dists[index];
+                dists[index] = int32(current_dist);
+                current_dist = old_dist;
+            }
+
+            // Move to next bucket (linear probing)
+            ++current_dist;
+            index = (index + 1) & mask;
+        }
     }
 
     const Entry* Contains(const K& key) const
     {
-        size_t capacity = table.size();
-        size_t base = HashKey(key) & (capacity - 1);
-        size_t i = 0;
+        size_t mask = table.size() - 1;
+        size_t hash = HashKey(key);
 
-        while (i < capacity)
+        size_t index = hash & mask;
+        size_t dist = 0;
+
+        while (true)
         {
-            size_t probe = (base + (i * i + i) / 2) & (capacity - 1);
-            if (states[probe] == BucketState::empty)
+            if (dists[index] == -1)
             {
                 return nullptr;
             }
 
-            if (states[probe] == BucketState::occupied && table[probe].key == key)
+            if (dist > size_t(dists[index]))
             {
-                return &table[probe];
+                return nullptr;
             }
 
-            ++i;
+            if (table[index].key == key)
+            {
+                return &table[index];
+            }
+
+            index = (index + 1) & mask;
+            ++dist;
+        }
+    }
+
+    V& At(const K& key)
+    {
+        size_t capacity = table.size();
+        size_t mask = capacity - 1;
+
+        size_t hash = HashKey(key);
+        size_t index = hash & mask;
+        size_t dist = 0;
+
+        while (true)
+        {
+            if (table[index].key == key)
+            {
+                return table[index].value;
+            }
+
+            index = (index + 1) & mask;
+            ++dist;
+
+            // Safety break
+            if (dist > capacity)
+            {
+                BulbitAssert(false && "Use Contains() instead!");
+                break;
+            }
         }
 
-        return nullptr;
+        return table[capacity].value;
     }
 
     const V& At(const K& key) const
     {
         size_t capacity = table.size();
-        size_t base = HashKey(key) & (capacity - 1);
-        size_t i = 0;
+        size_t mask = capacity - 1;
 
-        while (i < capacity)
+        size_t hash = HashKey(key);
+        size_t index = hash & mask;
+        size_t dist = 0;
+
+        while (true)
         {
-            size_t probe = (base + (i * i + i) / 2) & (capacity - 1);
-            if (states[probe] == BucketState::empty)
+            if (table[index].key == key)
             {
-                BulbitAssert(false);
-                return table[0].value;
+                return table[index].value;
             }
 
-            if (states[probe] == BucketState::occupied && table[probe].key == key)
-            {
-                return table[probe].value;
-            }
+            index = (index + 1) & mask;
+            ++dist;
 
-            ++i;
+            // Safety break
+            if (dist > capacity)
+            {
+                BulbitAssert(false && "Use Contains() instead!");
+                break;
+            }
         }
 
-        BulbitAssert(false);
-        return table[0].value;
+        return table[capacity].value;
     }
 
     bool Erase(const K& key)
     {
-        size_t capacity = table.size();
-        size_t base = HashKey(key) & (capacity - 1);
-        size_t i = 0;
+        size_t mask = table.size() - 1;
+        size_t hash = HashKey(key);
 
-        while (i < capacity)
+        size_t index = hash & mask;
+        size_t dist = 0;
+
+        while (true)
         {
-            size_t probe = (base + (i * i + i) / 2) & (capacity - 1);
-            if (states[probe] == BucketState::empty)
+            if (dists[index] == -1 || dist > size_t(dists[index]))
             {
-                return false;
+                return false; // Not found
             }
 
-            if (states[probe] == BucketState::occupied && table[probe].key == key)
+            if (table[index].key == key)
             {
+                Remove(index);
                 --occupied;
-                states[probe] = BucketState::deleted;
                 return true;
             }
-            ++i;
-        }
 
-        return false;
+            index = (index + 1) & mask;
+            ++dist;
+        }
     }
 
     void Clear()
     {
-        table.clear();
-        states.clear();
         occupied = 0;
+        size_t capacity = table.size();
+
+        table.clear();
+        table.resize(capacity);
+
+        std::fill(dists.begin(), dists.end(), -1);
     }
 
     HashMapIterator<K, V, Hasher> begin()
     {
-        size_t capacity = table.size();
-        HashMapIterator<K, V, Hasher> it(table.data(), table.data() + capacity, states.data(), states.data() + capacity);
-        while (it.ptr < it.end && *it.ptr_s != BucketState::occupied)
+        size_t first_index = 0;
+        while (first_index < table.size() && dists[first_index] == -1)
         {
-            ++it.ptr;
-            ++it.ptr_s;
+            ++first_index;
         }
-
-        return it;
+        return HashMapIterator<K, V, Hasher>(this, first_index);
     }
 
     HashMapIterator<K, V, Hasher> end()
     {
-        size_t capacity = table.size();
-        return HashMapIterator<K, V, Hasher>(
-            table.data() + capacity, table.data() + capacity, states.data() + capacity, states.data() + capacity
-        );
+        return HashMapIterator<K, V, Hasher>(this, table.size());
     }
 
 private:
     friend class HashMapIterator<K, V, Hasher>;
 
     std::vector<Entry> table;
-    std::vector<BucketState> states;
+    std::vector<int32> dists; // probe segement lengths. -1 means empty.
+
     size_t occupied;
 
     size_t HashKey(const K& key) const
@@ -187,25 +229,49 @@ private:
         return Hasher{}(key);
     }
 
-    void Rehash()
+    void Rehash(size_t new_capacity)
     {
         std::vector<Entry> old_table = std::move(table);
-        std::vector<BucketState> old_states = std::move(states);
-        table.clear();
-        states.clear();
+        std::vector<int32> old_dists = std::move(dists);
 
-        size_t capacity = old_table.size();
-        table.resize(2 * capacity);
-        states.resize(2 * capacity, BucketState::empty);
+        Resize(new_capacity);
 
-        occupied = 0;
-
-        for (size_t i = 0; i < capacity; ++i)
+        for (size_t i = 0; i < old_table.size(); ++i)
         {
-            if (old_states[i] == BucketState::occupied)
+            if (old_dists[i] != -1)
             {
                 Insert(std::move(old_table[i].key), std::move(old_table[i].value));
             }
+        }
+    }
+
+    void Resize(size_t new_capacity)
+    {
+        table.resize(new_capacity);
+        dists.assign(new_capacity, -1);
+        occupied = 0;
+    }
+
+    void Remove(size_t index)
+    {
+        size_t mask = table.size() - 1;
+        size_t curr = index;
+        size_t next = (curr + 1) & mask;
+
+        while (true)
+        {
+            if (dists[next] == -1 || dists[next] == 0)
+            {
+                dists[curr] = -1;
+                return;
+            }
+
+            // Back shift deletion
+            table[curr] = std::move(table[next]);
+            dists[curr] = dists[next] - 1;
+
+            curr = next;
+            next = (curr + 1) & mask;
         }
     }
 };
@@ -214,13 +280,11 @@ template <typename K, typename V, typename Hasher>
 class HashMapIterator
 {
 public:
-    using Entry = HashMap<K, V, Hasher>::Entry;
+    using Entry = typename HashMap<K, V, Hasher>::Entry;
 
-    HashMapIterator(Entry* ptr, Entry* end, BucketState* ptr_s, BucketState* end_s)
-        : ptr{ ptr }
-        , end{ end }
-        , ptr_s{ ptr_s }
-        , end_s{ end_s }
+    HashMapIterator(HashMap<K, V, Hasher>* map, size_t index)
+        : map{ map }
+        , index{ index }
     {
     }
 
@@ -228,9 +292,9 @@ public:
     {
         do
         {
-            ++ptr;
-            ++ptr_s;
-        } while (ptr < end && *ptr_s != BucketState::occupied);
+            ++index;
+        } while (index < map->table.size() && map->dists[index] == -1);
+
         return *this;
     }
 
@@ -243,31 +307,32 @@ public:
 
     bool operator==(const HashMapIterator& iter) const
     {
-        return ptr == iter.ptr;
+        return index == iter.index && map == iter.map;
     }
 
     bool operator!=(const HashMapIterator& iter) const
     {
-        return ptr != iter.ptr;
+        return !(*this == iter);
     }
 
     Entry& operator*()
     {
-        return *ptr;
+        return map->table[index];
     }
 
     const Entry& operator*() const
     {
-        return *ptr;
+        return map->table[index];
+    }
+
+    Entry* operator->()
+    {
+        return &map->table[index];
     }
 
 private:
-    friend HashMap<K, V, Hasher>;
-
-    HashMap<K, V, Hasher>::Entry* ptr;
-    HashMap<K, V, Hasher>::Entry* end;
-    BucketState* ptr_s;
-    BucketState* end_s;
+    HashMap<K, V, Hasher>* map;
+    size_t index;
 };
 
 } // namespace bulbit
