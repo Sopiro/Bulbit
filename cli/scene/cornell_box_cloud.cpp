@@ -10,7 +10,7 @@ void CornellBoxCloud(RendererInfo* ri)
     nanovdb::GridHandle<nanovdb::HostBuffer> handle;
     try
     {
-        handle = nanovdb::io::readGrid("C:/Users/sopir/Desktop/wdas_cloud_quarter.nvdb");
+        handle = nanovdb::io::readGrid("res/volumes/wdas_cloud_quarter.nvdb");
     }
     catch (std::exception& e)
     {
