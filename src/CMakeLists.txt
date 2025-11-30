@@ -21,13 +21,11 @@ set(ZLIB_ENABLE_INSTALL OFF)
 FetchContent_MakeAvailable(zlib)
 
 # Download nanovdb
-FetchContent_Declare(
+FetchContent_Populate(
     nanovdb
     GIT_REPOSITORY https://github.com/AcademySoftwareFoundation/openvdb.git
     GIT_TAG feature/nanovdb
 )
-
-FetchContent_Populate(nanovdb)
 
 file(GLOB_RECURSE SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB_RECURSE HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/../include/bulbit/*.h)

@@ -1,20 +1,18 @@
 # Include tinyobj
-FetchContent_Declare(
+FetchContent_Populate(
     tinyobj
     GIT_REPOSITORY "https://github.com/tinyobjloader/tinyobjloader.git"
     GIT_TAG release
 )
-FetchContent_Populate(tinyobj)
 
 # Include tinygltf
 set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
 set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
-FetchContent_Declare(
+FetchContent_Populate(
     tinygltf
     GIT_REPOSITORY "https://github.com/syoyo/tinygltf.git"
     GIT_TAG v2.9.6
 )
-FetchContent_Populate(tinygltf)
 
 # Include pugixml
 FetchContent_Declare(
