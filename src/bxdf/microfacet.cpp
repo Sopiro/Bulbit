@@ -240,7 +240,7 @@ void PrepareReflectanceTextures(int32 texture_size, int32 num_samples)
 {
     if (!fs::exists(folder))
     {
-        fs::create_directory(folder);
+        fs::create_directories(folder);
     }
 
     int32 x_samples = int32(std::sqrt(num_samples));

@@ -60,6 +60,24 @@ DiffuseAreaLight* CreateDiffuseAreaLight(Scene& scene, const Primitive* primitiv
     return scene.CreateLight<DiffuseAreaLight>(primitive, CreateSpectrumConstantTexture(scene, emission), two_sided);
 }
 
+SpotAreaLight* CreateSpotAreaLight(
+    Scene& scene, const Primitive* primitive, const Spectrum& emission, Float angle_max, Float angle_falloff_start, bool two_sided
+)
+{
+    return scene.CreateLight<SpotAreaLight>(
+        primitive, CreateSpectrumConstantTexture(scene, emission), angle_max, angle_falloff_start, two_sided
+    );
+}
+
+SpotAreaLight* CreateSpotAreaLight(
+    Scene& scene, const Primitive* primitive, Float emission, Float angle_max, Float angle_falloff_start, bool two_sided
+)
+{
+    return scene.CreateLight<SpotAreaLight>(
+        primitive, CreateSpectrumConstantTexture(scene, emission), angle_max, angle_falloff_start, two_sided
+    );
+}
+
 DirectionalAreaLight* CreateDirectionalAreaLight(
     Scene& scene, const Primitive* primitive, const Spectrum& emission, bool two_sided
 )
