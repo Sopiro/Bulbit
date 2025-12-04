@@ -682,17 +682,17 @@ static TextureInfo ParseTexture(pugi::xml_node node, const DefaultMap& dm)
 
             if (name == "color0")
             {
-                ti.color0 = ParseColor(child, dm);
+                ti.color1 = ParseColor(child, dm);
             }
             else if (name == "color1")
             {
-                ti.color1 = ParseColor(child, dm);
+                ti.color0 = ParseColor(child, dm);
             }
             else if (name == "to_uv")
             {
                 Transform tf = ParseTransform(child, dm);
-                ti.scale.x = tf.s.x;
-                ti.scale.y = tf.s.y;
+                ti.scale.x = tf.s.x * 2;
+                ti.scale.y = tf.s.y * 2;
             }
         }
     }
