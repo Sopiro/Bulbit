@@ -614,8 +614,8 @@ static bool LoadMesh(
             emission = materials[primitive.material].second;
         }
 
-        std::optional<AreaLightInfo> ali = {};
-        if (emission)
+        std::optional<AreaLightInfo> ali = options.area_light;
+        if (!ali && emission)
         {
             ali.emplace();
             ali->emission = emission;
@@ -1027,8 +1027,8 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
                 emission = materials[material_id].second;
             }
 
-            std::optional<AreaLightInfo> ali = {};
-            if (emission)
+            std::optional<AreaLightInfo> ali = options.area_light;
+            if (!ali && emission)
             {
                 ali.emplace();
                 ali->emission = emission;

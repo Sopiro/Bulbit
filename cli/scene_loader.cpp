@@ -1836,6 +1836,7 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
         options.use_fallback_material = !use_model_material;
         options.fallback_material = mat;
         options.fallback_medium_interface = mi;
+        options.area_light = ali;
 
         LoadModel(*scene, filename, to_world, options);
     }

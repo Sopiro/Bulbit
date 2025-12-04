@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bulbit/bulbit.h"
+#include "scene_builder.h"
 
 namespace bulbit
 {
@@ -14,6 +15,8 @@ struct ModelLoaderOptions
 
     const Material* fallback_material = nullptr;
     MediumInterface fallback_medium_interface = {};
+
+    std::optional<AreaLightInfo> area_light = {};
 };
 
 void LoadModel(Scene& scene, std::filesystem::path filename, const Transform& transform, const ModelLoaderOptions& options = {});
