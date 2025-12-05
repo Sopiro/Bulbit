@@ -1,6 +1,5 @@
 #pragma once
 
-#include "bulbit/bulbit.h"
 #include "primitive_builder.h"
 
 namespace bulbit

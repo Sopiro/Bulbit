@@ -1,14 +1,14 @@
-#include "scene_loader.h"
-
-#include "bulbit/color.h"
 #include <pugixml.hpp>
 
+#include "bulbit/color.h"
+#include "bulbit/media.h"
+
 #include "model_loader.h"
+#include "scene_loader.h"
 #include "util.h"
 
 #include "light_builder.h"
 #include "material_builder.h"
-#include "primitive_builder.h"
 #include "texture_builder.h"
 
 namespace fs = std::filesystem;

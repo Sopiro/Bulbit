@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bulbit/medium.h"
+#include "bulbit/texture.h"
 #include "bulbit/transform.h"
 
 #include <variant>
