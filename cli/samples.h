@@ -4,10 +4,11 @@
 
 #include "light_builder.h"
 #include "material_builder.h"
-#include "model_loader.h"
-#include "scene_builder.h"
-#include "scene_loader.h"
+#include "primitive_builder.h"
 #include "texture_builder.h"
+
+#include "model_loader.h"
+#include "scene_loader.h"
 #include "util.h"
 
 #include <map>

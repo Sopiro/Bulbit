@@ -5,7 +5,7 @@
 #include "bulbit/scene.h"
 #include "bulbit/shapes.h"
 
-#include "scene_builder.h"
+#include "primitive_builder.h"
 #include "texture_builder.h"
 
 namespace bulbit

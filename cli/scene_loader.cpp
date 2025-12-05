@@ -8,7 +8,7 @@
 
 #include "light_builder.h"
 #include "material_builder.h"
-#include "scene_builder.h"
+#include "primitive_builder.h"
 #include "texture_builder.h"
 
 namespace fs = std::filesystem;

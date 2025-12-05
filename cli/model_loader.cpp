@@ -1,5 +1,5 @@
 #include "model_loader.h"
-#include "scene_builder.h"
+#include "primitive_builder.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 // #define TINYOBJLOADER_USE_MAPBOX_EARCUT

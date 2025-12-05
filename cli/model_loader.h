@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bulbit/bulbit.h"
-#include "scene_builder.h"
+#include "primitive_builder.h"
 
 namespace bulbit
 {
