@@ -853,8 +853,7 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
     {
         size_t index_offset = 0;
         // Group faces by material ID (a shape may mix different materials).
-        std::unordered_map<int, OBJMeshGroup> groups;
-        groups.reserve(4); // Reserve some typical material group count.
+        HashMap<int, OBJMeshGroup> groups;
 
         // Accumulate every normals
         std::vector<Vec3> smooth_normals;
@@ -911,7 +910,12 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
         for (size_t f = 0; f < shape.mesh.num_face_vertices.size(); ++f)
         {
             int material_id = shape.mesh.material_ids[f]; // Material ID for this face (-1 if none)
-            OBJMeshGroup& group = groups[material_id];
+            if (!groups.Contains(material_id))
+            {
+                groups.Insert(material_id, {});
+            }
+
+            OBJMeshGroup& group = groups.At(material_id);
             size_t fv = size_t(shape.mesh.num_face_vertices[f]);
 
             std::vector<int> face_indices;

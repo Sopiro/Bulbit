@@ -16,9 +16,9 @@ namespace fs = std::filesystem;
 namespace bulbit
 {
 
-using DefaultMap = std::unordered_map<std::string, std::string>;
-using MaterialMap = std::unordered_map<std::string, const Material*>;
-using MediumMap = std::unordered_map<std::string, const Medium*>;
+using DefaultMap = HashMap<std::string, std::string>;
+using MaterialMap = HashMap<std::string, const Material*>;
+using MediumMap = HashMap<std::string, const Medium*>;
 
 static Float VFovToHFov(Float vfov, Float aspect)
 {
@@ -38,7 +38,7 @@ static void ParseDefault(pugi::xml_node node, DefaultMap& dm)
         if (node.attribute("value"))
         {
             std::string value = node.attribute("value").value();
-            dm[name] = value;
+            dm.Insert(name, value);
         }
     }
 }
@@ -59,9 +59,9 @@ static std::string ParseString(pugi::xml_attribute attr, const DefaultMap& dm)
 
     str = str.substr(1);
 
-    if (dm.contains(str))
+    if (dm.Contains(str))
     {
-        return dm.at(str);
+        return dm.At(str);
     }
 
     return "";
@@ -1419,7 +1419,7 @@ static const Material* ParseMaterial(
 
     if (!id.empty() && mat != nullptr)
     {
-        mm[id] = mat;
+        mm.Insert(id, mat);
     }
 
     return mat;
@@ -1623,7 +1623,7 @@ static const Medium* ParseMedium(pugi::xml_node node, const DefaultMap& dm, Medi
 
     if (!id.empty() && medium != nullptr)
     {
-        mdm[id] = medium;
+        mdm.Insert(id, medium);
     }
 
     return medium;
@@ -1651,37 +1651,37 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
 
             if (name_value == "interior")
             {
-                if (!mdm.contains(id_value))
+                if (!mdm.Contains(id_value))
                 {
                     std::cerr << "Medium interior reference not found: " + id_value << std::endl;
                 }
 
-                mi.inside = mdm.at(id_value);
+                mi.inside = mdm.At(id_value);
             }
             else if (name_value == "exterior")
             {
-                if (!mdm.contains(id_value))
+                if (!mdm.Contains(id_value))
                 {
                     std::cerr << "Medium exterior reference not found: " + id_value << std::endl;
                 }
 
-                mi.outside = mdm.at(id_value);
+                mi.outside = mdm.At(id_value);
             }
             else if (name_value == "two_sided")
             {
-                if (!mdm.contains(id_value))
+                if (!mdm.Contains(id_value))
                 {
                     std::cerr << "Medium two_sided reference not found: " + id_value << std::endl;
                 }
 
-                mi.inside = mdm.at(id_value);
+                mi.inside = mdm.At(id_value);
                 mi.outside = mi.inside;
             }
             else
             {
-                if (!mm.contains(id_value))
+                if (!mm.Contains(id_value))
                 {
-                    if (!mm.contains("fallback"))
+                    if (!mm.Contains("fallback"))
                     {
                         std::cerr << "Material not found by id: " << id_value << std::endl;
                     }
@@ -1691,7 +1691,7 @@ static void ParseShape(pugi::xml_node node, const DefaultMap& dm, MaterialMap& m
                     }
                 }
 
-                mat = mm.at(id_value);
+                mat = mm.At(id_value);
             }
         }
         else if (name == "emitter")
