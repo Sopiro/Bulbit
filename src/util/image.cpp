@@ -23,9 +23,14 @@ Image1 ReadImage1(
     int32 components_per_pixel;
     float* data = stbi_loadf(filename.string().c_str(), &width, &height, &components_per_pixel, STBI_rgb_alpha);
 
-    if (!data || channel < 0 || channel >= components_per_pixel)
+    if (!data)
     {
         std::cerr << "Failed to read image1: " << filename.string().c_str() << std::endl;
+        return {};
+    }
+
+    if (channel < 0 || channel >= components_per_pixel)
+    {
         return {};
     }
 

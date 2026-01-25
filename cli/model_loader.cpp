@@ -36,7 +36,7 @@ static void LoadMaterials(
     Scene& scene,
     tinygltf::Model& model,
     const std::string& base_path,
-    std::vector<std::pair<const Material*, const SpectrumTexture*>> materials
+    std::vector<std::pair<const Material*, const SpectrumTexture*>>& materials
 )
 {
     for (int32 i = 0; i < int32(model.materials.size()); i++)
