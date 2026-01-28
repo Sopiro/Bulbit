@@ -1,5 +1,7 @@
 #pragma once
 
+#include "allocator.h"
+
 #include "medium.h"
 #include "random.h"
 #include "sampling.h"

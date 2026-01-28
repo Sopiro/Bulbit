@@ -1,5 +1,6 @@
 #pragma once
 
+#include "allocator.h"
 #include "bounding_box.h"
 #include "spectrum.h"
 

@@ -27,8 +27,5 @@
 #include <type_traits>
 #include <vector>
 
-#include "allocator.h"
-#include "math.h"
-
-#define BulbitAssert(A) assert(A)
-#define BulbitNotUsed(x) ((void)(x))
+#include "asserts.h"
+#include "types.h"

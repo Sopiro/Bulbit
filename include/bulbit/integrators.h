@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bxdf.h"
+#include "common.h"
 #include "integrator.h"
 #include "light_samplers.h"
 #include "lights.h"

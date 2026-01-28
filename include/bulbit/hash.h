@@ -8,7 +8,7 @@
 
 #include "common.h"
 
-#include "types.h"
+#include "floats.h"
 
 namespace bulbit
 {

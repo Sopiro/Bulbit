@@ -1,5 +1,6 @@
 #pragma once
 
+#include "allocator.h"
 #include "dynamic_dispatcher.h"
 #include "random.h"
 #include "ray.h"

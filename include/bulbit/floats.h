@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common.h"
+
 #include "asserts.h"
 #include "types.h"
 

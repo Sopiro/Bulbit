@@ -1,5 +1,6 @@
 #pragma once
 
+#include "allocator.h"
 #include "scene.h"
 
 namespace bulbit
