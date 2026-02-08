@@ -163,6 +163,18 @@ private:
     bool regularize_bsdf;
 };
 
+// ReSTIR direct lighting integrator (first-bounce direct illumination only)
+class ReSTIRDIIntegrator : public Integrator
+{
+public:
+    ReSTIRDIIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler);
+
+    virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
+
+private:
+    const Sampler* sampler_prototype;
+};
+
 // Light/Particle tracing integrator
 class LightPathIntegrator : public BiDirectionalRayIntegrator
 {

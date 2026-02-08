@@ -511,6 +511,7 @@ static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, IntegratorInfo&
     else if (type == "debug") { ri.type = IntegratorType::debug; }
     else if (type == "pm") { ri.type = IntegratorType::pm; }
     else if (type == "sppm") { ri.type = IntegratorType::sppm; }
+    else if (type == "restir_di") { ri.type = IntegratorType::restir_di; }
     // clang-format on
     else
     {

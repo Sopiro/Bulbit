@@ -223,6 +223,8 @@ int main(int argc, char* argv[])
         alloc.delete_object(sampler);
         alloc.delete_object(camera);
         alloc.delete_object(filter);
+
+        system(filename.c_str());
     }
 
     return 0;

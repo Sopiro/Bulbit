@@ -66,6 +66,9 @@ Integrator* Integrator::Create(
             ii.sample_direct_light
         );
 
+    case IntegratorType::restir_di:
+        return alloc.new_object<ReSTIRDIIntegrator>(accel, lights, sampler);
+
     case IntegratorType::naive_path:
         return alloc.new_object<NaivePathIntegrator>(accel, lights, sampler, max_bounces, rr_min_bounces);
 

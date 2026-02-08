@@ -31,6 +31,7 @@ public:
 private:
     friend class UniDirectionalRayIntegrator;
     friend class BiDirectionalRayIntegrator;
+    friend class ReSTIRDIIntegrator;
 
     size_t works;
 
