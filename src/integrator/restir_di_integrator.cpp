@@ -15,6 +15,8 @@ namespace bulbit
 
 struct ReSTIRDIVisiblePoint
 {
+    Float primary_weight;
+
     Intersection isect;
     Vec3 wo;
 
@@ -23,7 +25,10 @@ struct ReSTIRDIVisiblePoint
 
 struct ReSTIRDISample
 {
-    LightSampleLi x;
+    Point3 x;
+    Vec3 wi;
+    Spectrum Li;
+
     Float p_hat = 0; // p_hat(y): target function value of selected sample
     Float W = 0;
 };
@@ -45,6 +50,11 @@ public:
 
     bool Add(const ReSTIRDISample& sample, Float weight)
     {
+        if (weight <= 0)
+        {
+            return false;
+        }
+
         w_sum += weight;
 
         if (rng.NextFloat() < weight / w_sum)
@@ -102,202 +112,299 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
     size_t total_works = size_t(std::max(spp, 1) * tile_count * num_passes);
 
+    AABB world_bounds = accel->GetAABB();
+    Point3 p;
+    Float world_radius;
+    world_bounds.ComputeBoundingSphere(&p, &world_radius);
+
     SinglePhaseRendering* progress = alloc.new_object<SinglePhaseRendering>(camera, total_works);
     progress->job = RunAsync([=, this]() {
-        std::vector<ReSTIRDIVisiblePoint> visible_points(num_pixels);
-        std::vector<ReSTIRDISample> samples(num_pixels);
-        std::vector<ReSTIRDIReservoir> reservoirs(num_pixels);
+        for (int32 s = 0; s < spp; ++s)
+        {
+            std::vector<ReSTIRDIVisiblePoint> visible_points(num_pixels);
+            std::vector<ReSTIRDISample> samples(num_pixels);
 
-        const int32 sample = 0;
+            // Trace primary rays and generate initial sample
+            ParallelFor2D(
+                resolution,
+                [&](AABB2i tile) {
+                    int8 sample_mem[64];
+                    BufferResource sampler_buffer(sample_mem, sizeof(sample_mem));
+                    Allocator sampler_alloc(&sampler_buffer);
+                    Sampler* sampler = sampler_prototype->Clone(sampler_alloc);
 
-        // Trace primary rays and generate initial sample
-        ParallelFor2D(
-            resolution,
-            [&](AABB2i tile) {
-                int8 sample_mem[64];
-                BufferResource sampler_buffer(sample_mem, sizeof(sample_mem));
-                Allocator sampler_alloc(&sampler_buffer);
-                Sampler* sampler = sampler_prototype->Clone(sampler_alloc);
+                    int8 bxdf_mem[max_bxdf_size];
+                    BufferResource bsdf_buffer(bxdf_mem, sizeof(bxdf_mem));
+                    Allocator bsdf_alloc(&bsdf_buffer);
 
-                int8 bxdf_mem[max_bxdf_size];
-                BufferResource bsdf_buffer(bxdf_mem, sizeof(bxdf_mem));
-                Allocator bsdf_alloc(&bsdf_buffer);
-
-                for (Point2i pixel : tile)
-                {
-                    sampler->StartPixelSample(pixel, sample);
-                    const int32 index = resolution.x * pixel.y + pixel.x;
-
-                    PrimaryRay primary_ray;
-                    camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
-
-                    Ray ray = primary_ray.ray;
-
-                    ReSTIRDIVisiblePoint& vp = visible_points[index];
-                    Intersection& isect = vp.isect;
-
-                    vp.wo = Normalize(-ray.d);
-
-                    bool found_intersection = false;
-                    while (true)
+                    for (Point2i pixel : tile)
                     {
-                        // Find visible point
-                        found_intersection = Intersect(&isect, ray, Ray::epsilon, infinity);
+                        sampler->StartPixelSample(pixel, s);
+                        const int32 index = resolution.x * pixel.y + pixel.x;
+
+                        PrimaryRay primary_ray;
+                        camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
+
+                        Ray ray = primary_ray.ray;
+
+                        ReSTIRDIVisiblePoint& vp = visible_points[index];
+                        Intersection& isect = vp.isect;
+
+                        vp.primary_weight = primary_ray.weight;
+                        vp.wo = Normalize(-ray.d);
+
+                        bool found_intersection = false;
+                        while (true)
+                        {
+                            // Find visible point
+                            found_intersection = Intersect(&isect, ray, Ray::epsilon, infinity);
+                            if (!found_intersection)
+                            {
+                                for (Light* light : infinite_lights)
+                                {
+                                    vp.Le += light->Le(ray);
+                                }
+                                isect.primitive = nullptr;
+                                break;
+                            }
+                            else if (const Light* light = GetAreaLight(isect); light)
+                            {
+                                if (Spectrum Le = light->Le(isect, -ray.d); !Le.IsBlack())
+                                {
+                                    vp.Le += Le;
+                                }
+                            }
+
+                            bsdf_buffer.release();
+                            BSDF bsdf;
+                            if (!isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc))
+                            {
+                                ray.o = isect.point;
+                                continue;
+                            }
+
+                            break;
+                        }
+
                         if (!found_intersection)
                         {
-                            for (Light* light : infinite_lights)
-                            {
-                                vp.Le += light->Le(ray);
-                            }
-                            isect.primitive = nullptr;
-                            break;
+                            continue;
                         }
 
                         bsdf_buffer.release();
                         BSDF bsdf;
                         if (!isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc))
                         {
-                            ray.o = isect.point;
                             continue;
                         }
 
-                        break;
-                    }
+                        ReSTIRDIReservoir reservoir(Hash(pixel, s));
 
-                    if (!found_intersection)
-                    {
-                        continue;
-                    }
+                        // RIS: draw M initial candidates, keep one by WRS, then compute W(y)
+                        const int32 M_light = 8;
+                        const int32 M_bsdf = 1;
 
-                    bsdf_buffer.release();
-                    BSDF bsdf;
-                    if (!isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc))
-                    {
-                        continue;
-                    }
-
-                    ReSTIRDIReservoir& reservoir = reservoirs[index];
-                    reservoir.Reset();
-                    reservoir.Seed(Hash(pixel, sample));
-
-                    // RIS: draw M initial candidates, keep one by WRS, then compute W(y)
-                    const int32 M = 64;
-                    const Float mis_weight = 1.0f / M;
-
-                    for (int32 i = 0; i < M; ++i)
-                    {
-                        ReSTIRDISample candidate{};
-                        Float w = 0;
-
-                        SampledLight sampled_light;
-                        if (!light_sampler->Sample(&sampled_light, isect, sampler->Next1D()))
+                        for (int32 i = 0; i < M_light; ++i)
                         {
-                            continue;
-                        }
+                            SampledLight sampled_light;
+                            if (!light_sampler->Sample(&sampled_light, isect, sampler->Next1D()))
+                            {
+                                continue;
+                            }
 
-                        LightSampleLi light_sample;
-                        if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler->Next2D()))
-                        {
-                            continue;
-                        }
+                            LightSampleLi light_sample;
+                            if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler->Next2D()))
+                            {
+                                continue;
+                            }
 
-                        Float p = sampled_light.pmf * light_sample.pdf;
-                        if (p > 0 && !light_sample.Li.IsBlack())
-                        {
+                            if (light_sample.Li.IsBlack())
+                            {
+                                continue;
+                            }
+
+                            Float p_light = sampled_light.pmf * light_sample.pdf;
+                            Float p_bsdf = bsdf.PDF(vp.wo, light_sample.wi);
+                            Float mis_denom = M_light * p_light + M_bsdf * p_bsdf;
+                            if (mis_denom <= 0)
+                            {
+                                continue;
+                            }
+                            Float w_mis = p_light / mis_denom;
+
                             Spectrum f_cos = bsdf.f(vp.wo, light_sample.wi) * AbsDot(isect.shading.normal, light_sample.wi);
                             Float p_hat = (light_sample.Li * f_cos).Luminance();
                             if (p_hat > 0)
                             {
-                                candidate.x = light_sample;
+                                ReSTIRDISample candidate;
+                                candidate.x = light_sample.point;
+                                candidate.Li = light_sample.Li;
+                                candidate.wi = light_sample.wi;
                                 candidate.p_hat = p_hat;
-                                w = mis_weight * p_hat / p;
+
+                                Float w = w_mis * p_hat / p_light;
+
+                                reservoir.Add(candidate, w);
                             }
                         }
 
-                        reservoir.Add(candidate, w);
-                    }
-
-                    ReSTIRDISample& sample = samples[index];
-                    if (reservoir.HasSample())
-                    {
-                        sample = reservoir.y;
-
-                        if (sample.p_hat > 0)
+                        for (int32 i = 0; i < M_bsdf; ++i)
                         {
-                            sample.W = (1 / sample.p_hat) * reservoir.w_sum;
+                            BSDFSample bsdf_sample;
+                            if (!bsdf.Sample_f(&bsdf_sample, vp.wo, sampler->Next1D(), sampler->Next2D()))
+                            {
+                                continue;
+                            }
+
+                            if (bsdf_sample.pdf == 0 || bsdf_sample.f.IsBlack())
+                            {
+                                continue;
+                            }
+
+                            Float p_bsdf = bsdf_sample.is_stochastic ? bsdf.PDF(vp.wo, bsdf_sample.wi) : bsdf_sample.pdf;
+
+                            Intersection shadow_isect;
+                            Ray shadow_ray(isect.point, bsdf_sample.wi);
+                            if (!Intersect(&shadow_isect, Ray(isect.point, bsdf_sample.wi), Ray::epsilon, infinity))
+                            {
+                                Float p_light = 0;
+                                Spectrum Li(0);
+                                for (const Light* light : infinite_lights)
+                                {
+                                    p_light += light->EvaluatePDF_Li(shadow_ray) * light_sampler->EvaluatePMF(light);
+                                    Li += light->Le(shadow_ray);
+                                }
+
+                                Float mis_denom = M_light * p_light + M_bsdf * p_bsdf;
+                                if (mis_denom <= 0)
+                                {
+                                    continue;
+                                }
+                                Float w_mis = p_bsdf / mis_denom;
+
+                                Spectrum f_cos = bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi);
+                                Float p_hat = (Li * f_cos).Luminance();
+                                if (p_hat > 0)
+                                {
+                                    ReSTIRDISample candidate;
+                                    candidate.x = isect.point + bsdf_sample.wi * world_radius * 2;
+                                    candidate.Li = Li;
+                                    candidate.wi = bsdf_sample.wi;
+                                    candidate.p_hat = p_hat;
+
+                                    Float w = w_mis * p_hat / p_bsdf;
+
+                                    reservoir.Add(candidate, w);
+                                }
+                            }
+                            else if (const Light* light = GetAreaLight(shadow_isect); light)
+                            {
+                                Float p_light = shadow_isect.primitive->GetShape()->PDF(shadow_isect, shadow_ray) *
+                                                light_sampler->EvaluatePMF(light);
+                                Float mis_denom = M_light * p_light + M_bsdf * p_bsdf;
+                                if (mis_denom <= 0)
+                                {
+                                    continue;
+                                }
+                                Float w_mis = p_bsdf / mis_denom;
+
+                                Spectrum f_cos = bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi);
+                                Spectrum Li = light->Le(shadow_isect, -bsdf_sample.wi);
+                                Float p_hat = (Li * f_cos).Luminance();
+                                if (p_hat > 0)
+                                {
+                                    ReSTIRDISample candidate;
+                                    candidate.x = shadow_isect.point;
+                                    candidate.Li = Li;
+                                    candidate.wi = bsdf_sample.wi;
+
+                                    candidate.p_hat = p_hat;
+                                    Float w = w_mis * p_hat / p_bsdf;
+
+                                    reservoir.Add(candidate, w);
+                                }
+                            }
+                        }
+
+                        ReSTIRDISample& sample = samples[index];
+                        if (reservoir.HasSample())
+                        {
+                            sample = reservoir.y;
+
+                            if (sample.p_hat > 0)
+                            {
+                                sample.W = (1 / reservoir.y.p_hat) * reservoir.w_sum;
+                            }
                         }
                     }
-                }
 
-                progress->work_dones.fetch_add(1, std::memory_order_relaxed);
-            },
-            tile_size
-        );
+                    progress->work_dones.fetch_add(1, std::memory_order_relaxed);
+                },
+                tile_size
+            );
 
-        // Visibility pass
-        ParallelFor2D(
-            resolution,
-            [&](AABB2i tile) {
-                for (Point2i pixel : tile)
-                {
-                    const int32 index = resolution.x * pixel.y + pixel.x;
-                    ReSTIRDIVisiblePoint& vp = visible_points[index];
-                    Intersection& isect = vp.isect;
-                    ReSTIRDISample& sample = samples[index];
-                    if (!isect.primitive)
+            // Visibility pass
+            ParallelFor2D(
+                resolution,
+                [&](AABB2i tile) {
+                    for (Point2i pixel : tile)
                     {
-                        continue;
+                        const int32 index = resolution.x * pixel.y + pixel.x;
+                        ReSTIRDIVisiblePoint& vp = visible_points[index];
+                        Intersection& isect = vp.isect;
+                        ReSTIRDISample& sample = samples[index];
+                        if (!isect.primitive)
+                        {
+                            continue;
+                        }
+
+                        if (!V(this, isect.point, sample.x))
+                        {
+                            sample.W = 0;
+                        }
                     }
 
-                    if (!V(this, isect.point, sample.x.point))
+                    progress->work_dones.fetch_add(1, std::memory_order_relaxed);
+                },
+                tile_size
+            );
+
+            // Shade
+            ParallelFor2D(
+                resolution,
+                [&](AABB2i tile) {
+                    for (Point2i pixel : tile)
                     {
-                        sample.W = 0;
-                    }
-                }
+                        const int32 index = resolution.x * pixel.y + pixel.x;
+                        ReSTIRDIVisiblePoint& vp = visible_points[index];
+                        Intersection& isect = vp.isect;
 
-                progress->work_dones.fetch_add(1, std::memory_order_relaxed);
-            },
-            tile_size
-        );
+                        if (!isect.primitive)
+                        {
+                            progress->film.AddSample(pixel, vp.primary_weight * vp.Le);
+                            continue;
+                        }
+                        ReSTIRDISample& sample = samples[index];
 
-        // Shade
-        ParallelFor2D(
-            resolution,
-            [&](AABB2i tile) {
-                for (Point2i pixel : tile)
-                {
-                    const int32 index = resolution.x * pixel.y + pixel.x;
-                    ReSTIRDIVisiblePoint& vp = visible_points[index];
-                    Intersection& isect = vp.isect;
+                        int8 bxdf_mem[max_bxdf_size];
+                        BufferResource bsdf_buffer(bxdf_mem, sizeof(bxdf_mem));
+                        Allocator bsdf_alloc(&bsdf_buffer);
+                        BSDF bsdf;
+                        if (!isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc))
+                        {
+                            BulbitAssert(false);
+                        }
 
-                    if (!isect.primitive)
-                    {
-                        progress->film.AddSample(pixel, vp.Le);
-                        continue;
-                    }
-                    ReSTIRDISample& sample = samples[index];
-
-                    int8 bxdf_mem[max_bxdf_size];
-                    BufferResource bsdf_buffer(bxdf_mem, sizeof(bxdf_mem));
-                    Allocator bsdf_alloc(&bsdf_buffer);
-                    BSDF bsdf;
-                    if (!isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc))
-                    {
-                        BulbitAssert(false);
+                        Spectrum f_cos = bsdf.f(vp.wo, sample.wi) * AbsDot(isect.shading.normal, sample.wi);
+                        Spectrum L = vp.Le + sample.Li * f_cos * sample.W;
+                        progress->film.AddSample(pixel, vp.primary_weight * L);
                     }
 
-                    Spectrum f_cos = bsdf.f(vp.wo, sample.x.wi) * AbsDot(isect.shading.normal, sample.x.wi);
-                    Spectrum L = sample.x.Li * f_cos * sample.W;
-                    if (!L.IsBlack())
-                    {
-                        progress->film.AddSample(pixel, L);
-                    }
-                }
-
-                progress->work_dones.fetch_add(1, std::memory_order_relaxed);
-            },
-            tile_size
-        );
+                    progress->work_dones.fetch_add(1, std::memory_order_relaxed);
+                },
+                tile_size
+            );
+        }
 
         progress->done.store(true, std::memory_order_release);
         return true;
