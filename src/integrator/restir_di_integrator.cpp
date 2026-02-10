@@ -25,7 +25,10 @@ struct ReSTIRDIVisiblePoint
 
 struct ReSTIRDISample
 {
-    Point3 x;
+    const Light* light;
+    bool infinite_light;
+    Point3 x, n;
+
     Vec3 wi;
     Spectrum Li;
 
@@ -239,15 +242,18 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             Float p_hat = (light_sample.Li * f_cos).Luminance();
                             if (p_hat > 0)
                             {
-                                ReSTIRDISample candidate;
-                                candidate.x = light_sample.point;
-                                candidate.Li = light_sample.Li;
-                                candidate.wi = light_sample.wi;
-                                candidate.p_hat = p_hat;
+                                ReSTIRDISample sample;
+                                sample.light = sampled_light.light;
+                                sample.infinite_light = sampled_light.light->IsInfiniteLight();
+                                sample.x = light_sample.point;
+                                sample.n = light_sample.normal;
+                                sample.Li = light_sample.Li;
+                                sample.wi = light_sample.wi;
+                                sample.p_hat = p_hat;
 
                                 Float w = w_mis * p_hat / p_light;
 
-                                reservoir.Add(candidate, w);
+                                reservoir.Add(sample, w);
                             }
                         }
 
@@ -289,15 +295,17 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 Float p_hat = (Li * f_cos).Luminance();
                                 if (p_hat > 0)
                                 {
-                                    ReSTIRDISample candidate;
-                                    candidate.x = isect.point + bsdf_sample.wi * world_radius * 2;
-                                    candidate.Li = Li;
-                                    candidate.wi = bsdf_sample.wi;
-                                    candidate.p_hat = p_hat;
+                                    ReSTIRDISample sample;
+                                    sample.light = nullptr;
+                                    sample.infinite_light = true;
+                                    sample.x = isect.point + bsdf_sample.wi * world_radius * 2;
+                                    sample.Li = Li;
+                                    sample.wi = bsdf_sample.wi;
+                                    sample.p_hat = p_hat;
 
                                     Float w = w_mis * p_hat / p_bsdf;
 
-                                    reservoir.Add(candidate, w);
+                                    reservoir.Add(sample, w);
                                 }
                             }
                             else if (const Light* light = GetAreaLight(shadow_isect); light)
@@ -316,15 +324,17 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 Float p_hat = (Li * f_cos).Luminance();
                                 if (p_hat > 0)
                                 {
-                                    ReSTIRDISample candidate;
-                                    candidate.x = shadow_isect.point;
-                                    candidate.Li = Li;
-                                    candidate.wi = bsdf_sample.wi;
+                                    ReSTIRDISample sample;
+                                    sample.light = light;
+                                    sample.infinite_light = false;
+                                    sample.x = shadow_isect.point;
+                                    sample.Li = Li;
+                                    sample.wi = bsdf_sample.wi;
 
-                                    candidate.p_hat = p_hat;
+                                    sample.p_hat = p_hat;
                                     Float w = w_mis * p_hat / p_bsdf;
 
-                                    reservoir.Add(candidate, w);
+                                    reservoir.Add(sample, w);
                                 }
                             }
                         }
