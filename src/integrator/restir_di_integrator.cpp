@@ -30,7 +30,7 @@ struct ReSTIRDISample
     Spectrum Li;
 
     Float p_hat = 0; // p_hat(y): target function value of selected sample
-    Float W = 0;
+    Float W = 0;     // UCW
 };
 
 class ReSTIRDIReservoir
@@ -52,6 +52,7 @@ public:
     {
         if (weight <= 0)
         {
+            BulbitAssert(false);
             return false;
         }
 
@@ -92,7 +93,7 @@ private:
 };
 
 ReSTIRDIIntegrator::ReSTIRDIIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler)
-    : Integrator(accel, std::move(lights), std::make_unique<PowerLightSampler>())
+    : Integrator(accel, std::move(lights), std::make_unique<UniformLightSampler>())
     , sampler_prototype{ sampler }
 {
 }
@@ -122,7 +123,9 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
         for (int32 s = 0; s < spp; ++s)
         {
             std::vector<ReSTIRDIVisiblePoint> visible_points(num_pixels);
-            std::vector<ReSTIRDISample> samples(num_pixels);
+
+            std::vector<ReSTIRDISample> ris_samples(num_pixels);     // output sample after RIS sampling + visibility pass
+            std::vector<ReSTIRDISample> spatial_samples(num_pixels); // output sample after spatial resampling
 
             // Trace primary rays and generate initial sample
             ParallelFor2D(
@@ -201,7 +204,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         ReSTIRDIReservoir reservoir(Hash(pixel, s));
 
                         // RIS: draw M initial candidates, keep one by WRS, then compute W(y)
-                        const int32 M_light = 8;
+                        const int32 M_light = 32;
                         const int32 M_bsdf = 1;
 
                         for (int32 i = 0; i < M_light; ++i)
@@ -326,9 +329,9 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
                         }
 
-                        ReSTIRDISample& sample = samples[index];
                         if (reservoir.HasSample())
                         {
+                            ReSTIRDISample& sample = ris_samples[index];
                             sample = reservoir.y;
 
                             if (sample.p_hat > 0)
@@ -352,12 +355,12 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         const int32 index = resolution.x * pixel.y + pixel.x;
                         ReSTIRDIVisiblePoint& vp = visible_points[index];
                         Intersection& isect = vp.isect;
-                        ReSTIRDISample& sample = samples[index];
                         if (!isect.primitive)
                         {
                             continue;
                         }
 
+                        ReSTIRDISample& sample = ris_samples[index];
                         if (!V(this, isect.point, sample.x))
                         {
                             sample.W = 0;
@@ -368,6 +371,8 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                 },
                 tile_size
             );
+
+            // Spatial resampling
 
             // Shade
             ParallelFor2D(
@@ -384,7 +389,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             progress->film.AddSample(pixel, vp.primary_weight * vp.Le);
                             continue;
                         }
-                        ReSTIRDISample& sample = samples[index];
+                        ReSTIRDISample& sample = ris_samples[index];
 
                         int8 bxdf_mem[max_bxdf_size];
                         BufferResource bsdf_buffer(bxdf_mem, sizeof(bxdf_mem));
