@@ -520,40 +520,40 @@ static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, IntegratorInfo&
 
     for (auto child : node.children())
     {
-        std::string name = child.name();
+        std::string name = child.attribute("name").value();
 
         if (name == "max_depth")
         {
-            ri.max_bounces = ParseInteger(node.attribute("value"), dm);
+            ri.max_bounces = ParseInteger(child.attribute("value"), dm);
         }
         else if (name == "rr_depth")
         {
-            ri.rr_min_bounces = ParseInteger(node.attribute("value"), dm);
+            ri.rr_min_bounces = ParseInteger(child.attribute("value"), dm);
         }
         else if (name == "ao_range")
         {
-            ri.ao_range = ParseFloat(node.attribute("value"), dm);
+            ri.ao_range = ParseFloat(child.attribute("value"), dm);
         }
         else if (name == "n_photons")
         {
-            ri.n_photons = ParseFloat(node.attribute("value"), dm);
+            ri.n_photons = ParseInteger(child.attribute("value"), dm);
         }
         else if (name == "initial_radius")
         {
-            ri.initial_radius_surface = ParseFloat(node.attribute("value"), dm);
-            ri.initial_radius_volume = ParseFloat(node.attribute("value"), dm);
+            ri.initial_radius_surface = ParseFloat(child.attribute("value"), dm);
+            ri.initial_radius_volume = ParseFloat(child.attribute("value"), dm);
         }
         else if (name == "initial_radius_surface")
         {
-            ri.initial_radius_surface = ParseFloat(node.attribute("value"), dm);
+            ri.initial_radius_surface = ParseFloat(child.attribute("value"), dm);
         }
         else if (name == "initial_radius_volume")
         {
-            ri.initial_radius_volume = ParseFloat(node.attribute("value"), dm);
+            ri.initial_radius_volume = ParseFloat(child.attribute("value"), dm);
         }
         else if (name == "sample_direct_light")
         {
-            ri.sample_direct_light = ParseBoolean(node.attribute("value"), dm);
+            ri.sample_direct_light = ParseBoolean(child.attribute("value"), dm);
         }
     }
 }
