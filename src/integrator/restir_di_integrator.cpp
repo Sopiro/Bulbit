@@ -98,6 +98,7 @@ ReSTIRDIIntegrator::ReSTIRDIIntegrator(const Intersectable* accel, std::vector<L
     : Integrator(accel, std::move(lights), std::make_unique<UniformLightSampler>())
     , sampler_prototype{ sampler }
 {
+    // Assume scene contains area lights only
     BulbitAssert(area_lights.Size() == lights.size());
 }
 
@@ -112,7 +113,10 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
     const Point2i num_tiles = (resolution + (tile_size - 1)) / tile_size;
     int32 tile_count = num_tiles.x * num_tiles.y;
 
-    const int32 num_passes = 3;
+    const int32 num_passes = 5;
+
+    const Float spatial_radius = 3.0;
+    const int32 num_spatial_samples = 5;
 
     size_t total_works = size_t(std::max(spp, 1) * tile_count * num_passes);
 
@@ -347,6 +351,95 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
             );
 
             // Spatial resampling
+            ParallelFor2D(
+                resolution,
+                [&](AABB2i tile) {
+                    int8 bxdf_mem[max_bxdf_size];
+                    BufferResource bsdf_buffer(bxdf_mem, sizeof(bxdf_mem));
+                    Allocator bsdf_alloc(&bsdf_buffer);
+
+                    for (Point2i pixel : tile)
+                    {
+                        const int32 index = resolution.x * pixel.y + pixel.x;
+                        ReSTIRDIVisiblePoint& vp = visible_points[index];
+                        Intersection& isect = vp.isect;
+
+                        if (!isect.primitive)
+                        {
+                            continue;
+                        }
+
+                        // ReSTIRDISample& canonical_sample = ris_samples[index];
+
+                        bsdf_buffer.release();
+                        BSDF bsdf;
+                        if (!isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc))
+                        {
+                            BulbitAssert(false);
+                        }
+
+                        const size_t u0 = 1234;
+                        const size_t u1 = 5678;
+                        ReSTIRDIReservoir reservoir(Hash(pixel, s, u0));
+                        RNG rng(Hash(pixel, s), u1);
+
+                        for (int32 i = 0; i < num_spatial_samples; ++i)
+                        {
+                            Point2 offset = spatial_radius * SampleUniformUnitDisk({ rng.NextFloat(), rng.NextFloat() });
+                            Point2i neighbor_pixel(
+                                Clamp(pixel.x + offset.x, 0, resolution.x - 1), Clamp(pixel.y + offset.y, 0, resolution.y - 1)
+                            );
+
+                            const int32 neighbor_index = resolution.x * neighbor_pixel.y + neighbor_pixel.x;
+                            ReSTIRDIVisiblePoint& neighbor_vp = visible_points[neighbor_index];
+                            ReSTIRDISample sample = ris_samples[neighbor_index];
+                            if (sample.W == 0)
+                            {
+                                continue;
+                            }
+
+                            Vec3 wi = sample.x - vp.isect.point;
+                            Float d1 = Length2(wi);
+                            wi /= std::sqrt(d1);
+                            Spectrum f_cos = bsdf.f(vp.wo, wi) * AbsDot(isect.shading.normal, wi);
+
+                            Spectrum Li = sample.light->Le(Intersection{ .point = sample.x, .front_face = true }, -wi);
+                            Float p_hat = (Li * f_cos).Luminance();
+                            if (p_hat <= 0)
+                            {
+                                continue;
+                            }
+
+                            sample.p_hat = p_hat;
+                            sample.wi = wi;
+                            sample.Li = Li;
+
+                            Vec3 wi_n = sample.x - neighbor_vp.isect.point;
+                            Float d2 = Length2(wi_n);
+                            wi_n /= std::sqrt(d2);
+                            Float jacobian = (d2 * AbsDot(sample.n, wi)) / (AbsDot(sample.n, wi_n) * d1);
+
+                            Float w_mis = 1.0f / num_spatial_samples;
+                            Float w = w_mis * p_hat * sample.W * jacobian;
+                            reservoir.Add(sample, w);
+                        }
+
+                        ReSTIRDISample& sample = spatial_samples[index];
+                        if (reservoir.HasSample())
+                        {
+                            sample = reservoir.y;
+                            sample.W = (1 / reservoir.y.p_hat) * reservoir.w_sum;
+                        }
+                        else
+                        {
+                            sample.W = 0;
+                        }
+                    }
+
+                    progress->work_dones.fetch_add(1, std::memory_order_relaxed);
+                },
+                tile_size
+            );
 
             // Shade
             ParallelFor2D(
@@ -367,7 +460,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             progress->film.AddSample(pixel, vp.primary_weight * vp.Le);
                             continue;
                         }
-                        ReSTIRDISample& sample = ris_samples[index];
+                        ReSTIRDISample& sample = spatial_samples[index];
 
                         bsdf_buffer.release();
                         BSDF bsdf;
@@ -377,7 +470,11 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         }
 
                         Spectrum f_cos = bsdf.f(vp.wo, sample.wi) * AbsDot(isect.shading.normal, sample.wi);
-                        Spectrum L = vp.Le + sample.Li * f_cos * sample.W;
+                        Spectrum L = vp.Le;
+                        if (V(this, isect.point, sample.x))
+                        {
+                            L += sample.Li * f_cos * sample.W;
+                        }
                         progress->film.AddSample(pixel, vp.primary_weight * L);
                     }
 
