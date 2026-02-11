@@ -18,9 +18,18 @@ struct ReSTIRDIVisiblePoint
     Float primary_weight;
 
     Intersection isect;
+    BSDF bsdf;
     Vec3 wo;
 
     Spectrum Le;
+
+    ReSTIRDIVisiblePoint()
+        : bsdf_buffer(&bxdf_mem, sizeof(bxdf_mem))
+    {
+    }
+
+    int8 bxdf_mem[max_bxdf_size];
+    BufferResource bsdf_buffer;
 };
 
 struct ReSTIRDISample
@@ -28,6 +37,7 @@ struct ReSTIRDISample
     const Light* light;
     Point3 x, n;
 
+    Float d2, cos;
     Vec3 wi;
     Spectrum Li;
 
@@ -104,9 +114,9 @@ inline Float MIS_Canonical(
 {
     Float w = c1 * p_hat_X1;
     Float denom = w + (c_total - c1) * p_hat_y * jacobian;
-    if (!(denom > 0.0))
+    if (!(denom > 0))
     {
-        return 0.0;
+        return 0;
     }
 
     return (cj / c_total) * (w / denom);
@@ -123,9 +133,9 @@ inline Float MIS_NonCanonical(
 {
     Float w = (c_total - c1) * p_hat_xj;
     Float denom = w + c1 * p_hat_y * jacobian;
-    if (!(denom > 0.0))
+    if (!(denom > 0))
     {
-        return 0.0;
+        return 0;
     }
 
     return (cj / c_total) * (w / denom);
@@ -148,19 +158,15 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
     const int32 num_pixels = resolution.x * resolution.y;
     const Point2i num_tiles = (resolution + (tile_size - 1)) / tile_size;
-    int32 tile_count = num_tiles.x * num_tiles.y;
-
+    const int32 tile_count = num_tiles.x * num_tiles.y;
     const int32 num_passes = 5;
+    const size_t total_works = size_t(std::max(spp, 1) * tile_count * num_passes);
 
     const Float spatial_radius = 3.0;
     const int32 num_spatial_samples = 5;
 
-    size_t total_works = size_t(std::max(spp, 1) * tile_count * num_passes);
-
-    AABB world_bounds = accel->GetAABB();
-    Point3 p;
-    Float world_radius;
-    world_bounds.ComputeBoundingSphere(&p, &world_radius);
+    const int32 M_light = 32;
+    const int32 M_bsdf = 1;
 
     SinglePhaseRendering* progress = alloc.new_object<SinglePhaseRendering>(camera, total_works);
     progress->job = RunAsync([=, this]() {
@@ -180,10 +186,6 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                     Allocator sampler_alloc(&sampler_buffer);
                     Sampler* sampler = sampler_prototype->Clone(sampler_alloc);
 
-                    int8 bxdf_mem[max_bxdf_size];
-                    BufferResource bsdf_buffer(bxdf_mem, sizeof(bxdf_mem));
-                    Allocator bsdf_alloc(&bsdf_buffer);
-
                     for (Point2i pixel : tile)
                     {
                         sampler->StartPixelSample(pixel, s);
@@ -200,7 +202,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         vp.primary_weight = primary_ray.weight;
                         vp.wo = Normalize(-ray.d);
 
-                        BSDF bsdf;
+                        BSDF& bsdf = vp.bsdf;
                         bool found_intersection = false;
                         while (true)
                         {
@@ -220,7 +222,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 }
                             }
 
-                            bsdf_buffer.release();
+                            Allocator bsdf_alloc(&vp.bsdf_buffer);
                             if (!isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc))
                             {
                                 ray.o = isect.point;
@@ -235,12 +237,9 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             continue;
                         }
 
-                        ReSTIRDIReservoir reservoir(Hash(pixel, s));
+                        ReSTIRDIReservoir reservoir(Hash(pixel, s, 123));
 
                         // RIS: draw M initial candidates, keep one by WRS, then compute W(y)
-                        const int32 M_light = 32;
-                        const int32 M_bsdf = 1;
-
                         for (int32 i = 0; i < M_light; ++i)
                         {
                             SampledLight sampled_light;
@@ -286,8 +285,12 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             sample.light = sampled_light.light;
                             sample.x = light_sample.point;
                             sample.n = light_sample.normal;
+
+                            sample.cos = AbsDot(light_sample.normal, light_sample.wi);
+                            sample.d2 = Dist2(light_sample.point, isect.point);
                             sample.wi = light_sample.wi;
                             sample.Li = light_sample.Li;
+
                             sample.p_hat = p_hat;
 
                             Float w = w_mis * p_hat / p_light;
@@ -337,6 +340,9 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     sample.light = light;
                                     sample.x = shadow_isect.point;
                                     sample.n = shadow_isect.normal;
+
+                                    sample.d2 = Sqr(shadow_isect.t);
+                                    sample.cos = AbsDot(isect.normal, bsdf_sample.wi);
                                     sample.wi = bsdf_sample.wi;
                                     sample.Li = Li;
 
@@ -395,14 +401,6 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
             ParallelFor2D(
                 resolution,
                 [&](AABB2i tile) {
-                    int8 bxdf_mem[max_bxdf_size];
-                    BufferResource bsdf_buffer(bxdf_mem, sizeof(bxdf_mem));
-                    Allocator bsdf_alloc(&bsdf_buffer);
-
-                    int8 bxdf_mem2[max_bxdf_size];
-                    BufferResource bsdf_buffer2(bxdf_mem2, sizeof(bxdf_mem2));
-                    Allocator bsdf_alloc2(&bsdf_buffer2);
-
                     for (Point2i pixel : tile)
                     {
                         const int32 index = resolution.x * pixel.y + pixel.x;
@@ -414,24 +412,15 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             continue;
                         }
 
-                        bsdf_buffer.release();
-                        BSDF bsdf;
-                        if (!isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc))
-                        {
-                            BulbitAssert(false);
-                        }
-
-                        const size_t u0 = 1234;
-                        const size_t u1 = 5678;
-                        ReSTIRDIReservoir reservoir(Hash(pixel, s, u0));
-                        RNG rng(Hash(pixel, s), u1);
+                        ReSTIRDIReservoir reservoir(Hash(pixel, s, 456));
+                        RNG rng(Hash(pixel, s), 789);
 
                         ReSTIRDISample canonical_sample = ris_samples[index];
 
                         // Pairwise MIS weight for canonical sample
-                        Float m_1 = 1.0f / num_spatial_samples;
-                        Float c_1 = canonical_sample.W > 0 ? 1 : 0;
+                        Float c_1 = 1;
                         Float c_total = c_1 + num_spatial_samples - 1;
+                        Float m_1 = 1.0f / c_total;
 
                         for (int32 i = 0; i < num_spatial_samples - 1; ++i)
                         {
@@ -454,9 +443,9 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             Vec3 wi = sample.x - isect.point;
-                            Float d1 = Length2(wi);
-                            wi /= std::sqrt(d1);
-                            Spectrum f_cos = bsdf.f(vp.wo, wi) * AbsDot(isect.shading.normal, wi);
+                            Float d2 = Length2(wi);
+                            wi /= std::sqrt(d2);
+                            Spectrum f_cos = vp.bsdf.f(vp.wo, wi) * AbsDot(isect.shading.normal, wi);
 
                             Spectrum Li = sample.light->Le(Intersection{ .point = sample.x, .front_face = true }, -wi);
                             Float p_hat_y = (Li * f_cos).Luminance();
@@ -465,19 +454,18 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 continue;
                             }
 
-                            Vec3 wi_n = sample.x - neighbor_vp.isect.point;
-                            Float d2 = Length2(wi_n);
-                            wi_n /= std::sqrt(d2);
-
                             // Shift neighbor sample to canonical domain
-                            Float jacobian = (AbsDot(sample.n, wi) * d2) / (AbsDot(sample.n, wi_n) * d1);
+                            Float jacobian = (Dot(sample.n, -wi) * sample.d2) / (sample.cos * d2);
                             Float m_i = MIS_NonCanonical(c_1, c_total, 1, sample.p_hat, p_hat_y, jacobian);
 
-                            Float w = m_i * p_hat_y * sample.W * jacobian;
-                            sample.p_hat = p_hat_y;
-                            sample.wi = wi;
-                            sample.Li = Li;
-                            reservoir.Add(sample, w);
+                            if (m_i > 0)
+                            {
+                                Float w = m_i * p_hat_y * sample.W * jacobian;
+                                sample.p_hat = p_hat_y;
+                                sample.wi = wi;
+                                sample.Li = Li;
+                                reservoir.Add(sample, w);
+                            }
 
                             if (canonical_sample.W == 0)
                             {
@@ -486,31 +474,24 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             // Shift canonical sample to neighbor domain
                             wi = canonical_sample.x - neighbor_vp.isect.point;
-                            Float d3 = Length2(wi);
-                            wi /= std::sqrt(d3);
+                            d2 = Length2(wi);
+                            wi /= std::sqrt(d2);
 
                             Li = canonical_sample.light->Le(isect, -wi);
 
-                            bsdf_buffer2.release();
-                            BSDF bsdf_n;
-                            neighbor_vp.isect.GetBSDF(&bsdf_n, neighbor_vp.wo, bsdf_alloc2);
-
-                            f_cos = bsdf_n.f(neighbor_vp.wo, wi) * AbsDot(neighbor_vp.isect.shading.normal, wi);
+                            f_cos = neighbor_vp.bsdf.f(neighbor_vp.wo, wi) * AbsDot(neighbor_vp.isect.shading.normal, wi);
                             p_hat_y = (Li * f_cos).Luminance();
                             if (p_hat_y <= 0)
                             {
                                 continue;
                             }
 
-                            Vec3 wi_c = canonical_sample.x - isect.point;
-                            Float d4 = Length2(wi_c);
-                            wi_c /= std::sqrt(d4);
-
-                            Float jacobian_rev = (AbsDot(canonical_sample.n, wi) * d4) / (AbsDot(canonical_sample.n, wi_c) * d3);
+                            Float jacobian_rev =
+                                (Dot(canonical_sample.n, -wi) * canonical_sample.d2) / (canonical_sample.cos * d2);
                             m_1 += MIS_Canonical(c_1, c_total, 1, canonical_sample.p_hat, p_hat_y, jacobian_rev);
                         }
 
-                        if (canonical_sample.W > 0)
+                        if (canonical_sample.W > 0 && m_1 > 0)
                         {
                             Float w = m_1 * canonical_sample.p_hat * canonical_sample.W;
                             reservoir.Add(canonical_sample, w);
@@ -537,10 +518,6 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
             ParallelFor2D(
                 resolution,
                 [&](AABB2i tile) {
-                    int8 bxdf_mem[max_bxdf_size];
-                    BufferResource bsdf_buffer(bxdf_mem, sizeof(bxdf_mem));
-                    Allocator bsdf_alloc(&bsdf_buffer);
-
                     for (Point2i pixel : tile)
                     {
                         const int32 index = resolution.x * pixel.y + pixel.x;
@@ -554,14 +531,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         }
                         ReSTIRDISample& sample = spatial_samples[index];
 
-                        bsdf_buffer.release();
-                        BSDF bsdf;
-                        if (!isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc))
-                        {
-                            BulbitAssert(false);
-                        }
-
-                        Spectrum f_cos = bsdf.f(vp.wo, sample.wi) * AbsDot(isect.shading.normal, sample.wi);
+                        Spectrum f_cos = vp.bsdf.f(vp.wo, sample.wi) * AbsDot(isect.shading.normal, sample.wi);
                         Spectrum L = vp.Le;
                         if (V(this, isect.point, sample.x))
                         {
