@@ -342,7 +342,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     sample.n = shadow_isect.normal;
 
                                     sample.d2 = Sqr(shadow_isect.t);
-                                    sample.cos = AbsDot(isect.normal, bsdf_sample.wi);
+                                    sample.cos = AbsDot(shadow_isect.normal, -bsdf_sample.wi);
                                     sample.wi = bsdf_sample.wi;
                                     sample.Li = Li;
 
@@ -418,18 +418,38 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         ReSTIRDISample canonical_sample = ris_samples[index];
 
                         // Pairwise MIS weight for canonical sample
-                        Float c_1 = 1;
-                        Float c_total = c_1 + num_spatial_samples - 1;
-                        Float m_1 = 1.0f / c_total;
+                        Float c_1 = canonical_sample.W > 0 ? 1 : 0;
+                        Float c_total = c_1;
 
+                        int32 neighbors[num_spatial_samples - 1];
                         for (int32 i = 0; i < num_spatial_samples - 1; ++i)
                         {
                             Point2 offset = spatial_radius * SampleUniformUnitDisk({ rng.NextFloat(), rng.NextFloat() });
                             Point2i neighbor_pixel(
                                 Clamp(pixel.x + offset.x, 0, resolution.x - 1), Clamp(pixel.y + offset.y, 0, resolution.y - 1)
                             );
+                            int32 neighbor_index = resolution.x * neighbor_pixel.y + neighbor_pixel.x;
 
-                            const int32 neighbor_index = resolution.x * neighbor_pixel.y + neighbor_pixel.x;
+                            if (ris_samples[neighbor_index].W > 0)
+                            {
+                                neighbors[i] = neighbor_index;
+                                ++c_total;
+                            }
+                            else
+                            {
+                                neighbors[i] = -1;
+                            }
+                        }
+                        Float m_1 = c_1 / c_total;
+
+                        for (int32 i = 0; i < num_spatial_samples - 1; ++i)
+                        {
+                            int32 neighbor_index = neighbors[i];
+                            if (neighbor_index < 0)
+                            {
+                                continue;
+                            }
+
                             ReSTIRDIVisiblePoint& neighbor_vp = visible_points[neighbor_index];
                             ReSTIRDISample sample = ris_samples[neighbor_index];
                             if (sample.W == 0)
@@ -445,16 +465,17 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             Vec3 wi = sample.x - isect.point;
                             Float d2 = Length2(wi);
                             wi /= std::sqrt(d2);
+
+                            // Shift neighbor sample to canonical domain
+                            Spectrum Li = sample.light->Le(Intersection{ .point = sample.x, .front_face = true }, -wi);
                             Spectrum f_cos = vp.bsdf.f(vp.wo, wi) * AbsDot(isect.shading.normal, wi);
 
-                            Spectrum Li = sample.light->Le(Intersection{ .point = sample.x, .front_face = true }, -wi);
                             Float p_hat_y = (Li * f_cos).Luminance();
                             if (p_hat_y <= 0)
                             {
                                 continue;
                             }
 
-                            // Shift neighbor sample to canonical domain
                             Float jacobian = (Dot(sample.n, -wi) * sample.d2) / (sample.cos * d2);
                             Float m_i = MIS_NonCanonical(c_1, c_total, 1, sample.p_hat, p_hat_y, jacobian);
 
@@ -477,15 +498,10 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             d2 = Length2(wi);
                             wi /= std::sqrt(d2);
 
-                            Li = canonical_sample.light->Le(isect, -wi);
-
+                            Li = canonical_sample.light->Le(Intersection{ .point = canonical_sample.x, .front_face = true }, -wi);
                             f_cos = neighbor_vp.bsdf.f(neighbor_vp.wo, wi) * AbsDot(neighbor_vp.isect.shading.normal, wi);
-                            p_hat_y = (Li * f_cos).Luminance();
-                            if (p_hat_y <= 0)
-                            {
-                                continue;
-                            }
 
+                            p_hat_y = (Li * f_cos).Luminance();
                             Float jacobian_rev =
                                 (Dot(canonical_sample.n, -wi) * canonical_sample.d2) / (canonical_sample.cos * d2);
                             m_1 += MIS_Canonical(c_1, c_total, 1, canonical_sample.p_hat, p_hat_y, jacobian_rev);
@@ -531,10 +547,10 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         }
                         ReSTIRDISample& sample = spatial_samples[index];
 
-                        Spectrum f_cos = vp.bsdf.f(vp.wo, sample.wi) * AbsDot(isect.shading.normal, sample.wi);
                         Spectrum L = vp.Le;
-                        if (V(this, isect.point, sample.x))
+                        if (sample.W > 0 && V(this, isect.point, sample.x))
                         {
+                            Spectrum f_cos = vp.bsdf.f(vp.wo, sample.wi) * AbsDot(isect.shading.normal, sample.wi);
                             L += sample.Li * f_cos * sample.W;
                         }
                         progress->film.AddSample(pixel, vp.primary_weight * L);
