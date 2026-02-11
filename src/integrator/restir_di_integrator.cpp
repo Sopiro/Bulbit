@@ -54,7 +54,6 @@ public:
     {
         if (weight <= 0)
         {
-            BulbitAssert(false);
             return false;
         }
 
@@ -94,12 +93,50 @@ private:
     RNG rng;
 };
 
+inline Float MIS_Canonical(
+    Float c1,
+    Float c_total,
+    Float cj,
+    Float p_hat_X1, // r1.p_hat(x) where x = X1
+    Float p_hat_y,  // p_hat(y) in neighbor domain (from inverse shift)
+    Float jacobian  // |(T^{-1}_j)'(X1)|
+)
+{
+    Float w = c1 * p_hat_X1;
+    Float denom = w + (c_total - c1) * p_hat_y * jacobian;
+    if (!(denom > 0.0))
+    {
+        return 0.0;
+    }
+
+    return (cj / c_total) * (w / denom);
+}
+
+inline Float MIS_NonCanonical(
+    Float c1,
+    Float c_total,
+    Float cj,
+    Float p_hat_xj, // rj.p_hat(x) where x = X_j
+    Float p_hat_y,  // p_hat(y) in canonical domain
+    Float jacobian  // |T'_j(X_j)|
+)
+{
+    Float w = (c_total - c1) * p_hat_xj;
+    Float denom = w + c1 * p_hat_y * jacobian;
+    if (!(denom > 0.0))
+    {
+        return 0.0;
+    }
+
+    return (cj / c_total) * (w / denom);
+}
+
 ReSTIRDIIntegrator::ReSTIRDIIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler)
     : Integrator(accel, std::move(lights), std::make_unique<UniformLightSampler>())
     , sampler_prototype{ sampler }
 {
     // Assume scene contains area lights only
-    BulbitAssert(area_lights.Size() == lights.size());
+    BulbitAssert(area_lights.Size() == all_lights.size());
 }
 
 Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
@@ -193,7 +230,11 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             break;
                         }
 
-                        BulbitAssert(found_intersection);
+                        if (!found_intersection)
+                        {
+                            continue;
+                        }
+
                         ReSTIRDIReservoir reservoir(Hash(pixel, s));
 
                         // RIS: draw M initial candidates, keep one by WRS, then compute W(y)
@@ -358,6 +399,10 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                     BufferResource bsdf_buffer(bxdf_mem, sizeof(bxdf_mem));
                     Allocator bsdf_alloc(&bsdf_buffer);
 
+                    int8 bxdf_mem2[max_bxdf_size];
+                    BufferResource bsdf_buffer2(bxdf_mem2, sizeof(bxdf_mem2));
+                    Allocator bsdf_alloc2(&bsdf_buffer2);
+
                     for (Point2i pixel : tile)
                     {
                         const int32 index = resolution.x * pixel.y + pixel.x;
@@ -368,8 +413,6 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         {
                             continue;
                         }
-
-                        // ReSTIRDISample& canonical_sample = ris_samples[index];
 
                         bsdf_buffer.release();
                         BSDF bsdf;
@@ -383,7 +426,14 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         ReSTIRDIReservoir reservoir(Hash(pixel, s, u0));
                         RNG rng(Hash(pixel, s), u1);
 
-                        for (int32 i = 0; i < num_spatial_samples; ++i)
+                        ReSTIRDISample canonical_sample = ris_samples[index];
+
+                        // Pairwise MIS weight for canonical sample
+                        Float m_1 = 1.0f / num_spatial_samples;
+                        Float c_1 = canonical_sample.W > 0 ? 1 : 0;
+                        Float c_total = c_1 + num_spatial_samples - 1;
+
+                        for (int32 i = 0; i < num_spatial_samples - 1; ++i)
                         {
                             Point2 offset = spatial_radius * SampleUniformUnitDisk({ rng.NextFloat(), rng.NextFloat() });
                             Point2i neighbor_pixel(
@@ -398,30 +448,72 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 continue;
                             }
 
-                            Vec3 wi = sample.x - vp.isect.point;
+                            if (neighbor_index == index)
+                            {
+                                continue;
+                            }
+
+                            Vec3 wi = sample.x - isect.point;
                             Float d1 = Length2(wi);
                             wi /= std::sqrt(d1);
                             Spectrum f_cos = bsdf.f(vp.wo, wi) * AbsDot(isect.shading.normal, wi);
 
                             Spectrum Li = sample.light->Le(Intersection{ .point = sample.x, .front_face = true }, -wi);
-                            Float p_hat = (Li * f_cos).Luminance();
-                            if (p_hat <= 0)
+                            Float p_hat_y = (Li * f_cos).Luminance();
+                            if (p_hat_y <= 0)
                             {
                                 continue;
                             }
 
-                            sample.p_hat = p_hat;
-                            sample.wi = wi;
-                            sample.Li = Li;
-
                             Vec3 wi_n = sample.x - neighbor_vp.isect.point;
                             Float d2 = Length2(wi_n);
                             wi_n /= std::sqrt(d2);
-                            Float jacobian = (d2 * AbsDot(sample.n, wi)) / (AbsDot(sample.n, wi_n) * d1);
 
-                            Float w_mis = 1.0f / num_spatial_samples;
-                            Float w = w_mis * p_hat * sample.W * jacobian;
+                            // Shift neighbor sample to canonical domain
+                            Float jacobian = (AbsDot(sample.n, wi) * d2) / (AbsDot(sample.n, wi_n) * d1);
+                            Float m_i = MIS_NonCanonical(c_1, c_total, 1, sample.p_hat, p_hat_y, jacobian);
+
+                            Float w = m_i * p_hat_y * sample.W * jacobian;
+                            sample.p_hat = p_hat_y;
+                            sample.wi = wi;
+                            sample.Li = Li;
                             reservoir.Add(sample, w);
+
+                            if (canonical_sample.W == 0)
+                            {
+                                continue;
+                            }
+
+                            // Shift canonical sample to neighbor domain
+                            wi = canonical_sample.x - neighbor_vp.isect.point;
+                            Float d3 = Length2(wi);
+                            wi /= std::sqrt(d3);
+
+                            Li = canonical_sample.light->Le(isect, -wi);
+
+                            bsdf_buffer2.release();
+                            BSDF bsdf_n;
+                            neighbor_vp.isect.GetBSDF(&bsdf_n, neighbor_vp.wo, bsdf_alloc2);
+
+                            f_cos = bsdf_n.f(neighbor_vp.wo, wi) * AbsDot(neighbor_vp.isect.shading.normal, wi);
+                            p_hat_y = (Li * f_cos).Luminance();
+                            if (p_hat_y <= 0)
+                            {
+                                continue;
+                            }
+
+                            Vec3 wi_c = canonical_sample.x - isect.point;
+                            Float d4 = Length2(wi_c);
+                            wi_c /= std::sqrt(d4);
+
+                            Float jacobian_rev = (AbsDot(canonical_sample.n, wi) * d4) / (AbsDot(canonical_sample.n, wi_c) * d3);
+                            m_1 += MIS_Canonical(c_1, c_total, 1, canonical_sample.p_hat, p_hat_y, jacobian_rev);
+                        }
+
+                        if (canonical_sample.W > 0)
+                        {
+                            Float w = m_1 * canonical_sample.p_hat * canonical_sample.W;
+                            reservoir.Add(canonical_sample, w);
                         }
 
                         ReSTIRDISample& sample = spatial_samples[index];
