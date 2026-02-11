@@ -26,7 +26,6 @@ struct ReSTIRDIVisiblePoint
 struct ReSTIRDISample
 {
     const Light* light;
-    bool infinite_light;
     Point3 x, n;
 
     Vec3 wi;
@@ -99,6 +98,7 @@ ReSTIRDIIntegrator::ReSTIRDIIntegrator(const Intersectable* accel, std::vector<L
     : Integrator(accel, std::move(lights), std::make_unique<UniformLightSampler>())
     , sampler_prototype{ sampler }
 {
+    BulbitAssert(area_lights.Size() == lights.size());
 }
 
 Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
@@ -134,8 +134,8 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
             ParallelFor2D(
                 resolution,
                 [&](AABB2i tile) {
-                    int8 sample_mem[64];
-                    BufferResource sampler_buffer(sample_mem, sizeof(sample_mem));
+                    int8 sampler_mem[64];
+                    BufferResource sampler_buffer(sampler_mem, sizeof(sampler_mem));
                     Allocator sampler_alloc(&sampler_buffer);
                     Sampler* sampler = sampler_prototype->Clone(sampler_alloc);
 
@@ -159,6 +159,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         vp.primary_weight = primary_ray.weight;
                         vp.wo = Normalize(-ray.d);
 
+                        BSDF bsdf;
                         bool found_intersection = false;
                         while (true)
                         {
@@ -166,23 +167,19 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             found_intersection = Intersect(&isect, ray, Ray::epsilon, infinity);
                             if (!found_intersection)
                             {
-                                for (Light* light : infinite_lights)
-                                {
-                                    vp.Le += light->Le(ray);
-                                }
                                 isect.primitive = nullptr;
                                 break;
                             }
-                            else if (const Light* light = GetAreaLight(isect); light)
+
+                            if (const Light* light = GetAreaLight(isect); light)
                             {
                                 if (Spectrum Le = light->Le(isect, -ray.d); !Le.IsBlack())
                                 {
-                                    vp.Le += Le;
+                                    vp.Le = Le;
                                 }
                             }
 
                             bsdf_buffer.release();
-                            BSDF bsdf;
                             if (!isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc))
                             {
                                 ray.o = isect.point;
@@ -192,18 +189,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             break;
                         }
 
-                        if (!found_intersection)
-                        {
-                            continue;
-                        }
-
-                        bsdf_buffer.release();
-                        BSDF bsdf;
-                        if (!isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc))
-                        {
-                            continue;
-                        }
-
+                        BulbitAssert(found_intersection);
                         ReSTIRDIReservoir reservoir(Hash(pixel, s));
 
                         // RIS: draw M initial candidates, keep one by WRS, then compute W(y)
@@ -240,21 +226,28 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             Spectrum f_cos = bsdf.f(vp.wo, light_sample.wi) * AbsDot(isect.shading.normal, light_sample.wi);
                             Float p_hat = (light_sample.Li * f_cos).Luminance();
-                            if (p_hat > 0)
+                            if (p_hat <= 0)
                             {
-                                ReSTIRDISample sample;
-                                sample.light = sampled_light.light;
-                                sample.infinite_light = sampled_light.light->IsInfiniteLight();
-                                sample.x = light_sample.point;
-                                sample.n = light_sample.normal;
-                                sample.Li = light_sample.Li;
-                                sample.wi = light_sample.wi;
-                                sample.p_hat = p_hat;
-
-                                Float w = w_mis * p_hat / p_light;
-
-                                reservoir.Add(sample, w);
+                                continue;
                             }
+
+                            // Include visibility for now
+                            // if (!V(this, isect.point, light_sample.point))
+                            // {
+                            //     continue;
+                            // }
+
+                            ReSTIRDISample sample;
+                            sample.light = sampled_light.light;
+                            sample.x = light_sample.point;
+                            sample.n = light_sample.normal;
+                            sample.wi = light_sample.wi;
+                            sample.Li = light_sample.Li;
+                            sample.p_hat = p_hat;
+
+                            Float w = w_mis * p_hat / p_light;
+
+                            reservoir.Add(sample, w);
                         }
 
                         for (int32 i = 0; i < M_bsdf; ++i)
@@ -274,62 +267,33 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             Intersection shadow_isect;
                             Ray shadow_ray(isect.point, bsdf_sample.wi);
-                            if (!Intersect(&shadow_isect, Ray(isect.point, bsdf_sample.wi), Ray::epsilon, infinity))
+                            if (Intersect(&shadow_isect, Ray(isect.point, bsdf_sample.wi), Ray::epsilon, infinity))
                             {
-                                Float p_light = 0;
-                                Spectrum Li(0);
-                                for (const Light* light : infinite_lights)
+                                if (const Light* light = GetAreaLight(shadow_isect); light)
                                 {
-                                    p_light += light->EvaluatePDF_Li(shadow_ray) * light_sampler->EvaluatePMF(light);
-                                    Li += light->Le(shadow_ray);
-                                }
+                                    Float p_light = shadow_isect.primitive->GetShape()->PDF(shadow_isect, shadow_ray) *
+                                                    light_sampler->EvaluatePMF(light);
+                                    Float mis_denom = M_light * p_light + M_bsdf * p_bsdf;
+                                    if (mis_denom <= 0)
+                                    {
+                                        continue;
+                                    }
+                                    Float w_mis = p_bsdf / mis_denom;
 
-                                Float mis_denom = M_light * p_light + M_bsdf * p_bsdf;
-                                if (mis_denom <= 0)
-                                {
-                                    continue;
-                                }
-                                Float w_mis = p_bsdf / mis_denom;
+                                    Spectrum f_cos = bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi);
+                                    Spectrum Li = light->Le(shadow_isect, -bsdf_sample.wi);
+                                    Float p_hat = (Li * f_cos).Luminance();
+                                    if (p_hat <= 0)
+                                    {
+                                        continue;
+                                    }
 
-                                Spectrum f_cos = bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi);
-                                Float p_hat = (Li * f_cos).Luminance();
-                                if (p_hat > 0)
-                                {
-                                    ReSTIRDISample sample;
-                                    sample.light = nullptr;
-                                    sample.infinite_light = true;
-                                    sample.x = isect.point + bsdf_sample.wi * world_radius * 2;
-                                    sample.Li = Li;
-                                    sample.wi = bsdf_sample.wi;
-                                    sample.p_hat = p_hat;
-
-                                    Float w = w_mis * p_hat / p_bsdf;
-
-                                    reservoir.Add(sample, w);
-                                }
-                            }
-                            else if (const Light* light = GetAreaLight(shadow_isect); light)
-                            {
-                                Float p_light = shadow_isect.primitive->GetShape()->PDF(shadow_isect, shadow_ray) *
-                                                light_sampler->EvaluatePMF(light);
-                                Float mis_denom = M_light * p_light + M_bsdf * p_bsdf;
-                                if (mis_denom <= 0)
-                                {
-                                    continue;
-                                }
-                                Float w_mis = p_bsdf / mis_denom;
-
-                                Spectrum f_cos = bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi);
-                                Spectrum Li = light->Le(shadow_isect, -bsdf_sample.wi);
-                                Float p_hat = (Li * f_cos).Luminance();
-                                if (p_hat > 0)
-                                {
                                     ReSTIRDISample sample;
                                     sample.light = light;
-                                    sample.infinite_light = false;
                                     sample.x = shadow_isect.point;
-                                    sample.Li = Li;
+                                    sample.n = shadow_isect.normal;
                                     sample.wi = bsdf_sample.wi;
+                                    sample.Li = Li;
 
                                     sample.p_hat = p_hat;
                                     Float w = w_mis * p_hat / p_bsdf;
@@ -339,15 +303,15 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
                         }
 
+                        ReSTIRDISample& sample = ris_samples[index];
                         if (reservoir.HasSample())
                         {
-                            ReSTIRDISample& sample = ris_samples[index];
                             sample = reservoir.y;
-
-                            if (sample.p_hat > 0)
-                            {
-                                sample.W = (1 / reservoir.y.p_hat) * reservoir.w_sum;
-                            }
+                            sample.W = (1 / reservoir.y.p_hat) * reservoir.w_sum;
+                        }
+                        else
+                        {
+                            sample.W = 0;
                         }
                     }
 
@@ -388,6 +352,10 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
             ParallelFor2D(
                 resolution,
                 [&](AABB2i tile) {
+                    int8 bxdf_mem[max_bxdf_size];
+                    BufferResource bsdf_buffer(bxdf_mem, sizeof(bxdf_mem));
+                    Allocator bsdf_alloc(&bsdf_buffer);
+
                     for (Point2i pixel : tile)
                     {
                         const int32 index = resolution.x * pixel.y + pixel.x;
@@ -401,9 +369,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         }
                         ReSTIRDISample& sample = ris_samples[index];
 
-                        int8 bxdf_mem[max_bxdf_size];
-                        BufferResource bsdf_buffer(bxdf_mem, sizeof(bxdf_mem));
-                        Allocator bsdf_alloc(&bsdf_buffer);
+                        bsdf_buffer.release();
                         BSDF bsdf;
                         if (!isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc))
                         {
