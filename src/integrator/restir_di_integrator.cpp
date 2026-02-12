@@ -51,6 +51,7 @@ public:
     ReSTIRDIReservoir(uint64 seed = 0)
         : w{ 0 }
         , w_sum{ 0 }
+        , M{ 0 }
         , rng(seed)
     {
     }
@@ -67,6 +68,7 @@ public:
             return false;
         }
 
+        ++M;
         w_sum += weight;
 
         if (rng.NextFloat() < weight / w_sum)
@@ -93,52 +95,54 @@ public:
     {
         w = 0;
         w_sum = 0;
+        M = 0;
     }
 
     ReSTIRDISample y{};
     Float w;
     Float w_sum;
+    Float M;
 
 private:
     RNG rng;
 };
 
 inline Float MIS_Canonical(
-    Float c1,
+    Float c_1,
     Float c_total,
-    Float cj,
+    Float c_j,
     Float p_hat_x1, // r1.p_hat(x) where x = X1
     Float p_hat_y,  // p_hat(y) in neighbor domain (from inverse shift)
     Float jacobian  // |(T^{-1}_j)'(X1)|
 )
 {
-    Float w = c1 * p_hat_x1;
-    Float denom = w + (c_total - c1) * p_hat_y * jacobian;
+    Float w = c_1 * p_hat_x1;
+    Float denom = w + (c_total - c_1) * p_hat_y * jacobian;
     if (denom <= 0)
     {
         return 0;
     }
 
-    return (cj / c_total) * (w / denom);
+    return (c_j / c_total) * (w / denom);
 }
 
 inline Float MIS_NonCanonical(
-    Float c1,
+    Float c_1,
     Float c_total,
-    Float cj,
+    Float c_j,
     Float p_hat_xj, // rj.p_hat(x) where x = X_j
     Float p_hat_y,  // p_hat(y) in canonical domain
     Float jacobian  // |T'_j(X_j)|
 )
 {
-    Float w = (c_total - c1) * p_hat_xj;
-    Float denom = w + c1 * p_hat_y * jacobian;
+    Float w = (c_total - c_1) * p_hat_xj;
+    Float denom = w + c_1 * p_hat_y * jacobian;
     if (denom <= 0)
     {
         return 0;
     }
 
-    return (cj / c_total) * (w / denom);
+    return (c_j / c_total) * (w / denom);
 }
 
 ReSTIRDIIntegrator::ReSTIRDIIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler)
@@ -159,7 +163,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
     const int32 num_pixels = resolution.x * resolution.y;
     const Point2i num_tiles = (resolution + (tile_size - 1)) / tile_size;
     const int32 tile_count = num_tiles.x * num_tiles.y;
-    const int32 num_passes = 5;
+    const int32 num_passes = 4;
     const size_t total_works = size_t(std::max(spp, 1) * tile_count * num_passes);
 
     const Float spatial_radius = 3.0f;
@@ -176,10 +180,10 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
         {
             std::vector<ReSTIRDIVisiblePoint> visible_points(num_pixels);
 
-            std::vector<ReSTIRDISample> ris_samples(num_pixels);     // output sample after RIS sampling + visibility pass
-            std::vector<ReSTIRDISample> spatial_samples(num_pixels); // output sample after spatial resampling
+            std::vector<ReSTIRDIReservoir> ris_reservoirs(num_pixels);     // output sample after RIS sampling + visibility pass
+            std::vector<ReSTIRDIReservoir> spatial_reservoirs(num_pixels); // output sample after spatial resampling
 
-            // Trace primary rays and generate initial sample
+            // Trace primary rays and generate initial sample with RIS
             ParallelFor2D(
                 resolution,
                 [&](AABB2i tile) {
@@ -239,7 +243,8 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             continue;
                         }
 
-                        ReSTIRDIReservoir reservoir(Hash(pixel, s, 123));
+                        ReSTIRDIReservoir& reservoir = ris_reservoirs[index];
+                        reservoir.Seed(Hash(pixel, s, 123));
 
                         // RIS: draw M initial candidates, keep one by WRS, then compute W(y)
                         for (int32 i = 0; i < M_light; ++i)
@@ -357,15 +362,13 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
                         }
 
-                        ReSTIRDISample& sample = ris_samples[index];
                         if (reservoir.HasSample())
                         {
-                            sample = reservoir.y;
-                            sample.W = (1 / reservoir.y.p_hat) * reservoir.w_sum;
+                            reservoir.y.W = (1 / reservoir.y.p_hat) * reservoir.w_sum;
                         }
                         else
                         {
-                            sample.W = 0;
+                            reservoir.y.W = 0;
                         }
                     }
 
@@ -375,30 +378,33 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
             );
 
             // Visibility pass
-            ParallelFor2D(
-                resolution,
-                [&](AABB2i tile) {
-                    for (Point2i pixel : tile)
-                    {
-                        const int32 index = resolution.x * pixel.y + pixel.x;
-                        ReSTIRDIVisiblePoint& vp = visible_points[index];
-                        Intersection& isect = vp.isect;
-                        if (!isect.primitive)
+            if (!include_visibility)
+            {
+                ParallelFor2D(
+                    resolution,
+                    [&](AABB2i tile) {
+                        for (Point2i pixel : tile)
                         {
-                            continue;
+                            const int32 index = resolution.x * pixel.y + pixel.x;
+                            ReSTIRDIVisiblePoint& vp = visible_points[index];
+                            Intersection& isect = vp.isect;
+                            if (!isect.primitive)
+                            {
+                                continue;
+                            }
+
+                            ReSTIRDISample& sample = ris_reservoirs[index].y;
+                            if (sample.W > 0 && !V(this, isect.point, sample.x))
+                            {
+                                sample.W = 0;
+                            }
                         }
 
-                        ReSTIRDISample& sample = ris_samples[index];
-                        if (!V(this, isect.point, sample.x))
-                        {
-                            sample.W = 0;
-                        }
-                    }
-
-                    progress->work_dones.fetch_add(1, std::memory_order_relaxed);
-                },
-                tile_size
-            );
+                        progress->work_dones.fetch_add(1, std::memory_order_relaxed);
+                    },
+                    tile_size
+                );
+            }
 
             // Spatial resampling
             ParallelFor2D(
@@ -415,13 +421,16 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             continue;
                         }
 
-                        ReSTIRDIReservoir reservoir(Hash(pixel, s, 456));
+                        ReSTIRDIReservoir& ris_reservoir = ris_reservoirs[index];
+                        ReSTIRDIReservoir& reservoir = spatial_reservoirs[index];
+                        reservoir.Seed(Hash(pixel, s, 456));
+
+                        ReSTIRDISample canonical_sample = ris_reservoir.y;
+
                         RNG rng(Hash(pixel, s), 789);
 
-                        ReSTIRDISample canonical_sample = ris_samples[index];
-
                         // Pairwise MIS weight for canonical sample
-                        Float c_1 = canonical_sample.W > 0 ? 1 : 0;
+                        Float c_1 = canonical_sample.W > 0 ? ris_reservoir.M : 0;
                         Float c_total = c_1;
 
                         int32 neighbors[num_spatial_samples - 1];
@@ -433,10 +442,11 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             );
                             int32 neighbor_index = resolution.x * neighbor_pixel.y + neighbor_pixel.x;
 
-                            if (ris_samples[neighbor_index].W > 0)
+                            ReSTIRDIReservoir& neighbor_reservoir = ris_reservoirs[neighbor_index];
+                            if (neighbor_reservoir.y.W > 0)
                             {
                                 neighbors[i] = neighbor_index;
-                                ++c_total;
+                                c_total += neighbor_reservoir.M;
                             }
                             else
                             {
@@ -454,7 +464,8 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             ReSTIRDIVisiblePoint& neighbor_vp = visible_points[neighbor_index];
-                            ReSTIRDISample sample = ris_samples[neighbor_index];
+                            ReSTIRDIReservoir& neighbor_reservoir = ris_reservoirs[neighbor_index];
+                            ReSTIRDISample sample = neighbor_reservoir.y;
 
                             if (neighbor_index == index)
                             {
@@ -475,8 +486,10 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 continue;
                             }
 
-                            Float jacobian = (Dot(sample.n, -wi) * sample.d2) / (sample.cos * d2);
-                            Float m_i = MIS_NonCanonical(c_1, c_total, 1, sample.p_hat, p_hat_y, jacobian);
+                            Float c_j = neighbor_reservoir.M;
+
+                            Float jacobian = std::max(0.0f, (Dot(sample.n, -wi) * sample.d2) / (sample.cos * d2));
+                            Float m_i = MIS_NonCanonical(c_1, c_total, c_j, sample.p_hat, p_hat_y, jacobian);
 
                             if (m_i > 0)
                             {
@@ -501,9 +514,10 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             f_cos = neighbor_vp.bsdf.f(neighbor_vp.wo, wi) * AbsDot(neighbor_vp.isect.shading.normal, wi);
 
                             p_hat_y = (Li * f_cos).Luminance();
-                            Float jacobian_rev =
-                                (Dot(canonical_sample.n, -wi) * canonical_sample.d2) / (canonical_sample.cos * d2);
-                            m_1 += MIS_Canonical(c_1, c_total, 1, canonical_sample.p_hat, p_hat_y, jacobian_rev);
+                            Float jacobian_rev = std::max(
+                                0.0f, (Dot(canonical_sample.n, -wi) * canonical_sample.d2) / (canonical_sample.cos * d2)
+                            );
+                            m_1 += MIS_Canonical(c_1, c_total, c_j, canonical_sample.p_hat, p_hat_y, jacobian_rev);
                         }
 
                         if (canonical_sample.W > 0 && m_1 > 0)
@@ -512,15 +526,13 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             reservoir.Add(canonical_sample, w);
                         }
 
-                        ReSTIRDISample& sample = spatial_samples[index];
                         if (reservoir.HasSample())
                         {
-                            sample = reservoir.y;
-                            sample.W = (1 / reservoir.y.p_hat) * reservoir.w_sum;
+                            reservoir.y.W = (1 / reservoir.y.p_hat) * reservoir.w_sum;
                         }
                         else
                         {
-                            sample.W = 0;
+                            reservoir.y.W = 0;
                         }
                     }
 
@@ -544,7 +556,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             progress->film.AddSample(pixel, vp.primary_weight * vp.Le);
                             continue;
                         }
-                        ReSTIRDISample& sample = spatial_samples[index];
+                        ReSTIRDISample& sample = spatial_reservoirs[index].y;
 
                         Spectrum L = vp.Le;
                         if (sample.W > 0 && V(this, isect.point, sample.x))
