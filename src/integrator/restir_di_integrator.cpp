@@ -438,7 +438,8 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         {
                             Point2 offset = spatial_radius * SampleUniformUnitDisk({ rng.NextFloat(), rng.NextFloat() });
                             Point2i neighbor_pixel(
-                                Clamp(pixel.x + offset.x, 0, resolution.x - 1), Clamp(pixel.y + offset.y, 0, resolution.y - 1)
+                                Clamp(int32(pixel.x + offset.x), 0, resolution.x - 1),
+                                Clamp(int32(pixel.y + offset.y), 0, resolution.y - 1)
                             );
                             int32 neighbor_index = resolution.x * neighbor_pixel.y + neighbor_pixel.x;
 
