@@ -477,7 +477,8 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             wi /= std::sqrt(d2);
 
                             // Shift neighbor sample to canonical domain
-                            Spectrum Li = sample.light->Le(Intersection{ .point = sample.x, .front_face = true }, -wi);
+                            Spectrum Li =
+                                sample.light->Le(Intersection{ .point = sample.x, .front_face = Dot(sample.n, wi) < 0 }, -wi);
                             Spectrum f_cos = vp.bsdf.f(vp.wo, wi) * AbsDot(isect.shading.normal, wi);
 
                             Float p_hat_y = (Li * f_cos).Luminance();
@@ -510,7 +511,9 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             d2 = Length2(wi);
                             wi /= std::sqrt(d2);
 
-                            Li = canonical_sample.light->Le(Intersection{ .point = canonical_sample.x, .front_face = true }, -wi);
+                            Li = canonical_sample.light->Le(
+                                Intersection{ .point = canonical_sample.x, .front_face = Dot(canonical_sample.n, wi) < 0 }, -wi
+                            );
                             f_cos = neighbor_vp.bsdf.f(neighbor_vp.wo, wi) * AbsDot(neighbor_vp.isect.shading.normal, wi);
 
                             p_hat_y = (Li * f_cos).Luminance();
