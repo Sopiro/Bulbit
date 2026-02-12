@@ -107,14 +107,14 @@ inline Float MIS_Canonical(
     Float c1,
     Float c_total,
     Float cj,
-    Float p_hat_X1, // r1.p_hat(x) where x = X1
+    Float p_hat_x1, // r1.p_hat(x) where x = X1
     Float p_hat_y,  // p_hat(y) in neighbor domain (from inverse shift)
     Float jacobian  // |(T^{-1}_j)'(X1)|
 )
 {
-    Float w = c1 * p_hat_X1;
+    Float w = c1 * p_hat_x1;
     Float denom = w + (c_total - c1) * p_hat_y * jacobian;
-    if (!(denom > 0))
+    if (denom <= 0)
     {
         return 0;
     }
@@ -133,7 +133,7 @@ inline Float MIS_NonCanonical(
 {
     Float w = (c_total - c1) * p_hat_xj;
     Float denom = w + c1 * p_hat_y * jacobian;
-    if (!(denom > 0))
+    if (denom <= 0)
     {
         return 0;
     }
@@ -162,11 +162,13 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
     const int32 num_passes = 5;
     const size_t total_works = size_t(std::max(spp, 1) * tile_count * num_passes);
 
-    const Float spatial_radius = 3.0;
+    const Float spatial_radius = 3.0f;
     const int32 num_spatial_samples = 5;
 
     const int32 M_light = 32;
     const int32 M_bsdf = 1;
+
+    const bool include_visibility = false;
 
     SinglePhaseRendering* progress = alloc.new_object<SinglePhaseRendering>(camera, total_works);
     progress->job = RunAsync([=, this]() {
@@ -259,6 +261,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 continue;
                             }
 
+                            // solid angle domain pdfs
                             Float p_light = sampled_light.pmf * light_sample.pdf;
                             Float p_bsdf = bsdf.PDF(vp.wo, light_sample.wi);
                             Float mis_denom = M_light * p_light + M_bsdf * p_bsdf;
@@ -275,11 +278,11 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 continue;
                             }
 
-                            // Include visibility for now
-                            // if (!V(this, isect.point, light_sample.point))
-                            // {
-                            //     continue;
-                            // }
+                            // Include visibility for light samples
+                            if (include_visibility && !V(this, isect.point, light_sample.point))
+                            {
+                                continue;
+                            }
 
                             ReSTIRDISample sample;
                             sample.light = sampled_light.light;
@@ -452,10 +455,6 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             ReSTIRDIVisiblePoint& neighbor_vp = visible_points[neighbor_index];
                             ReSTIRDISample sample = ris_samples[neighbor_index];
-                            if (sample.W == 0)
-                            {
-                                continue;
-                            }
 
                             if (neighbor_index == index)
                             {
