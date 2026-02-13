@@ -17,9 +17,9 @@ struct ReSTIRPTVisiblePoint
 {
     Float primary_weight;
 
+    Vec3 wo;
     Intersection isect;
     BSDF bsdf;
-    Vec3 wo;
 
     Spectrum Le;
 
@@ -34,13 +34,11 @@ struct ReSTIRPTVisiblePoint
 
 struct ReSTIRPTSample
 {
-    Spectrum contribution;
-
-    uint64 base_rng_seed;
     int32 path_length;
     int32 reconnection_vertex; // first index of consecutive diffuse pair
 
-    Float p_hat = 0;           // luminance of selected path contribution
+    Spectrum contribution;     // path contribution in PSS
+    Float p_hat = 0;           // p_hat(contribution)
     Float W = 0;               // UCW
 };
 
@@ -109,6 +107,8 @@ ReSTIRPTIntegrator::ReSTIRPTIntegrator(
     , max_bounces{ max_bounces }
     , rr_min_bounces{ rr_min_bounces }
 {
+    // Assume scene contains area lights only
+    BulbitAssert(area_lights.Size() == all_lights.size());
 }
 
 Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
@@ -151,9 +151,150 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         PrimaryRay primary_ray;
                         camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
 
-                        // Path tracer loop
+                        ReSTIRPTVisiblePoint& vp = visible_points[index];
+                        vp.primary_weight = primary_ray.weight;
+
+                        int32 bounce = 0;
+                        Spectrum beta(1);
+                        bool specular_bounce = false;
+                        Float eta_scale = 1;
+                        Ray ray = primary_ray.ray;
+                        Float prev_bsdf_pdf = 0;
+
+                        bool prev_diffuse = false;
+
+                        int32 reconnection_vertex = -1;
+
+                        // Generate path tree with NEE path tracing
                         while (true)
                         {
+                            Intersection isect;
+                            if (!Intersect(&isect, ray, Ray::epsilon, infinity))
+                            {
+                                if (bounce == 0)
+                                {
+                                    vp.isect.primitive = nullptr;
+                                }
+
+                                break;
+                            }
+
+                            Vec3 wo = Normalize(-ray.d);
+                            if (bounce == 0)
+                            {
+                                vp.wo = wo;
+                                vp.isect = isect;
+                            }
+
+                            int8 mem[max_bxdf_size];
+                            BufferResource res(mem, sizeof(mem));
+                            Allocator alloc(&res);
+                            BSDF bsdf;
+                            if (!isect.GetBSDF(&bsdf, wo, alloc))
+                            {
+                                ray = Ray(isect.point, -wo);
+                                continue;
+                            }
+
+                            // landed on diffuse surface?
+                            bool is_diffuse = IsDiffuse(bsdf.Flags());
+                            int32 vertex_index = bounce + 1;
+
+                            if (reconnection_vertex < 0 && prev_diffuse && is_diffuse)
+                            {
+                                reconnection_vertex = vertex_index;
+                            }
+                            prev_diffuse = is_diffuse;
+
+                            if (const Light* area_light = GetAreaLight(isect); area_light)
+                            {
+                                if (Spectrum Le = area_light->Le(isect, wo); !Le.IsBlack())
+                                {
+                                    Spectrum L(0);
+                                    if (bounce == 0)
+                                    {
+                                        vp.Le = beta * Le;
+                                    }
+                                    else if (specular_bounce)
+                                    {
+
+                                        L = beta * Le;
+                                    }
+                                    else
+                                    {
+                                        // Evaluate BSDF sample with MIS for area light
+                                        Float light_pdf =
+                                            isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
+                                        Float mis_weight = PowerHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
+
+                                        L = beta * mis_weight * Le;
+                                    }
+
+                                    // Add path sample where length > 1
+                                    ReSTIRPTSample sample;
+                                    sample.path_length = vertex_index;
+                                    sample.reconnection_vertex = reconnection_vertex;
+                                    sample.contribution = L;
+                                    sample.p_hat = L.Average();
+                                    reservoir.Add(sample, sample.p_hat);
+                                }
+                            }
+
+                            if (bounce++ >= max_bounces)
+                            {
+                                break;
+                            }
+
+                            // Do NEE
+                            if (IsNonSpecular(bsdf.Flags()))
+                            {
+                                Spectrum L = SampleDirectLight(wo, isect, &bsdf, sampler, beta);
+                                ReSTIRPTSample sample;
+                                sample.path_length = vertex_index;
+                                sample.reconnection_vertex = reconnection_vertex;
+                                sample.contribution = L;
+                                sample.p_hat = L.Average();
+                                reservoir.Add(sample, sample.p_hat);
+                            }
+
+                            BSDFSample bsdf_sample;
+                            if (!bsdf.Sample_f(&bsdf_sample, wo, sampler->Next1D(), sampler->Next2D()))
+                            {
+                                break;
+                            }
+
+                            specular_bounce = bsdf_sample.IsSpecular();
+                            if (bsdf_sample.IsTransmission())
+                            {
+                                eta_scale *= Sqr(bsdf_sample.eta);
+                            }
+
+                            // Save bsdf pdf for MIS
+                            prev_bsdf_pdf = bsdf_sample.is_stochastic ? bsdf.PDF(wo, bsdf_sample.wi) : bsdf_sample.pdf;
+                            beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
+                            ray = Ray(isect.point, bsdf_sample.wi);
+
+                            // Terminate path with russian roulette
+                            if (bounce > rr_min_bounces)
+                            {
+                                if (Float p = beta.MaxComponent() * eta_scale; p < 1)
+                                {
+                                    if (sampler->Next1D() > p)
+                                    {
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        beta /= p;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Found no intersection
+                        if (bounce == 0)
+                        {
+                            continue;
                         }
 
                         if (reservoir.HasSample())
@@ -180,13 +321,13 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         const int32 index = resolution.x * pixel.y + pixel.x;
                         const ReSTIRPTVisiblePoint& vp = visible_points[index];
 
-                        Spectrum L = vp.Le;
                         if (!vp.isect.primitive)
                         {
-                            progress->film.AddSample(pixel, vp.primary_weight * vp.Le);
+                            progress->film.AddSample(pixel, Spectrum::black);
                             continue;
                         }
 
+                        Spectrum L = vp.Le;
                         const ReSTIRPTSample& sample = base_reservoirs[index].y;
                         if (sample.W > 0)
                         {
@@ -207,6 +348,50 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
     });
 
     return progress;
+}
+
+Spectrum ReSTIRPTIntegrator::SampleDirectLight(
+    const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler* sampler, const Spectrum& beta
+) const
+{
+    Float u0 = sampler->Next1D();
+    Point2 u12 = sampler->Next2D();
+    SampledLight sampled_light;
+    if (!light_sampler->Sample(&sampled_light, isect, u0))
+    {
+        return Spectrum::black;
+    }
+
+    LightSampleLi light_sample;
+    if (!sampled_light.light->Sample_Li(&light_sample, isect, u12))
+    {
+        return Spectrum::black;
+    }
+
+    Float bsdf_pdf = bsdf->PDF(wo, light_sample.wi);
+    if (light_sample.Li.IsBlack() || bsdf_pdf == 0)
+    {
+        return Spectrum::black;
+    }
+
+    Ray shadow_ray(isect.point, light_sample.wi);
+    if (IntersectAny(shadow_ray, Ray::epsilon, light_sample.visibility))
+    {
+        return Spectrum::black;
+    }
+
+    Float light_pdf = sampled_light.pmf * light_sample.pdf;
+    Spectrum f_cos = bsdf->f(wo, light_sample.wi) * AbsDot(isect.shading.normal, light_sample.wi);
+
+    if (sampled_light.light->IsDeltaLight())
+    {
+        return beta * light_sample.Li * f_cos / light_pdf;
+    }
+    else
+    {
+        Float mis_weight = PowerHeuristic(1, light_pdf, 1, bsdf_pdf);
+        return beta * mis_weight * light_sample.Li * f_cos / light_pdf;
+    }
 }
 
 } // namespace bulbit

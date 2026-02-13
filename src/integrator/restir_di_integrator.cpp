@@ -558,7 +558,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         if (!isect.primitive)
                         {
-                            progress->film.AddSample(pixel, vp.primary_weight * vp.Le);
+                            progress->film.AddSample(pixel, Spectrum::black);
                             continue;
                         }
                         ReSTIRDISample& sample = spatial_reservoirs[index].y;
