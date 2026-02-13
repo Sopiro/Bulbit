@@ -169,10 +169,10 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
     const Float spatial_radius = 3.0f;
     const int32 num_spatial_samples = 5;
 
-    const int32 M_light = 32;
+    const int32 M_light = 1;
     const int32 M_bsdf = 1;
 
-    const bool include_visibility = false;
+    const bool include_visibility = true;
 
     SinglePhaseRendering* progress = alloc.new_object<SinglePhaseRendering>(camera, total_works);
     progress->job = RunAsync([=, this]() {
@@ -447,12 +447,13 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             if (neighbor_reservoir.y.W > 0)
                             {
                                 neighbors[i] = neighbor_index;
-                                c_total += neighbor_reservoir.M;
                             }
                             else
                             {
                                 neighbors[i] = -1;
                             }
+
+                            c_total += neighbor_reservoir.M;
                         }
                         Float m_1 = c_1 / c_total;
 
