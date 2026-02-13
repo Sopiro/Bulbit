@@ -32,6 +32,7 @@ private:
     friend class UniDirectionalRayIntegrator;
     friend class BiDirectionalRayIntegrator;
     friend class ReSTIRDIIntegrator;
+    friend class ReSTIRPTIntegrator;
 
     size_t works;
 

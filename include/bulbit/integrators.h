@@ -175,6 +175,26 @@ private:
     const Sampler* sampler_prototype;
 };
 
+// ReSTIR path tracing integrator
+class ReSTIRPTIntegrator : public Integrator
+{
+public:
+    ReSTIRPTIntegrator(
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        int32 max_bounces,
+        int32 rr_min_bounces = 1
+    );
+
+    virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
+
+private:
+    const Sampler* sampler_prototype;
+    int32 max_bounces;
+    int32 rr_min_bounces;
+};
+
 // Light/Particle tracing integrator
 class LightPathIntegrator : public BiDirectionalRayIntegrator
 {
