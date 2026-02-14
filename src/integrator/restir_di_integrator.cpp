@@ -145,6 +145,31 @@ inline Float MIS_NonCanonical(
     return (c_j / c_total) * (w / denom);
 }
 
+inline bool TestRejection(const ReSTIRDIVisiblePoint& canonical, const ReSTIRDIVisiblePoint& neighbor)
+{
+    if (!neighbor.isect.primitive)
+    {
+        return false;
+    }
+
+    const Float cosine = std::cos(RadToDeg(25));
+    const Float distance2 = 0.001f;
+
+    // Test normal similarity
+    if (Dot(canonical.isect.shading.normal, neighbor.isect.shading.normal) < cosine)
+    {
+        return false;
+    }
+
+    // Test position similarity
+    if (Dist2(canonical.isect.point, neighbor.isect.point) > distance2)
+    {
+        return false;
+    }
+
+    return true;
+};
+
 ReSTIRDIIntegrator::ReSTIRDIIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler)
     : Integrator(accel, std::move(lights), std::make_unique<UniformLightSampler>())
     , sampler_prototype{ sampler }
@@ -169,7 +194,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
     const Float spatial_radius = 3.0f;
     const int32 num_spatial_samples = 5;
 
-    const int32 M_light = 1;
+    const int32 M_light = 4;
     const int32 M_bsdf = 1;
 
     const bool include_visibility = true;
@@ -444,17 +469,24 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             int32 neighbor_index = resolution.x * neighbor_pixel.y + neighbor_pixel.x;
 
                             ReSTIRDIReservoir& neighbor_reservoir = ris_reservoirs[neighbor_index];
-                            if (neighbor_reservoir.y.W > 0)
-                            {
-                                neighbors[i] = neighbor_index;
-                            }
-                            else
+                            if (!TestRejection(vp, visible_points[neighbor_index]))
                             {
                                 neighbors[i] = -1;
                             }
-
-                            c_total += neighbor_reservoir.M;
+                            else
+                            {
+                                if (neighbor_reservoir.y.W > 0)
+                                {
+                                    neighbors[i] = neighbor_index;
+                                }
+                                else
+                                {
+                                    neighbors[i] = -1;
+                                }
+                                c_total += neighbor_reservoir.M;
+                            }
                         }
+
                         Float m_1 = c_1 / c_total;
 
                         for (int32 i = 0; i < num_spatial_samples - 1; ++i)
