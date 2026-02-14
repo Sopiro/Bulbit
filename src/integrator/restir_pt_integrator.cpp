@@ -34,12 +34,12 @@ struct ReSTIRPTVisiblePoint
 
 struct ReSTIRPTSample
 {
-    int32 path_length;
-    int32 reconnection_vertex; // first index of consecutive diffuse pair
+    int32 path_length = -1;
+    int32 reconnection_vertex = -1; // Reject this sample if reconnection vertex not set
 
-    Spectrum contribution;     // path contribution in PSS
-    Float p_hat = 0;           // p_hat(contribution)
-    Float W = 0;               // UCW
+    Spectrum contribution;          // path contribution in PSS
+    Float p_hat = 0;                // p_hat(contribution)
+    Float W = 0;                    // UCW
 };
 
 class ReSTIRPTReservoir
@@ -152,6 +152,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
 
                         ReSTIRPTVisiblePoint& vp = visible_points[index];
+                        vp.Le = Spectrum(0);
                         vp.primary_weight = primary_ray.weight;
 
                         int32 bounce = 0;
@@ -233,7 +234,14 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     // Add path sample where length > 1
                                     ReSTIRPTSample sample;
                                     sample.path_length = vertex_index;
-                                    sample.reconnection_vertex = reconnection_vertex;
+                                    if (reconnection_vertex > 0)
+                                    {
+                                        sample.reconnection_vertex = reconnection_vertex;
+                                    }
+                                    else
+                                    {
+                                        sample.reconnection_vertex = prev_diffuse ? vertex_index : reconnection_vertex;
+                                    }
                                     sample.contribution = L;
                                     sample.p_hat = L.Average();
                                     reservoir.Add(sample, sample.p_hat);
@@ -246,12 +254,24 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             // Do NEE
+                            Spectrum L(0);
                             if (IsNonSpecular(bsdf.Flags()))
                             {
-                                Spectrum L = SampleDirectLight(wo, isect, &bsdf, sampler, beta);
+                                L = SampleDirectLight(wo, isect, &bsdf, sampler, beta);
+                            }
+
+                            if (!L.IsBlack())
+                            {
                                 ReSTIRPTSample sample;
                                 sample.path_length = vertex_index;
-                                sample.reconnection_vertex = reconnection_vertex;
+                                if (reconnection_vertex > 0)
+                                {
+                                    sample.reconnection_vertex = reconnection_vertex;
+                                }
+                                else
+                                {
+                                    sample.reconnection_vertex = is_diffuse ? vertex_index : reconnection_vertex;
+                                }
                                 sample.contribution = L;
                                 sample.p_hat = L.Average();
                                 reservoir.Add(sample, sample.p_hat);

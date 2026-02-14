@@ -194,7 +194,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
     const Float spatial_radius = 3.0f;
     const int32 num_spatial_samples = 5;
 
-    const int32 M_light = 1;
+    const int32 M_light = 2;
     const int32 M_bsdf = 1;
 
     const bool include_visibility = true;
@@ -590,7 +590,11 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             Spectrum f_cos = vp.bsdf.f(vp.wo, sample.wi) * AbsDot(isect.shading.normal, sample.wi);
                             L += sample.Li * f_cos * sample.W;
                         }
-                        progress->film.AddSample(pixel, vp.primary_weight * L);
+
+                        if (!L.IsNullish())
+                        {
+                            progress->film.AddSample(pixel, vp.primary_weight * L);
+                        }
                     }
 
                     progress->work_dones.fetch_add(1, std::memory_order_relaxed);
