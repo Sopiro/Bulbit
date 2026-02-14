@@ -37,7 +37,7 @@ struct ReSTIRDISample
     const Light* light;
     Point3 x, n;
 
-    Float d2, cos;
+    Float jacobian; // da/dw: jacobian for solid angle to area measure
     Vec3 wi;
     Spectrum Li;
 
@@ -194,7 +194,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
     const Float spatial_radius = 3.0f;
     const int32 num_spatial_samples = 5;
 
-    const int32 M_light = 4;
+    const int32 M_light = 1;
     const int32 M_bsdf = 1;
 
     const bool include_visibility = true;
@@ -319,8 +319,8 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             sample.x = light_sample.point;
                             sample.n = light_sample.normal;
 
-                            sample.cos = AbsDot(light_sample.normal, light_sample.wi);
-                            sample.d2 = Dist2(light_sample.point, isect.point);
+                            sample.jacobian =
+                                Dist2(light_sample.point, isect.point) / AbsDot(light_sample.normal, light_sample.wi);
                             sample.wi = light_sample.wi;
                             sample.Li = light_sample.Li;
 
@@ -374,8 +374,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     sample.x = shadow_isect.point;
                                     sample.n = shadow_isect.normal;
 
-                                    sample.d2 = Sqr(shadow_isect.t);
-                                    sample.cos = AbsDot(shadow_isect.normal, -bsdf_sample.wi);
+                                    sample.jacobian = Sqr(shadow_isect.t) / AbsDot(shadow_isect.normal, -bsdf_sample.wi);
                                     sample.wi = bsdf_sample.wi;
                                     sample.Li = Li;
 
@@ -458,6 +457,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         Float c_1 = canonical_sample.W > 0 ? ris_reservoir.M : 0;
                         Float c_total = c_1;
 
+                        int32 num_neighbors = 0;
                         int32 neighbors[num_spatial_samples - 1];
                         for (int32 i = 0; i < num_spatial_samples - 1; ++i)
                         {
@@ -471,28 +471,24 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             ReSTIRDIReservoir& neighbor_reservoir = ris_reservoirs[neighbor_index];
                             if (!TestRejection(vp, visible_points[neighbor_index]))
                             {
-                                neighbors[i] = -1;
+                                continue;
                             }
-                            else
+
+                            if (neighbor_reservoir.y.W > 0)
                             {
-                                if (neighbor_reservoir.y.W > 0)
-                                {
-                                    neighbors[i] = neighbor_index;
-                                }
-                                else
-                                {
-                                    neighbors[i] = -1;
-                                }
-                                c_total += neighbor_reservoir.M;
+                                neighbors[num_neighbors] = neighbor_index;
+                                ++num_neighbors;
                             }
+
+                            c_total += neighbor_reservoir.M;
                         }
 
                         Float m_1 = c_1 / c_total;
 
-                        for (int32 i = 0; i < num_spatial_samples - 1; ++i)
+                        for (int32 i = 0; i < num_neighbors; ++i)
                         {
                             int32 neighbor_index = neighbors[i];
-                            if (neighbor_index < 0)
+                            if (neighbor_index == index)
                             {
                                 continue;
                             }
@@ -500,11 +496,6 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             ReSTIRDIVisiblePoint& neighbor_vp = visible_points[neighbor_index];
                             ReSTIRDIReservoir& neighbor_reservoir = ris_reservoirs[neighbor_index];
                             ReSTIRDISample sample = neighbor_reservoir.y;
-
-                            if (neighbor_index == index)
-                            {
-                                continue;
-                            }
 
                             Vec3 wi = sample.x - isect.point;
                             Float d2 = Length2(wi);
@@ -523,7 +514,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             Float c_j = neighbor_reservoir.M;
 
-                            Float jacobian = std::max(0.0f, (Dot(sample.n, -wi) * sample.d2) / (sample.cos * d2));
+                            Float jacobian = std::max(0.0f, (Dot(sample.n, -wi) / d2) * sample.jacobian);
                             Float m_i = MIS_NonCanonical(c_1, c_total, c_j, sample.p_hat, p_hat_y, jacobian);
 
                             if (m_i > 0)
@@ -551,9 +542,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             f_cos = neighbor_vp.bsdf.f(neighbor_vp.wo, wi) * AbsDot(neighbor_vp.isect.shading.normal, wi);
 
                             p_hat_y = (Li * f_cos).Luminance();
-                            Float jacobian_rev = std::max(
-                                0.0f, (Dot(canonical_sample.n, -wi) * canonical_sample.d2) / (canonical_sample.cos * d2)
-                            );
+                            Float jacobian_rev = std::max(0.0f, (Dot(canonical_sample.n, -wi) / d2) * canonical_sample.jacobian);
                             m_1 += MIS_Canonical(c_1, c_total, c_j, canonical_sample.p_hat, p_hat_y, jacobian_rev);
                         }
 
