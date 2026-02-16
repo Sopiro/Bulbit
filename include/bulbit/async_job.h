@@ -82,10 +82,10 @@ private:
 };
 
 template <typename F, typename... Args>
-inline auto RunAsync(ThreadPool* thread_pool, F func, Args&&... args)
+inline auto RunAsync(ThreadPool* thread_pool, F&& func, Args&&... args)
 {
-    auto fvoid = std::bind(func, std::forward<Args>(args)...);
-    using R = std::invoke_result_t<F, Args...>;
+    auto fvoid = std::bind_front(func, std::forward<Args>(args)...);
+    using R = std::invoke_result_t<decltype(fvoid)>;
     auto job = std::make_unique<AsyncJob<R>>(std::move(fvoid));
 
     std::unique_lock<std::mutex> lock;
@@ -102,7 +102,7 @@ inline auto RunAsync(ThreadPool* thread_pool, F func, Args&&... args)
 }
 
 template <typename F, typename... Args>
-inline auto RunAsync(F func, Args&&... args)
+inline auto RunAsync(F&& func, Args&&... args)
 {
     return RunAsync(ThreadPool::global_thread_pool.get(), func, std::forward<Args>(args)...);
 }
