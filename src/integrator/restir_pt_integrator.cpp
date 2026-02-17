@@ -37,6 +37,10 @@ struct ReSTIRPTSample
     int32 path_length = -1;
     int32 reconnection_vertex = -1; // Reject this sample if reconnection vertex not set
 
+    Intersection isect;
+    Vec3 wi;                        // Incident direction to reconnection vertex
+    Spectrum Li;                    // Radiance estimate after reconnection vertex
+
     Spectrum contribution;          // path contribution in PSS
     Float p_hat = 0;                // p_hat(contribution)
     Float W = 0;                    // UCW
@@ -165,6 +169,10 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         bool prev_diffuse = false;
 
                         int32 reconnection_vertex = -1;
+                        bool rc_marked = false;
+                        Intersection rc_isect;
+                        Vec3 rc_wi(0);
+                        Spectrum rc_beta(1);
 
                         // Generate path tree with NEE path tracing
                         while (true)
@@ -201,11 +209,13 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             bool is_diffuse = IsDiffuse(bsdf.Flags());
                             int32 vertex_index = bounce + 1;
 
+                            // Mark current vertex as reconnection vertex
                             if (reconnection_vertex < 0 && prev_diffuse && is_diffuse)
                             {
+                                rc_marked = true;
+                                rc_isect = isect;
                                 reconnection_vertex = vertex_index;
                             }
-                            prev_diffuse = is_diffuse;
 
                             if (const Light* area_light = GetAreaLight(isect); area_light)
                             {
@@ -218,8 +228,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     }
                                     else if (specular_bounce)
                                     {
-
-                                        L = beta * Le;
+                                        L = Le;
                                     }
                                     else
                                     {
@@ -228,7 +237,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                             isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
                                         Float mis_weight = PowerHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
 
-                                        L = beta * mis_weight * Le;
+                                        L = mis_weight * Le;
                                     }
 
                                     // Add path sample where length > 1
@@ -242,11 +251,18 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     {
                                         sample.reconnection_vertex = prev_diffuse ? vertex_index : reconnection_vertex;
                                     }
-                                    sample.contribution = L;
-                                    sample.p_hat = L.Average();
+
+                                    sample.isect = rc_isect;
+                                    sample.wi = rc_wi;
+                                    sample.Li = rc_beta * L;
+                                    sample.contribution = beta * L;
+                                    sample.p_hat = sample.contribution.Average();
+
                                     reservoir.Add(sample, sample.p_hat);
                                 }
                             }
+
+                            prev_diffuse = is_diffuse;
 
                             if (bounce++ >= max_bounces)
                             {
@@ -257,23 +273,27 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             Spectrum L(0);
                             if (IsNonSpecular(bsdf.Flags()))
                             {
-                                L = SampleDirectLight(wo, isect, &bsdf, sampler, beta);
+                                L = SampleDirectLight(wo, isect, &bsdf, sampler);
                             }
 
                             if (!L.IsBlack())
                             {
                                 ReSTIRPTSample sample;
-                                sample.path_length = vertex_index;
+                                sample.path_length = vertex_index + 1;
                                 if (reconnection_vertex > 0)
                                 {
                                     sample.reconnection_vertex = reconnection_vertex;
                                 }
                                 else
                                 {
-                                    sample.reconnection_vertex = is_diffuse ? vertex_index : reconnection_vertex;
+                                    sample.reconnection_vertex = is_diffuse ? (vertex_index + 1) : reconnection_vertex;
                                 }
-                                sample.contribution = L;
-                                sample.p_hat = L.Average();
+                                sample.isect = rc_isect;
+                                sample.wi = Vec3::zero;
+                                sample.Li = Spectrum::black;
+                                sample.contribution = beta * L;
+                                sample.p_hat = sample.contribution.Average();
+
                                 reservoir.Add(sample, sample.p_hat);
                             }
 
@@ -293,6 +313,18 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             prev_bsdf_pdf = bsdf_sample.is_stochastic ? bsdf.PDF(wo, bsdf_sample.wi) : bsdf_sample.pdf;
                             beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
                             ray = Ray(isect.point, bsdf_sample.wi);
+
+                            if (rc_marked)
+                            {
+                                rc_wi = bsdf_sample.wi;
+                                rc_beta = Spectrum(AbsDot(isect.shading.normal, bsdf_sample.wi));
+                                rc_marked = false;
+                            }
+
+                            if (reconnection_vertex > 0)
+                            {
+                                rc_beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
+                            }
 
                             // Terminate path with russian roulette
                             if (bounce > rr_min_bounces)
@@ -370,9 +402,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
     return progress;
 }
 
-Spectrum ReSTIRPTIntegrator::SampleDirectLight(
-    const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler* sampler, const Spectrum& beta
-) const
+Spectrum ReSTIRPTIntegrator::SampleDirectLight(const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler* sampler) const
 {
     Float u0 = sampler->Next1D();
     Point2 u12 = sampler->Next2D();
@@ -405,12 +435,12 @@ Spectrum ReSTIRPTIntegrator::SampleDirectLight(
 
     if (sampled_light.light->IsDeltaLight())
     {
-        return beta * light_sample.Li * f_cos / light_pdf;
+        return light_sample.Li * f_cos / light_pdf;
     }
     else
     {
         Float mis_weight = PowerHeuristic(1, light_pdf, 1, bsdf_pdf);
-        return beta * mis_weight * light_sample.Li * f_cos / light_pdf;
+        return mis_weight * light_sample.Li * f_cos / light_pdf;
     }
 }
 
