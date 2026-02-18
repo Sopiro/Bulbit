@@ -158,8 +158,8 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
 
                         ReSTIRPTVisiblePoint& vp = visible_points[index];
-                        vp.Le = Spectrum(0);
                         vp.primary_weight = primary_ray.weight;
+                        vp.Le = Spectrum::black;
 
                         int32 bounce = 0;
                         Spectrum beta(1);
@@ -208,18 +208,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 continue;
                             }
 
-                            // landed on diffuse surface?
-                            bool is_diffuse = IsDiffuse(bsdf.Flags());
                             int32 vertex_index = bounce + 1;
-
-                            // Mark current vertex as reconnection vertex
-                            if (reconnection_vertex < 0 && prev_diffuse && is_diffuse)
-                            {
-                                rc_marked = true;
-                                rc_isect = isect;
-                                rc_jacobian = Sqr(isect.t) / AbsDot(isect.normal, wo);
-                                reconnection_vertex = vertex_index;
-                            }
 
                             if (const Light* area_light = GetAreaLight(isect); area_light)
                             {
@@ -252,22 +241,36 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         sample.reconnection_vertex = reconnection_vertex;
                                         sample.isect = rc_isect;
                                         sample.wi = rc_wi;
-                                        sample.Li = rc_beta * L / prev_bsdf_pdf;
+                                        sample.Li = rc_beta * L;
                                         sample.jacobian = rc_jacobian;
                                     }
                                     else
                                     {
                                         sample.reconnection_vertex = prev_diffuse ? vertex_index : -1;
                                         sample.isect.primitive = nullptr;
+                                        sample.isect.point = isect.point;
+                                        sample.isect.normal = isect.normal;
                                         sample.wi = Vec3::zero;
                                         sample.Li = L / prev_bsdf_pdf;
-                                        sample.jacobian = Sqr(isect.t) / AbsDot(isect.normal, wo);
+                                        sample.jacobian = Sqr(isect.t) / AbsDot(isect.normal, wo) * prev_bsdf_pdf;
                                     }
                                     sample.contribution = beta * L;
                                     sample.p_hat = sample.contribution.Average();
 
                                     reservoir.Add(sample, sample.p_hat);
                                 }
+                            }
+
+                            // landed on diffuse surface?
+                            bool is_diffuse = IsDiffuse(bsdf.Flags());
+
+                            // Mark current vertex as reconnection vertex
+                            if (reconnection_vertex < 0 && prev_diffuse && is_diffuse)
+                            {
+                                rc_marked = true;
+                                rc_isect = isect;
+                                rc_jacobian = Sqr(isect.t) / AbsDot(isect.normal, wo) * prev_bsdf_pdf;
+                                reconnection_vertex = vertex_index;
                             }
 
                             prev_diffuse = is_diffuse;
@@ -278,11 +281,13 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             // Do NEE
+                            Point3 p;
+                            Vec3 n;
                             Float jacobian;
                             Spectrum L(0);
                             if (IsNonSpecular(bsdf.Flags()))
                             {
-                                L = SampleDirectLight(wo, isect, &bsdf, sampler, &jacobian);
+                                L = SampleDirectLight(wo, isect, &bsdf, sampler, &p, &n, &jacobian);
                             }
 
                             if (!L.IsBlack())
@@ -301,6 +306,8 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 {
                                     sample.reconnection_vertex = is_diffuse ? (vertex_index + 1) : -1;
                                     sample.isect.primitive = nullptr;
+                                    sample.isect.point = p;
+                                    sample.isect.normal = n;
                                     sample.wi = Vec3::zero;
                                     sample.Li = L;
                                     sample.jacobian = jacobian;
@@ -417,7 +424,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 }
 
 Spectrum ReSTIRPTIntegrator::SampleDirectLight(
-    const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler* sampler, Float* jacobian
+    const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler* sampler, Point3* p, Vec3* n, Float* jacobian
 ) const
 {
     Float u0 = sampler->Next1D();
@@ -449,7 +456,9 @@ Spectrum ReSTIRPTIntegrator::SampleDirectLight(
     Float light_pdf = sampled_light.pmf * light_sample.pdf;
     Spectrum f_cos = bsdf->f(wo, light_sample.wi) * AbsDot(isect.shading.normal, light_sample.wi);
 
-    *jacobian = Sqr(light_sample.visibility) / AbsDot(light_sample.normal, light_sample.wi);
+    *p = light_sample.point;
+    *n = light_sample.normal;
+    *jacobian = Sqr(light_sample.visibility) / AbsDot(light_sample.normal, light_sample.wi) * light_pdf;
 
     if (sampled_light.light->IsDeltaLight())
     {
