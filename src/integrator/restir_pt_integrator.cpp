@@ -19,17 +19,8 @@ struct ReSTIRPTVisiblePoint
 
     Vec3 wo;
     Intersection isect;
-    BSDF bsdf;
 
     Spectrum Le;
-
-    ReSTIRPTVisiblePoint()
-        : bsdf_buffer(&bxdf_mem, sizeof(bxdf_mem))
-    {
-    }
-
-    int8 bxdf_mem[max_bxdf_size];
-    BufferResource bsdf_buffer;
 };
 
 struct ReSTIRPTSample
@@ -41,7 +32,10 @@ struct ReSTIRPTSample
     Vec3 wi;                        // Incident direction to reconnection vertex
     Spectrum Li;                    // Radiance estimate after reconnection vertex
 
-    Spectrum contribution;          // path contribution in PSS
+    Float jacobian;                 // Reconection jacobian da/dw
+
+    Spectrum contribution;          // Path contribution in PSS
+
     Float p_hat = 0;                // p_hat(contribution)
     Float W = 0;                    // UCW
 };
@@ -128,12 +122,20 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
     const int32 num_passes = 2;
     const size_t total_works = size_t(std::max(spp, 1) * tile_count * num_passes);
 
+    const Float spatial_radius = 3.0f;
+    const int32 num_spatial_samples = 5;
+
+    BulbitNotUsed(spatial_radius);
+    BulbitNotUsed(num_spatial_samples);
+
     SinglePhaseRendering* progress = alloc.new_object<SinglePhaseRendering>(camera, total_works);
     progress->job = RunAsync([=, this]() {
         for (int32 s = 0; s < spp; ++s)
         {
             std::vector<ReSTIRPTVisiblePoint> visible_points(num_pixels);
+
             std::vector<ReSTIRPTReservoir> base_reservoirs(num_pixels);
+            std::vector<ReSTIRPTReservoir> spatial_reservoirs(num_pixels);
 
             // Generate visible points and base path reservoirs using RIS in path space
             ParallelFor2D(
@@ -173,6 +175,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         Intersection rc_isect;
                         Vec3 rc_wi(0);
                         Spectrum rc_beta(1);
+                        Float rc_jacobian = 0;
 
                         // Generate path tree with NEE path tracing
                         while (true)
@@ -214,6 +217,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             {
                                 rc_marked = true;
                                 rc_isect = isect;
+                                rc_jacobian = Sqr(isect.t) / AbsDot(isect.normal, wo);
                                 reconnection_vertex = vertex_index;
                             }
 
@@ -246,15 +250,19 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     if (reconnection_vertex > 0)
                                     {
                                         sample.reconnection_vertex = reconnection_vertex;
+                                        sample.isect = rc_isect;
+                                        sample.wi = rc_wi;
+                                        sample.Li = rc_beta * L / prev_bsdf_pdf;
+                                        sample.jacobian = rc_jacobian;
                                     }
                                     else
                                     {
-                                        sample.reconnection_vertex = prev_diffuse ? vertex_index : reconnection_vertex;
+                                        sample.reconnection_vertex = prev_diffuse ? vertex_index : -1;
+                                        sample.isect.primitive = nullptr;
+                                        sample.wi = Vec3::zero;
+                                        sample.Li = L / prev_bsdf_pdf;
+                                        sample.jacobian = Sqr(isect.t) / AbsDot(isect.normal, wo);
                                     }
-
-                                    sample.isect = rc_isect;
-                                    sample.wi = rc_wi;
-                                    sample.Li = rc_beta * L;
                                     sample.contribution = beta * L;
                                     sample.p_hat = sample.contribution.Average();
 
@@ -270,10 +278,11 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             // Do NEE
+                            Float jacobian;
                             Spectrum L(0);
                             if (IsNonSpecular(bsdf.Flags()))
                             {
-                                L = SampleDirectLight(wo, isect, &bsdf, sampler);
+                                L = SampleDirectLight(wo, isect, &bsdf, sampler, &jacobian);
                             }
 
                             if (!L.IsBlack())
@@ -283,14 +292,19 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 if (reconnection_vertex > 0)
                                 {
                                     sample.reconnection_vertex = reconnection_vertex;
+                                    sample.isect = rc_isect;
+                                    sample.wi = rc_wi;
+                                    sample.Li = rc_beta * L;
+                                    sample.jacobian = rc_jacobian;
                                 }
                                 else
                                 {
-                                    sample.reconnection_vertex = is_diffuse ? (vertex_index + 1) : reconnection_vertex;
+                                    sample.reconnection_vertex = is_diffuse ? (vertex_index + 1) : -1;
+                                    sample.isect.primitive = nullptr;
+                                    sample.wi = Vec3::zero;
+                                    sample.Li = L;
+                                    sample.jacobian = jacobian;
                                 }
-                                sample.isect = rc_isect;
-                                sample.wi = Vec3::zero;
-                                sample.Li = Spectrum::black;
                                 sample.contribution = beta * L;
                                 sample.p_hat = sample.contribution.Average();
 
@@ -317,7 +331,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             if (rc_marked)
                             {
                                 rc_wi = bsdf_sample.wi;
-                                rc_beta = Spectrum(AbsDot(isect.shading.normal, bsdf_sample.wi));
+                                rc_beta *= AbsDot(isect.shading.normal, bsdf_sample.wi);
                                 rc_marked = false;
                             }
 
@@ -402,7 +416,9 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
     return progress;
 }
 
-Spectrum ReSTIRPTIntegrator::SampleDirectLight(const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler* sampler) const
+Spectrum ReSTIRPTIntegrator::SampleDirectLight(
+    const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler* sampler, Float* jacobian
+) const
 {
     Float u0 = sampler->Next1D();
     Point2 u12 = sampler->Next2D();
@@ -432,6 +448,8 @@ Spectrum ReSTIRPTIntegrator::SampleDirectLight(const Vec3& wo, const Intersectio
 
     Float light_pdf = sampled_light.pmf * light_sample.pdf;
     Spectrum f_cos = bsdf->f(wo, light_sample.wi) * AbsDot(isect.shading.normal, light_sample.wi);
+
+    *jacobian = Sqr(light_sample.visibility) / AbsDot(light_sample.normal, light_sample.wi);
 
     if (sampled_light.light->IsDeltaLight())
     {
