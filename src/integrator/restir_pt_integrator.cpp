@@ -25,19 +25,21 @@ struct ReSTIRPTVisiblePoint
 
 struct ReSTIRPTSample
 {
-    int32 path_length = -1;
     int32 reconnection_vertex = -1; // Reject this sample if reconnection vertex not set
 
+    const Light* light = nullptr;
+    bool nee_sample = false;
+
     Intersection isect;
-    Vec3 wi;                        // Incident direction to reconnection vertex
-    Spectrum Li;                    // Radiance estimate after reconnection vertex
+    Vec3 wi = Vec3::zero;         // Incident direction to reconnection vertex
+    Spectrum L = Spectrum::black; // Radiance estimate after reconnection vertex
 
-    Float jacobian;                 // Reconection jacobian da/dw
+    Float jacobian;               // Partial jacobian p_w0 * da/dw * p_w1
 
-    Spectrum contribution;          // Path contribution in PSS
+    Spectrum contribution;        // Path contribution in PSS
 
-    Float p_hat = 0;                // p_hat(contribution)
-    Float W = 0;                    // UCW
+    Float p_hat = 0;              // p_hat(contribution)
+    Float W = 0;                  // UCW
 };
 
 class ReSTIRPTReservoir
@@ -228,31 +230,31 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         // Evaluate BSDF sample with MIS for area light
                                         Float light_pdf =
                                             isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
-                                        Float mis_weight = PowerHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
+                                        Float mis_weight = BalanceHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
 
                                         L = mis_weight * Le;
                                     }
 
                                     // Add path sample where length > 1
                                     ReSTIRPTSample sample;
-                                    sample.path_length = vertex_index;
                                     if (reconnection_vertex > 0)
                                     {
                                         sample.reconnection_vertex = reconnection_vertex;
                                         sample.isect = rc_isect;
                                         sample.wi = rc_wi;
-                                        sample.Li = rc_beta * L;
+                                        sample.L = rc_beta * L;
                                         sample.jacobian = rc_jacobian;
                                     }
                                     else
                                     {
+                                        // BSDF sampled light vertex
                                         sample.reconnection_vertex = prev_diffuse ? vertex_index : -1;
+                                        sample.nee_sample = false;
+                                        sample.light = area_light;
                                         sample.isect.primitive = nullptr;
                                         sample.isect.point = isect.point;
                                         sample.isect.normal = isect.normal;
-                                        sample.wi = Vec3::zero;
-                                        sample.Li = L / prev_bsdf_pdf;
-                                        sample.jacobian = Sqr(isect.t) / AbsDot(isect.normal, wo) * prev_bsdf_pdf;
+                                        sample.jacobian = Sqr(isect.t) / AbsDot(isect.normal, wo);
                                     }
                                     sample.contribution = beta * L;
                                     sample.p_hat = sample.contribution.Average();
@@ -269,7 +271,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             {
                                 rc_marked = true;
                                 rc_isect = isect;
-                                rc_jacobian = Sqr(isect.t) / AbsDot(isect.normal, wo) * prev_bsdf_pdf;
+                                rc_jacobian = Sqr(isect.t) / AbsDot(isect.normal, wo);
                                 reconnection_vertex = vertex_index;
                             }
 
@@ -281,41 +283,74 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             // Do NEE
-                            Point3 p;
-                            Vec3 n;
-                            Float jacobian;
-                            Spectrum L(0);
-                            if (IsNonSpecular(bsdf.Flags()))
+                            while (IsNonSpecular(bsdf.Flags()))
                             {
-                                L = SampleDirectLight(wo, isect, &bsdf, sampler, &p, &n, &jacobian);
-                            }
+                                Float u0 = sampler->Next1D();
+                                Point2 u12 = sampler->Next2D();
+                                SampledLight sampled_light;
+                                if (!light_sampler->Sample(&sampled_light, isect, u0))
+                                {
+                                    break;
+                                }
 
-                            if (!L.IsBlack())
-                            {
+                                LightSampleLi light_sample;
+                                if (!sampled_light.light->Sample_Li(&light_sample, isect, u12))
+                                {
+                                    break;
+                                }
+
+                                Float bsdf_pdf = bsdf.PDF(wo, light_sample.wi);
+                                if (light_sample.Li.IsBlack() || bsdf_pdf == 0)
+                                {
+                                    break;
+                                }
+
+                                Ray shadow_ray(isect.point, light_sample.wi);
+                                if (IntersectAny(shadow_ray, Ray::epsilon, light_sample.visibility))
+                                {
+                                    break;
+                                }
+
+                                Float light_pdf = sampled_light.pmf * light_sample.pdf;
+                                Spectrum f_cos = bsdf.f(wo, light_sample.wi) * AbsDot(isect.shading.normal, light_sample.wi);
+
+                                Spectrum L;
+                                if (sampled_light.light->IsDeltaLight())
+                                {
+                                    L = light_sample.Li / light_pdf;
+                                }
+                                else
+                                {
+                                    Float mis_weight = BalanceHeuristic(1, light_pdf, 1, bsdf_pdf);
+                                    L = mis_weight * light_sample.Li / light_pdf;
+                                }
+
                                 ReSTIRPTSample sample;
-                                sample.path_length = vertex_index + 1;
                                 if (reconnection_vertex > 0)
                                 {
                                     sample.reconnection_vertex = reconnection_vertex;
                                     sample.isect = rc_isect;
-                                    sample.wi = rc_wi;
-                                    sample.Li = rc_beta * L;
+                                    sample.wi = rc_marked ? light_sample.wi : rc_wi;
+                                    sample.L = rc_marked ? AbsDot(isect.shading.normal, light_sample.wi) * L : rc_beta * L;
                                     sample.jacobian = rc_jacobian;
                                 }
                                 else
                                 {
+                                    // Light sampeld light vertex
                                     sample.reconnection_vertex = is_diffuse ? (vertex_index + 1) : -1;
+                                    sample.nee_sample = true;
+                                    sample.light = sampled_light.light;
                                     sample.isect.primitive = nullptr;
-                                    sample.isect.point = p;
-                                    sample.isect.normal = n;
-                                    sample.wi = Vec3::zero;
-                                    sample.Li = L;
-                                    sample.jacobian = jacobian;
+                                    sample.isect.point = light_sample.point;
+                                    sample.isect.normal = light_sample.normal;
+                                    sample.jacobian = Sqr(light_sample.visibility) / AbsDot(light_sample.normal, light_sample.wi);
                                 }
-                                sample.contribution = beta * L;
+                                sample.contribution = beta * f_cos * L;
                                 sample.p_hat = sample.contribution.Average();
 
                                 reservoir.Add(sample, sample.p_hat);
+
+                                break;
                             }
 
                             BSDFSample bsdf_sample;
@@ -341,8 +376,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 rc_beta *= AbsDot(isect.shading.normal, bsdf_sample.wi);
                                 rc_marked = false;
                             }
-
-                            if (reconnection_vertex > 0)
+                            else if (reconnection_vertex > 0)
                             {
                                 rc_beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
                             }
@@ -421,54 +455,6 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
     });
 
     return progress;
-}
-
-Spectrum ReSTIRPTIntegrator::SampleDirectLight(
-    const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler* sampler, Point3* p, Vec3* n, Float* jacobian
-) const
-{
-    Float u0 = sampler->Next1D();
-    Point2 u12 = sampler->Next2D();
-    SampledLight sampled_light;
-    if (!light_sampler->Sample(&sampled_light, isect, u0))
-    {
-        return Spectrum::black;
-    }
-
-    LightSampleLi light_sample;
-    if (!sampled_light.light->Sample_Li(&light_sample, isect, u12))
-    {
-        return Spectrum::black;
-    }
-
-    Float bsdf_pdf = bsdf->PDF(wo, light_sample.wi);
-    if (light_sample.Li.IsBlack() || bsdf_pdf == 0)
-    {
-        return Spectrum::black;
-    }
-
-    Ray shadow_ray(isect.point, light_sample.wi);
-    if (IntersectAny(shadow_ray, Ray::epsilon, light_sample.visibility))
-    {
-        return Spectrum::black;
-    }
-
-    Float light_pdf = sampled_light.pmf * light_sample.pdf;
-    Spectrum f_cos = bsdf->f(wo, light_sample.wi) * AbsDot(isect.shading.normal, light_sample.wi);
-
-    *p = light_sample.point;
-    *n = light_sample.normal;
-    *jacobian = Sqr(light_sample.visibility) / AbsDot(light_sample.normal, light_sample.wi) * light_pdf;
-
-    if (sampled_light.light->IsDeltaLight())
-    {
-        return light_sample.Li * f_cos / light_pdf;
-    }
-    else
-    {
-        Float mis_weight = PowerHeuristic(1, light_pdf, 1, bsdf_pdf);
-        return mis_weight * light_sample.Li * f_cos / light_pdf;
-    }
 }
 
 } // namespace bulbit

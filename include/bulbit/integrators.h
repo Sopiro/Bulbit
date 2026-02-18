@@ -190,10 +190,6 @@ public:
     virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
 
 private:
-    Spectrum SampleDirectLight(
-        const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler* sampler, Point3* p, Vec3* n, Float* jacobian
-    ) const;
-
     const Sampler* sampler_prototype;
     int32 max_bounces;
     int32 rr_min_bounces;
