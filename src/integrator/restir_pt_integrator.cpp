@@ -254,7 +254,8 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         sample.isect.primitive = nullptr;
                                         sample.isect.point = isect.point;
                                         sample.isect.normal = isect.normal;
-                                        sample.jacobian = Sqr(isect.t) / AbsDot(isect.normal, wo);
+                                        sample.L = Le;
+                                        sample.jacobian = Sqr(isect.t) / AbsDot(isect.normal, wo) / prev_bsdf_pdf;
                                     }
                                     sample.contribution = beta * L;
                                     sample.p_hat = sample.contribution.Average();
@@ -336,14 +337,16 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 }
                                 else
                                 {
-                                    // Light sampeld light vertex
+                                    // Light sampled light vertex
                                     sample.reconnection_vertex = is_diffuse ? (vertex_index + 1) : -1;
                                     sample.nee_sample = true;
                                     sample.light = sampled_light.light;
                                     sample.isect.primitive = nullptr;
                                     sample.isect.point = light_sample.point;
                                     sample.isect.normal = light_sample.normal;
-                                    sample.jacobian = Sqr(light_sample.visibility) / AbsDot(light_sample.normal, light_sample.wi);
+                                    sample.L = light_sample.Li;
+                                    sample.jacobian =
+                                        Sqr(light_sample.visibility) / AbsDot(light_sample.normal, light_sample.wi) / light_pdf;
                                 }
                                 sample.contribution = beta * f_cos * L;
                                 sample.p_hat = sample.contribution.Average();
@@ -419,6 +422,120 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                 tile_size
             );
 
+            // Spatial reuse
+            ParallelFor2D(
+                resolution,
+                [&](AABB2i tile) {
+                    int8 bxdf_mem[max_bxdf_size];
+                    BufferResource bsdf_buffer(bxdf_mem, sizeof(bxdf_mem));
+                    Allocator bsdf_alloc(&bsdf_buffer);
+
+                    for (Point2i pixel : tile)
+                    {
+                        const int32 index = resolution.x * pixel.y + pixel.x;
+                        ReSTIRPTVisiblePoint& vp = visible_points[index];
+                        Intersection& isect = vp.isect;
+
+                        if (!isect.primitive)
+                        {
+                            continue;
+                        }
+
+                        // ReSTIRPTReservoir& base_reservoir = base_reservoirs[index];
+                        ReSTIRPTReservoir& reservoir = spatial_reservoirs[index];
+                        reservoir.Seed(Hash(pixel, s, 456));
+
+                        // ReSTIRPTSample canonical_sample = base_reservoir.y;
+
+                        RNG rng(Hash(pixel, s), 789);
+
+                        for (int32 i = 0; i < num_spatial_samples; ++i)
+                        {
+                            Point2 offset = spatial_radius * SampleUniformUnitDisk({ rng.NextFloat(), rng.NextFloat() });
+                            Point2i neighbor_pixel(
+                                Clamp(pixel.x + offset.x, 0, resolution.x - 1), Clamp(pixel.y + offset.y, 0, resolution.y - 1)
+                            );
+
+                            const int32 neighbor_index = resolution.x * neighbor_pixel.y + neighbor_pixel.x;
+                            // ReSTIRPTVisiblePoint& neighbor_vp = visible_points[neighbor_index];
+                            ReSTIRPTReservoir& neighbor_reservoir = base_reservoirs[neighbor_index];
+                            ReSTIRPTSample sample = neighbor_reservoir.y;
+                            if (sample.W == 0)
+                            {
+                                continue;
+                            }
+
+                            if (sample.reconnection_vertex < 0)
+                            {
+                                continue;
+                            }
+
+                            if (sample.light)
+                            {
+                                // Reconnection vertex is light vertex
+                                Vec3 wi = sample.isect.point - isect.point;
+                                Float d2 = Length2(wi);
+                                Float d = std::sqrt(d2);
+                                wi /= d;
+
+                                bsdf_buffer.release();
+                                BSDF bsdf;
+                                isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc);
+
+                                Ray shadow_ray(isect.point, wi);
+                                if (IntersectAny(shadow_ray, Ray::epsilon, d - Ray::epsilon))
+                                {
+                                    continue;
+                                }
+
+                                Spectrum f_cos = bsdf.f(vp.wo, wi) * AbsDot(vp.isect.shading.normal, wi);
+
+                                Float jacobian = std::max(0.0f, (Dot(sample.isect.normal, -wi) / d2) * sample.jacobian);
+                                Float bsdf_pdf = bsdf.PDF(vp.wo, wi);
+                                Float light_pdf =
+                                    light_sampler->EvaluatePMF(sample.light) * sample.light->EvaluatePDF_Li(shadow_ray);
+                                if (sample.nee_sample)
+                                {
+                                    Float mis_weight =
+                                        sample.light->IsDeltaLight() ? 1.0f : BalanceHeuristic(1, light_pdf, 1, bsdf_pdf);
+                                    sample.contribution = mis_weight * f_cos / light_pdf * sample.L;
+                                    jacobian *= light_pdf;
+                                }
+                                else
+                                {
+                                    Float mis_weight =
+                                        sample.light->IsDeltaLight() ? 1.0f : BalanceHeuristic(1, bsdf_pdf, 1, light_pdf);
+                                    sample.contribution = mis_weight * f_cos / bsdf_pdf * sample.L;
+                                    jacobian *= bsdf_pdf;
+                                }
+
+                                Float p_hat = sample.contribution.Average();
+                                Float m = 1.0f / num_spatial_samples;
+                                Float w = m * p_hat * sample.W * jacobian;
+                                sample.p_hat = p_hat;
+                                reservoir.Add(sample, w);
+                            }
+                            else
+                            {
+                                continue;
+                            }
+                        }
+
+                        if (reservoir.HasSample())
+                        {
+                            reservoir.y.W = (1 / reservoir.y.p_hat) * reservoir.w_sum;
+                        }
+                        else
+                        {
+                            reservoir.y.W = 0;
+                        }
+                    }
+
+                    progress->work_dones.fetch_add(1, std::memory_order_relaxed);
+                },
+                tile_size
+            );
+
             // Shade
             ParallelFor2D(
                 resolution,
@@ -435,7 +552,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         }
 
                         Spectrum L = vp.Le;
-                        const ReSTIRPTSample& sample = base_reservoirs[index].y;
+                        const ReSTIRPTSample& sample = spatial_reservoirs[index].y;
                         if (sample.W > 0)
                         {
                             L += sample.contribution * sample.W;
