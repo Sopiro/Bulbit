@@ -23,20 +23,29 @@ struct ReSTIRPTVisiblePoint
     Spectrum Le;
 };
 
+enum ReSTIRPTSampleFlag : uint8
+{
+    light_vertex = 1,
+    bsdf_sampled = 2,
+    light_sampled = 4,
+    preceding_light_vertex = 8,
+    mid_vertex = 16,
+};
+
 struct ReSTIRPTSample
 {
+    uint8 flag = 0;
     int32 reconnection_vertex = -1; // Reject this sample if reconnection vertex not set
 
     const Light* light = nullptr;
-    bool nee_sample = false;
 
     Intersection isect;
     Vec3 wi = Vec3::zero;         // Incident direction to reconnection vertex
     Spectrum L = Spectrum::black; // Radiance estimate after reconnection vertex
 
-    Float jacobian;               // Partial jacobian p_w0 * da/dw * p_w1
+    Float jacobian;               // Partial jacobian (1/p_w0) * da/dw * (1/p_w1)
 
-    Spectrum contribution;        // Path contribution in PSS
+    Spectrum contribution;        // Path contribution
 
     Float p_hat = 0;              // p_hat(contribution)
     Float W = 0;                  // UCW
@@ -121,8 +130,11 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
     const int32 num_pixels = resolution.x * resolution.y;
     const Point2i num_tiles = (resolution + (tile_size - 1)) / tile_size;
     const int32 tile_count = num_tiles.x * num_tiles.y;
-    const int32 num_passes = 2;
+    const int32 num_passes = 3;
     const size_t total_works = size_t(std::max(spp, 1) * tile_count * num_passes);
+
+    const Float spatial_radius = 5.0f;
+    const int32 num_spatial_samples = 5;
 
     SinglePhaseRendering* progress = alloc.new_object<SinglePhaseRendering>(camera, total_works);
     progress->job = RunAsync([=, this]() {
@@ -157,6 +169,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         vp.primary_weight = primary_ray.weight;
                         vp.Le = Spectrum::black;
 
+                        // Path state
                         int32 bounce = 0;
                         Spectrum beta(1);
                         bool specular_bounce = false;
@@ -164,11 +177,13 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         Ray ray = primary_ray.ray;
                         Float prev_bsdf_pdf = 0;
 
-                        // Reconnection state
+                        // Reconnection vertex state
                         int32 reconnection_vertex = 2;
+
                         Intersection rc_isect;
                         Vec3 rc_wi;
-                        Spectrum rc_beta(0);
+                        Spectrum rc_beta;
+                        Float rc_jacobian;
 
                         // bool prev_diffuse = false;
 
@@ -208,60 +223,81 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             if (vertex_index == reconnection_vertex)
                             {
                                 rc_isect = isect;
-                                rc_wi = -wo;
                                 rc_beta = Spectrum(1);
+                                rc_jacobian = (Sqr(isect.t) / AbsDot(isect.normal, wo)) / prev_bsdf_pdf;
                             }
 
-                            if (const Light* area_light = GetAreaLight(isect); area_light)
+                            const Light* area_light = GetAreaLight(isect);
+                            while (area_light)
                             {
-                                if (Spectrum Le = area_light->Le(isect, wo); !Le.IsBlack())
+                                Spectrum Le = area_light->Le(isect, wo);
+                                if (Le.IsBlack())
                                 {
-                                    Spectrum L(0);
-                                    if (bounce == 0)
-                                    {
-                                        vp.Le = beta * Le;
-                                    }
-                                    else if (specular_bounce)
-                                    {
-                                        L = Le;
-                                    }
-                                    else
-                                    {
-                                        // Evaluate BSDF sample with MIS for area light
-                                        Float light_pdf =
-                                            isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
-                                        Float mis_weight = BalanceHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
-
-                                        L = mis_weight * Le;
-                                    }
-
-                                    // Add bsdf sampled path sample
-                                    ReSTIRPTSample sample;
-                                    sample.reconnection_vertex = reconnection_vertex;
-
-                                    if (vertex_index == reconnection_vertex)
-                                    {
-                                        // Direct light sample
-                                        sample.light = area_light;
-                                        sample.nee_sample = false;
-
-                                        sample.isect = isect;
-
-                                        sample.wi = Vec3::zero;
-                                        sample.L = Le;
-                                    }
-                                    else
-                                    {
-                                        // Reconnection vertex is set before the light vertex
-                                        sample.isect = rc_isect;
-                                        sample.wi = rc_wi;
-                                        sample.L = rc_beta * L;
-                                    }
-
-                                    sample.contribution = beta * L;
-                                    sample.p_hat = sample.contribution.Average();
-                                    reservoir.Add(sample, sample.p_hat);
+                                    break;
                                 }
+
+                                if (bounce == 0)
+                                {
+                                    vp.Le = beta * Le;
+                                    break;
+                                }
+
+                                Spectrum L(0);
+                                if (specular_bounce)
+                                {
+                                    L = Le;
+                                }
+                                else
+                                {
+                                    // Evaluate BSDF sample with MIS for area light
+                                    Float light_pdf =
+                                        isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
+                                    Float mis_weight = BalanceHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
+
+                                    L = mis_weight * Le;
+                                }
+
+                                // Add bsdf sampled path sample
+                                ReSTIRPTSample sample;
+                                sample.reconnection_vertex = reconnection_vertex;
+
+                                if (vertex_index == reconnection_vertex)
+                                {
+                                    // Reconnection vertex is the light vertex
+                                    sample.flag = bsdf_sampled | light_vertex;
+                                    sample.light = area_light;
+
+                                    sample.isect = isect;
+
+                                    sample.wi = Vec3::zero;
+                                    sample.L = Le;
+
+                                    sample.jacobian = rc_jacobian;
+                                }
+                                else if (vertex_index == reconnection_vertex + 1)
+                                {
+                                    // Reconnection vertex is previous vertex
+                                    sample.flag = bsdf_sampled | preceding_light_vertex;
+                                    sample.light = area_light;
+                                    sample.isect = rc_isect;
+                                    sample.wi = rc_wi;
+                                    sample.L = Le;
+                                    sample.jacobian = rc_jacobian;
+                                }
+                                else
+                                {
+                                    // Reconnection vertex is set far before the light vertex
+                                    sample.flag = mid_vertex;
+                                    sample.isect = rc_isect;
+                                    sample.wi = rc_wi;
+                                    sample.L = rc_beta * L;
+                                    sample.jacobian = rc_jacobian;
+                                }
+
+                                sample.contribution = beta * L;
+                                sample.p_hat = sample.contribution.Luminance();
+                                reservoir.Add(sample, sample.p_hat);
+                                break;
                             }
 
                             // landed on diffuse surface?
@@ -325,9 +361,9 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                 if (vertex_index == reconnection_vertex - 1)
                                 {
-                                    // Direct light sample
+                                    // Reconnection vertex is the light vertex
+                                    sample.flag = light_sampled | light_vertex;
                                     sample.light = sampled_light.light;
-                                    sample.nee_sample = true;
 
                                     sample.isect.primitive = nullptr;
                                     sample.isect.point = light_sample.point;
@@ -335,19 +371,34 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                     sample.wi = Vec3::zero;
                                     sample.L = light_sample.Li;
+
+                                    sample.jacobian =
+                                        (Sqr(light_sample.visibility) / AbsDot(light_sample.normal, light_sample.wi)) / light_pdf;
+                                }
+                                else if (vertex_index == reconnection_vertex)
+                                {
+                                    // Reconnection vertex is previous vertex
+                                    sample.flag = light_sampled | preceding_light_vertex;
+                                    sample.light = sampled_light.light;
+                                    sample.isect = rc_isect;
+                                    sample.wi = light_sample.wi;
+                                    sample.L = light_sample.Li;
+                                    sample.jacobian = rc_jacobian * prev_bsdf_pdf / light_pdf;
                                 }
                                 else
                                 {
-                                    // Reconnection vertex is set before the light vertex
+                                    // Reconnection vertex is set far before the light vertex
+                                    sample.flag = mid_vertex;
                                     sample.light = nullptr;
 
                                     sample.isect = rc_isect;
                                     sample.wi = rc_wi;
                                     sample.L = rc_beta * f_cos * L;
+                                    sample.jacobian = rc_jacobian;
                                 }
 
                                 sample.contribution = beta * f_cos * L;
-                                sample.p_hat = sample.contribution.Average();
+                                sample.p_hat = sample.contribution.Luminance();
                                 reservoir.Add(sample, sample.p_hat);
                                 break;
                             }
@@ -374,8 +425,8 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             if (vertex_index == reconnection_vertex)
                             {
-                                // Only incorporate cos term
-                                rc_beta *= AbsDot(isect.shading.normal, bsdf_sample.wi);
+                                rc_wi = bsdf_sample.wi;
+                                rc_jacobian /= bsdf_sample.pdf;
                             }
                             else if (vertex_index > reconnection_vertex)
                             {
@@ -422,6 +473,182 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                 tile_size
             );
 
+            // Spatial reuse
+            ParallelFor2D(
+                resolution,
+                [&](AABB2i tile) {
+                    int8 bxdf_mem[2 * max_bxdf_size];
+                    BufferResource bsdf_buffer(bxdf_mem, sizeof(bxdf_mem));
+                    Allocator bsdf_alloc(&bsdf_buffer);
+
+                    for (Point2i pixel : tile)
+                    {
+                        const int32 index = resolution.x * pixel.y + pixel.x;
+                        ReSTIRPTVisiblePoint& vp = visible_points[index];
+                        Intersection& isect = vp.isect;
+
+                        if (!isect.primitive)
+                        {
+                            continue;
+                        }
+
+                        // ReSTIRPTReservoir& base_reservoir = base_reservoirs[index];
+                        ReSTIRPTReservoir& reservoir = spatial_reservoirs[index];
+                        reservoir.Seed(Hash(pixel, s, 456));
+
+                        // ReSTIRPTSample canonical_sample = base_reservoir.y;
+
+                        RNG rng(Hash(pixel, s), 789);
+
+                        for (int32 i = 0; i < num_spatial_samples; ++i)
+                        {
+                            Point2 offset = spatial_radius * SampleUniformUnitDisk({ rng.NextFloat(), rng.NextFloat() });
+                            Point2i neighbor_pixel(
+                                Clamp(pixel.x + offset.x, 0, resolution.x - 1), Clamp(pixel.y + offset.y, 0, resolution.y - 1)
+                            );
+
+                            const int32 neighbor_index = resolution.x * neighbor_pixel.y + neighbor_pixel.x;
+                            // ReSTIRPTVisiblePoint& neighbor_vp = visible_points[neighbor_index];
+                            ReSTIRPTReservoir& neighbor_reservoir = base_reservoirs[neighbor_index];
+                            ReSTIRPTSample sample = neighbor_reservoir.y;
+                            if (sample.W == 0)
+                            {
+                                continue;
+                            }
+
+                            Vec3 wi = sample.isect.point - isect.point;
+                            Float d2 = Length2(wi);
+                            Float d = std::sqrt(d2);
+                            wi /= d;
+
+                            bsdf_buffer.release();
+                            BSDF bsdf;
+                            if (!isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc))
+                            {
+                                continue;
+                            }
+
+                            Ray shadow_ray(isect.point, wi);
+                            if (IntersectAny(shadow_ray, Ray::epsilon, d - Ray::epsilon))
+                            {
+                                continue;
+                            }
+
+                            Spectrum f_cos = bsdf.f(vp.wo, wi) * AbsDot(vp.isect.shading.normal, wi);
+                            Float bsdf_pdf = bsdf.PDF(vp.wo, wi);
+
+                            Float jacobian = std::max(0.0f, (Dot(sample.isect.normal, -wi) / d2));
+                            if (jacobian == 0 || bsdf_pdf == 0)
+                            {
+                                continue;
+                            }
+
+                            if (sample.flag & light_vertex)
+                            {
+                                // Reconnection vertex is light vertex
+                                Float light_pdf =
+                                    light_sampler->EvaluatePMF(sample.light) * sample.light->EvaluatePDF_Li(shadow_ray);
+
+                                if (light_pdf == 0)
+                                {
+                                    continue;
+                                }
+
+                                jacobian *= sample.jacobian;
+
+                                if (sample.flag & light_sampled)
+                                {
+                                    Float mis_weight =
+                                        sample.light->IsDeltaLight() ? 1.0f : BalanceHeuristic(1, light_pdf, 1, bsdf_pdf);
+                                    sample.contribution = mis_weight * (f_cos / light_pdf) * sample.L;
+                                    jacobian *= light_pdf;
+                                }
+                                else
+                                {
+                                    Float mis_weight =
+                                        sample.light->IsDeltaLight() ? 1.0f : BalanceHeuristic(1, bsdf_pdf, 1, light_pdf);
+                                    sample.contribution = mis_weight * (f_cos / bsdf_pdf) * sample.L;
+                                    jacobian *= bsdf_pdf;
+                                }
+
+                                Float p_hat = sample.contribution.Luminance();
+                                Float m = 1.0f / num_spatial_samples;
+                                Float w = m * p_hat * sample.W * jacobian;
+                                sample.p_hat = p_hat;
+                                reservoir.Add(sample, w);
+                            }
+                            else
+                            {
+                                // Reconnection vertex is set before the light vertex
+                                BSDF bsdf_rc;
+                                if (!sample.isect.GetBSDF(&bsdf_rc, -wi, bsdf_alloc))
+                                {
+                                    continue;
+                                }
+
+                                Spectrum f_cos_rc = bsdf_rc.f(-wi, sample.wi) * AbsDot(sample.isect.shading.normal, sample.wi);
+                                Float bsdf_pdf_rc = bsdf_rc.PDF(-wi, sample.wi);
+                                if (bsdf_pdf_rc == 0.0f)
+                                {
+                                    continue;
+                                }
+
+                                jacobian *= bsdf_pdf * sample.jacobian;
+
+                                if (sample.flag & preceding_light_vertex)
+                                {
+                                    // Reconnection vertex is set just before the light vertex
+
+                                    Float light_pdf_rc = light_sampler->EvaluatePMF(sample.light) *
+                                                         sample.light->EvaluatePDF_Li(Ray(sample.isect.point, sample.wi));
+                                    if (sample.flag & light_sampled)
+                                    {
+                                        Float mis_weight = sample.light->IsDeltaLight()
+                                                               ? 1.0f
+                                                               : BalanceHeuristic(1, light_pdf_rc, 1, bsdf_pdf_rc);
+                                        sample.contribution =
+                                            (f_cos / bsdf_pdf) * mis_weight * (f_cos_rc / light_pdf_rc) * sample.L;
+                                        jacobian *= light_pdf_rc;
+                                    }
+                                    else
+                                    {
+                                        Float mis_weight = sample.light->IsDeltaLight()
+                                                               ? 1.0f
+                                                               : BalanceHeuristic(1, bsdf_pdf_rc, 1, light_pdf_rc);
+                                        sample.contribution =
+                                            (f_cos / bsdf_pdf) * mis_weight * (f_cos_rc / bsdf_pdf_rc) * sample.L;
+                                        jacobian *= bsdf_pdf_rc;
+                                    }
+                                }
+                                else
+                                {
+                                    // Reconnection vertex is set far before the light vertex
+                                    sample.contribution = (f_cos / bsdf_pdf) * (f_cos_rc / bsdf_pdf_rc) * sample.L;
+                                }
+
+                                Float p_hat = sample.contribution.Luminance();
+                                Float m = 1.0f / num_spatial_samples;
+                                Float w = m * p_hat * sample.W * jacobian;
+                                sample.p_hat = p_hat;
+                                reservoir.Add(sample, w);
+                            }
+                        }
+
+                        if (reservoir.HasSample())
+                        {
+                            reservoir.y.W = (1 / reservoir.y.p_hat) * reservoir.w_sum;
+                        }
+                        else
+                        {
+                            reservoir.y.W = 0;
+                        }
+                    }
+
+                    progress->work_dones.fetch_add(1, std::memory_order_relaxed);
+                },
+                tile_size
+            );
+
             // Shade
             ParallelFor2D(
                 resolution,
@@ -438,7 +665,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         }
 
                         Spectrum L = vp.Le;
-                        const ReSTIRPTSample& sample = base_reservoirs[index].y;
+                        const ReSTIRPTSample& sample = spatial_reservoirs[index].y;
                         if (sample.W > 0)
                         {
                             L += sample.contribution * sample.W;
