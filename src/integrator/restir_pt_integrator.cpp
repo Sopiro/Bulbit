@@ -164,6 +164,12 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         Ray ray = primary_ray.ray;
                         Float prev_bsdf_pdf = 0;
 
+                        // Reconnection state
+                        int32 reconnection_vertex = 2;
+                        Intersection rc_isect;
+                        Vec3 rc_wi;
+                        Spectrum rc_beta(0);
+
                         // bool prev_diffuse = false;
 
                         // Generate path tree with NEE path tracing
@@ -198,7 +204,13 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 continue;
                             }
 
-                            // int32 vertex_index = bounce + 1;
+                            int32 vertex_index = bounce + 1;
+                            if (vertex_index == reconnection_vertex)
+                            {
+                                rc_isect = isect;
+                                rc_wi = -wo;
+                                rc_beta = Spectrum(1);
+                            }
 
                             if (const Light* area_light = GetAreaLight(isect); area_light)
                             {
@@ -223,8 +235,29 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         L = mis_weight * Le;
                                     }
 
-                                    // Add path sample
+                                    // Add bsdf sampled path sample
                                     ReSTIRPTSample sample;
+                                    sample.reconnection_vertex = reconnection_vertex;
+
+                                    if (vertex_index == reconnection_vertex)
+                                    {
+                                        // Direct light sample
+                                        sample.light = area_light;
+                                        sample.nee_sample = false;
+
+                                        sample.isect = isect;
+
+                                        sample.wi = Vec3::zero;
+                                        sample.L = Le;
+                                    }
+                                    else
+                                    {
+                                        // Reconnection vertex is set before the light vertex
+                                        sample.isect = rc_isect;
+                                        sample.wi = rc_wi;
+                                        sample.L = rc_beta * L;
+                                    }
+
                                     sample.contribution = beta * L;
                                     sample.p_hat = sample.contribution.Average();
                                     reservoir.Add(sample, sample.p_hat);
@@ -286,7 +319,33 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     L = mis_weight * light_sample.Li / light_pdf;
                                 }
 
+                                // Add light sampled path sample
                                 ReSTIRPTSample sample;
+                                sample.reconnection_vertex = reconnection_vertex;
+
+                                if (vertex_index == reconnection_vertex - 1)
+                                {
+                                    // Direct light sample
+                                    sample.light = sampled_light.light;
+                                    sample.nee_sample = true;
+
+                                    sample.isect.primitive = nullptr;
+                                    sample.isect.point = light_sample.point;
+                                    sample.isect.normal = light_sample.normal;
+
+                                    sample.wi = Vec3::zero;
+                                    sample.L = light_sample.Li;
+                                }
+                                else
+                                {
+                                    // Reconnection vertex is set before the light vertex
+                                    sample.light = nullptr;
+
+                                    sample.isect = rc_isect;
+                                    sample.wi = rc_wi;
+                                    sample.L = rc_beta * f_cos * L;
+                                }
+
                                 sample.contribution = beta * f_cos * L;
                                 sample.p_hat = sample.contribution.Average();
                                 reservoir.Add(sample, sample.p_hat);
@@ -312,6 +371,16 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             prev_bsdf_pdf = bsdf_sample.is_stochastic ? bsdf.PDF(wo, bsdf_sample.wi) : bsdf_sample.pdf;
                             beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
                             ray = Ray(isect.point, bsdf_sample.wi);
+
+                            if (vertex_index == reconnection_vertex)
+                            {
+                                // Only incorporate cos term
+                                rc_beta *= AbsDot(isect.shading.normal, bsdf_sample.wi);
+                            }
+                            else if (vertex_index > reconnection_vertex)
+                            {
+                                rc_beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
+                            }
 
                             Float u6 = sampler->Next1D();
 
