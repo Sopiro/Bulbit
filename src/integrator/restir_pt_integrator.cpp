@@ -36,6 +36,7 @@ struct ReSTIRPTSample
 {
     uint8 flag = 0;
     int32 reconnection_vertex = -1; // Reject this sample if reconnection vertex not set
+    uint64 seed;
 
     const Light* light = nullptr;
 
@@ -185,6 +186,9 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         Spectrum rc_beta;
                         Float rc_jacobian;
 
+                        const uint64 seed = Hash(pixel, s);
+                        RNG rng(seed);
+
                         // Generate path tree with NEE path tracing
                         while (true)
                         {
@@ -265,6 +269,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                 // Add bsdf sampled path sample
                                 ReSTIRPTSample sample;
+                                sample.seed = seed;
                                 if (reconnection_vertex > 0)
                                 {
                                     sample.reconnection_vertex = reconnection_vertex;
@@ -324,8 +329,8 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 break;
                             }
 
-                            Float u0 = sampler->Next1D();
-                            Point2 u12 = sampler->Next2D();
+                            Float u0 = rng.NextFloat();
+                            Point2 u12 = { rng.NextFloat(), rng.NextFloat() };
 
                             // Do NEE
                             while (IsNonSpecular(bsdf.Flags()))
@@ -370,6 +375,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                 // Add light sampled path sample
                                 ReSTIRPTSample sample;
+                                sample.seed = seed;
                                 if (reconnection_vertex > 0)
                                 {
                                     sample.reconnection_vertex = reconnection_vertex;
@@ -415,8 +421,8 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 break;
                             }
 
-                            Float u3 = sampler->Next1D();
-                            Point2 u45 = sampler->Next2D();
+                            Float u3 = rng.NextFloat();
+                            Point2 u45 = { rng.NextFloat(), rng.NextFloat() };
 
                             BSDFSample bsdf_sample;
                             if (!bsdf.Sample_f(&bsdf_sample, wo, u3, u45))
@@ -445,7 +451,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 rc_beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
                             }
 
-                            Float u6 = sampler->Next1D();
+                            Float u6 = rng.NextFloat();
 
                             // Terminate path with russian roulette
                             if (bounce > rr_min_bounces)
@@ -600,7 +606,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                 Spectrum f_cos_rc = bsdf_rc.f(-wi, sample.wi) * AbsDot(sample.isect.shading.normal, sample.wi);
                                 Float bsdf_pdf_rc = bsdf_rc.PDF(-wi, sample.wi);
-                                if (bsdf_pdf_rc == 0.0f)
+                                if (bsdf_pdf_rc == 0)
                                 {
                                     continue;
                                 }
