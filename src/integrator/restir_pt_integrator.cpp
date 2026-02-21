@@ -169,23 +169,21 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         vp.primary_weight = primary_ray.weight;
                         vp.Le = Spectrum::black;
 
-                        // Path state
+                        // Path sampling state
                         int32 bounce = 0;
                         Spectrum beta(1);
                         bool specular_bounce = false;
                         Float eta_scale = 1;
                         Ray ray = primary_ray.ray;
                         Float prev_bsdf_pdf = 0;
+                        bool prev_diffuse = false;
 
                         // Reconnection vertex state
-                        int32 reconnection_vertex = 2;
-
+                        int32 reconnection_vertex = -1;
                         Intersection rc_isect;
                         Vec3 rc_wi;
                         Spectrum rc_beta;
                         Float rc_jacobian;
-
-                        // bool prev_diffuse = false;
 
                         // Generate path tree with NEE path tracing
                         while (true)
@@ -220,6 +218,14 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             int32 vertex_index = bounce + 1;
+
+                            // landed on diffuse surface?
+                            bool is_diffuse = IsDiffuse(bsdf.Flags());
+                            if (reconnection_vertex < 0 && prev_diffuse && is_diffuse)
+                            {
+                                reconnection_vertex = vertex_index;
+                            }
+
                             if (vertex_index == reconnection_vertex)
                             {
                                 rc_isect = isect;
@@ -259,39 +265,49 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                 // Add bsdf sampled path sample
                                 ReSTIRPTSample sample;
-                                sample.reconnection_vertex = reconnection_vertex;
-
-                                if (vertex_index == reconnection_vertex)
+                                if (reconnection_vertex > 0)
                                 {
-                                    // Reconnection vertex is the light vertex
-                                    sample.flag = bsdf_sampled | light_vertex;
-                                    sample.light = area_light;
-
-                                    sample.isect = isect;
-
-                                    sample.wi = Vec3::zero;
-                                    sample.L = Le;
-
-                                    sample.jacobian = rc_jacobian;
-                                }
-                                else if (vertex_index == reconnection_vertex + 1)
-                                {
-                                    // Reconnection vertex is previous vertex
-                                    sample.flag = bsdf_sampled | preceding_light_vertex;
-                                    sample.light = area_light;
-                                    sample.isect = rc_isect;
-                                    sample.wi = rc_wi;
-                                    sample.L = Le;
-                                    sample.jacobian = rc_jacobian;
+                                    sample.reconnection_vertex = reconnection_vertex;
+                                    if (vertex_index == reconnection_vertex)
+                                    {
+                                        // Reconnection vertex is the light vertex
+                                        sample.flag = bsdf_sampled | light_vertex;
+                                        sample.light = area_light;
+                                        sample.isect = isect;
+                                        sample.wi = Vec3::zero;
+                                        sample.L = Le;
+                                        sample.jacobian = rc_jacobian;
+                                    }
+                                    else if (vertex_index == reconnection_vertex + 1)
+                                    {
+                                        // Reconnection vertex is previous vertex
+                                        sample.flag = bsdf_sampled | preceding_light_vertex;
+                                        sample.light = area_light;
+                                        sample.isect = rc_isect;
+                                        sample.wi = rc_wi;
+                                        sample.L = Le;
+                                        sample.jacobian = rc_jacobian;
+                                    }
+                                    else
+                                    {
+                                        // Reconnection vertex is set far before the light vertex
+                                        sample.flag = mid_vertex;
+                                        sample.isect = rc_isect;
+                                        sample.wi = rc_wi;
+                                        sample.L = rc_beta * L;
+                                        sample.jacobian = rc_jacobian;
+                                    }
                                 }
                                 else
                                 {
-                                    // Reconnection vertex is set far before the light vertex
-                                    sample.flag = mid_vertex;
-                                    sample.isect = rc_isect;
-                                    sample.wi = rc_wi;
-                                    sample.L = rc_beta * L;
-                                    sample.jacobian = rc_jacobian;
+                                    // Reconnection vertex is the light vertex
+                                    sample.reconnection_vertex = prev_diffuse ? vertex_index : -1;
+                                    sample.flag = bsdf_sampled | light_vertex;
+                                    sample.light = area_light;
+                                    sample.isect = isect;
+                                    sample.wi = Vec3::zero;
+                                    sample.L = Le;
+                                    sample.jacobian = (Sqr(isect.t) / AbsDot(isect.normal, wo)) / prev_bsdf_pdf;
                                 }
 
                                 sample.contribution = beta * L;
@@ -300,11 +316,8 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 break;
                             }
 
-                            // landed on diffuse surface?
-                            // bool is_diffuse = IsDiffuse(bsdf.Flags());
-
                             // Mark current vertex as reconnection vertex
-                            // prev_diffuse = is_diffuse;
+                            prev_diffuse = is_diffuse;
 
                             if (bounce++ >= max_bounces)
                             {
@@ -357,44 +370,43 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                 // Add light sampled path sample
                                 ReSTIRPTSample sample;
-                                sample.reconnection_vertex = reconnection_vertex;
-
-                                if (vertex_index == reconnection_vertex - 1)
+                                if (reconnection_vertex > 0)
                                 {
-                                    // Reconnection vertex is the light vertex
-                                    sample.flag = light_sampled | light_vertex;
-                                    sample.light = sampled_light.light;
-
-                                    sample.isect.primitive = nullptr;
-                                    sample.isect.point = light_sample.point;
-                                    sample.isect.normal = light_sample.normal;
-
-                                    sample.wi = Vec3::zero;
-                                    sample.L = light_sample.Li;
-
-                                    sample.jacobian =
-                                        (Sqr(light_sample.visibility) / AbsDot(light_sample.normal, light_sample.wi)) / light_pdf;
-                                }
-                                else if (vertex_index == reconnection_vertex)
-                                {
-                                    // Reconnection vertex is previous vertex
-                                    sample.flag = light_sampled | preceding_light_vertex;
-                                    sample.light = sampled_light.light;
-                                    sample.isect = rc_isect;
-                                    sample.wi = light_sample.wi;
-                                    sample.L = light_sample.Li;
-                                    sample.jacobian = rc_jacobian * prev_bsdf_pdf / light_pdf;
+                                    sample.reconnection_vertex = reconnection_vertex;
+                                    if (vertex_index == reconnection_vertex)
+                                    {
+                                        // Reconnection vertex is previous vertex
+                                        sample.flag = light_sampled | preceding_light_vertex;
+                                        sample.light = sampled_light.light;
+                                        sample.isect = rc_isect;
+                                        sample.wi = light_sample.wi;
+                                        sample.L = light_sample.Li;
+                                        sample.jacobian = rc_jacobian * prev_bsdf_pdf / light_pdf;
+                                    }
+                                    else
+                                    {
+                                        // Reconnection vertex is set far before the light vertex
+                                        sample.flag = mid_vertex;
+                                        sample.light = nullptr;
+                                        sample.isect = rc_isect;
+                                        sample.wi = rc_wi;
+                                        sample.L = rc_beta * f_cos * L;
+                                        sample.jacobian = rc_jacobian;
+                                    }
                                 }
                                 else
                                 {
-                                    // Reconnection vertex is set far before the light vertex
-                                    sample.flag = mid_vertex;
-                                    sample.light = nullptr;
-
-                                    sample.isect = rc_isect;
-                                    sample.wi = rc_wi;
-                                    sample.L = rc_beta * f_cos * L;
-                                    sample.jacobian = rc_jacobian;
+                                    // Reconnection vertex is the light vertex
+                                    sample.reconnection_vertex = is_diffuse ? (vertex_index + 1) : -1;
+                                    sample.flag = light_sampled | light_vertex;
+                                    sample.light = sampled_light.light;
+                                    sample.isect.primitive = nullptr;
+                                    sample.isect.point = light_sample.point;
+                                    sample.isect.normal = light_sample.normal;
+                                    sample.wi = Vec3::zero;
+                                    sample.L = light_sample.Li;
+                                    sample.jacobian =
+                                        (Sqr(light_sample.visibility) / AbsDot(light_sample.normal, light_sample.wi)) / light_pdf;
                                 }
 
                                 sample.contribution = beta * f_cos * L;
@@ -428,7 +440,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 rc_wi = bsdf_sample.wi;
                                 rc_jacobian /= bsdf_sample.pdf;
                             }
-                            else if (vertex_index > reconnection_vertex)
+                            else if (reconnection_vertex > 0 && vertex_index > reconnection_vertex)
                             {
                                 rc_beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
                             }
@@ -601,6 +613,12 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                     Float light_pdf_rc = light_sampler->EvaluatePMF(sample.light) *
                                                          sample.light->EvaluatePDF_Li(Ray(sample.isect.point, sample.wi));
+
+                                    if (light_pdf_rc == 0)
+                                    {
+                                        continue;
+                                    }
+
                                     if (sample.flag & light_sampled)
                                     {
                                         Float mis_weight = sample.light->IsDeltaLight()
