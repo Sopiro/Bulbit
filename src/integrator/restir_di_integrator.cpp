@@ -191,8 +191,8 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
     const int32 num_passes = 4;
     const size_t total_works = size_t(std::max(spp, 1) * tile_count * num_passes);
 
-    const Float spatial_radius = 3.0f;
-    const int32 num_spatial_samples = 5;
+    constexpr Float spatial_radius = 3.0f;
+    constexpr int32 num_spatial_samples = 5;
 
     const int32 M_light = 2;
     const int32 M_bsdf = 1;
@@ -458,7 +458,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         Float c_total = c_1;
 
                         int32 num_neighbors = 0;
-                        int32 neighbors[num_spatial_samples - 1];
+                        int32 neighbors[num_spatial_samples];
                         for (int32 i = 0; i < num_spatial_samples - 1; ++i)
                         {
                             Point2 offset = spatial_radius * SampleUniformUnitDisk({ rng.NextFloat(), rng.NextFloat() });

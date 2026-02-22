@@ -181,8 +181,8 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
     const int32 earliest_reconnection_vertex = 2;
 
-    const Float spatial_radius = 3.0f;
-    const int32 num_spatial_samples = 3;
+    constexpr Float spatial_radius = 3.0f;
+    constexpr int32 num_spatial_samples = 3;
 
     SinglePhaseRendering* progress = alloc.new_object<SinglePhaseRendering>(camera, total_works);
     progress->job = RunAsync([=, this]() {
@@ -851,7 +851,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         Float c_total = c_1;
 
                         int32 num_neighbors = 0;
-                        int32 neighbors[num_spatial_samples - 1];
+                        int32 neighbors[num_spatial_samples];
                         for (int32 i = 0; i < num_spatial_samples - 1; ++i)
                         {
                             Point2 offset = spatial_radius * SampleUniformUnitDisk({ rng.NextFloat(), rng.NextFloat() });
