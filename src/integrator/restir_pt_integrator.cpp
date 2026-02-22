@@ -183,7 +183,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         int32 reconnection_vertex = -1;
                         Intersection rc_isect;
                         Vec3 rc_wi;
-                        Spectrum rc_beta;
+                        Spectrum rc_beta(0);
                         Float rc_jacobian;
 
                         const uint64 seed = Hash(pixel, s);
@@ -252,7 +252,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     break;
                                 }
 
-                                Spectrum L(0);
+                                Spectrum L;
                                 if (specular_bounce)
                                 {
                                     L = Le;
@@ -381,13 +381,13 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     sample.reconnection_vertex = reconnection_vertex;
                                     if (vertex_index == reconnection_vertex)
                                     {
-                                        // Reconnection vertex is previous vertex
+                                        // Reconnection vertex is preceding the light vertex
                                         sample.flag = light_sampled | preceding_light_vertex;
                                         sample.light = sampled_light.light;
                                         sample.isect = rc_isect;
                                         sample.wi = light_sample.wi;
                                         sample.L = light_sample.Li;
-                                        sample.jacobian = rc_jacobian * prev_bsdf_pdf / light_pdf;
+                                        sample.jacobian = rc_jacobian / light_pdf;
                                     }
                                     else
                                     {
@@ -465,6 +465,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     else
                                     {
                                         beta /= p;
+                                        rc_beta /= p;
                                     }
                                 }
                             }
@@ -615,7 +616,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                 if (sample.flag & preceding_light_vertex)
                                 {
-                                    // Reconnection vertex is set just before the light vertex
+                                    // Reconnection vertex is preceding the light vertex
 
                                     Float light_pdf_rc = light_sampler->EvaluatePMF(sample.light) *
                                                          sample.light->EvaluatePDF_Li(Ray(sample.isect.point, sample.wi));
@@ -627,18 +628,16 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                     if (sample.flag & light_sampled)
                                     {
-                                        Float mis_weight = sample.light->IsDeltaLight()
-                                                               ? 1.0f
-                                                               : BalanceHeuristic(1, light_pdf_rc, 1, bsdf_pdf_rc);
+                                        Float mis_weight =
+                                            sample.light->IsDeltaLight() ? 1 : BalanceHeuristic(1, light_pdf_rc, 1, bsdf_pdf_rc);
                                         sample.contribution =
                                             (f_cos / bsdf_pdf) * mis_weight * (f_cos_rc / light_pdf_rc) * sample.L;
                                         jacobian *= light_pdf_rc;
                                     }
                                     else
                                     {
-                                        Float mis_weight = sample.light->IsDeltaLight()
-                                                               ? 1.0f
-                                                               : BalanceHeuristic(1, bsdf_pdf_rc, 1, light_pdf_rc);
+                                        Float mis_weight =
+                                            sample.light->IsDeltaLight() ? 1 : BalanceHeuristic(1, bsdf_pdf_rc, 1, light_pdf_rc);
                                         sample.contribution =
                                             (f_cos / bsdf_pdf) * mis_weight * (f_cos_rc / bsdf_pdf_rc) * sample.L;
                                         jacobian *= bsdf_pdf_rc;
@@ -646,8 +645,11 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 }
                                 else
                                 {
+                                    BulbitAssert((sample.flag & mid_vertex) == mid_vertex);
+
                                     // Reconnection vertex is set far before the light vertex
                                     sample.contribution = (f_cos / bsdf_pdf) * (f_cos_rc / bsdf_pdf_rc) * sample.L;
+                                    jacobian *= bsdf_pdf_rc;
                                 }
 
                                 Float p_hat = sample.contribution.Luminance();
