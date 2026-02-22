@@ -193,7 +193,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         Intersection rc_isect;
                         Vec3 rc_wi;
                         Spectrum rc_beta(0);
-                        Float rc_jacobian;
+                        Float rc_jacobian = 0.0f;
 
                         const uint64 seed = Hash(pixel, s);
                         RNG rng(seed);
@@ -670,7 +670,8 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         {
                             Point2 offset = spatial_radius * SampleUniformUnitDisk({ rng.NextFloat(), rng.NextFloat() });
                             Point2i neighbor_pixel(
-                                Clamp(pixel.x + offset.x, 0, resolution.x - 1), Clamp(pixel.y + offset.y, 0, resolution.y - 1)
+                                Clamp(int32(pixel.x + offset.x), 0, resolution.x - 1),
+                                Clamp(int32(pixel.y + offset.y), 0, resolution.y - 1)
                             );
 
                             const int32 neighbor_index = resolution.x * neighbor_pixel.y + neighbor_pixel.x;
