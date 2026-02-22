@@ -851,7 +851,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         Float c_total = c_1;
 
                         int32 num_neighbors = 0;
-                        int32 neighbors[num_spatial_samples];
+                        int32 neighbors[num_spatial_samples - 1];
                         for (int32 i = 0; i < num_spatial_samples - 1; ++i)
                         {
                             Point2 offset = spatial_radius * SampleUniformUnitDisk({ rng.NextFloat(), rng.NextFloat() });
@@ -865,9 +865,11 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             if (neighbor_reservoir.y.W > 0)
                             {
-                                neighbors[num_neighbors++] = neighbor_index;
-                                c_total += neighbor_reservoir.M;
+                                neighbors[num_neighbors] = neighbor_index;
+                                ++num_neighbors;
                             }
+
+                            c_total += neighbor_reservoir.M;
                         }
 
                         if (c_total <= 0)
