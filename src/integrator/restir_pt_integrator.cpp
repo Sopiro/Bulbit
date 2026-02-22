@@ -36,7 +36,7 @@ struct ReSTIRPTSample
 {
     uint8 flag = 0;
     int32 reconnection_vertex = -1; // Reject this sample if reconnection vertex not set
-    uint64 seed;
+    uint64 seed;                    // RNG seed for hybrid shift replay
 
     const Light* light = nullptr;
 
@@ -50,6 +50,13 @@ struct ReSTIRPTSample
 
     Float p_hat = 0;              // p_hat(contribution)
     Float W = 0;                  // UCW
+};
+
+struct ReSTIRPTReplay
+{
+    Intersection isect;
+    Vec3 wo;
+    Spectrum beta;
 };
 
 class ReSTIRPTReservoir
@@ -133,6 +140,8 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
     const int32 tile_count = num_tiles.x * num_tiles.y;
     const int32 num_passes = 3;
     const size_t total_works = size_t(std::max(spp, 1) * tile_count * num_passes);
+
+    const int32 earliest_reconnection_vertex = 2;
 
     const Float spatial_radius = 5.0f;
     const int32 num_spatial_samples = 5;
@@ -492,6 +501,140 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                 tile_size
             );
 
+            const auto replay_reconnection_prefix = [&](ReSTIRPTReplay* replay, const ReSTIRPTVisiblePoint& vp,
+                                                        const ReSTIRPTSample& sample) -> bool {
+                BulbitAssert(replay != nullptr);
+
+                if (sample.reconnection_vertex < earliest_reconnection_vertex)
+                {
+                    return false;
+                }
+
+                // Start raytracing from visible point
+                replay->isect = vp.isect;
+                replay->wo = vp.wo;
+                replay->beta = Spectrum(1);
+
+                if (sample.reconnection_vertex == earliest_reconnection_vertex)
+                {
+                    return true;
+                }
+
+                RNG rng(sample.seed);
+
+                bool prev_diffuse = false;
+                Float eta_scale = 1;
+                int32 bounce = 0;
+
+                while (true)
+                {
+                    Intersection& isect = replay->isect;
+                    Vec3& wo = replay->wo;
+
+                    int8 mem[max_bxdf_size];
+                    BufferResource res(mem, sizeof(mem));
+                    Allocator alloc(&res);
+                    BSDF bsdf;
+                    if (!isect.GetBSDF(&bsdf, wo, alloc))
+                    {
+                        Ray ray(isect.point, -wo);
+                        if (!Intersect(&isect, ray, Ray::epsilon, infinity))
+                        {
+                            return false;
+                        }
+
+                        replay->isect = isect;
+                        replay->wo = Normalize(-ray.d);
+                        continue;
+                    }
+
+                    const int32 vertex_index = bounce + 1;
+                    const bool is_diffuse = IsDiffuse(bsdf.Flags());
+
+                    // Reject if replayed path would choose an earlier reconnection vertex becaus it's non-invertable path
+                    if (vertex_index < sample.reconnection_vertex && prev_diffuse && is_diffuse)
+                    {
+                        return false;
+                    }
+
+                    // Reached to prefix vertex
+                    if (vertex_index == sample.reconnection_vertex - 1)
+                    {
+                        // Verify invertibility
+                        if (vertex_index > 1 && is_diffuse)
+                        {
+                            replay->isect = isect;
+                            replay->wo = wo;
+                            return true;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+
+                    prev_diffuse = is_diffuse;
+
+                    if (bounce++ >= max_bounces)
+                    {
+                        return false;
+                    }
+
+                    // Consume NEE dimensions to match base path PSS traversal.
+                    Float u0 = rng.NextFloat();
+                    Point2 u12 = { rng.NextFloat(), rng.NextFloat() };
+                    BulbitNotUsed(u0);
+                    BulbitNotUsed(u12);
+
+                    Float u3 = rng.NextFloat();
+                    Point2 u45 = { rng.NextFloat(), rng.NextFloat() };
+
+                    BSDFSample bsdf_sample;
+                    if (!bsdf.Sample_f(&bsdf_sample, wo, u3, u45))
+                    {
+                        return false;
+                    }
+
+                    if (bsdf_sample.pdf == 0)
+                    {
+                        return false;
+                    }
+
+                    if (bsdf_sample.IsTransmission())
+                    {
+                        eta_scale *= Sqr(bsdf_sample.eta);
+                    }
+
+                    replay->beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
+
+                    Ray ray(isect.point, bsdf_sample.wi);
+                    Intersection next_isect;
+                    if (!Intersect(&next_isect, ray, Ray::epsilon, infinity))
+                    {
+                        return false;
+                    }
+
+                    Float u6 = rng.NextFloat();
+                    if (bounce > rr_min_bounces)
+                    {
+                        if (Float p = replay->beta.MaxComponent() * eta_scale; p < 1)
+                        {
+                            if (u6 > p)
+                            {
+                                return false;
+                            }
+
+                            replay->beta /= p;
+                        }
+                    }
+
+                    replay->isect = next_isect;
+                    replay->wo = Normalize(-ray.d);
+                }
+
+                return false;
+            };
+
             // Spatial reuse
             ParallelFor2D(
                 resolution,
@@ -511,15 +654,19 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             continue;
                         }
 
-                        // ReSTIRPTReservoir& base_reservoir = base_reservoirs[index];
+                        ReSTIRPTReservoir& base_reservoir = base_reservoirs[index];
                         ReSTIRPTReservoir& reservoir = spatial_reservoirs[index];
                         reservoir.Seed(Hash(pixel, s, 456));
 
-                        // ReSTIRPTSample canonical_sample = base_reservoir.y;
+                        ReSTIRPTSample canonical_sample = base_reservoir.y;
+                        const Float m = 1.0f / num_spatial_samples;
+                        if (canonical_sample.W > 0)
+                        {
+                            reservoir.Add(canonical_sample, m * canonical_sample.p_hat * canonical_sample.W);
+                        }
 
                         RNG rng(Hash(pixel, s), 789);
-
-                        for (int32 i = 0; i < num_spatial_samples; ++i)
+                        for (int32 i = 0; i < num_spatial_samples - 1; ++i)
                         {
                             Point2 offset = spatial_radius * SampleUniformUnitDisk({ rng.NextFloat(), rng.NextFloat() });
                             Point2i neighbor_pixel(
@@ -530,31 +677,40 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             // ReSTIRPTVisiblePoint& neighbor_vp = visible_points[neighbor_index];
                             ReSTIRPTReservoir& neighbor_reservoir = base_reservoirs[neighbor_index];
                             ReSTIRPTSample sample = neighbor_reservoir.y;
-                            if (sample.W == 0)
+                            if (sample.W == 0 || sample.reconnection_vertex < earliest_reconnection_vertex)
                             {
                                 continue;
                             }
 
-                            Vec3 wi = sample.isect.point - isect.point;
+                            ReSTIRPTReplay replay;
+                            if (!replay_reconnection_prefix(&replay, vp, sample))
+                            {
+                                continue;
+                            }
+
+                            // wo: y_{k-1} -> y_{k-2}
+                            // wi: y_{k-1} -> x_k
+                            // sample.wi: x_k -> x_{k+1}
+                            Vec3 wi = sample.isect.point - replay.isect.point;
                             Float d2 = Length2(wi);
                             Float d = std::sqrt(d2);
                             wi /= d;
 
                             bsdf_buffer.release();
                             BSDF bsdf;
-                            if (!isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc))
+                            if (!replay.isect.GetBSDF(&bsdf, replay.wo, bsdf_alloc))
                             {
                                 continue;
                             }
 
-                            Ray shadow_ray(isect.point, wi);
+                            Ray shadow_ray(replay.isect.point, wi);
                             if (IntersectAny(shadow_ray, Ray::epsilon, d - Ray::epsilon))
                             {
                                 continue;
                             }
 
-                            Spectrum f_cos = bsdf.f(vp.wo, wi) * AbsDot(vp.isect.shading.normal, wi);
-                            Float bsdf_pdf = bsdf.PDF(vp.wo, wi);
+                            Spectrum f_cos = bsdf.f(replay.wo, wi) * AbsDot(replay.isect.shading.normal, wi);
+                            Float bsdf_pdf = bsdf.PDF(replay.wo, wi);
 
                             Float jacobian = std::max(0.0f, (Dot(sample.isect.normal, -wi) / d2));
                             if (jacobian == 0 || bsdf_pdf == 0)
@@ -579,19 +735,18 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 {
                                     Float mis_weight =
                                         sample.light->IsDeltaLight() ? 1.0f : BalanceHeuristic(1, light_pdf, 1, bsdf_pdf);
-                                    sample.contribution = mis_weight * (f_cos / light_pdf) * sample.L;
+                                    sample.contribution = replay.beta * mis_weight * (f_cos / light_pdf) * sample.L;
                                     jacobian *= light_pdf;
                                 }
                                 else
                                 {
                                     Float mis_weight =
                                         sample.light->IsDeltaLight() ? 1.0f : BalanceHeuristic(1, bsdf_pdf, 1, light_pdf);
-                                    sample.contribution = mis_weight * (f_cos / bsdf_pdf) * sample.L;
+                                    sample.contribution = replay.beta * mis_weight * (f_cos / bsdf_pdf) * sample.L;
                                     jacobian *= bsdf_pdf;
                                 }
 
                                 Float p_hat = sample.contribution.Luminance();
-                                Float m = 1.0f / num_spatial_samples;
                                 Float w = m * p_hat * sample.W * jacobian;
                                 sample.p_hat = p_hat;
                                 reservoir.Add(sample, w);
@@ -631,7 +786,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         Float mis_weight =
                                             sample.light->IsDeltaLight() ? 1 : BalanceHeuristic(1, light_pdf_rc, 1, bsdf_pdf_rc);
                                         sample.contribution =
-                                            (f_cos / bsdf_pdf) * mis_weight * (f_cos_rc / light_pdf_rc) * sample.L;
+                                            replay.beta * (f_cos / bsdf_pdf) * mis_weight * (f_cos_rc / light_pdf_rc) * sample.L;
                                         jacobian *= light_pdf_rc;
                                     }
                                     else
@@ -639,7 +794,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         Float mis_weight =
                                             sample.light->IsDeltaLight() ? 1 : BalanceHeuristic(1, bsdf_pdf_rc, 1, light_pdf_rc);
                                         sample.contribution =
-                                            (f_cos / bsdf_pdf) * mis_weight * (f_cos_rc / bsdf_pdf_rc) * sample.L;
+                                            replay.beta * (f_cos / bsdf_pdf) * mis_weight * (f_cos_rc / bsdf_pdf_rc) * sample.L;
                                         jacobian *= bsdf_pdf_rc;
                                     }
                                 }
@@ -648,12 +803,11 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     BulbitAssert((sample.flag & mid_vertex) == mid_vertex);
 
                                     // Reconnection vertex is set far before the light vertex
-                                    sample.contribution = (f_cos / bsdf_pdf) * (f_cos_rc / bsdf_pdf_rc) * sample.L;
+                                    sample.contribution = replay.beta * (f_cos / bsdf_pdf) * (f_cos_rc / bsdf_pdf_rc) * sample.L;
                                     jacobian *= bsdf_pdf_rc;
                                 }
 
                                 Float p_hat = sample.contribution.Luminance();
-                                Float m = 1.0f / num_spatial_samples;
                                 Float w = m * p_hat * sample.W * jacobian;
                                 sample.p_hat = p_hat;
                                 reservoir.Add(sample, w);
