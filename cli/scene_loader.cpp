@@ -827,6 +827,24 @@ static const Material* ParseMaterial(
 
     const Material* mat = nullptr;
 
+#if 0
+    const char* adapters[] = { "bumpmap", "normalmap", "normal", "blendbsdf", "blend", "mask", "twosided", "two_sided" };
+    bool is_adapter = false;
+    for (auto adapter : adapters)
+    {
+        if (type == adapter)
+        {
+            is_adapter = true;
+            break;
+        }
+    }
+
+    if (!is_adapter && type != "diffuse")
+    {
+        type = "debug2";
+    }
+#endif
+
     if (type == "bumpmap")
     {
         std::cerr << "Bumpmap not supported" << std::endl;
@@ -1413,6 +1431,24 @@ static const Material* ParseMaterial(
         }
 
         mat = scene->CreateMaterial<ClothMaterial>(basecolor, sheen_color, roughness, mi.normal, mi.alpha);
+    }
+    else if (type == "debug1")
+    {
+        SpectrumTexture* reflectance = CreateSpectrumConstantTexture(*scene, 0.7f * RandVec3());
+        mat = scene->CreateMaterial<DiffuseMaterial>(reflectance, nullptr, mi.normal, mi.alpha);
+    }
+    else if (type == "debug2")
+    {
+        SpectrumTexture* reflectance = CreateSpectrumConstantTexture(*scene, 0.7f);
+        for (auto child : node.children())
+        {
+            std::string name = child.attribute("name").value();
+            if (name == "reflectance" || name == "diffuse_reflectance")
+            {
+                reflectance = ParseSpectrumTexture(child, dm, scene);
+            }
+        }
+        mat = scene->CreateMaterial<DiffuseMaterial>(reflectance, nullptr, mi.normal, mi.alpha);
     }
     else
     {
