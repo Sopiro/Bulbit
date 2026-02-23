@@ -181,8 +181,8 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
     const int32 earliest_reconnection_vertex = 2;
 
-    constexpr Float spatial_radius = 3.0f;
-    constexpr int32 num_spatial_samples = 3;
+    constexpr Float spatial_radius = 5.0f;
+    constexpr int32 num_spatial_samples = 5;
 
     SinglePhaseRendering* progress = alloc.new_object<SinglePhaseRendering>(camera, total_works);
     progress->job = RunAsync([=, this]() {
@@ -847,8 +847,8 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         ReSTIRPTSample canonical_sample = base_reservoir.y;
                         RNG rng(Hash(pixel, s), 789);
 
-                        Float c_1 = (canonical_sample.W > 0) ? base_reservoir.M : 0;
-                        Float c_total = c_1;
+                        Float c_1 = 1;
+                        Float c_total = num_spatial_samples;
 
                         int32 num_neighbors = 0;
                         int32 neighbors[num_spatial_samples];
@@ -865,17 +865,8 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             if (neighbor_reservoir.y.W > 0)
                             {
-                                neighbors[num_neighbors] = neighbor_index;
-                                ++num_neighbors;
+                                neighbors[num_neighbors++] = neighbor_index;
                             }
-
-                            c_total += neighbor_reservoir.M;
-                        }
-
-                        if (c_total <= 0)
-                        {
-                            reservoir.y.W = 0;
-                            continue;
                         }
 
                         Float m_1 = c_1 / c_total;

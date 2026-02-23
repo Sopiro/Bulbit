@@ -454,7 +454,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         RNG rng(Hash(pixel, s), 789);
 
                         // Pairwise MIS weight for canonical sample
-                        Float c_1 = canonical_sample.W > 0 ? ris_reservoir.M : 0;
+                        Float c_1 = ris_reservoir.M;
                         Float c_total = c_1;
 
                         int32 num_neighbors = 0;
