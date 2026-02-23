@@ -151,21 +151,23 @@ inline Float FresnelMoment1(Float eta)
     }
 }
 
-inline Float FresnelDielectricAverage(Float eta)
+inline Float FresnelDielectricAverage(Float eta_p)
 {
     // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_slides_v2.pdf
     // P. 23
 
-    if (eta < 1)
-    {
-        const Float eta2 = eta * eta;
-        const Float eta3 = eta * eta2;
+    // eta_p = eta_i / eta_t
 
-        return 0.997118f + 0.1014f * eta - 0.965241f * eta2 + 0.130607f * eta3;
+    if (eta_p < 1)
+    {
+        const Float eta2 = eta_p * eta_p;
+        const Float eta3 = eta_p * eta2;
+
+        return 0.997118f + 0.1014f * eta_p - 0.965241f * eta2 - 0.130607f * eta3;
     }
     else
     {
-        return (eta - 1) / (4.08567f + 1.00071f * eta);
+        return (eta_p - 1) / (4.08567f + 1.00071f * eta_p);
     }
 }
 
