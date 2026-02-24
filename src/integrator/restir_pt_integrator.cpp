@@ -39,6 +39,7 @@ struct ReSTIRPTSample
     uint64 seed;                    // RNG seed for hybrid shift replay
 
     const Light* light = nullptr;
+    bool is_infinite_light = false;
 
     Intersection isect;
     Vec3 wi = Vec3::zero;         // Incident direction to reconnection vertex
@@ -193,18 +194,8 @@ ReSTIRPTIntegrator::ReSTIRPTIntegrator(
     , max_bounces{ max_bounces }
     , rr_min_bounces{ rr_min_bounces }
     , spatial_radius{ std::max(0.0f, spatial_radius) }
+    , num_spatial_samples{ std::max(1, spatial_samples) }
 {
-    // Assume scene contains area lights only
-    BulbitAssert(area_lights.Size() == all_lights.size());
-
-    if (spatial_samples <= 0)
-    {
-        num_spatial_samples = std::min(2, int32(pi * Sqr(spatial_radius) * 0.05f));
-    }
-    else
-    {
-        num_spatial_samples = spatial_samples;
-    }
 }
 
 Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
@@ -283,6 +274,91 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 if (bounce == 0)
                                 {
                                     vp.isect.primitive = nullptr;
+                                    for (Light* light : infinite_lights)
+                                    {
+                                        vp.Le += light->Le(ray);
+                                    }
+                                }
+                                else
+                                {
+                                    int32 vertex_index = bounce + 1;
+                                    for (Light* light : infinite_lights)
+                                    {
+                                        Spectrum Le = light->Le(ray);
+                                        if (Le.IsBlack())
+                                        {
+                                            continue;
+                                        }
+
+                                        Spectrum L;
+                                        if (specular_bounce)
+                                        {
+                                            L = Le;
+                                        }
+                                        else
+                                        {
+                                            Float light_pdf = light_sampler->EvaluatePMF(light) * light->EvaluatePDF_Li(ray);
+                                            Float mis_weight = BalanceHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
+                                            L = mis_weight * Le;
+                                        }
+
+                                        ReSTIRPTSample sample;
+                                        sample.seed = seed;
+                                        sample.is_infinite_light = true;
+                                        if (reconnection_vertex > 0)
+                                        {
+                                            sample.reconnection_vertex = reconnection_vertex;
+                                            if (vertex_index == reconnection_vertex)
+                                            {
+                                                // Reconnection vertex is the light vertex (infinite light)
+                                                sample.flag = bsdf_sampled | light_vertex;
+                                                sample.light = light;
+                                                sample.isect.primitive = nullptr;
+                                                sample.isect.point = ray.o + ray.d;
+                                                sample.isect.normal = Vec3::zero;
+                                                sample.wi = ray.d;
+                                                sample.L = Le;
+                                                sample.jacobian = rc_jacobian;
+                                            }
+                                            else if (vertex_index == reconnection_vertex + 1)
+                                            {
+                                                // Reconnection vertex is previous vertex
+                                                sample.flag = bsdf_sampled | preceding_light_vertex;
+                                                sample.light = light;
+                                                sample.isect = rc_isect;
+                                                sample.wi = rc_wi;
+                                                sample.L = Le;
+                                                sample.jacobian = rc_jacobian;
+                                            }
+                                            else
+                                            {
+                                                // Reconnection vertex is set far before the light vertex
+                                                sample.flag = mid_vertex;
+                                                sample.light = nullptr;
+                                                sample.isect = rc_isect;
+                                                sample.wi = rc_wi;
+                                                sample.L = rc_beta * L;
+                                                sample.jacobian = rc_jacobian;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            // Reconnection vertex is the light vertex
+                                            sample.reconnection_vertex = prev_diffuse ? vertex_index : -1;
+                                            sample.flag = bsdf_sampled | light_vertex;
+                                            sample.light = light;
+                                            sample.isect.primitive = nullptr;
+                                            sample.isect.point = ray.o + ray.d;
+                                            sample.isect.normal = Vec3::zero;
+                                            sample.wi = ray.d;
+                                            sample.L = Le;
+                                            sample.jacobian = 1 / prev_bsdf_pdf;
+                                        }
+
+                                        sample.contribution = beta * L;
+                                        sample.p_hat = sample.contribution.Luminance();
+                                        reservoir.Add(sample, sample.p_hat);
+                                    }
                                 }
 
                                 break;
@@ -469,6 +545,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         // Reconnection vertex is preceding the light vertex
                                         sample.flag = light_sampled | preceding_light_vertex;
                                         sample.light = sampled_light.light;
+                                        sample.is_infinite_light = sampled_light.light->IsInfiniteLight();
                                         sample.isect = rc_isect;
                                         sample.wi = light_sample.wi;
                                         sample.L = light_sample.Li;
@@ -491,13 +568,25 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     sample.reconnection_vertex = is_diffuse ? (vertex_index + 1) : -1;
                                     sample.flag = light_sampled | light_vertex;
                                     sample.light = sampled_light.light;
+                                    sample.is_infinite_light = sampled_light.light->IsInfiniteLight();
                                     sample.isect.primitive = nullptr;
-                                    sample.isect.point = light_sample.point;
-                                    sample.isect.normal = light_sample.normal;
-                                    sample.wi = Vec3::zero;
+                                    if (sample.is_infinite_light)
+                                    {
+                                        sample.isect.point = isect.point + light_sample.wi;
+                                        sample.isect.normal = Vec3::zero;
+                                        sample.wi = light_sample.wi;
+                                        sample.jacobian = 1 / light_pdf;
+                                    }
+                                    else
+                                    {
+                                        sample.isect.point = light_sample.point;
+                                        sample.isect.normal = light_sample.normal;
+                                        sample.wi = Vec3::zero;
+                                        sample.jacobian =
+                                            (Sqr(light_sample.visibility) / AbsDot(light_sample.normal, light_sample.wi)) /
+                                            light_pdf;
+                                    }
                                     sample.L = light_sample.Li;
-                                    sample.jacobian =
-                                        (Sqr(light_sample.visibility) / AbsDot(light_sample.normal, light_sample.wi)) / light_pdf;
                                 }
 
                                 sample.contribution = beta * f_cos * L;
@@ -728,34 +817,59 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                     return false;
                 }
 
-                // wo: y_{k-1} -> y_{k-2}
-                // wi: y_{k-1} -> x_k
-                // sample.wi: x_k -> x_{k+1}
-                Vec3 wi = source_sample.isect.point - replay.isect.point;
-                Float d2 = Length2(wi);
-                Float d = std::sqrt(d2);
-                wi /= d;
-
                 BSDF bsdf;
                 if (!replay.isect.GetBSDF(&bsdf, replay.wo, bsdf_alloc))
                 {
                     return false;
                 }
 
-                Ray shadow_ray(replay.isect.point, wi);
-                if (IntersectAny(shadow_ray, Ray::epsilon, d - Ray::epsilon))
+                // wo: y_{k-1} -> y_{k-2}
+                // wi: y_{k-1} -> x_k
+                // source_sample.wi: x_k -> x_{k+1}
+                Vec3 wi;
+                Ray shadow_ray;
+                Float jacobian = 0;
+                if ((source_sample.flag & light_vertex) && source_sample.is_infinite_light)
                 {
-                    return false;
+                    wi = source_sample.wi;
+                    shadow_ray = Ray(replay.isect.point, wi);
+
+                    // Infinite lights are connected in solid angle measure
+                    Intersection shadow_isect;
+                    while (Intersect(&shadow_isect, shadow_ray, Ray::epsilon, infinity))
+                    {
+                        if (shadow_isect.primitive->GetMaterial())
+                        {
+                            return false;
+                        }
+
+                        shadow_ray.o = shadow_isect.point;
+                    }
+
+                    jacobian = 1;
+                }
+                else
+                {
+                    wi = source_sample.isect.point - replay.isect.point;
+                    Float d2 = Length2(wi);
+                    Float d = std::sqrt(d2);
+                    wi /= d;
+
+                    shadow_ray = Ray(replay.isect.point, wi);
+                    if (IntersectAny(shadow_ray, Ray::epsilon, d - Ray::epsilon))
+                    {
+                        return false;
+                    }
+
+                    jacobian = std::max(0.0f, (Dot(source_sample.isect.normal, -wi) / d2));
+                    if (jacobian == 0)
+                    {
+                        return false;
+                    }
                 }
 
                 Float bsdf_pdf = bsdf.PDF(replay.wo, wi);
                 if (bsdf_pdf == 0)
-                {
-                    return false;
-                }
-
-                Float jacobian = std::max(0.0f, (Dot(source_sample.isect.normal, -wi) / d2));
-                if (jacobian == 0)
                 {
                     return false;
                 }
@@ -990,7 +1104,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         if (!vp.isect.primitive)
                         {
-                            progress->film.AddSample(pixel, Spectrum::black);
+                            progress->film.AddSample(pixel, vp.primary_weight * vp.Le);
                             continue;
                         }
 
