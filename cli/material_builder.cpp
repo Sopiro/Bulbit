@@ -41,6 +41,23 @@ DielectricMaterial* CreateDielectricMaterial(
     );
 }
 
+SubstrateMaterial* CreateSubstrateMaterial(
+    Scene& scene,
+    const Spectrum& reflectance,
+    Float roughness,
+    Float ior,
+    const Spectrum& sigma_a,
+    Float thickness,
+    const SpectrumTexture* normalmap,
+    Float alpha
+)
+{
+    return scene.CreateMaterial<SubstrateMaterial>(
+        CreateSpectrumConstantTexture(scene, reflectance), CreateFloatConstantTexture(scene, roughness), ior, sigma_a, thickness,
+        normalmap, CreateFloatConstantTexture(scene, alpha)
+    );
+}
+
 ThinDielectricMaterial* CreateThinDielectricMaterial(Scene& scene, Float eta, Spectrum reflectance)
 {
     return scene.CreateMaterial<ThinDielectricMaterial>(eta, CreateSpectrumConstantTexture(scene, reflectance));

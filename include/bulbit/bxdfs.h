@@ -494,6 +494,73 @@ private:
     TrowbridgeReitzDistribution mf;
 };
 
+class SubstrateBxDF : public BxDF
+{
+    // Rough dielectric coating + diffuse substrate model.
+    // The reflected BSDF is a sum of:
+    // 1) glossy microfacet reflection at the top interface
+    // 2) diffuse substrate reflection attenuated by in/out Fresnel terms
+public:
+    SubstrateBxDF(Spectrum reflectance, Float ior, TrowbridgeReitzDistribution mf, Spectrum sigma_a, Float thickness = 1.0f)
+        : reflectance{ Clamp(reflectance, 0, 1) }
+        , eta{ std::max(ior, 1.0001f) }
+        , mf{ mf }
+        , sigma_a_dt{ Max(sigma_a, 0) * std::max(thickness, 0.0f) }
+        , fresnel_avg{ FresnelDielectricAverage(1 / eta) }
+        , avg_transmittance{ std::exp(-2 * sigma_a_dt.Average()) }
+    {
+    }
+
+    virtual BxDF_Flags Flags() const override
+    {
+        BxDF_Flags flags = BxDF_Flags::GlossyReflection;
+        if (!reflectance.IsBlack())
+        {
+            flags = flags | BxDF_Flags::DiffuseReflection;
+        }
+        return flags;
+    }
+
+    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual Float PDF(
+        Vec3 wo,
+        Vec3 wi,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
+
+    virtual bool Sample_f(
+        BSDFSample* sample,
+        Vec3 wo,
+        Float u0,
+        Point2 u12,
+        TransportDirection direction = TransportDirection::ToLight,
+        BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
+    ) const override;
+
+    virtual void Regularize() override;
+
+    static const inline Float min_alpha = 1e-3f;
+
+    static Float RoughnessToAlpha(Float roughness)
+    {
+        return std::fmax(TrowbridgeReitzDistribution::RoughnessToAlpha(roughness), min_alpha);
+    }
+
+private:
+    Float GlossyProbability(Vec3 wo) const;
+
+    Spectrum reflectance;           // Substrate diffuse albedo (rho_d)
+
+    Float eta;                      // Relative IOR for the top dielectric interface
+    TrowbridgeReitzDistribution mf; // Microfacet distribution for the coating
+
+    Spectrum sigma_a_dt;            // sigma_a * thickness, used for Beer-Lambert attenuation
+
+    Float fresnel_avg;              // Hemispherical-average Fresnel term for diffuse normalization
+    Float avg_transmittance;        // Average round-trip transmittance through the coating
+};
+
 class PrincipledBxDF : public BxDF
 {
 public:
@@ -769,8 +836,9 @@ private:
 
 constexpr size_t max_bxdf_size = std::max(
     { sizeof(LambertianBxDF), sizeof(SpecularReflectionBxDF), sizeof(DielectricBxDF), sizeof(ConductorBxDF),
-      sizeof(DielectricMultiScatteringBxDF), sizeof(ConductorMultiScatteringBxDF), sizeof(ThinDielectricBxDF), sizeof(SheenBxDF),
-      sizeof(MetallicRoughnessBxDF), sizeof(PrincipledBxDF), sizeof(NormalizedFresnelBxDF), sizeof(EONBxDF), sizeof(LayeredBxDF) }
+      sizeof(DielectricMultiScatteringBxDF), sizeof(SubstrateBxDF), sizeof(ConductorMultiScatteringBxDF),
+      sizeof(ThinDielectricBxDF), sizeof(SheenBxDF), sizeof(MetallicRoughnessBxDF), sizeof(PrincipledBxDF),
+      sizeof(NormalizedFresnelBxDF), sizeof(EONBxDF), sizeof(LayeredBxDF) }
 );
 
 } // namespace bulbit

@@ -18,6 +18,7 @@ void CornellBox(RendererInfo* ri)
     auto rough_glass = CreateDielectricMaterial(scene, 1.5f, 0.1f);
     auto gold = CreateConductorMaterial(scene, { 0.161, 0.492, 1.426 }, { 4.08769, 2.32625, 1.846 }, 0.1f);
     auto coated_gold = CreateLayeredMaterial(scene, glass, gold);
+    auto plastic = CreateSubstrateMaterial(scene, Spectrum(1, 1, 0), 0.0f, 1.5f);
 
     auto left_box = white;
     auto right_box = white;
@@ -65,11 +66,7 @@ void CornellBox(RendererInfo* ri)
 
         auto tf = Transform{ 0.66f, hy, -0.33f, Quat(DegToRad(-18.0f), y_axis), Vec3(hx * 2.0f, hy * 2.0f, hz * 2.0f) };
         CreateBox(scene, tf, right_box);
-    }
-
-    // Right sphere
-    {
-        // CreateSphere(scene, Transform(Vec3(0.65f, 0.15f, -0.3f), Quat(DegToRad(0), x_axis)), 0.15f, glass);
+        // CreateSphere(scene, Transform(Vec3(0.65f, 0.15f, -0.3f), Quat(DegToRad(0), x_axis)), 0.15f, right_box);
     }
 
     // Lights

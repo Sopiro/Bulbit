@@ -30,6 +30,7 @@ void MaterialTest(RendererInfo* ri)
     const Material* patina = CreateLayeredMaterial(scene, air, copper, true, { 0.25f, 0.95f, 0.45f }, 0.2, 0.1f);
     const Material* gold = CreateConductorMaterial(scene, { 0.161, 0.492, 1.426 }, { 4.08769, 2.32625, 1.846 }, 0.2f);
     const Material* platinum = CreateConductorMaterial(scene, { 0.49745, 0.48267, 0.60399 }, { 6.9266, 4.8444, 3.8895 }, 0.2f);
+    const Material* plastic = CreateSubstrateMaterial(scene, Spectrum(0.9, 0.1, 0.8));
 
     const Material* outer = CreateLayeredMaterial(scene, rough_glass, gold, true, Spectrum(0.7, 0, 0), 0.2f, -0.3f);
     const Material* inner = CreateDiffuseMaterial(scene, 0.8f, 0.0f);

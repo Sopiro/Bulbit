@@ -111,6 +111,17 @@ MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
     const FloatTexture* alpha = nullptr
 );
 
+SubstrateMaterial* CreateSubstrateMaterial(
+    Scene& scene,
+    const Spectrum& reflectance,
+    Float roughness = 0.0f,
+    Float ior = 1.5f,
+    const Spectrum& sigma_a = Spectrum(0),
+    Float thickness = 1.0f,
+    const SpectrumTexture* normalmap = nullptr,
+    Float alpha = 1
+);
+
 PrincipledMaterial* CreatePrincipledMaterial(
     Scene& scene,
     const Spectrum& basecolor,

@@ -194,6 +194,37 @@ private:
     const FloatTexture* alpha;
 };
 
+class SubstrateMaterial : public Material
+{
+public:
+    SubstrateMaterial(
+        const SpectrumTexture* reflectance,
+        const FloatTexture* roughness,
+        Float ior,
+        const Spectrum& sigma_a = Spectrum(0),
+        Float thickness = 1.0f,
+        const SpectrumTexture* normal = nullptr,
+        const FloatTexture* alpha = nullptr
+    );
+
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
+
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetNormalTexture() const;
+
+private:
+    const SpectrumTexture* reflectance;
+    const FloatTexture* roughness;
+
+    Float ior;
+    Spectrum sigma_a;
+    Float thickness;
+
+    const SpectrumTexture* normal;
+    const FloatTexture* alpha;
+};
+
 class PrincipledMaterial : public Material
 {
 public:

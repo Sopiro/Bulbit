@@ -19,6 +19,7 @@ using Materials = TypePack<
     class ClothMaterial,
     class ConductorMaterial,
     class MetallicRoughnessMaterial,
+    class SubstrateMaterial,
     class PrincipledMaterial,
     class MixtureMaterial,
     class SubsurfaceDiffusionMaterial,
