@@ -882,7 +882,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             ReSTIRPTReservoir& neighbor_reservoir = base_reservoirs[neighbor_index];
                             ReSTIRPTSample sample = neighbor_reservoir.y;
 
-                            Float c_j = neighbor_reservoir.M;
+                            Float c_j = 1;
 
                             ReSTIRPTSample shifted_sample;
                             Float jacobian = 0;
