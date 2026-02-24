@@ -35,9 +35,12 @@ struct ReSTIRDIVisiblePoint
 struct ReSTIRDISample
 {
     const Light* light;
+    bool is_infinite_light = false;
     Point3 x, n;
 
-    Float jacobian; // da/dw: jacobian for solid angle to area measure
+    // Partial jacobian for shift mapping density conversion
+    // Area lights: da/dw, Infinite lights: 1 (already in solid-angle measure)
+    Float jacobian;
     Vec3 wi;
     Spectrum Li;
 
@@ -188,8 +191,6 @@ ReSTIRDIIntegrator::ReSTIRDIIntegrator(
     , M_bsdf{ std::max(0, M_bsdf) }
     , include_visibility{ include_visibility }
 {
-    // Assume scene contains area lights only
-    BulbitAssert(area_lights.Size() == all_lights.size());
 }
 
 Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
@@ -238,6 +239,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         vp.primary_weight = primary_ray.weight;
                         vp.wo = Normalize(-ray.d);
+                        vp.Le = Spectrum::black;
 
                         BSDF& bsdf = vp.bsdf;
                         bool found_intersection = false;
@@ -247,6 +249,11 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             found_intersection = Intersect(&isect, ray, Ray::epsilon, infinity);
                             if (!found_intersection)
                             {
+                                for (Light* light : infinite_lights)
+                                {
+                                    vp.Le += light->Le(ray);
+                                }
+
                                 isect.primitive = nullptr;
                                 break;
                             }
@@ -322,11 +329,19 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             ReSTIRDISample sample;
                             sample.light = sampled_light.light;
+                            sample.is_infinite_light = sampled_light.light->IsInfiniteLight();
                             sample.x = light_sample.point;
                             sample.n = light_sample.normal;
 
-                            sample.jacobian =
-                                Dist2(light_sample.point, isect.point) / AbsDot(light_sample.normal, light_sample.wi);
+                            if (sample.is_infinite_light)
+                            {
+                                sample.jacobian = 1;
+                            }
+                            else
+                            {
+                                sample.jacobian =
+                                    Dist2(light_sample.point, isect.point) / AbsDot(light_sample.normal, light_sample.wi);
+                            }
                             sample.wi = light_sample.wi;
                             sample.Li = light_sample.Li;
 
@@ -377,10 +392,46 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                     ReSTIRDISample sample;
                                     sample.light = light;
+                                    sample.is_infinite_light = false;
                                     sample.x = shadow_isect.point;
                                     sample.n = shadow_isect.normal;
 
                                     sample.jacobian = Sqr(shadow_isect.t) / AbsDot(shadow_isect.normal, -bsdf_sample.wi);
+                                    sample.wi = bsdf_sample.wi;
+                                    sample.Li = Li;
+
+                                    sample.p_hat = p_hat;
+                                    Float w = w_mis * p_hat / p_bsdf;
+
+                                    reservoir.Add(sample, w);
+                                }
+                            }
+                            else
+                            {
+                                for (Light* light : infinite_lights)
+                                {
+                                    Float p_light = light_sampler->EvaluatePMF(light) * light->EvaluatePDF_Li(shadow_ray);
+                                    Float mis_denom = M_light * p_light + M_bsdf * p_bsdf;
+                                    if (mis_denom <= 0)
+                                    {
+                                        continue;
+                                    }
+                                    Float w_mis = p_bsdf / mis_denom;
+
+                                    Spectrum f_cos = bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi);
+                                    Spectrum Li = light->Le(shadow_ray);
+                                    Float p_hat = (Li * f_cos).Luminance();
+                                    if (p_hat <= 0)
+                                    {
+                                        continue;
+                                    }
+
+                                    ReSTIRDISample sample;
+                                    sample.light = light;
+                                    sample.is_infinite_light = true;
+                                    sample.x = isect.point + bsdf_sample.wi;
+                                    sample.n = Point3(0);
+                                    sample.jacobian = 1;
                                     sample.wi = bsdf_sample.wi;
                                     sample.Li = Li;
 
@@ -407,6 +458,27 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                 tile_size
             );
 
+            const auto test_visibility = [&](const Intersection& isect, const ReSTIRDISample& sample) -> bool {
+                if (!sample.is_infinite_light)
+                {
+                    return V(this, isect.point, sample.x);
+                }
+
+                Ray ray(isect.point, sample.wi);
+                Intersection shadow_isect;
+                while (Intersect(&shadow_isect, ray, Ray::epsilon, infinity))
+                {
+                    if (shadow_isect.primitive->GetMaterial())
+                    {
+                        return false;
+                    }
+
+                    ray.o = shadow_isect.point;
+                }
+
+                return true;
+            };
+
             // Visibility pass
             if (!include_visibility)
             {
@@ -424,7 +496,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             ReSTIRDISample& sample = ris_reservoirs[index].y;
-                            if (sample.W > 0 && !V(this, isect.point, sample.x))
+                            if (sample.W > 0 && !test_visibility(isect, sample))
                             {
                                 sample.W = 0;
                             }
@@ -506,24 +578,32 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             ReSTIRDIReservoir& neighbor_reservoir = ris_reservoirs[neighbor_index];
                             ReSTIRDISample sample = neighbor_reservoir.y;
 
-                            Vec3 wi = sample.x - isect.point;
-                            Float d2 = Length2(wi);
-                            wi /= std::sqrt(d2);
+                            Vec3 wi;
+                            Float d2 = 0;
+                            Spectrum Li;
+                            Float jacobian = sample.jacobian;
+                            if (sample.is_infinite_light)
+                            {
+                                wi = sample.wi;
+                                Li = sample.light->Le(Ray(isect.point, wi));
+                            }
+                            else
+                            {
+                                wi = sample.x - isect.point;
+                                d2 = Length2(wi);
+                                wi /= std::sqrt(d2);
+
+                                Li =
+                                    sample.light->Le(Intersection{ .point = sample.x, .front_face = Dot(sample.n, wi) < 0 }, -wi);
+                                jacobian = std::max(0.0f, (Dot(sample.n, -wi) / d2) * sample.jacobian);
+                            }
 
                             // Shift neighbor sample to canonical domain
-                            Spectrum Li =
-                                sample.light->Le(Intersection{ .point = sample.x, .front_face = Dot(sample.n, wi) < 0 }, -wi);
                             Spectrum f_cos = vp.bsdf.f(vp.wo, wi) * AbsDot(isect.shading.normal, wi);
 
                             Float p_hat_y = (Li * f_cos).Luminance();
-                            if (p_hat_y <= 0)
-                            {
-                                continue;
-                            }
-
                             Float c_j = neighbor_reservoir.M;
 
-                            Float jacobian = std::max(0.0f, (Dot(sample.n, -wi) / d2) * sample.jacobian);
                             Float m_i = MIS_NonCanonical(c_1, c_total, c_j, sample.p_hat, p_hat_y, jacobian);
 
                             if (m_i > 0)
@@ -541,17 +621,28 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             // Shift canonical sample to neighbor domain
-                            wi = canonical_sample.x - neighbor_vp.isect.point;
-                            d2 = Length2(wi);
-                            wi /= std::sqrt(d2);
+                            Float jacobian_rev = canonical_sample.jacobian;
+                            if (canonical_sample.is_infinite_light)
+                            {
+                                wi = canonical_sample.wi;
+                                Li = canonical_sample.light->Le(Ray(neighbor_vp.isect.point, wi));
+                            }
+                            else
+                            {
+                                wi = canonical_sample.x - neighbor_vp.isect.point;
+                                d2 = Length2(wi);
+                                wi /= std::sqrt(d2);
 
-                            Li = canonical_sample.light->Le(
-                                Intersection{ .point = canonical_sample.x, .front_face = Dot(canonical_sample.n, wi) < 0 }, -wi
-                            );
+                                Li = canonical_sample.light->Le(
+                                    Intersection{ .point = canonical_sample.x, .front_face = Dot(canonical_sample.n, wi) < 0 },
+                                    -wi
+                                );
+                                jacobian_rev = std::max(0.0f, (Dot(canonical_sample.n, -wi) / d2) * canonical_sample.jacobian);
+                            }
+
                             f_cos = neighbor_vp.bsdf.f(neighbor_vp.wo, wi) * AbsDot(neighbor_vp.isect.shading.normal, wi);
 
                             p_hat_y = (Li * f_cos).Luminance();
-                            Float jacobian_rev = std::max(0.0f, (Dot(canonical_sample.n, -wi) / d2) * canonical_sample.jacobian);
                             m_1 += MIS_Canonical(c_1, c_total, c_j, canonical_sample.p_hat, p_hat_y, jacobian_rev);
                         }
 
@@ -588,13 +679,14 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         if (!isect.primitive)
                         {
-                            progress->film.AddSample(pixel, Spectrum::black);
+                            progress->film.AddSample(pixel, vp.primary_weight * vp.Le);
                             continue;
                         }
+
                         ReSTIRDISample& sample = spatial_reservoirs[index].y;
 
                         Spectrum L = vp.Le;
-                        if (sample.W > 0 && V(this, isect.point, sample.x))
+                        if (sample.W > 0 && test_visibility(isect, sample))
                         {
                             Spectrum f_cos = vp.bsdf.f(vp.wo, sample.wi) * AbsDot(isect.shading.normal, sample.wi);
                             L += sample.Li * f_cos * sample.W;
