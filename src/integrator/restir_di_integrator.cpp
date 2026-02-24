@@ -44,6 +44,7 @@ struct ReSTIRDISample
     Vec3 wi;
     Spectrum Li;
 
+    Spectrum contribution;
     Float p_hat = 0; // p_hat(y): target function value of selected sample
     Float W = 0;     // UCW
 };
@@ -315,7 +316,8 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             Float w_mis = p_light / mis_denom;
 
                             Spectrum f_cos = bsdf.f(vp.wo, light_sample.wi) * AbsDot(isect.shading.normal, light_sample.wi);
-                            Float p_hat = (light_sample.Li * f_cos).Luminance();
+                            Spectrum contribution = light_sample.Li * f_cos;
+                            Float p_hat = contribution.Luminance();
                             if (p_hat <= 0)
                             {
                                 continue;
@@ -344,6 +346,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
                             sample.wi = light_sample.wi;
                             sample.Li = light_sample.Li;
+                            sample.contribution = contribution;
 
                             sample.p_hat = p_hat;
 
@@ -384,7 +387,8 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                     Spectrum f_cos = bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi);
                                     Spectrum Li = light->Le(shadow_isect, -bsdf_sample.wi);
-                                    Float p_hat = (Li * f_cos).Luminance();
+                                    Spectrum contribution = Li * f_cos;
+                                    Float p_hat = contribution.Luminance();
                                     if (p_hat <= 0)
                                     {
                                         continue;
@@ -399,6 +403,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     sample.jacobian = Sqr(shadow_isect.t) / AbsDot(shadow_isect.normal, -bsdf_sample.wi);
                                     sample.wi = bsdf_sample.wi;
                                     sample.Li = Li;
+                                    sample.contribution = contribution;
 
                                     sample.p_hat = p_hat;
                                     Float w = w_mis * p_hat / p_bsdf;
@@ -420,7 +425,8 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                     Spectrum f_cos = bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi);
                                     Spectrum Li = light->Le(shadow_ray);
-                                    Float p_hat = (Li * f_cos).Luminance();
+                                    Spectrum contribution = Li * f_cos;
+                                    Float p_hat = contribution.Luminance();
                                     if (p_hat <= 0)
                                     {
                                         continue;
@@ -434,6 +440,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     sample.jacobian = 1;
                                     sample.wi = bsdf_sample.wi;
                                     sample.Li = Li;
+                                    sample.contribution = contribution;
 
                                     sample.p_hat = p_hat;
                                     Float w = w_mis * p_hat / p_bsdf;
@@ -601,7 +608,8 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             // Shift neighbor sample to canonical domain
                             Spectrum f_cos = vp.bsdf.f(vp.wo, wi) * AbsDot(isect.shading.normal, wi);
 
-                            Float p_hat_y = (Li * f_cos).Luminance();
+                            Spectrum contribution = Li * f_cos;
+                            Float p_hat_y = contribution.Luminance();
                             Float c_j = neighbor_reservoir.M;
 
                             Float m_i = MIS_NonCanonical(c_1, c_total, c_j, sample.p_hat, p_hat_y, jacobian);
@@ -612,6 +620,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 sample.p_hat = p_hat_y;
                                 sample.wi = wi;
                                 sample.Li = Li;
+                                sample.contribution = contribution;
                                 reservoir.Add(sample, w);
                             }
 
@@ -688,8 +697,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         Spectrum L = vp.Le;
                         if (sample.W > 0 && test_visibility(isect, sample))
                         {
-                            Spectrum f_cos = vp.bsdf.f(vp.wo, sample.wi) * AbsDot(isect.shading.normal, sample.wi);
-                            L += sample.Li * f_cos * sample.W;
+                            L += sample.contribution * sample.W;
                         }
 
                         if (!L.IsNullish())
