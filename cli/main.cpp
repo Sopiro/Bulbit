@@ -5,6 +5,48 @@
 #include "bulbit/bulbit.h"
 #include "samples.h"
 
+static void PrintHelp()
+{
+    std::cout << "\nUsage:\n";
+    std::cout << "  bbcli [options] <scene.xml | sample_name> [<scene.xml | sample_name>...]\n";
+    std::cout << "\n";
+    std::cout << "Options:\n";
+    std::cout << "  -t <num_threads>          Number of threads to use  (default: hardware concurrency)\n";
+    std::cout << "  -o <output_file>          Output file name  (default: from scene or auto-generated)\n";
+    std::cout << "  -s <samples_per_pixel>    Samples per pixel  (default: from scene)\n";
+    std::cout << "  -b <max_bounces>          Maximum path bounces  (default: from scene)\n";
+    std::cout << "  -i <integrator>           Select integrator by index  (default: from scene)\n";
+    std::cout << "  -r <image_scale>          Scale the output image resolution  (default: 1)\n";
+    std::cout << "  --list-integrators        List all available integrators\n";
+    std::cout << "  --list-samples            List all built-in sample scenes\n";
+    std::cout << "  --options                 Show advanced options\n";
+    std::cout << "  --help                    Show this help message\n";
+    std::cout << "\n";
+    std::cout << "Arguments:\n";
+    std::cout << "  <scene.xml>               Path to scene file to render\n";
+    std::cout << "  <sample_name>             Name of built-in sample scene (e.g., cornell-box)\n";
+    std::cout << "\n";
+    std::cout << "Examples:\n";
+    std::cout << "  bbcli scene.xml\n";
+    std::cout << "  bbcli cornell-box\n";
+    std::cout << "  bbcli -r 2 -o render.hdr cornell-box cornell-box-caustics\n";
+}
+
+static void PrintOptions()
+{
+    std::cout << "\nAdvanced Options:\n";
+    std::cout << "Photon mapping options\n";
+    std::cout << "  --num-photons <num_photons>              Number of photons  (default: from scene)\n";
+    std::cout << "  --sample-direct-light <0|1>              Enable direct light sampling (0 = off, 1 = on)\n";
+    std::cout << "                                           * Only applicable to photon mapping integrators\n";
+    std::cout << "\nReSTIR options\n";
+    std::cout << "  --spatial-radius <radius>                Spatial reuse radius (ReSTIR DI/PT)\n";
+    std::cout << "  --spatial-samples <count>                Number of spatial neighbors (ReSTIR DI/PT)\n";
+    std::cout << "  --m-light <count>                        Number of light candidates (ReSTIR DI)\n";
+    std::cout << "  --m-bsdf <count>                         Number of BSDF candidates (ReSTIR DI)\n";
+    std::cout << "  --include-visibility <0|1>               Include visibility in RIS step (ReSTIR DI)\n";
+}
+
 int main(int argc, char* argv[])
 {
 #if defined(_WIN32) && defined(_DEBUG)
@@ -14,42 +56,31 @@ int main(int argc, char* argv[])
 
     if (argc <= 1 || std::string(argv[1]) == "--help")
     {
-        std::cout << "\nUsage:\n";
-        std::cout << "  bbcli [options] <scene.xml | sample_name> [<scene.xml | sample_name>...]\n";
-        std::cout << "\n";
-        std::cout << "Options:\n";
-        std::cout << "  -t <num_threads>          Number of threads to use  (default: hardware concurrency)\n";
-        std::cout << "  -o <output_file>          Output file name  (default: from scene or auto-generated)\n";
-        std::cout << "  -s <samples_per_pixel>    Samples per pixel  (default: from scene)\n";
-        std::cout << "  -b <max_bounces>          Maximum path bounces  (default: from scene)\n";
-        std::cout << "  -p <num_photons>          Number of photons  (default: from scene)\n";
-        std::cout << "  -d <sample_direct_light>  Enable direct light sampling (0 = off, 1 = on) (default: from scene) \n";
-        std::cout << "                            * Only applicable to photon mapping integrators\n";
-        std::cout << "  -i <integrator>           Select integrator by index  (default: from scene)\n";
-        std::cout << "  -r <image_scale>          Scale the output image resolution  (default: 1)\n";
-        std::cout << "  --list-integrators        List all available integrators\n";
-        std::cout << "  --list-samples            List all built-in sample scenes\n";
-        std::cout << "  --help                    Show this help message\n";
-        std::cout << "\n";
-        std::cout << "Arguments:\n";
-        std::cout << "  <scene.xml>               Path to scene file to render\n";
-        std::cout << "  <sample_name>             Name of built-in sample scene (e.g., cornell-box)\n";
-        std::cout << "\n";
-        std::cout << "Examples:\n";
-        std::cout << "  bbcli scene.xml\n";
-        std::cout << "  bbcli cornell-box\n";
-        std::cout << "  bbcli -r 2 -o render.hdr cornell-box cornell-box-caustics\n";
+        PrintHelp();
+        return 0;
+    }
+
+    if (std::string(argv[1]) == "--options")
+    {
+        PrintOptions();
         return 0;
     }
 
     int32 num_threads = std::thread::hardware_concurrency();
     std::string output_file = "";
     int32 spp = 0;
+    int32 integrator = -1;
     int32 max_bounces = -1;
+    float scale = 1;
+
     int32 num_photons = -1;
     int32 sample_direct_light = -1;
-    int32 integrator = -1;
-    float scale = 1;
+
+    Float spatial_radius = -1;
+    int32 spatial_samples = -1;
+    int32 M_light = -1;
+    int32 M_bsdf = -1;
+    int32 include_visibility = -1;
 
     std::vector<std::string> inputs;
 
@@ -73,11 +104,11 @@ int main(int argc, char* argv[])
         {
             max_bounces = std::stoi(argv[++i]);
         }
-        else if (arg == "-p" && i + 1 < argc)
+        else if (arg == "--num-photons" && i + 1 < argc)
         {
             num_photons = std::stoi(argv[++i]);
         }
-        else if (arg == "-d" && i + 1 < argc)
+        else if (arg == "--sample-direct-light" && i + 1 < argc)
         {
             sample_direct_light = std::stoi(argv[++i]);
         }
@@ -88,6 +119,26 @@ int main(int argc, char* argv[])
         else if (arg == "-r" && i + 1 < argc)
         {
             scale = std::stof(argv[++i]);
+        }
+        else if (arg == "--spatial-radius" && i + 1 < argc)
+        {
+            spatial_radius = std::stof(argv[++i]);
+        }
+        else if (arg == "--spatial-samples" && i + 1 < argc)
+        {
+            spatial_samples = std::stoi(argv[++i]);
+        }
+        else if (arg == "--m-light" && i + 1 < argc)
+        {
+            M_light = std::stoi(argv[++i]);
+        }
+        else if (arg == "--m-bsdf" && i + 1 < argc)
+        {
+            M_bsdf = std::stoi(argv[++i]);
+        }
+        else if (arg == "--include-visibility" && i + 1 < argc)
+        {
+            include_visibility = std::stoi(argv[++i]);
         }
         else if (arg == "--list-samples")
         {
@@ -105,6 +156,11 @@ int main(int argc, char* argv[])
                 std::cout << std::format("  - {:>2}: {}", i, integrator_list[i]) << '\n';
             }
 
+            return 0;
+        }
+        else if (arg == "--options")
+        {
+            PrintOptions();
             return 0;
         }
         else
@@ -146,6 +202,11 @@ int main(int argc, char* argv[])
         if (num_photons >= 0) ri.integrator_info.n_photons = num_photons;
         if (sample_direct_light >= 0) ri.integrator_info.sample_direct_light = bool(sample_direct_light);
         if (integrator >= 0 && integrator < integrator_list.size()) ri.integrator_info.type = IntegratorType(integrator);
+        if (spatial_radius >= 0) ri.integrator_info.spatial_radius = spatial_radius;
+        if (spatial_samples >= 0) ri.integrator_info.spatial_samples = spatial_samples;
+        if (M_light >= 0) ri.integrator_info.M_light = M_light;
+        if (M_bsdf >= 0) ri.integrator_info.M_bsdf = M_bsdf;
+        if (include_visibility >= 0) ri.integrator_info.include_visibility = bool(include_visibility);
         ri.camera_info.film_info.resolution *= scale;
 
         std::cout << "\rLoading scene.. " << timer.Mark() << "s" << std::endl;
