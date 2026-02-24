@@ -556,6 +556,26 @@ static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, IntegratorInfo&
         {
             ri.sample_direct_light = ParseBoolean(child.attribute("value"), dm);
         }
+        else if (name == "spatial_radius")
+        {
+            ri.spatial_radius = ParseFloat(child.attribute("value"), dm);
+        }
+        else if (name == "spatial_samples")
+        {
+            ri.spatial_samples = ParseInteger(child.attribute("value"), dm);
+        }
+        else if (name == "M_light" || name == "m_light")
+        {
+            ri.M_light = ParseInteger(child.attribute("value"), dm);
+        }
+        else if (name == "M_bsdf" || name == "m_bsdf")
+        {
+            ri.M_bsdf = ParseInteger(child.attribute("value"), dm);
+        }
+        else if (name == "restir_di_visibility")
+        {
+            ri.include_visibility = ParseBoolean(child.attribute("value"), dm);
+        }
     }
 }
 

@@ -172,7 +172,7 @@ public:
         std::vector<Light*> lights,
         const Sampler* sampler,
         Float spatial_radius = 5.0f,
-        int32 num_spatial_samples = 5,
+        int32 spatial_samples = 5,
         int32 M_light = 16,
         int32 M_bsdf = 1,
         bool include_visibility = false
@@ -202,7 +202,7 @@ public:
         int32 max_bounces,
         int32 rr_min_bounces = 1,
         Float spatial_radius = 10.0f,
-        int32 num_spatial_samples = 10.0f
+        int32 spatial_samples = 10
     );
 
     virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;

@@ -95,10 +95,18 @@ struct IntegratorInfo
 
     Float ao_range = 0.1f;
 
+    // Photon mapping integrators
     int32 n_photons = 100000;
     Float initial_radius_surface = -1;
     Float initial_radius_volume = -1;
     bool sample_direct_light = true;
+
+    // ReSTIR integrators
+    Float spatial_radius = 10.0f;
+    int32 spatial_samples = 10;
+    int32 M_light = 16;
+    int32 M_bsdf = 1;
+    bool include_visibility = false;
 };
 
 struct RendererInfo
