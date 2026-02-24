@@ -155,15 +155,31 @@ inline Float MIS_NonCanonical(
 }
 
 ReSTIRPTIntegrator::ReSTIRPTIntegrator(
-    const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces, int32 rr_min_bounces
+    const Intersectable* accel,
+    std::vector<Light*> lights,
+    const Sampler* sampler,
+    int32 max_bounces,
+    int32 rr_min_bounces,
+    Float spatial_radius,
+    int32 spatial_samples
 )
     : Integrator(accel, std::move(lights), std::make_unique<PowerLightSampler>())
     , sampler_prototype{ sampler }
     , max_bounces{ max_bounces }
     , rr_min_bounces{ rr_min_bounces }
+    , spatial_radius{ std::max(0.0f, spatial_radius) }
 {
     // Assume scene contains area lights only
     BulbitAssert(area_lights.Size() == all_lights.size());
+
+    if (spatial_samples <= 0)
+    {
+        num_spatial_samples = std::min(2, int32(pi * Sqr(spatial_radius) * 0.05f));
+    }
+    else
+    {
+        num_spatial_samples = spatial_samples;
+    }
 }
 
 Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
@@ -179,10 +195,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
     const int32 num_passes = 3;
     const size_t total_works = size_t(std::max(spp, 1) * tile_count * num_passes);
 
-    const int32 earliest_reconnection_vertex = 2;
-
-    constexpr Float spatial_radius = 5.0f;
-    constexpr int32 num_spatial_samples = 5;
+    constexpr int32 earliest_reconnection_vertex = 2;
 
     SinglePhaseRendering* progress = alloc.new_object<SinglePhaseRendering>(camera, total_works);
     progress->job = RunAsync([=, this]() {
@@ -829,6 +842,8 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
             ParallelFor2D(
                 resolution,
                 [&](AABB2i tile) {
+                    std::vector<int32> neighbors(num_spatial_samples);
+
                     for (Point2i pixel : tile)
                     {
                         const int32 index = resolution.x * pixel.y + pixel.x;
@@ -851,7 +866,6 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         Float c_total = num_spatial_samples;
 
                         int32 num_neighbors = 0;
-                        int32 neighbors[num_spatial_samples];
                         for (int32 i = 0; i < num_spatial_samples - 1; ++i)
                         {
                             Point2 offset = spatial_radius * SampleUniformUnitDisk({ rng.NextFloat(), rng.NextFloat() });

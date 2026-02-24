@@ -170,9 +170,23 @@ inline bool TestRejection(const ReSTIRDIVisiblePoint& canonical, const ReSTIRDIV
     return true;
 };
 
-ReSTIRDIIntegrator::ReSTIRDIIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler)
+ReSTIRDIIntegrator::ReSTIRDIIntegrator(
+    const Intersectable* accel,
+    std::vector<Light*> lights,
+    const Sampler* sampler,
+    Float spatial_radius,
+    int32 num_spatial_samples,
+    int32 M_light,
+    int32 M_bsdf,
+    bool include_visibility
+)
     : Integrator(accel, std::move(lights), std::make_unique<UniformLightSampler>())
     , sampler_prototype{ sampler }
+    , spatial_radius{ std::max(0.0f, spatial_radius) }
+    , num_spatial_samples{ std::max(1, num_spatial_samples) }
+    , M_light{ std::max(0, M_light) }
+    , M_bsdf{ std::max(0, M_bsdf) }
+    , include_visibility{ include_visibility }
 {
     // Assume scene contains area lights only
     BulbitAssert(area_lights.Size() == all_lights.size());
@@ -190,14 +204,6 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
     const int32 tile_count = num_tiles.x * num_tiles.y;
     const int32 num_passes = 4;
     const size_t total_works = size_t(std::max(spp, 1) * tile_count * num_passes);
-
-    constexpr Float spatial_radius = 3.0f;
-    constexpr int32 num_spatial_samples = 5;
-
-    const int32 M_light = 2;
-    const int32 M_bsdf = 1;
-
-    const bool include_visibility = true;
 
     SinglePhaseRendering* progress = alloc.new_object<SinglePhaseRendering>(camera, total_works);
     progress->job = RunAsync([=, this]() {
@@ -434,6 +440,8 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
             ParallelFor2D(
                 resolution,
                 [&](AABB2i tile) {
+                    std::vector<int32> neighbors(num_spatial_samples);
+
                     for (Point2i pixel : tile)
                     {
                         const int32 index = resolution.x * pixel.y + pixel.x;
@@ -458,7 +466,6 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         Float c_total = c_1;
 
                         int32 num_neighbors = 0;
-                        int32 neighbors[num_spatial_samples];
                         for (int32 i = 0; i < num_spatial_samples - 1; ++i)
                         {
                             Point2 offset = spatial_radius * SampleUniformUnitDisk({ rng.NextFloat(), rng.NextFloat() });
@@ -476,8 +483,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             if (neighbor_reservoir.y.W > 0)
                             {
-                                neighbors[num_neighbors] = neighbor_index;
-                                ++num_neighbors;
+                                neighbors[num_neighbors++] = neighbor_index;
                             }
 
                             c_total += neighbor_reservoir.M;

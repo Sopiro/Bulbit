@@ -167,12 +167,28 @@ private:
 class ReSTIRDIIntegrator : public Integrator
 {
 public:
-    ReSTIRDIIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler);
+    ReSTIRDIIntegrator(
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        Float spatial_radius = 5.0f,
+        int32 num_spatial_samples = 5,
+        int32 M_light = 16,
+        int32 M_bsdf = 1,
+        bool include_visibility = false
+    );
 
     virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
 
 private:
     const Sampler* sampler_prototype;
+
+    Float spatial_radius;
+    int32 num_spatial_samples;
+
+    int32 M_light;
+    int32 M_bsdf;
+    bool include_visibility;
 };
 
 // ReSTIR path tracing integrator
@@ -184,7 +200,9 @@ public:
         std::vector<Light*> lights,
         const Sampler* sampler,
         int32 max_bounces,
-        int32 rr_min_bounces = 1
+        int32 rr_min_bounces = 1,
+        Float spatial_radius = 10.0f,
+        int32 num_spatial_samples = 10.0f
     );
 
     virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
@@ -193,6 +211,9 @@ private:
     const Sampler* sampler_prototype;
     int32 max_bounces;
     int32 rr_min_bounces;
+
+    Float spatial_radius;
+    int32 num_spatial_samples;
 };
 
 // Light/Particle tracing integrator
