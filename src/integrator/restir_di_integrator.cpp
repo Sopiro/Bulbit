@@ -153,7 +153,7 @@ inline bool TestRejection(const ReSTIRDIVisiblePoint& canonical, const ReSTIRDIV
     }
 
     const Float cosine = std::cos(RadToDeg(25));
-    const Float distance2 = 0.001f;
+    const Float depth = 0.5f;
 
     // Test normal similarity
     if (Dot(canonical.isect.shading.normal, neighbor.isect.shading.normal) < cosine)
@@ -161,8 +161,8 @@ inline bool TestRejection(const ReSTIRDIVisiblePoint& canonical, const ReSTIRDIV
         return false;
     }
 
-    // Test position similarity
-    if (Dist2(canonical.isect.point, neighbor.isect.point) > distance2)
+    // Test depth similarity
+    if (Abs(canonical.isect.t - neighbor.isect.t) > depth)
     {
         return false;
     }
@@ -175,7 +175,7 @@ ReSTIRDIIntegrator::ReSTIRDIIntegrator(
     std::vector<Light*> lights,
     const Sampler* sampler,
     Float spatial_radius,
-    int32 num_spatial_samples,
+    int32 spatial_samples,
     int32 M_light,
     int32 M_bsdf,
     bool include_visibility
@@ -183,7 +183,7 @@ ReSTIRDIIntegrator::ReSTIRDIIntegrator(
     : Integrator(accel, std::move(lights), std::make_unique<UniformLightSampler>())
     , sampler_prototype{ sampler }
     , spatial_radius{ std::max(0.0f, spatial_radius) }
-    , num_spatial_samples{ std::max(1, num_spatial_samples) }
+    , num_spatial_samples{ std::max(1, spatial_samples) }
     , M_light{ std::max(0, M_light) }
     , M_bsdf{ std::max(0, M_bsdf) }
     , include_visibility{ include_visibility }
@@ -469,10 +469,13 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                         for (int32 i = 0; i < num_spatial_samples - 1; ++i)
                         {
                             Point2 offset = spatial_radius * SampleUniformUnitDisk({ rng.NextFloat(), rng.NextFloat() });
-                            Point2i neighbor_pixel(
-                                Clamp(int32(pixel.x + offset.x), 0, resolution.x - 1),
-                                Clamp(int32(pixel.y + offset.y), 0, resolution.y - 1)
-                            );
+                            Point2i neighbor_pixel(int32(pixel.x + offset.x), int32(pixel.y + offset.y));
+                            if (neighbor_pixel.x < 0 || neighbor_pixel.x >= resolution.x || neighbor_pixel.y < 0 ||
+                                neighbor_pixel.y >= resolution.y)
+                            {
+                                continue;
+                            }
+
                             int32 neighbor_index = resolution.x * neighbor_pixel.y + neighbor_pixel.x;
 
                             ReSTIRDIReservoir& neighbor_reservoir = ris_reservoirs[neighbor_index];

@@ -154,6 +154,31 @@ inline Float MIS_NonCanonical(
     return (c_j / c_total) * (w / denom);
 }
 
+inline bool TestRejection(const ReSTIRPTVisiblePoint& canonical, const ReSTIRPTVisiblePoint& neighbor)
+{
+    if (!neighbor.isect.primitive)
+    {
+        return false;
+    }
+
+    const Float cosine = std::cos(RadToDeg(25));
+    const Float depth = 0.5f;
+
+    // Test normal similarity
+    if (Dot(canonical.isect.shading.normal, neighbor.isect.shading.normal) < cosine)
+    {
+        return false;
+    }
+
+    // Test depth similarity
+    if (Abs(canonical.isect.t - neighbor.isect.t) > depth)
+    {
+        return false;
+    }
+
+    return true;
+};
+
 ReSTIRPTIntegrator::ReSTIRPTIntegrator(
     const Intersectable* accel,
     std::vector<Light*> lights,
@@ -863,24 +888,33 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         RNG rng(Hash(pixel, s), 789);
 
                         Float c_1 = 1;
-                        Float c_total = num_spatial_samples;
+                        Float c_total = c_1;
 
                         int32 num_neighbors = 0;
                         for (int32 i = 0; i < num_spatial_samples - 1; ++i)
                         {
                             Point2 offset = spatial_radius * SampleUniformUnitDisk({ rng.NextFloat(), rng.NextFloat() });
-                            Point2i neighbor_pixel(
-                                Clamp(int32(pixel.x + offset.x), 0, resolution.x - 1),
-                                Clamp(int32(pixel.y + offset.y), 0, resolution.y - 1)
-                            );
+                            Point2i neighbor_pixel(int32(pixel.x + offset.x), int32(pixel.y + offset.y));
+                            if (neighbor_pixel.x < 0 || neighbor_pixel.x >= resolution.x || neighbor_pixel.y < 0 ||
+                                neighbor_pixel.y >= resolution.y)
+                            {
+                                continue;
+                            }
 
                             int32 neighbor_index = resolution.x * neighbor_pixel.y + neighbor_pixel.x;
+                            if (!TestRejection(vp, visible_points[neighbor_index]))
+                            {
+                                continue;
+                            }
+
                             ReSTIRPTReservoir& neighbor_reservoir = base_reservoirs[neighbor_index];
 
                             if (neighbor_reservoir.y.W > 0)
                             {
                                 neighbors[num_neighbors++] = neighbor_index;
                             }
+
+                            ++c_total;
                         }
 
                         Float m_1 = c_1 / c_total;
@@ -893,6 +927,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             ReSTIRPTVisiblePoint& neighbor_vp = visible_points[neighbor_index];
+
                             ReSTIRPTReservoir& neighbor_reservoir = base_reservoirs[neighbor_index];
                             ReSTIRPTSample sample = neighbor_reservoir.y;
 
