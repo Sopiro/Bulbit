@@ -1044,13 +1044,14 @@ static const Material* ParseMaterial(
 
         mat = scene->CreateMaterial<DiffuseMaterial>(reflectance, roughness, mi.normal, mi.alpha);
     }
-    else if (type == "plastic" || type == "roughplastic" || type == "rough_plastic")
+    else if (type == "substrate" || type == "plastic" || type == "roughplastic" || type == "rough_plastic")
     {
         Float int_ior = 1.49f;
         Float ext_ior = 1.000277f;
+        Float thickness = 1.0f;
+        Spectrum sigma_a(0);
 
         const SpectrumTexture* basecolor = CreateSpectrumConstantTexture(*scene, 0.5f, 0.5f, 0.5f);
-        const FloatTexture* metallic = CreateFloatConstantTexture(*scene, 0);
         const FloatTexture* roughness;
         if (type == "plastic")
         {
@@ -1070,8 +1071,11 @@ static const Material* ParseMaterial(
             }
             else if (name == "alpha")
             {
-                Float alpha = ParseFloat(child.attribute("value"), dm);
-                roughness = CreateFloatConstantTexture(*scene, std::sqrt(alpha));
+                roughness = ParseFloatTexture(child, dm, scene, [](Float alpha) { return std::sqrt(alpha); });
+            }
+            else if (name == "roughness")
+            {
+                roughness = ParseFloatTexture(child, dm, scene);
             }
             else if (name == "int_ior")
             {
@@ -1080,6 +1084,14 @@ static const Material* ParseMaterial(
             else if (name == "ext_ior")
             {
                 ext_ior = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "thickness")
+            {
+                thickness = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "sigma_a" || name == "sigmaA")
+            {
+                sigma_a = ParseColor(child, dm);
             }
             else if (name == "distribution")
             {
@@ -1097,6 +1109,10 @@ static const Material* ParseMaterial(
 
         Float eta = int_ior / ext_ior;
 
+#if 1
+        mat = scene->CreateMaterial<SubstrateMaterial>(basecolor, roughness, eta, sigma_a, thickness, mi.normal, mi.alpha);
+#else
+
         const SpectrumTexture* reflectance = CreateSpectrumConstantTexture(*scene, 1);
         const Material* top = scene->CreateMaterial<DielectricMaterial>(eta, roughness, roughness, reflectance);
         const Material* bottom = scene->CreateMaterial<DiffuseMaterial>(basecolor);
@@ -1104,6 +1120,7 @@ static const Material* ParseMaterial(
         mat = scene->CreateMaterial<LayeredMaterial>(
             top, bottom, mi.two_sided, Spectrum::black, 1e-4f, 0, 16, 1, mi.normal, mi.alpha
         );
+#endif
     }
     else if (type == "conductor" || type == "roughconductor" || type == "tough_conductor")
     {
