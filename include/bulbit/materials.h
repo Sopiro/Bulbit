@@ -96,32 +96,6 @@ private:
     const SpectrumTexture* reflectance;
 };
 
-class ClothMaterial : public Material
-{
-public:
-    ClothMaterial(
-        const SpectrumTexture* basecolor,
-        const SpectrumTexture* sheen_color,
-        const FloatTexture* roughness,
-        const SpectrumTexture* normal = nullptr,
-        const FloatTexture* alpha = nullptr
-    );
-
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
-
-    const FloatTexture* GetAlphaTexture() const;
-    const SpectrumTexture* GetNormalTexture() const;
-
-private:
-    const SpectrumTexture* basecolor;
-    const SpectrumTexture* sheen_color;
-    const FloatTexture* roughness;
-
-    const SpectrumTexture* normal;
-    const FloatTexture* alpha;
-};
-
 class ConductorMaterial : public Material
 {
 public:
@@ -220,6 +194,32 @@ private:
     Float ior;
     Spectrum sigma_a;
     Float thickness;
+
+    const SpectrumTexture* normal;
+    const FloatTexture* alpha;
+};
+
+class ClothMaterial : public Material
+{
+public:
+    ClothMaterial(
+        const SpectrumTexture* basecolor,
+        const SpectrumTexture* sheen_color,
+        const FloatTexture* roughness,
+        const SpectrumTexture* normal = nullptr,
+        const FloatTexture* alpha = nullptr
+    );
+
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
+
+    const FloatTexture* GetAlphaTexture() const;
+    const SpectrumTexture* GetNormalTexture() const;
+
+private:
+    const SpectrumTexture* basecolor;
+    const SpectrumTexture* sheen_color;
+    const FloatTexture* roughness;
 
     const SpectrumTexture* normal;
     const FloatTexture* alpha;
