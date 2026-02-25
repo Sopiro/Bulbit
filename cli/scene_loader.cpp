@@ -174,6 +174,30 @@ static Vec3 ParseVec3(pugi::xml_attribute attr, const DefaultMap& dm)
     return ParseVec3(str);
 }
 
+static Point3 ParsePoint(pugi::xml_node node, const DefaultMap& dm)
+{
+    if (!node.attribute("value").empty())
+    {
+        return ParseVec3(node.attribute("value"), dm);
+    }
+
+    Point3 p(0);
+    if (!node.attribute("x").empty())
+    {
+        p.x = ParseFloat(node.attribute("x"), dm);
+    }
+    if (!node.attribute("y").empty())
+    {
+        p.y = ParseFloat(node.attribute("y"), dm);
+    }
+    if (!node.attribute("z").empty())
+    {
+        p.z = ParseFloat(node.attribute("z"), dm);
+    }
+
+    return p;
+}
+
 static Mat4 ParseMat4(pugi::xml_attribute attr, const DefaultMap& dm)
 {
     std::string str = ParseString(attr, dm);
@@ -1336,7 +1360,7 @@ static const Material* ParseMaterial(
         for (auto child : node.children())
         {
             std::string name = child.attribute("name").value();
-            if (name == "basecolor" || name == "reflectance")
+            if (name == "base_color" || name == "basecolor" || name == "reflectance")
             {
                 basecolor = ParseSpectrumTexture(child, dm, scene);
             }
@@ -1936,7 +1960,15 @@ static void ParseLight(pugi::xml_node node, const DefaultMap& dm, Scene* scene)
             std::string name = child.attribute("name").value();
             if (name == "position")
             {
-                position = ParseVec3(child.attribute("value"), dm);
+                std::string type = ToLowercase(child.name());
+                if (type == "point")
+                {
+                    position = ParsePoint(child, dm);
+                }
+                else
+                {
+                    position = ParseVec3(child.attribute("value"), dm);
+                }
             }
             else if (name == "intensity")
             {
@@ -1984,7 +2016,7 @@ static void ParseLight(pugi::xml_node node, const DefaultMap& dm, Scene* scene)
     {
         Spectrum irradiance(1);
         Transform to_world = identity;
-        Vec3 direction(0, 0, 1);
+        Vec3 direction(0, 0, -1);
 
         for (auto child : node.children())
         {

@@ -1060,7 +1060,7 @@ void LoadModel(Scene& scene, std::filesystem::path filename, const Transform& tr
     else
     {
         std::cerr << "Failed to load model: " << filename.string() << '\n';
-        std::cerr << "Supported extensions: .obj .gltf" << std::endl;
+        std::cerr << "Supported extensions: .obj .gltf .glb" << std::endl;
     }
 }
 
