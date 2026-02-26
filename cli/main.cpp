@@ -47,7 +47,7 @@ static void PrintOptions()
     std::cout << "  --include-visibility <0|1>               Include visibility in RIS step (ReSTIR DI)\n";
 }
 
-int main(int argc, char* argv[])
+int main(int argc, const char* argv[])
 {
 #if defined(_WIN32) && defined(_DEBUG)
     // Enable memory-leak reports

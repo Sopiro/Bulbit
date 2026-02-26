@@ -778,6 +778,11 @@ static FloatTexture* ParseFloatTexture(
             return CreateFloatConstantTexture(*scene, 0);
         }
     }
+    else if (type == "rgb")
+    {
+        Spectrum value = ParseColor(node, dm);
+        return CreateFloatConstantTexture(*scene, value.r);
+    }
     else if (type == "ref")
     {
         // TODO: implement

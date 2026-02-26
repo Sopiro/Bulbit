@@ -162,7 +162,7 @@ inline bool TestRejection(const ReSTIRPTVisiblePoint& canonical, const ReSTIRPTV
         return false;
     }
 
-    const Float cosine = std::cos(RadToDeg(25));
+    const Float cosine = std::cos(RadToDeg(50));
     const Float depth = 0.5f;
 
     // Test normal similarity
