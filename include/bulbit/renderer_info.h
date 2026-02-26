@@ -102,7 +102,7 @@ struct IntegratorInfo
     bool sample_direct_light = true;
 
     // ReSTIR integrators
-    Float spatial_radius = 10.0f;
+    Float spatial_radius = 20.0f;
     int32 spatial_samples = 10;
     int32 M_light = 16;
     int32 M_bsdf = 1;

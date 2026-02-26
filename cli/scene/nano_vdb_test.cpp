@@ -132,7 +132,7 @@ void NanoVDBTest2(RendererInfo* ri)
     Transform to_origin(-center);
     Transform tf(0, 0, 0, Quat(-pi / 2, y_axis), Vec3(1));
 
-    Spectrum sigma_a(0.001f);
+    Spectrum sigma_a(0.01f);
     Spectrum sigma_s(1);
     Float sigma_scale = 1;
     Float g = 0.7;
@@ -145,7 +145,7 @@ void NanoVDBTest2(RendererInfo* ri)
 
     CreateBox(scene, Transform(tf.p, tf.q, extents * tf.s), nullptr, mi_inside);
 
-    CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr", Transform(Quat(0, y_axis)));
+    CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr", Transform(Quat(pi / 4, y_axis)));
     // CreateUniformInfiniteLight(scene, Spectrum(1));
 
     Float aspect_ratio = 4.f / 3.f;
