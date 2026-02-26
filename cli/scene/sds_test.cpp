@@ -36,17 +36,7 @@ void SDSTest(RendererInfo* ri)
         CreateBox(scene, Transform{ Vec3(0, 0.5f, 0), identity, Vec3(0.7f) }, glass);
     }
 
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/scythian_tombs_2_4k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/solitude_night_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(-pi, y_axis)));
-    // CreateUniformInfiniteLight(scene, Spectrum(1));
+    // CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_1k.hdr", Transform(Quat(-pi, y_axis)));
 
     {
         auto white = CreateDiffuseMaterial(scene, 1.0f);

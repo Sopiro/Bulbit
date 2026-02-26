@@ -29,7 +29,7 @@ void CornellBoxCaustics(RendererInfo* ri)
         options.use_fallback_material = true;
         auto tf = Transform{ .5f, 0.8f, -.5f, Quat::FromEuler({ 0, 0, 0 }), Vec3(1, 1, 1) };
         options.fallback_material = water;
-        LoadModel(scene, "res/caustics/water.obj", tf, options);
+        LoadModel(scene, "res/caustics/water.glb", tf, options);
     }
 
     // Cornell box

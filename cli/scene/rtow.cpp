@@ -59,13 +59,7 @@ void RaytracigInOneWeekend(RendererInfo* ri)
     CreateSphere(scene, Transform(Vec3(4, 1, 0), Quat(DegToRad(0), Normalize(Vec3(1, 0, 0)))), 1.0f, material3, mi_outside);
 
     // CreateDirectionalLight(scene, Normalize(Vec3(1, 1, 1)), 5.0f);
-    // CreateImageInfiniteLight(scene, "res/HDR/kloppenheim_07_puresky_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/pizzo_pernice_1k.hdr");
-    CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/harties_4k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
+    CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_1k.hdr", Transform(Quat(pi, y_axis)));
 
     Float aspect_ratio = 16.f / 9.f;
     int32 width = 1600;

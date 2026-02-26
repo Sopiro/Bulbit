@@ -24,19 +24,7 @@ void Head(RendererInfo* ri)
         LoadModel(scene, "res/head/head.obj", tf, options);
     }
 
-    // CreateImageInfiniteLight(scene, "res/HDR/small_rural_road_1k.hdr", Transform(Quat(0, y_axis)), 2);
-    // CreateImageInfiniteLight(scene, "res/HDR/material-test.hdr", Transform(Quat(pi / 2, y_axis)));
     CreateImageInfiniteLight(scene, "res/HDR/photo_studio_loft_hall_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/sunset.hdr", Transform(Quat(-pi / 2, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/aerodynamics_workshop_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/scythian_tombs_2_4k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/quarry_04_puresky_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/photo_studio_01_1k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/peppermint_powerplant_4k.hdr", Transform(Quat(0, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/white_cliff_top_1k.hdr", Transform(Quat(pi, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/sunflowers_puresky_1k.hdr");
-    // CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(pi / 2, y_axis)));
-    // CreateImageInfiniteLight(scene, "res/HDR/Background_05.hdr", Transform(Quat(pi / 2, y_axis)));
     // CreateUniformInfiniteLight(scene, Spectrum(1));
 
     Float aspect_ratio = 4.f / 3.f;

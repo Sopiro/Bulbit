@@ -93,7 +93,7 @@ void CornellBoxVolume(RendererInfo* ri)
 
         // CreatePointLight(scene, Point3(0.5f, 0.9f, -0.5f), Spectrum(0.25f));
         // CreateDirectionalLight(scene,  Normalize(Vec3(1, 1, 1)), Vec3(5.0f));
-        // CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_4k.hdr", Transform(Quat(pi, y_axis)));
+        // CreateImageInfiniteLight(scene, "res/HDR/san_giuseppe_bridge_1k.hdr", Transform(Quat(pi, y_axis)));
     }
 
     int32 width = 500;
