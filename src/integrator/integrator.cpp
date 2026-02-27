@@ -67,7 +67,9 @@ Integrator* Integrator::Create(
         );
 
     case IntegratorType::vcm:
-        return alloc.new_object<VCMIntegrator>(accel, lights, sampler, max_bounces, rr_min_bounces, ii.radius_alpha);
+        return alloc.new_object<VCMIntegrator>(
+            accel, lights, sampler, max_bounces, rr_min_bounces, ii.initial_radius_surface, ii.radius_alpha
+        );
 
     case IntegratorType::restir_di:
         return alloc.new_object<ReSTIRDIIntegrator>(

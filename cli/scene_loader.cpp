@@ -535,6 +535,7 @@ static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, IntegratorInfo&
     else if (type == "debug") { ri.type = IntegratorType::debug; }
     else if (type == "pm") { ri.type = IntegratorType::pm; }
     else if (type == "sppm") { ri.type = IntegratorType::sppm; }
+    else if (type == "vcm") { ri.type = IntegratorType::vcm; }
     else if (type == "restir_di") { ri.type = IntegratorType::restir_di; }
     else if (type == "restir_pt") { ri.type = IntegratorType::restir_pt; }
     // clang-format on
@@ -579,6 +580,10 @@ static void ParseIntegrator(pugi::xml_node node, DefaultMap& dm, IntegratorInfo&
         else if (name == "sample_direct_light")
         {
             ri.sample_direct_light = ParseBoolean(child.attribute("value"), dm);
+        }
+        else if (name == "radius_alpha")
+        {
+            ri.radius_alpha = ParseFloat(child.attribute("value"), dm);
         }
         else if (name == "spatial_radius")
         {
