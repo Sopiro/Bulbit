@@ -454,4 +454,28 @@ private:
     bool sample_direct_light;
 };
 
+// Vertex Connection and Merging (VCM)
+class VCMIntegrator : public Integrator
+{
+public:
+    VCMIntegrator(
+        const Intersectable* accel,
+        std::vector<Light*> lights,
+        const Sampler* sampler,
+        int32 max_bounces,
+        int32 rr_min_bounces = 1,
+        Float initial_radius = -1,
+        Float radius_alpha = 0.75f
+    );
+
+    virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
+
+    const Sampler* sampler_prototype;
+    int32 max_bounces;
+    int32 rr_min_bounces;
+
+    Float initial_radius;
+    Float radius_alpha;
+};
+
 } // namespace bulbit

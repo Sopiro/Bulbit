@@ -74,6 +74,7 @@ enum class IntegratorType
     vol_pm,
     sppm,
     vol_sppm,
+    vcm,
     restir_di,
     restir_pt,
     naive_path,
@@ -100,6 +101,7 @@ struct IntegratorInfo
     Float initial_radius_surface = -1;
     Float initial_radius_volume = -1;
     bool sample_direct_light = true;
+    Float radius_alpha = 0.75f;
 
     // ReSTIR integrators
     Float spatial_radius = 20.0f;

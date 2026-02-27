@@ -66,6 +66,9 @@ Integrator* Integrator::Create(
             ii.sample_direct_light
         );
 
+    case IntegratorType::vcm:
+        return alloc.new_object<VCMIntegrator>(accel, lights, sampler, max_bounces, rr_min_bounces, ii.radius_alpha);
+
     case IntegratorType::restir_di:
         return alloc.new_object<ReSTIRDIIntegrator>(
             accel, lights, sampler, ii.spatial_radius, ii.spatial_samples, ii.M_light, ii.M_bsdf, ii.include_visibility

@@ -58,6 +58,7 @@ inline constexpr std::array<std::string_view, size_t(IntegratorType::count)> int
     "Volumetric Photon Mapping",
     "Stochastic Progressive Photon Mapping",
     "Volumetric Stochastic Progressive Photon Mapping",
+    "Vertex Connection and Merging",
     "ReSTIR DI",
     "ReSTIR PT",
     "Naive Path Tracing",
