@@ -10,9 +10,9 @@ Here are the rendering algorithms implemented in Bulbit.
 
 ### Integrator
 - Unidirectional integrators
-  - Path tracing with NEE, and continuation ray MIS
+  - Path tracing with NEE and continuation ray MIS
   - Volumetric path tracing
-  - Light tracing Volumetric light tracing
+  - Light tracing and Volumetric light tracing
   - Naive versions of above algorithms
 
 - Bidirectional integrators
@@ -20,7 +20,7 @@ Here are the rendering algorithms implemented in Bulbit.
   - Volumetric BDPT
 
 - Photon mapping integrators
-  - Original photon mapping
+  - Original photon mapping and Volumetric photon mapping
   - Stochastic Progressive Photon Mapping
   - Volumetric SPPM
 
@@ -98,13 +98,13 @@ Here are the rendering algorithms implemented in Bulbit.
 
 ## Showcase
 
-Metals  
+Conductor materials with physical parameters  
 ![metals](.github/img/metals.jpg)
 
 Subsurface Scattering with Random walk BSSRDF
 ![sss](.github/img/sss.png)
 
-Volumetric Caustics rendered with Volumetric BDPT
+Volumetric caustics rendered with Volumetric BDPT
 ![caustics2](.github/img/caustics2.jpg)
 
 Nano VDB volume rendered with volumetric path tracer  
