@@ -471,6 +471,13 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
     MultiPhaseRendering* progress = alloc.new_object<MultiPhaseRendering>(camera, phase_works);
     progress->job = RunAsync([=, this]() {
+        std::vector<std::unique_ptr<BufferResource>> light_vertex_buffers;
+        ThreadLocal<Allocator> light_vertex_allocators([&light_vertex_buffers]() {
+            light_vertex_buffers.push_back(std::make_unique<BufferResource>(1024 * 1024));
+            BufferResource* ptr = light_vertex_buffers.back().get();
+            return Allocator(ptr);
+        });
+
         for (int32 iteration = 0; iteration < n_iterations; ++iteration)
         {
             Float radius = initial_radius;
@@ -484,14 +491,20 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
             Float mis_vm_weight = Mis(eta_vcm);
             Float mis_vc_weight = Mis(1 / eta_vcm);
 
-            std::vector<std::vector<VCMLightVertex>> path_light_vertices(path_count);
+            struct PathLightVertex
+            {
+                int32 path_index = 0;
+                VCMLightVertex vertex;
+            };
 
-            std::vector<std::unique_ptr<BufferResource>> light_vertex_buffers;
-            ThreadLocal<Allocator> light_vertex_allocators([&light_vertex_buffers]() {
-                light_vertex_buffers.push_back(std::make_unique<BufferResource>(1024 * 1024));
-                BufferResource* ptr = light_vertex_buffers.back().get();
-                return Allocator(ptr);
-            });
+            struct LightPathChunk
+            {
+                Vec2i range = { 0, 0 };
+                std::vector<int32> counts;
+                std::vector<PathLightVertex> vertices;
+            };
+
+            ThreadLocal<std::vector<LightPathChunk>> tl_light_chunks;
 
             // Trace light sub-path and connect light vertex to camera vertex
             ParallelFor(0, path_count, [&](int32 begin, int32 end) {
@@ -500,36 +513,36 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                 Allocator sampler_alloc(&buffer);
                 Sampler* sampler = sampler_prototype->Clone(sampler_alloc);
 
+                Allocator& alloc = light_vertex_allocators.Get();
+                std::vector<LightPathChunk>& chunks = tl_light_chunks.Get();
+                chunks.emplace_back();
+
+                LightPathChunk& chunk = chunks.back();
+                chunk.range = { begin, end };
+                chunk.counts.assign(size_t(end - begin), 0);
+                chunk.vertices.clear();
+                chunk.vertices.reserve(size_t(2 * (end - begin)));
+
                 for (int32 path_index = begin; path_index < end; ++path_index)
                 {
                     Point2i pixel(path_index % res.x, path_index / res.x);
                     sampler->StartPixelSample(-pixel, iteration);
 
-                    std::vector<VCMLightVertex> vertices;
-                    vertices.reserve(max_path_length);
-                    Allocator& light_vertex_alloc = light_vertex_allocators.Get();
-
                     SampledLight sampled_light;
                     if (!light_sampler->Sample(&sampled_light, Intersection{}, sampler->Next1D()))
                     {
-                        path_light_vertices[path_index] = std::move(vertices);
-                        progress->phase_works_dones[2 * iteration].fetch_add(1, std::memory_order_relaxed);
                         continue;
                     }
 
                     LightSampleLe light_sample;
                     if (!sampled_light.light->Sample_Le(&light_sample, sampler->Next2D(), sampler->Next2D()))
                     {
-                        path_light_vertices[path_index] = std::move(vertices);
-                        progress->phase_works_dones[2 * iteration].fetch_add(1, std::memory_order_relaxed);
                         continue;
                     }
 
                     Float emission_pdf_w = sampled_light.pmf * light_sample.pdf_w;
                     if (emission_pdf_w == 0)
                     {
-                        path_light_vertices[path_index] = std::move(vertices);
-                        progress->phase_works_dones[2 * iteration].fetch_add(1, std::memory_order_relaxed);
                         continue;
                     }
 
@@ -576,7 +589,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                         Vec3 wo = Normalize(-ray.d);
 
                         BSDF bsdf;
-                        if (!isect.GetBSDF(&bsdf, wo, light_vertex_alloc))
+                        if (!isect.GetBSDF(&bsdf, wo, alloc))
                         {
                             light_state.origin = isect.point;
                             continue;
@@ -602,7 +615,10 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         if (!IsSpecular(bsdf.Flags()))
                         {
-                            VCMLightVertex v;
+                            PathLightVertex v_path;
+                            v_path.path_index = path_index;
+
+                            VCMLightVertex& v = v_path.vertex;
                             v.p = isect.point;
                             v.wo = wo;
                             v.shading_normal = isect.shading.normal;
@@ -615,7 +631,8 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             v.d_vm = light_state.d_vm;
                             v.cont_prob = vertex_cont_prob;
 
-                            vertices.push_back(v);
+                            chunk.vertices.push_back(v_path);
+                            ++chunk.counts[size_t(path_index - begin)];
 
                             if (light_state.path_length + 1 <= max_path_length)
                             {
@@ -639,27 +656,69 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             break;
                         }
                     }
+                }
 
-                    path_light_vertices[path_index] = std::move(vertices);
-                    progress->phase_works_dones[2 * iteration].fetch_add(1, std::memory_order_relaxed);
+                progress->phase_works_dones[2 * iteration].fetch_add(end - begin, std::memory_order_relaxed);
+            });
+
+            std::vector<const LightPathChunk*> light_chunks;
+            tl_light_chunks.ForEach([&](std::thread::id tid, std::vector<LightPathChunk>& chunks) {
+                BulbitNotUsed(tid);
+
+                for (const LightPathChunk& chunk : chunks)
+                {
+                    light_chunks.push_back(&chunk);
                 }
             });
 
+            std::sort(light_chunks.begin(), light_chunks.end(), [](const LightPathChunk* a, const LightPathChunk* b) {
+                return a->range.x < b->range.x;
+            });
+
+            // Collect all light vertices and compute prefix sums(path_ends)
             std::vector<VCMLightVertex> light_vertices;
             std::vector<int32> path_ends(path_count);
 
-            size_t total_light_vertices = 0;
-            for (const std::vector<VCMLightVertex>& path : path_light_vertices)
+            int32 total_light_vertices = 0;
+            for (const LightPathChunk* chunk : light_chunks)
             {
-                total_light_vertices += path.size();
+                BulbitAssert(chunk->range.y >= chunk->range.x);
+                BulbitAssert(chunk->counts.size() == size_t(chunk->range.y - chunk->range.x));
+
+                for (int32 i = 0; i < chunk->range.y - chunk->range.x; ++i)
+                {
+                    int32 path_index = chunk->range.x + i;
+                    total_light_vertices += chunk->counts[size_t(i)];
+                    path_ends[path_index] = total_light_vertices;
+                }
             }
 
-            light_vertices.reserve(total_light_vertices);
-            for (int32 i = 0; i < path_count; ++i)
+            light_vertices.resize(total_light_vertices);
+
+            std::vector<int32> next_write(path_count, 0);
+            for (int32 path_index = 0; path_index < path_count; ++path_index)
             {
-                const std::vector<VCMLightVertex>& path = path_light_vertices[i];
-                light_vertices.insert(light_vertices.end(), path.begin(), path.end());
-                path_ends[i] = int32(light_vertices.size());
+                next_write[path_index] = (path_index == 0) ? 0 : path_ends[path_index - 1];
+            }
+
+            for (const LightPathChunk* chunk : light_chunks)
+            {
+                for (const PathLightVertex& v_path : chunk->vertices)
+                {
+                    BulbitAssert(v_path.path_index >= 0 && v_path.path_index < path_count);
+                    int32 write = next_write[v_path.path_index]++;
+
+                    BulbitAssert(write < path_ends[v_path.path_index]);
+                    if (write < path_ends[v_path.path_index])
+                    {
+                        light_vertices[write] = v_path.vertex;
+                    }
+                }
+            }
+
+            for (int32 path_index = 0; path_index < path_count; ++path_index)
+            {
+                BulbitAssert(next_write[path_index] == path_ends[path_index]);
             }
 
             HashGrid light_grid;
@@ -873,6 +932,11 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
             );
 
             progress->phase_dones[2 * iteration + 1].store(true, std::memory_order_release);
+
+            for (size_t i = 0; i < light_vertex_buffers.size(); ++i)
+            {
+                light_vertex_buffers[i]->release();
+            }
         }
 
         progress->film.WeightSplats(1.0f / n_iterations);
