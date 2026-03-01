@@ -890,6 +890,11 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                             return;
                                         }
 
+                                        if (Dot(light_vertex.shading_normal, isect.normal) < 0)
+                                        {
+                                            return;
+                                        }
+
                                         Vec3 wi = light_vertex.wo;
                                         Spectrum camera_bsdf = bsdf.f(wo, wi, TransportDirection::ToLight);
                                         if (camera_bsdf.IsBlack())

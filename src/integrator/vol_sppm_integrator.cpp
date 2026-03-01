@@ -779,8 +779,6 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         if (!sample_direct_light || bounce > 1)
                         {
-                            const Float cosine = std::cos(DegToRad(50));
-
                             // Query hash grid for nearby visible points
                             grid.Query<VisiblePoint>(visible_points, isect.point, [&](VisiblePoint& vp) {
                                 if (!vp.primitive)
@@ -793,7 +791,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     return;
                                 }
 
-                                if (Dot(vp.normal, isect.normal) < cosine)
+                                if (Dot(vp.normal, isect.normal) < 0)
                                 {
                                     return;
                                 }

@@ -257,14 +257,13 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
             // Estimate indirect light by gathering nearby photons
             Spectrum L_i(0);
 
-            const Float cosine = std::cos(DegToRad(50));
             photon_map.Query<Photon>(photons, isect.point, gather_radius, [&](const Photon& p) {
                 if (isect.primitive->GetMaterial() != p.primitive->GetMaterial())
                 {
                     return;
                 }
 
-                if (Dot(p.normal, isect.normal) < cosine)
+                if (Dot(p.normal, isect.normal) < 0)
                 {
                     return;
                 }
