@@ -18,6 +18,7 @@ Here are the rendering algorithms implemented in Bulbit.
 - Bidirectional integrators
   - Bidirectional path tracing with MIS
   - Volumetric BDPT
+  - Vertex Connection and Merging
 
 - Photon mapping integrators
   - Original photon mapping and Volumetric photon mapping
@@ -31,8 +32,8 @@ Here are the rendering algorithms implemented in Bulbit.
   - ReSTIR Path tracing
 
 - Others
-  - Random walk raytracing
-  - Whitted style raytracing
+  - Random walk ray tracing
+  - Whitted style ray tracing
   - Ambient occlusion
 
 ### Light
@@ -104,8 +105,11 @@ Conductor materials with physical parameters
 Subsurface Scattering with Random walk BSSRDF
 ![sss](.github/img/sss.png)
 
-Volumetric caustics rendered with Volumetric BDPT
-![caustics2](.github/img/caustics2.jpg)
+Volumetric caustics rendered with Volumetric BDPT  
+![caustics2](.github/img/caustics2.jpg)  
+
+SDS path rendered with VCM  
+![sds](.github/img/sds.jpg)
 
 Nano VDB volume rendered with volumetric path tracer  
 ![cloud](.github/img/cloud.jpg)

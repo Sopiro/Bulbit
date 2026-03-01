@@ -36,15 +36,16 @@ static void PrintOptions()
 {
     std::cout << "\nAdvanced Options:\n";
     std::cout << "Photon mapping options\n";
-    std::cout << "  --num-photons <num_photons>              Number of photons  (default: from scene)\n";
-    std::cout << "  --sample-direct-light <0|1>              Enable direct light sampling (0 = off, 1 = on)\n";
-    std::cout << "                                           * Only applicable to photon mapping integrators\n";
-    std::cout << "\nReSTIR options\n";
-    std::cout << "  --spatial-radius <radius>                Spatial reuse radius (ReSTIR DI/PT)\n";
-    std::cout << "  --spatial-samples <count>                Number of spatial neighbors (ReSTIR DI/PT)\n";
-    std::cout << "  --m-light <count>                        Number of light candidates (ReSTIR DI)\n";
-    std::cout << "  --m-bsdf <count>                         Number of BSDF candidates (ReSTIR DI)\n";
-    std::cout << "  --include-visibility <0|1>               Include visibility in RIS step (ReSTIR DI)\n";
+    std::cout << "  --photons <num_photons>              Number of photons  (default: from scene)\n";
+    std::cout << "  --sample-direct-light <0|1>          Enable direct light sampling (0 = off, 1 = on)\n";
+    std::cout << "  --initial-radius <radius>            Initial surface photon merging radius\n";
+    std::cout << "  --initial-radius-volume <radius>     Initial volume photon merging radius\n\n";
+    std::cout << "ReSTIR options\n";
+    std::cout << "  --spatial-radius <radius>            Spatial reuse radius (ReSTIR DI/PT)\n";
+    std::cout << "  --spatial-samples <count>            Number of spatial neighbors (ReSTIR DI/PT)\n";
+    std::cout << "  --m-light <count>                    Number of light candidates (ReSTIR DI)\n";
+    std::cout << "  --m-bsdf <count>                     Number of BSDF candidates (ReSTIR DI)\n";
+    std::cout << "  --include-visibility <0|1>           Include visibility in RIS step (ReSTIR DI)\n";
 }
 
 int main(int argc, const char* argv[])
@@ -75,6 +76,8 @@ int main(int argc, const char* argv[])
 
     int32 num_photons = -1;
     int32 sample_direct_light = -1;
+    Float initial_radius_surface = -1;
+    Float initial_radius_volume = -1;
 
     Float spatial_radius = -1;
     int32 spatial_samples = -1;
@@ -104,13 +107,21 @@ int main(int argc, const char* argv[])
         {
             max_bounces = std::stoi(argv[++i]);
         }
-        else if (arg == "--num-photons" && i + 1 < argc)
+        else if (arg == "--photons" && i + 1 < argc)
         {
             num_photons = std::stoi(argv[++i]);
         }
         else if (arg == "--sample-direct-light" && i + 1 < argc)
         {
             sample_direct_light = std::stoi(argv[++i]);
+        }
+        else if (arg == "--initial-radius" && i + 1 < argc)
+        {
+            initial_radius_surface = std::stof(argv[++i]);
+        }
+        else if (arg == "--initial-radius-volume" && i + 1 < argc)
+        {
+            initial_radius_volume = std::stof(argv[++i]);
         }
         else if (arg == "-i" && i + 1 < argc)
         {
@@ -201,6 +212,8 @@ int main(int argc, const char* argv[])
         if (max_bounces >= 0) ri.integrator_info.max_bounces = max_bounces;
         if (num_photons >= 0) ri.integrator_info.n_photons = num_photons;
         if (sample_direct_light >= 0) ri.integrator_info.sample_direct_light = bool(sample_direct_light);
+        if (initial_radius_surface >= 0) ri.integrator_info.initial_radius_surface = initial_radius_surface;
+        if (initial_radius_volume >= 0) ri.integrator_info.initial_radius_volume = initial_radius_volume;
         if (integrator >= 0 && integrator < integrator_list.size()) ri.integrator_info.type = IntegratorType(integrator);
         if (spatial_radius >= 0) ri.integrator_info.spatial_radius = spatial_radius;
         if (spatial_samples >= 0) ri.integrator_info.spatial_samples = spatial_samples;
@@ -285,7 +298,7 @@ int main(int argc, const char* argv[])
         alloc.delete_object(camera);
         alloc.delete_object(filter);
 
-        // system(filename.c_str());
+        system(filename.c_str());
     }
 
     return 0;
