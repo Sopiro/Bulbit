@@ -370,7 +370,7 @@ void ConnectToCamera(
     const BSDF& bsdf,
     Float light_cont_prob,
     Float mis_vm_weight,
-    Float light_subpath_count,
+    int32 light_subpath_count,
     Sampler& sampler
 )
 {
@@ -461,7 +461,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
     Point2i res = camera->GetScreenResolution();
     const int32 path_count = res.x * res.y;
-    const Float light_subpath_count = path_count;
+    const int32 light_subpath_count = path_count;
 
     Point2i num_tiles = (res + (tile_size - 1)) / tile_size;
     const int32 tile_count = num_tiles.x * num_tiles.y;

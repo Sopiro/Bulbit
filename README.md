@@ -99,23 +99,28 @@ Here are the rendering algorithms implemented in Bulbit.
 
 ## Showcase
 
-Conductor materials with physical parameters  
+Conductor materials with physical parameters
 ![metals](.github/img/metals.jpg)
+Courtesy of [LTE orb](https://github.com/lighttransport/lighttransportequation-orb)  
 
 Subsurface Scattering with Random walk BSSRDF
 ![sss](.github/img/sss.png)
+Courtesy of [Dragon](https://graphics.stanford.edu/data/3Dscanrep/)
 
 Volumetric caustics rendered with Volumetric BDPT  
 ![caustics2](.github/img/caustics2.jpg)  
 
-SDS path rendered with VCM  
+SDS path rendered with Vertex Connection and Merging  
 ![sds](.github/img/sds.jpg)
+Courtesy of [Bunny](https://graphics.stanford.edu/data/3Dscanrep/)
 
 Nano VDB volume rendered with volumetric path tracer  
 ![cloud](.github/img/cloud.jpg)
+Courtesy of [Disney cloud](https://github.com/mmp/pbrt-v4-scenes?tab=readme-ov-file#disney-cloud)
 
 ReSTIR PT 1spp spatial_radius=20 spatial_samples=10, no temporal reuse
 ![1spp](.github/img/kitchen1spp.jpg)
+Courtesy of [Jay](https://benedikt-bitterli.me/resources/) 
 
 Experimental Spectral Rendering  
 ![spectral](.github/img/spectral.jpg)
