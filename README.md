@@ -78,7 +78,7 @@ Here are the rendering algorithms implemented in Bulbit.
 
 ### Camera
 - Perspective, Orthographic and Spherical camera
-- Depth of field effect
+- Depth of field
 - Reconstruction filters
   - Box, Tent and Gaussian filter
 
@@ -192,5 +192,5 @@ int main()
 }
 ```
 
-This will produce  
+This will produce `render.jpg`. For practical use cases, see the CLI application.  
 ![example](.github/img/example.jpg)
