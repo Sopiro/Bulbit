@@ -596,7 +596,7 @@ static bool LoadMesh(
         const Material* material;
         const SpectrumTexture* emission = nullptr;
 
-        if (primitive.material < 0)
+        if (primitive.material < 0 || options.use_fallback_material)
         {
             if (options.fallback_material)
             {
@@ -607,6 +607,10 @@ static bool LoadMesh(
                 std::cerr << "No valid material found and no fallback specified" << std::endl;
                 material = CreateDiffuseMaterial(scene, Spectrum{ 1, 0, 1 });
             }
+        }
+        else if (options.fallback_material)
+        {
+            material = options.fallback_material;
         }
         else
         {
@@ -621,9 +625,7 @@ static bool LoadMesh(
             ali->emission = emission;
         }
 
-        CreateTriangles(
-            scene, m, options.use_fallback_material ? options.fallback_material : material, options.fallback_medium_interface, ali
-        );
+        CreateTriangles(scene, m, material, options.fallback_medium_interface, ali);
     }
 
     return true;
@@ -1009,7 +1011,7 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
             const Material* material = nullptr;
             const SpectrumTexture* emission = nullptr;
 
-            if (material_id < 0 || size_t(material_id) >= materials.size())
+            if (material_id < 0 || size_t(material_id) >= materials.size() || options.use_fallback_material)
             {
                 if (options.fallback_material)
                 {
@@ -1038,10 +1040,7 @@ void LoadOBJ(Scene& scene, std::filesystem::path filename, const Transform& tran
                 ali->emission = emission;
             }
 
-            CreateTriangles(
-                scene, m, options.use_fallback_material ? options.fallback_material : material, options.fallback_medium_interface,
-                ali
-            );
+            CreateTriangles(scene, m, material, options.fallback_medium_interface, ali);
         }
     }
 }
