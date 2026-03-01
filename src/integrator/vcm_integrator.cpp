@@ -24,12 +24,18 @@ struct VCMSubPathState
 
     Float eta_scale = 1;
 
-    // Cache variables for efficient subpath MIS weight evaluation
+    // Cache variables for efficient subpath MIS weight evaluation (O(1) per vc/vm)
     // See below for details..
     // http://www.iliyan.com/publications/ImplementingVCM
     Float d_vcm = 0; // MIS cache used for vertex connection and merging
     Float d_vc = 0;  // MIS cache used for vertex connection
     Float d_vm = 0;  // MIS cache used for vertex merging
+
+    // A naive approach for computing MIS weights is to evaluate Eq. (12) per path, which requires explicitly evaluating all
+    // path densities. VCM instead rewrites the MIS weights into a recursive form (Eqs. (24)–(28)) so the required PDF
+    // ratios can be accumulated incrementally along the path. During the connection/merging step, the reverse density is computed
+    // by factoring it into a solid-angle density term and a geometry (measure-conversion) term (Eqs. (29) and (30)), which
+    // postpones explicit reverse PDF evaluation until the final measure-conversion factor is applied.
 };
 
 struct VCMLightVertex
@@ -175,16 +181,16 @@ Float EmissionPDFW(const Light* light, const Point3& light_point, const Vec3& li
     return pdf_w;
 }
 
-Spectrum EvaluateAreaLight(
+Spectrum AreaLightLe(
     const Integrator* I,
-    const Light* light,
+    const Light* area_light,
     const Intersection& isect,
     const Vec3& wo,
     const Point3& prev_point,
     const VCMSubPathState& camera_state
 )
 {
-    Spectrum radiance = light->Le(isect, wo);
+    Spectrum radiance = area_light->Le(isect, wo);
     if (radiance.IsBlack())
     {
         return Spectrum::black;
@@ -202,11 +208,11 @@ Spectrum EvaluateAreaLight(
         return Spectrum::black;
     }
 
-    Float light_pmf = I->GetLightSampler()->EvaluatePMF(light);
+    Float light_pmf = I->GetLightSampler()->EvaluatePMF(area_light);
     Float direct_pdf_w = isect.primitive->GetShape()->PDF(isect, Ray(prev_point, -wo));
 
     Float direct_pdf_a = light_pmf * direct_pdf_w * (cos_at_light / dist2);
-    Float emission_pdf_w = light_pmf * EmissionPDFW(light, isect.point, isect.normal, wo);
+    Float emission_pdf_w = light_pmf * EmissionPDFW(area_light, isect.point, isect.normal, wo);
 
     Float w_camera = Mis(direct_pdf_a) * camera_state.d_vcm + Mis(emission_pdf_w) * camera_state.d_vc;
     Float mis_weight = 1 / (1 + w_camera);
@@ -295,35 +301,35 @@ Spectrum ConnectVertices(
     Float mis_vm_weight
 )
 {
-    Vec3 direction = light_vertex.p - camera_isect.point;
-    Float dist2 = Length2(direction);
+    Vec3 wi = light_vertex.p - camera_isect.point;
+    Float dist2 = Length2(wi);
     if (dist2 == 0)
     {
         return Spectrum::black;
     }
 
     Float distance = std::sqrt(dist2);
-    direction /= distance;
+    wi /= distance;
 
-    Float cos_camera = AbsDot(camera_isect.shading.normal, direction);
+    Float cos_camera = AbsDot(camera_isect.shading.normal, wi);
     if (cos_camera == 0)
     {
         return Spectrum::black;
     }
 
-    Float cos_light = AbsDot(light_vertex.shading_normal, -direction);
+    Float cos_light = AbsDot(light_vertex.shading_normal, -wi);
     if (cos_light == 0)
     {
         return Spectrum::black;
     }
 
-    Spectrum camera_f_cos = camera_bsdf.f(camera_wo, direction, TransportDirection::ToLight) * cos_camera;
+    Spectrum camera_f_cos = camera_bsdf.f(camera_wo, wi, TransportDirection::ToLight) * cos_camera;
     if (camera_f_cos.IsBlack())
     {
         return Spectrum::black;
     }
 
-    Spectrum light_f_cos = light_bsdf.f(light_vertex.wo, -direction, TransportDirection::ToCamera) * cos_light;
+    Spectrum light_f_cos = light_bsdf.f(light_vertex.wo, -wi, TransportDirection::ToCamera) * cos_light;
     if (light_f_cos.IsBlack())
     {
         return Spectrum::black;
@@ -334,13 +340,11 @@ Spectrum ConnectVertices(
         return Spectrum::black;
     }
 
-    Float camera_bsdf_dir_pdf_w = camera_bsdf.PDF(camera_wo, direction, TransportDirection::ToLight) * camera_cont_prob;
-    Float camera_bsdf_rev_pdf_w = camera_bsdf.PDF(direction, camera_wo, TransportDirection::ToCamera) * camera_cont_prob;
+    Float camera_bsdf_dir_pdf_w = camera_bsdf.PDF(camera_wo, wi, TransportDirection::ToLight) * camera_cont_prob;
+    Float camera_bsdf_rev_pdf_w = camera_bsdf.PDF(wi, camera_wo, TransportDirection::ToCamera) * camera_cont_prob;
 
-    Float light_bsdf_dir_pdf_w =
-        light_bsdf.PDF(light_vertex.wo, -direction, TransportDirection::ToCamera) * light_vertex.cont_prob;
-    Float light_bsdf_rev_pdf_w =
-        light_bsdf.PDF(-direction, light_vertex.wo, TransportDirection::ToLight) * light_vertex.cont_prob;
+    Float light_bsdf_dir_pdf_w = light_bsdf.PDF(light_vertex.wo, -wi, TransportDirection::ToCamera) * light_vertex.cont_prob;
+    Float light_bsdf_rev_pdf_w = light_bsdf.PDF(-wi, light_vertex.wo, TransportDirection::ToLight) * light_vertex.cont_prob;
 
     Float camera_bsdf_dir_pdf_a = camera_bsdf_dir_pdf_w * cos_light / dist2;
     Float light_bsdf_dir_pdf_a = light_bsdf_dir_pdf_w * cos_camera / dist2;
@@ -832,7 +836,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 if (camera_state.path_length <= max_path_length)
                                 {
                                     L += camera_state.beta *
-                                         EvaluateAreaLight(this, area_light, isect, wo, camera_state.origin, camera_state);
+                                         AreaLightLe(this, area_light, isect, wo, camera_state.origin, camera_state);
                                 }
 
                                 // Light sources are treated as non-scattering endpoints for VCM
