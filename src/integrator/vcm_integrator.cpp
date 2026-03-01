@@ -36,7 +36,7 @@ struct VCMLightVertex
 {
     Point3 p;
     Vec3 wo;
-    Vec3 normal, shading_normal;
+    Vec3 shading_normal;
 
     Spectrum beta;
     BSDF bsdf;
@@ -155,10 +155,9 @@ bool SampleScattering(
     return true;
 }
 
-Float LightPDF(const Light* light, Float light_pmf, const Point3& light_point, const Vec3& light_normal, const Vec3& w_to_prev)
+Float EmissionPDFW(const Light* light, const Point3& light_point, const Vec3& light_normal, const Vec3& w_to_prev)
 {
-    Float pdf_p = 0;
-    Float pdf_w = 0;
+    Float pdf_p, pdf_w;
 
     if (!light->IsDeltaLight() && !light->IsInfiniteLight())
     {
@@ -172,20 +171,8 @@ Float LightPDF(const Light* light, Float light_pmf, const Point3& light_point, c
         light->EvaluatePDF_Le(&pdf_p, &pdf_w, Ray(light_point, w_to_prev));
     }
 
-    // Keep delta-light conventions consistent with the rest of the renderer.
-    // Point/spot lights are delta in position; directional lights are delta in direction.
-    if (light->Is<PointLight>() || light->Is<SpotLight>())
-    {
-        return light_pmf * pdf_w;
-    }
-    else if (light->Is<DirectionalLight>() || light->Is<DirectionalAreaLight>())
-    {
-        return light_pmf * pdf_p;
-    }
-    else
-    {
-        return light_pmf * pdf_p * pdf_w;
-    }
+    BulbitNotUsed(pdf_p);
+    return pdf_w;
 }
 
 Spectrum EvaluateAreaLight(
@@ -219,9 +206,9 @@ Spectrum EvaluateAreaLight(
     Float direct_pdf_w = isect.primitive->GetShape()->PDF(isect, Ray(prev_point, -wo));
 
     Float direct_pdf_a = light_pmf * direct_pdf_w * (cos_at_light / dist2);
-    Float light_pdf = LightPDF(light, light_pmf, isect.point, isect.normal, wo);
+    Float emission_pdf_w = light_pmf * EmissionPDFW(light, isect.point, isect.normal, wo);
 
-    Float w_camera = Mis(direct_pdf_a) * camera_state.d_vcm + Mis(light_pdf) * camera_state.d_vc;
+    Float w_camera = Mis(direct_pdf_a) * camera_state.d_vcm + Mis(emission_pdf_w) * camera_state.d_vc;
     Float mis_weight = 1 / (1 + w_camera);
 
     return mis_weight * radiance;
@@ -250,21 +237,33 @@ Spectrum DirectIllumination(
         return Spectrum::black;
     }
 
-    Float direct_pdf_w = sampled_light.pmf * light_sample.pdf;
-    if (direct_pdf_w == 0 || light_sample.Li.IsBlack())
-    {
-        return Spectrum::black;
-    }
-
     Vec3 wi = light_sample.wi;
-    Float cos_light = AbsDot(isect.shading.normal, wi);
-    if (cos_light == 0)
+    Float cos_to_light = AbsDot(isect.shading.normal, wi);
+    if (cos_to_light == 0)
     {
         return Spectrum::black;
     }
 
-    Spectrum f_cos = bsdf.f(wo, wi, TransportDirection::ToLight) * cos_light;
+    Spectrum f_cos = bsdf.f(wo, wi, TransportDirection::ToLight) * cos_to_light;
     if (f_cos.IsBlack())
+    {
+        return Spectrum::black;
+    }
+
+    Float direct_pdf_w = sampled_light.pmf * light_sample.pdf;
+    if (direct_pdf_w == 0)
+    {
+        return Spectrum::black;
+    }
+
+    Float bsdf_dir_pdf_w =
+        sampled_light.light->IsDeltaLight() ? 0 : bsdf.PDF(wo, wi, TransportDirection::ToLight) * camera_cont_prob;
+    Float bsdf_rev_pdf_w = bsdf.PDF(wi, wo, TransportDirection::ToCamera) * camera_cont_prob;
+
+    Float emission_pdf_w = sampled_light.pmf * EmissionPDFW(sampled_light.light, light_sample.point, light_sample.normal, -wi);
+
+    Float cos_at_light = (light_sample.normal != Vec3::zero) ? AbsDot(light_sample.normal, -wi) : 1;
+    if (cos_at_light == 0)
     {
         return Spectrum::black;
     }
@@ -274,25 +273,9 @@ Spectrum DirectIllumination(
         return Spectrum::black;
     }
 
-    Float bsdf_dir_pdf_w = bsdf.PDF(wo, wi, TransportDirection::ToLight) * camera_cont_prob;
-    if (sampled_light.light->IsDeltaLight())
-    {
-        bsdf_dir_pdf_w = 0;
-    }
-
-    Float bsdf_rev_pdf_w = bsdf.PDF(wi, wo, TransportDirection::ToCamera) * camera_cont_prob;
-
-    Float light_pdf = LightPDF(sampled_light.light, sampled_light.pmf, light_sample.point, light_sample.normal, -wi);
-
-    Float cos_at_light = (light_sample.normal != Vec3::zero) ? AbsDot(light_sample.normal, -wi) : 1;
-    if (cos_at_light == 0)
-    {
-        return Spectrum::black;
-    }
-
     Float w_light = Mis(bsdf_dir_pdf_w / direct_pdf_w);
 
-    Float ratio = light_pdf * cos_light / (direct_pdf_w * cos_at_light);
+    Float ratio = (emission_pdf_w * cos_to_light) / (direct_pdf_w * cos_at_light);
     Float w_camera = Mis(ratio) * (mis_vm_weight + camera_state.d_vcm + camera_state.d_vc * Mis(bsdf_rev_pdf_w));
 
     Float mis_weight = 1 / (w_light + 1 + w_camera);
@@ -322,13 +305,13 @@ Spectrum ConnectVertices(
     Float distance = std::sqrt(dist2);
     direction /= distance;
 
-    Float cos_camera = AbsDot(camera_isect.normal, direction);
+    Float cos_camera = AbsDot(camera_isect.shading.normal, direction);
     if (cos_camera == 0)
     {
         return Spectrum::black;
     }
 
-    Float cos_light = AbsDot(light_vertex.normal, -direction);
+    Float cos_light = AbsDot(light_vertex.shading_normal, -direction);
     if (cos_light == 0)
     {
         return Spectrum::black;
@@ -340,8 +323,7 @@ Spectrum ConnectVertices(
         return Spectrum::black;
     }
 
-    Spectrum light_f_cos =
-        light_bsdf.f(light_vertex.wo, -direction, TransportDirection::ToCamera) * AbsDot(light_vertex.shading_normal, -direction);
+    Spectrum light_f_cos = light_bsdf.f(light_vertex.wo, -direction, TransportDirection::ToCamera) * cos_light;
     if (light_f_cos.IsBlack())
     {
         return Spectrum::black;
@@ -416,7 +398,16 @@ void ConnectToCamera(
         return;
     }
 
-    Float camera_pdf_a = camera_sample.pdf * AbsDot(isect.normal, wi) / Dist2(isect.point, camera_sample.p_aperture);
+    Float camera_pdf_p, camera_pdf_w;
+    camera->PDF_We(&camera_pdf_p, &camera_pdf_w, Ray(camera_sample.p_aperture, -wi));
+
+    Float dist2 = Dist2(isect.point, camera_sample.p_aperture);
+    Float camera_pdf_a = camera_pdf_p * camera_pdf_w * cos_to_camera / dist2;
+    if (camera_pdf_a == 0)
+    {
+        return;
+    }
+
     Float bsdf_rev_pdf_w = bsdf.PDF(wi, wo, TransportDirection::ToLight) * light_cont_prob;
 
     Float w_light =
@@ -534,8 +525,8 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                         continue;
                     }
 
-                    Float light_pdf = sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w;
-                    if (light_pdf == 0)
+                    Float emission_pdf_w = sampled_light.pmf * light_sample.pdf_w;
+                    if (emission_pdf_w == 0)
                     {
                         path_light_vertices[path_index] = std::move(vertices);
                         progress->phase_works_dones[2 * iteration].fetch_add(1, std::memory_order_relaxed);
@@ -551,38 +542,20 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                     light_state.is_finite_light = !sampled_light.light->IsInfiniteLight();
 
-                    light_state.beta = light_sample.Le / light_pdf;
+                    light_state.beta = light_sample.Le / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
                     if (light_sample.normal != Vec3::zero)
                     {
                         light_state.beta *= AbsDot(light_sample.normal, light_state.direction);
                     }
 
-                    Float direct_pdf_a = 0;
-                    if (sampled_light.light->IsDeltaLight())
-                    {
-                        direct_pdf_a = sampled_light.pmf;
-                    }
-                    else if (sampled_light.light->IsInfiniteLight())
-                    {
-                        direct_pdf_a = sampled_light.pmf * light_sample.pdf_w;
-                    }
-                    else
-                    {
-                        direct_pdf_a = sampled_light.pmf * light_sample.pdf_p;
-                    }
+                    Float direct_pdf_a = sampled_light.pmf * light_sample.pdf_p;
 
-                    light_state.d_vcm = Mis(direct_pdf_a / light_pdf);
+                    light_state.d_vcm = Mis(direct_pdf_a / emission_pdf_w);
 
                     if (!sampled_light.light->IsDeltaLight())
                     {
-                        Float cos_light =
-                            (light_sample.normal != Vec3::zero) ? AbsDot(light_sample.normal, light_state.direction) : 1;
-                        if (sampled_light.light->IsInfiniteLight())
-                        {
-                            cos_light = 1;
-                        }
-
-                        light_state.d_vc = Mis(cos_light / light_pdf);
+                        Float used_cos = light_state.is_finite_light ? AbsDot(light_sample.normal, light_state.direction) : 1;
+                        light_state.d_vc = Mis(used_cos / emission_pdf_w);
                     }
                     else
                     {
@@ -632,7 +605,6 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             VCMLightVertex v;
                             v.p = isect.point;
                             v.wo = wo;
-                            v.normal = isect.normal;
                             v.shading_normal = isect.shading.normal;
 
                             v.beta = light_state.beta;
@@ -714,8 +686,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                         PrimaryRay primary_ray;
                         camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
 
-                        Float camera_pdf_p = 0;
-                        Float camera_pdf_w = 0;
+                        Float camera_pdf_p, camera_pdf_w;
                         camera->PDF_We(&camera_pdf_p, &camera_pdf_w, primary_ray.ray);
                         BulbitNotUsed(camera_pdf_p);
 
@@ -758,10 +729,10 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                         Float light_pmf = GetLightSampler()->EvaluatePMF(light);
                                         Float direct_pdf_a = light_pmf * light->EvaluatePDF_Li(ray);
-                                        Float light_pdf = LightPDF(light, light_pmf, ray.o, Vec3::zero, -ray.d);
+                                        Float emission_pdf_w = light_pmf * EmissionPDFW(light, ray.o, Vec3::zero, -ray.d);
 
                                         Float w_camera =
-                                            Mis(direct_pdf_a) * camera_state.d_vcm + Mis(light_pdf) * camera_state.d_vc;
+                                            Mis(direct_pdf_a) * camera_state.d_vcm + Mis(emission_pdf_w) * camera_state.d_vc;
                                         Float mis_weight = 1 / (1 + w_camera);
 
                                         L += camera_state.beta * mis_weight * Le;
@@ -771,15 +742,6 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             Vec3 wo = Normalize(-ray.d);
-
-                            if (const Light* area_light = GetAreaLight(isect); area_light)
-                            {
-                                if (camera_state.path_length <= max_path_length)
-                                {
-                                    L += camera_state.beta *
-                                         EvaluateAreaLight(this, area_light, isect, wo, camera_state.origin, camera_state);
-                                }
-                            }
 
                             int8 bsdf_mem[max_bxdf_size];
                             BufferResource bsdf_buffer(bsdf_mem, sizeof(bsdf_mem));
@@ -805,9 +767,16 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             camera_state.d_vc *= inv_cos;
                             camera_state.d_vm *= inv_cos;
 
-                            // Light sources are treated as non-scattering endpoints for VCM
-                            if (GetAreaLight(isect))
+                            const Light* area_light = GetAreaLight(isect);
+                            if (area_light)
                             {
+                                if (camera_state.path_length <= max_path_length)
+                                {
+                                    L += camera_state.beta *
+                                         EvaluateAreaLight(this, area_light, isect, wo, camera_state.origin, camera_state);
+                                }
+
+                                // Light sources are treated as non-scattering endpoints for VCM
                                 break;
                             }
 
