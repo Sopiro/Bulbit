@@ -24,8 +24,8 @@ public:
     Mesh* CreateMesh(Args&&... args);
     template <typename ShapeType, typename... Args>
     ShapeType* CreateShape(Args&&... args);
-    template <typename PrimitiveType, typename... Args>
-    PrimitiveType* CreatePrimitive(Args&&... args);
+    template <typename... Args>
+    Primitive* CreatePrimitive(Args&&... args);
 
     template <typename LightType, typename... Args>
     LightType* CreateLight(Args&&... args);
@@ -114,10 +114,10 @@ inline ShapeType* Scene::CreateShape(Args&&... args)
     return shape;
 }
 
-template <typename PrimitiveType, typename... Args>
-inline PrimitiveType* Scene::CreatePrimitive(Args&&... args)
+template <typename... Args>
+inline Primitive* Scene::CreatePrimitive(Args&&... args)
 {
-    PrimitiveType* primitive = allocator.new_object<PrimitiveType>(std::forward<Args>(args)...);
+    Primitive* primitive = allocator.new_object<Primitive>(std::forward<Args>(args)...);
     primitives.push_back(primitive);
     return primitive;
 }

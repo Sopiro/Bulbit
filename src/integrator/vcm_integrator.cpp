@@ -33,9 +33,9 @@ struct VCMSubPathState
 
     // A naive approach for computing MIS weights is to evaluate Eq. (12) per path, which requires explicitly evaluating all
     // path densities. VCM instead rewrites the MIS weights into a recursive form (Eqs. (24)–(28)) so the required PDF
-    // ratios can be accumulated incrementally along the path. During the connection/merging step, the reverse density is computed
-    // by factoring it into a solid-angle density term and a geometry (measure-conversion) term (Eqs. (29) and (30)), which
-    // postpones explicit reverse PDF evaluation until the final measure-conversion factor is applied.
+    // ratios can be accumulated incrementally along the path. During the sub pass generation step, the partial reverse density is
+    // computed by factoring area density into a solid-angle density term and a geometry (measure-conversion) term (Eqs. (29) and
+    // (30)), which breaks the pdf's neighbor vertex dependencies and postpones MIS evaluation at connection and merging step.
 };
 
 struct VCMLightVertex

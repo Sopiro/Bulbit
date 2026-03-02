@@ -44,7 +44,7 @@ void CreateSphere(
 )
 {
     Sphere* sphere = scene.CreateShape<Sphere>(tf, radius);
-    Primitive* primitive = scene.CreatePrimitive<Primitive>(sphere, material, medium_interface);
+    Primitive* primitive = scene.CreatePrimitive(sphere, material, medium_interface);
 
     if (area_light)
     {
@@ -78,7 +78,7 @@ void CreateTriangles(
     for (int32 i = 0; i < mesh->GetTriangleCount(); ++i)
     {
         Triangle* triangle = scene.CreateShape<Triangle>(mesh, i);
-        Primitive* primitive = scene.CreatePrimitive<Primitive>(triangle, material, medium_interface);
+        Primitive* primitive = scene.CreatePrimitive(triangle, material, medium_interface);
 
         if (area_light)
         {

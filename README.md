@@ -102,7 +102,7 @@ Here are the rendering algorithms implemented in Bulbit.
 
 Conductor materials with physical parameters
 ![metals](.github/img/metals.jpg)
-Courtesy of [LTE orb](https://github.com/lighttransport/lighttransportequation-orb)  
+Courtesy of [LTE Orb](https://github.com/lighttransport/lighttransportequation-orb)  
 
 Subsurface Scattering with Random walk BSSRDF
 ![sss](.github/img/sss.png)
@@ -117,11 +117,11 @@ Courtesy of [Bunny](https://graphics.stanford.edu/data/3Dscanrep/)
 
 Nano VDB volume rendered with volumetric path tracer  
 ![cloud](.github/img/cloud.jpg)
-Courtesy of [Disney cloud](https://github.com/mmp/pbrt-v4-scenes?tab=readme-ov-file#disney-cloud)
+Courtesy of [Cloud Volume](https://github.com/mmp/pbrt-v4-scenes?tab=readme-ov-file#disney-cloud)
 
 ReSTIR PT 1spp spatial_radius=20 spatial_samples=10, no temporal reuse
 ![1spp](.github/img/kitchen1spp.jpg)
-Courtesy of [Jay](https://benedikt-bitterli.me/resources/) 
+Courtesy of [Country Kitchen](https://benedikt-bitterli.me/resources/) 
 
 Experimental Spectral Rendering  
 ![spectral](.github/img/spectral.jpg)
@@ -151,7 +151,7 @@ int main()
     Material* mat = scene.CreateMaterial<DiffuseMaterial>(tex);
     Point3 sphere_pos(0.0f, 1.0f, 0.0f);
     Shape* sphere = scene.CreateShape<Sphere>(sphere_pos, 1.0f);
-    scene.CreatePrimitive<Primitive>(sphere, mat, MediumInterface{});
+    scene.CreatePrimitive(sphere, mat, MediumInterface{});
 
     // Create two lights
     Point3 light_pos(2.5f, 4.0f, 2.0f);
