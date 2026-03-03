@@ -83,7 +83,7 @@ Here are the rendering algorithms implemented in Bulbit.
   - Box, Tent and Gaussian filter
 
 ## Building
-- Install [CMake](https://cmake.org/install/)
+- Install [CMake](https://cmake.org/download/)
 - Ensure CMake is in your system `PATH`
 - Clone the repository 
   ```bash
@@ -133,8 +133,6 @@ The example below renders a sphere lit by a spot light.
 
 ```cpp
 #include "bulbit/bulbit.h"
-
-using namespace bulbit;
 
 int main()
 {
