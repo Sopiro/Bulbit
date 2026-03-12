@@ -12,6 +12,7 @@ FetchContent_Declare(
     zlib
     GIT_REPOSITORY https://github.com/madler/zlib.git
     GIT_TAG v1.3.1
+    GIT_SHALLOW TRUE
 )
 
 set(ZLIB_BUILD_EXAMPLES OFF)
@@ -25,6 +26,7 @@ FetchContent_Populate(
     nanovdb
     GIT_REPOSITORY https://github.com/AcademySoftwareFoundation/openvdb.git
     GIT_TAG feature/nanovdb
+    GIT_SHALLOW TRUE
 )
 
 file(GLOB_RECURSE SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)

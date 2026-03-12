@@ -2,7 +2,7 @@
 FetchContent_Populate(
     tinyobj
     GIT_REPOSITORY "https://github.com/tinyobjloader/tinyobjloader.git"
-    GIT_TAG release
+    GIT_TAG 7dbc543d2107143ab43f32654b5ad79c7bc24899
 )
 
 # Include tinygltf
@@ -12,6 +12,7 @@ FetchContent_Populate(
     tinygltf
     GIT_REPOSITORY "https://github.com/syoyo/tinygltf.git"
     GIT_TAG v2.9.6
+    GIT_SHALLOW TRUE
 )
 
 # Include pugixml
@@ -19,6 +20,7 @@ FetchContent_Declare(
     pugixml
     GIT_REPOSITORY "https://github.com/zeux/pugixml.git"
     GIT_TAG v1.15
+    GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(pugixml)
 
@@ -28,7 +30,7 @@ file(GLOB_RECURSE SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${SOURCE_FILES})
 
 add_executable(bbcli ${HEADER_FILES} ${SOURCE_FILES})
-target_include_directories(bbcli PRIVATE ${tinyobj_SOURCE_DIR} ${tinygltf_SOURCE_DIR})
+target_include_directories(bbcli SYSTEM PRIVATE ${tinyobj_SOURCE_DIR} ${tinygltf_SOURCE_DIR})
 target_link_libraries(bbcli PRIVATE bulbit pugixml)
 set_target_properties(bbcli PROPERTIES
     CXX_STANDARD 20
