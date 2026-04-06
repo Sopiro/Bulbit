@@ -124,7 +124,8 @@ ReSTIR PT 1spp spatial_radius=20 spatial_samples=10, no temporal reuse
 Country kitchen scene courtesy of [Jay-Artist](https://benedikt-bitterli.me/resources/) 
 
 Experimental Spectral Rendering  
-![spectral](.github/img/spectral.jpg)
+![spectral](.github/img/spectral.jpg)  
+![volspectral](.github/img/volspectral.png)
 
 ## Bulbit as a standalone library
 
