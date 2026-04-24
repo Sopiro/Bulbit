@@ -12,11 +12,33 @@
 namespace bulbit
 {
 
+namespace
+{
+
+WavelengthSample IterationLambda(int32 iteration, int32 total_iterations)
+{
+    Float u = Float(iteration + 0.5f) / Float(std::max(1, total_iterations));
+    return WavelengthSample::Sample(std::fmod(u, 1.0f));
+}
+
+WavelengthSample EffectiveLambda(const WavelengthSample& lambda, bool secondary_terminated)
+{
+    WavelengthSample effective = lambda;
+    if (secondary_terminated)
+    {
+        effective.CollapseToPrimary();
+    }
+    return effective;
+}
+
+} // namespace
+
 struct VCMSubPathState
 {
     Point3 origin;
     Vec3 direction;
-    Spectrum beta;
+    SpectrumSample beta;
+    WavelengthSample lambda;
 
     int32 path_length : 30 = 1;
     uint32 is_finite_light : 1 = false;
@@ -44,7 +66,7 @@ struct VCMLightVertex
     Vec3 wo;
     Vec3 shading_normal;
 
-    Spectrum beta;
+    SpectrumSample beta;
     BSDF bsdf;
 
     int32 path_length = 0;
@@ -52,6 +74,7 @@ struct VCMLightVertex
     Float d_vc = 0;
     Float d_vm = 0;
     Float cont_prob = 1;
+    bool secondary_terminated = false;
 };
 
 inline Float Mis(Float pdf)
@@ -181,7 +204,7 @@ Float EmissionPDFW(const Light* light, const Point3& light_point, const Vec3& li
     return pdf_w;
 }
 
-Spectrum AreaLightLe(
+SpectrumSample AreaLightLe(
     const Integrator* I,
     const Light* area_light,
     const Intersection& isect,
@@ -190,10 +213,10 @@ Spectrum AreaLightLe(
     const VCMSubPathState& camera_state
 )
 {
-    Spectrum radiance = area_light->Le(isect, wo);
+    SpectrumSample radiance = area_light->Le(isect, wo, camera_state.lambda);
     if (radiance.IsBlack())
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     if (camera_state.path_length == 1)
@@ -205,7 +228,7 @@ Spectrum AreaLightLe(
     Float cos_at_light = AbsDot(isect.normal, wo);
     if (dist2 == 0 || cos_at_light == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Float light_pmf = I->GetLightSampler()->EvaluatePMF(area_light);
@@ -220,7 +243,7 @@ Spectrum AreaLightLe(
     return mis_weight * radiance;
 }
 
-Spectrum DirectIllumination(
+SpectrumSample DirectIllumination(
     const Integrator* I,
     const VCMSubPathState& camera_state,
     const Intersection& isect,
@@ -234,32 +257,32 @@ Spectrum DirectIllumination(
     SampledLight sampled_light;
     if (!I->GetLightSampler()->Sample(&sampled_light, isect, sampler.Next1D()))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     LightSampleLi light_sample;
-    if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler.Next2D()))
+    if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler.Next2D(), camera_state.lambda))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Vec3 wi = light_sample.wi;
     Float cos_to_light = AbsDot(isect.shading.normal, wi);
     if (cos_to_light == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
-    Spectrum f_cos = bsdf.f(wo, wi, TransportDirection::ToLight) * cos_to_light;
+    SpectrumSample f_cos = bsdf.f(wo, wi, TransportDirection::ToLight) * cos_to_light;
     if (f_cos.IsBlack())
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Float direct_pdf_w = sampled_light.pmf * light_sample.pdf;
     if (direct_pdf_w == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Float bsdf_dir_pdf_w =
@@ -271,12 +294,12 @@ Spectrum DirectIllumination(
     Float cos_at_light = (light_sample.normal != Vec3::zero) ? AbsDot(light_sample.normal, -wi) : 1;
     if (cos_at_light == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     if (!V(I, isect.point, light_sample.point))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Float w_light = Mis(bsdf_dir_pdf_w / direct_pdf_w);
@@ -289,7 +312,7 @@ Spectrum DirectIllumination(
     return mis_weight * light_sample.Li * f_cos / direct_pdf_w;
 }
 
-Spectrum ConnectVertices(
+SpectrumSample ConnectVertices(
     const Integrator* I,
     const VCMLightVertex& light_vertex,
     const BSDF& light_bsdf,
@@ -305,7 +328,7 @@ Spectrum ConnectVertices(
     Float dist2 = Length2(wi);
     if (dist2 == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Float distance = std::sqrt(dist2);
@@ -314,30 +337,30 @@ Spectrum ConnectVertices(
     Float cos_camera = AbsDot(camera_isect.shading.normal, wi);
     if (cos_camera == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Float cos_light = AbsDot(light_vertex.shading_normal, -wi);
     if (cos_light == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
-    Spectrum camera_f_cos = camera_bsdf.f(camera_wo, wi, TransportDirection::ToLight) * cos_camera;
+    SpectrumSample camera_f_cos = camera_bsdf.f(camera_wo, wi, TransportDirection::ToLight) * cos_camera;
     if (camera_f_cos.IsBlack())
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
-    Spectrum light_f_cos = light_bsdf.f(light_vertex.wo, -wi, TransportDirection::ToCamera) * cos_light;
+    SpectrumSample light_f_cos = light_bsdf.f(light_vertex.wo, -wi, TransportDirection::ToCamera) * cos_light;
     if (light_f_cos.IsBlack())
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     if (!V(I, camera_isect.point, light_vertex.p))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Float camera_bsdf_dir_pdf_w = camera_bsdf.PDF(camera_wo, wi, TransportDirection::ToLight) * camera_cont_prob;
@@ -377,8 +400,8 @@ void ConnectToCamera(
     Intersection ref;
     ref.point = isect.point;
 
-    CameraSampleWi camera_sample;
-    if (!camera->SampleWi(&camera_sample, ref, sampler.Next2D()))
+    SampledCameraSampleWi camera_sample;
+    if (!camera->SampleWi(&camera_sample, ref, sampler.Next2D(), light_state.lambda))
     {
         return;
     }
@@ -391,7 +414,7 @@ void ConnectToCamera(
         return;
     }
 
-    Spectrum f_cos = bsdf.f(wo, wi, TransportDirection::ToCamera) * cos_to_camera;
+    SpectrumSample f_cos = bsdf.f(wo, wi, TransportDirection::ToCamera) * cos_to_camera;
     if (f_cos.IsBlack())
     {
         return;
@@ -419,10 +442,11 @@ void ConnectToCamera(
 
     Float mis_weight = 1 / (1 + w_light);
 
-    Spectrum contribution = mis_weight * light_state.beta * f_cos * camera_sample.Wi / (light_subpath_count * camera_sample.pdf);
+    SpectrumSample contribution =
+        mis_weight * light_state.beta * f_cos * camera_sample.Wi / (light_subpath_count * camera_sample.pdf);
     if (!contribution.IsBlack())
     {
-        film.AddSplat(camera_sample.p_raster, contribution);
+        film.AddSplat(camera_sample.p_raster, contribution, light_state.lambda);
     }
 }
 
@@ -484,6 +508,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
         for (int32 iteration = 0; iteration < n_iterations; ++iteration)
         {
+            const WavelengthSample lambda = IterationLambda(iteration, n_iterations);
             Float radius = initial_radius;
             radius /= std::pow(Float(iteration + 1), 0.5f * (1 - radius_alpha));
             radius = std::max(radius, 1e-7f);
@@ -539,7 +564,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                     }
 
                     LightSampleLe light_sample;
-                    if (!sampled_light.light->Sample_Le(&light_sample, sampler->Next2D(), sampler->Next2D()))
+                    if (!sampled_light.light->Sample_Le(&light_sample, sampler->Next2D(), sampler->Next2D(), lambda))
                     {
                         continue;
                     }
@@ -553,6 +578,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                     VCMSubPathState light_state;
                     light_state.origin = light_sample.ray.o;
                     light_state.direction = light_sample.ray.d;
+                    light_state.lambda = lambda;
                     light_state.path_length = 1;
                     light_state.specular_path = true;
                     light_state.eta_scale = 1;
@@ -593,7 +619,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                         Vec3 wo = Normalize(-ray.d);
 
                         BSDF bsdf;
-                        if (!isect.GetBSDF(&bsdf, wo, alloc))
+                        if (!isect.GetBSDF(&bsdf, wo, light_state.lambda, alloc))
                         {
                             light_state.origin = isect.point;
                             continue;
@@ -634,6 +660,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             v.d_vc = light_state.d_vc;
                             v.d_vm = light_state.d_vm;
                             v.cont_prob = vertex_cont_prob;
+                            v.secondary_terminated = light_state.lambda.IsCollapse();
 
                             chunk.vertices.push_back(v_path);
                             ++chunk.counts[size_t(path_index - begin)];
@@ -748,7 +775,6 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         PrimaryRay primary_ray;
                         camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
-
                         Float camera_pdf_p, camera_pdf_w;
                         camera->PDF_We(&camera_pdf_p, &camera_pdf_w, primary_ray.ray);
                         BulbitNotUsed(camera_pdf_p);
@@ -756,7 +782,8 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                         VCMSubPathState camera_state;
                         camera_state.origin = primary_ray.ray.o;
                         camera_state.direction = primary_ray.ray.d;
-                        camera_state.beta = Spectrum(primary_ray.weight);
+                        camera_state.beta = SpectrumSample(primary_ray.weight);
+                        camera_state.lambda = lambda;
                         camera_state.path_length = 1;
                         camera_state.specular_path = true;
                         camera_state.eta_scale = 1;
@@ -765,7 +792,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                         camera_state.d_vc = 0;
                         camera_state.d_vm = 0;
 
-                        Spectrum L(0);
+                        Vec3 L_xyz(0);
 
                         while (true)
                         {
@@ -778,7 +805,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 {
                                     for (const Light* light : infinite_lights)
                                     {
-                                        Spectrum Le = light->Le(ray);
+                                        SpectrumSample Le = light->Le(ray, camera_state.lambda);
                                         if (Le.IsBlack())
                                         {
                                             continue;
@@ -786,7 +813,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                         if (camera_state.path_length == 1)
                                         {
-                                            L += camera_state.beta * Le;
+                                            L_xyz += spectral::SpectrumSampleToXYZ(camera_state.beta * Le, camera_state.lambda);
                                             continue;
                                         }
 
@@ -798,7 +825,9 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                             Mis(direct_pdf_a) * camera_state.d_vcm + Mis(emission_pdf_w) * camera_state.d_vc;
                                         Float mis_weight = 1 / (1 + w_camera);
 
-                                        L += camera_state.beta * mis_weight * Le;
+                                        L_xyz += spectral::SpectrumSampleToXYZ(
+                                            camera_state.beta * mis_weight * Le, camera_state.lambda
+                                        );
                                     }
                                 }
                                 break;
@@ -811,7 +840,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             Allocator bsdf_alloc(&bsdf_buffer);
                             BSDF bsdf;
 
-                            if (!isect.GetBSDF(&bsdf, wo, bsdf_alloc))
+                            if (!isect.GetBSDF(&bsdf, wo, camera_state.lambda, bsdf_alloc))
                             {
                                 camera_state.origin = isect.point;
                                 continue;
@@ -835,8 +864,11 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             {
                                 if (camera_state.path_length <= max_path_length)
                                 {
-                                    L += camera_state.beta *
-                                         AreaLightLe(this, area_light, isect, wo, camera_state.origin, camera_state);
+                                    L_xyz += spectral::SpectrumSampleToXYZ(
+                                        camera_state.beta *
+                                            AreaLightLe(this, area_light, isect, wo, camera_state.origin, camera_state),
+                                        camera_state.lambda
+                                    );
                                 }
 
                                 // Light sources are treated as non-scattering endpoints for VCM
@@ -854,10 +886,13 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             {
                                 if (camera_state.path_length + 1 <= max_path_length)
                                 {
-                                    L += camera_state.beta *
-                                         DirectIllumination(
-                                             this, camera_state, isect, wo, bsdf, vertex_cont_prob, mis_vm_weight, *sampler
-                                         );
+                                    L_xyz += spectral::SpectrumSampleToXYZ(
+                                        camera_state.beta *
+                                            DirectIllumination(
+                                                this, camera_state, isect, wo, bsdf, vertex_cont_prob, mis_vm_weight, *sampler
+                                            ),
+                                        camera_state.lambda
+                                    );
                                 }
 
                                 int32 path_index = pixel.y * res.x + pixel.x;
@@ -872,17 +907,22 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         break;
                                     }
 
-                                    L += camera_state.beta * light_vertex.beta *
-                                         ConnectVertices(
-                                             this, light_vertex, light_vertex.bsdf, camera_state, isect, wo, bsdf,
-                                             vertex_cont_prob, mis_vm_weight
-                                         );
+                                    SpectrumSample contribution = camera_state.beta * light_vertex.beta *
+                                                                  ConnectVertices(
+                                                                      this, light_vertex, light_vertex.bsdf, camera_state, isect,
+                                                                      wo, bsdf, vertex_cont_prob, mis_vm_weight
+                                                                  );
+
+                                    WavelengthSample effective_lambda =
+                                        EffectiveLambda(camera_state.lambda, light_vertex.secondary_terminated);
+                                    L_xyz += spectral::SpectrumSampleToXYZ(contribution, effective_lambda);
                                 }
                             }
 
                             if (!IsSpecular(bsdf.Flags()) && !light_vertices.empty())
                             {
-                                Spectrum merged(0);
+                                SpectrumSample merged(0);
+                                SpectrumSample merged_terminated(0);
                                 light_grid.Query<VCMLightVertex>(
                                     light_vertices, isect.point, radius, [&](const VCMLightVertex& light_vertex) {
                                         if (light_vertex.path_length + camera_state.path_length > max_path_length)
@@ -896,7 +936,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         }
 
                                         Vec3 wi = light_vertex.wo;
-                                        Spectrum camera_bsdf = bsdf.f(wo, wi, TransportDirection::ToLight);
+                                        SpectrumSample camera_bsdf = bsdf.f(wo, wi, TransportDirection::ToLight);
                                         if (camera_bsdf.IsBlack())
                                         {
                                             return;
@@ -913,11 +953,33 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                             camera_state.d_vcm * mis_vc_weight + camera_state.d_vm * Mis(camera_bsdf_rev_pdf_w);
 
                                         Float mis_weight = 1 / (w_light + 1 + w_camera);
-                                        merged += mis_weight * camera_bsdf * light_vertex.beta;
+                                        SpectrumSample contribution = mis_weight * camera_bsdf * light_vertex.beta;
+                                        if (light_vertex.secondary_terminated)
+                                        {
+                                            merged_terminated += contribution;
+                                        }
+                                        else
+                                        {
+                                            merged += contribution;
+                                        }
                                     }
                                 );
 
-                                L += camera_state.beta * vm_normalization * merged;
+                                if (!merged.IsBlack())
+                                {
+                                    L_xyz += spectral::SpectrumSampleToXYZ(
+                                        camera_state.beta * vm_normalization * merged, camera_state.lambda
+                                    );
+                                }
+
+                                if (!merged_terminated.IsBlack())
+                                {
+                                    WavelengthSample effective_lambda = camera_state.lambda;
+                                    effective_lambda.CollapseToPrimary();
+                                    L_xyz += spectral::SpectrumSampleToXYZ(
+                                        camera_state.beta * vm_normalization * merged_terminated, effective_lambda
+                                    );
+                                }
                             }
 
                             if (!SampleScattering(
@@ -929,9 +991,9 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
                         }
 
-                        if (!L.IsNullish())
+                        if (!L_xyz.IsNullish())
                         {
-                            progress->film.AddSample(pixel, L);
+                            progress->film.AddSample(pixel, L_xyz);
                         }
                     }
 

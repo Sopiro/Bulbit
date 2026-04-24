@@ -13,15 +13,27 @@
 namespace bulbit
 {
 
+namespace
+{
+
+WavelengthSample IterationLambda(int32 iteration, int32 total_iterations)
+{
+    Float u = Float(iteration + 0.5f) / Float(std::max(1, total_iterations));
+    return WavelengthSample::Sample(std::fmod(u, 1.0f));
+}
+
+} // namespace
+
 struct ReSTIRDIVisiblePoint
 {
     Float primary_weight;
+    WavelengthSample lambda;
 
     Intersection isect;
     BSDF bsdf;
     Vec3 wo;
 
-    Spectrum Le;
+    SpectrumSample Le;
 
     ReSTIRDIVisiblePoint()
         : bsdf_buffer(&bxdf_mem, sizeof(bxdf_mem))
@@ -42,9 +54,9 @@ struct ReSTIRDISample
     // Area lights: da/dw, Infinite lights: 1 (already in solid-angle measure)
     Float jacobian;
     Vec3 wi;
-    Spectrum Li;
+    SpectrumSample Li;
 
-    Spectrum contribution;
+    SpectrumSample contribution;
     Float p_hat = 0; // p_hat(y): target function value of selected sample
     Float W = 0;     // UCW
 };
@@ -171,6 +183,11 @@ inline bool TestRejection(const ReSTIRDIVisiblePoint& canonical, const ReSTIRDIV
         return false;
     }
 
+    if (canonical.isect.primitive->GetMaterial() != neighbor.isect.primitive->GetMaterial())
+    {
+        return false;
+    }
+
     return true;
 };
 
@@ -211,6 +228,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
     progress->job = RunAsync([=, this]() {
         for (int32 s = 0; s < spp; ++s)
         {
+            const WavelengthSample lambda = IterationLambda(s, spp);
             std::vector<ReSTIRDIVisiblePoint> visible_points(num_pixels);
 
             std::vector<ReSTIRDIReservoir> ris_reservoirs(num_pixels);     // output sample after RIS sampling + visibility pass
@@ -232,15 +250,15 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         PrimaryRay primary_ray;
                         camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
-
                         Ray ray = primary_ray.ray;
 
                         ReSTIRDIVisiblePoint& vp = visible_points[index];
                         Intersection& isect = vp.isect;
 
                         vp.primary_weight = primary_ray.weight;
+                        vp.lambda = lambda;
                         vp.wo = Normalize(-ray.d);
-                        vp.Le = Spectrum::black;
+                        vp.Le = SpectrumSample(0);
 
                         BSDF& bsdf = vp.bsdf;
                         bool found_intersection = false;
@@ -252,7 +270,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             {
                                 for (Light* light : infinite_lights)
                                 {
-                                    vp.Le += light->Le(ray);
+                                    vp.Le += light->Le(ray, lambda);
                                 }
 
                                 isect.primitive = nullptr;
@@ -261,14 +279,14 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             if (const Light* light = GetAreaLight(isect); light)
                             {
-                                if (Spectrum Le = light->Le(isect, -ray.d); !Le.IsBlack())
+                                if (SpectrumSample Le = light->Le(isect, -ray.d, lambda); !Le.IsBlack())
                                 {
                                     vp.Le = Le;
                                 }
                             }
 
                             Allocator bsdf_alloc(&vp.bsdf_buffer);
-                            if (!isect.GetBSDF(&bsdf, vp.wo, bsdf_alloc))
+                            if (!isect.GetBSDF(&bsdf, vp.wo, vp.lambda, bsdf_alloc))
                             {
                                 ray.o = isect.point;
                                 continue;
@@ -295,7 +313,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             LightSampleLi light_sample;
-                            if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler->Next2D()))
+                            if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler->Next2D(), lambda))
                             {
                                 continue;
                             }
@@ -315,9 +333,9 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
                             Float w_mis = p_light / mis_denom;
 
-                            Spectrum f_cos = bsdf.f(vp.wo, light_sample.wi) * AbsDot(isect.shading.normal, light_sample.wi);
-                            Spectrum contribution = light_sample.Li * f_cos;
-                            Float p_hat = contribution.Luminance();
+                            SpectrumSample f_cos = bsdf.f(vp.wo, light_sample.wi) * AbsDot(isect.shading.normal, light_sample.wi);
+                            SpectrumSample contribution = light_sample.Li * f_cos;
+                            Float p_hat = SpectrumSampleToLuminance(contribution, lambda);
                             if (p_hat <= 0)
                             {
                                 continue;
@@ -385,10 +403,10 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     }
                                     Float w_mis = p_bsdf / mis_denom;
 
-                                    Spectrum f_cos = bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi);
-                                    Spectrum Li = light->Le(shadow_isect, -bsdf_sample.wi);
-                                    Spectrum contribution = Li * f_cos;
-                                    Float p_hat = contribution.Luminance();
+                                    SpectrumSample f_cos = bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi);
+                                    SpectrumSample Li = light->Le(shadow_isect, -bsdf_sample.wi, lambda);
+                                    SpectrumSample contribution = Li * f_cos;
+                                    Float p_hat = SpectrumSampleToLuminance(contribution, lambda);
                                     if (p_hat <= 0)
                                     {
                                         continue;
@@ -423,10 +441,10 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     }
                                     Float w_mis = p_bsdf / mis_denom;
 
-                                    Spectrum f_cos = bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi);
-                                    Spectrum Li = light->Le(shadow_ray);
-                                    Spectrum contribution = Li * f_cos;
-                                    Float p_hat = contribution.Luminance();
+                                    SpectrumSample f_cos = bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi);
+                                    SpectrumSample Li = light->Le(shadow_ray, lambda);
+                                    SpectrumSample contribution = Li * f_cos;
+                                    Float p_hat = SpectrumSampleToLuminance(contribution, lambda);
                                     if (p_hat <= 0)
                                     {
                                         continue;
@@ -587,12 +605,12 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             Vec3 wi;
                             Float d2 = 0;
-                            Spectrum Li;
+                            SpectrumSample Li(0);
                             Float jacobian = sample.jacobian;
                             if (sample.is_infinite_light)
                             {
                                 wi = sample.wi;
-                                Li = sample.light->Le(Ray(isect.point, wi));
+                                Li = sample.light->Le(Ray(isect.point, wi), lambda);
                             }
                             else
                             {
@@ -600,16 +618,17 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 d2 = Length2(wi);
                                 wi /= std::sqrt(d2);
 
-                                Li =
-                                    sample.light->Le(Intersection{ .point = sample.x, .front_face = Dot(sample.n, wi) < 0 }, -wi);
+                                Li = sample.light->Le(
+                                    Intersection{ .point = sample.x, .front_face = Dot(sample.n, wi) < 0 }, -wi, lambda
+                                );
                                 jacobian = std::max(0.0f, (Dot(sample.n, -wi) / d2) * sample.jacobian);
                             }
 
                             // Shift neighbor sample to canonical domain
-                            Spectrum f_cos = vp.bsdf.f(vp.wo, wi) * AbsDot(isect.shading.normal, wi);
+                            SpectrumSample f_cos = vp.bsdf.f(vp.wo, wi) * AbsDot(isect.shading.normal, wi);
 
-                            Spectrum contribution = Li * f_cos;
-                            Float p_hat_y = contribution.Luminance();
+                            SpectrumSample contribution = Li * f_cos;
+                            Float p_hat_y = SpectrumSampleToLuminance(contribution, lambda);
                             Float c_j = neighbor_reservoir.M;
 
                             Float m_i = MIS_NonCanonical(c_1, c_total, c_j, sample.p_hat, p_hat_y, jacobian);
@@ -634,7 +653,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             if (canonical_sample.is_infinite_light)
                             {
                                 wi = canonical_sample.wi;
-                                Li = canonical_sample.light->Le(Ray(neighbor_vp.isect.point, wi));
+                                Li = canonical_sample.light->Le(Ray(neighbor_vp.isect.point, wi), lambda);
                             }
                             else
                             {
@@ -644,14 +663,14 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                 Li = canonical_sample.light->Le(
                                     Intersection{ .point = canonical_sample.x, .front_face = Dot(canonical_sample.n, wi) < 0 },
-                                    -wi
+                                    -wi, lambda
                                 );
                                 jacobian_rev = std::max(0.0f, (Dot(canonical_sample.n, -wi) / d2) * canonical_sample.jacobian);
                             }
 
                             f_cos = neighbor_vp.bsdf.f(neighbor_vp.wo, wi) * AbsDot(neighbor_vp.isect.shading.normal, wi);
 
-                            p_hat_y = (Li * f_cos).Luminance();
+                            p_hat_y = SpectrumSampleToLuminance(Li * f_cos, lambda);
                             m_1 += MIS_Canonical(c_1, c_total, c_j, canonical_sample.p_hat, p_hat_y, jacobian_rev);
                         }
 
@@ -688,13 +707,13 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         if (!isect.primitive)
                         {
-                            progress->film.AddSample(pixel, vp.primary_weight * vp.Le);
+                            progress->film.AddSample(pixel, vp.primary_weight * vp.Le, vp.lambda);
                             continue;
                         }
 
                         ReSTIRDISample& sample = spatial_reservoirs[index].y;
 
-                        Spectrum L = vp.Le;
+                        SpectrumSample L = vp.Le;
                         if (sample.W > 0 && test_visibility(isect, sample))
                         {
                             L += sample.contribution * sample.W;
@@ -702,7 +721,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         if (!L.IsNullish())
                         {
-                            progress->film.AddSample(pixel, vp.primary_weight * L);
+                            progress->film.AddSample(pixel, vp.primary_weight * L, vp.lambda);
                         }
                     }
 

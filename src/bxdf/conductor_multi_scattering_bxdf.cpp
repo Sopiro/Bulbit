@@ -4,37 +4,37 @@
 namespace bulbit
 {
 
-Spectrum ConductorMultiScatteringBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
+SpectrumSample ConductorMultiScatteringBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     BulbitNotUsed(direction);
 
     if (!SameHemisphere(wo, wi) || mf.EffectivelySmooth())
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Float cos_theta_o = AbsCosTheta(wo);
     Float cos_theta_i = AbsCosTheta(wi);
     if (cos_theta_i == 0 || cos_theta_o == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Vec3 wm = wo + wi;
     if (Length2(wm) == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
     wm.Normalize();
 
-    Spectrum F = FresnelComplex(AbsDot(wo, wm), eta, k);
-    Spectrum f_ss = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
+    SpectrumSample F = FresnelComplex(AbsDot(wo, wm), eta, k);
+    SpectrumSample f_ss = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
 
     Float E_avg = mf.E_avg();
-    Spectrum fresnel_avg = FresnelConductorAverage(eta, k);
-    Spectrum fresnel_ms = fresnel_avg * fresnel_avg * E_avg / (Spectrum(1) - fresnel_avg * (1 - E_avg));
+    SpectrumSample fresnel_avg = FresnelConductorAverage(eta, k);
+    SpectrumSample fresnel_ms = fresnel_avg * fresnel_avg * E_avg / (SpectrumSample(1) - fresnel_avg * (1 - E_avg));
 
-    Spectrum f_ms = fresnel_ms * ((1 - mf.E(wo)) * (1 - mf.E(wi))) / (pi * (1 - E_avg));
+    SpectrumSample f_ms = fresnel_ms * ((1 - mf.E(wo)) * (1 - mf.E(wi))) / (pi * (1 - E_avg));
 
     return reflectance * (f_ss + f_ms);
 }
@@ -88,7 +88,7 @@ bool ConductorMultiScatteringBxDF::Sample_f(
     {
         // Sample perfect specular conductor BRDF
         Vec3 wi(-wo.x, -wo.y, wo.z);
-        Spectrum f = FresnelComplex(AbsCosTheta(wi), eta, k) / AbsCosTheta(wi);
+        SpectrumSample f = FresnelComplex(AbsCosTheta(wi), eta, k) / AbsCosTheta(wi);
         *sample = BSDFSample(reflectance * f, wi, 1, BxDF_Flags::SpecularReflection);
         return true;
     }
@@ -130,14 +130,14 @@ bool ConductorMultiScatteringBxDF::Sample_f(
         return false;
     }
 
-    Spectrum F = FresnelComplex(AbsDot(wo, wm), eta, k);
-    Spectrum f_ss = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
+    SpectrumSample F = FresnelComplex(AbsDot(wo, wm), eta, k);
+    SpectrumSample f_ss = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
 
     Float E_avg = mf.E_avg();
-    Spectrum fresnel_avg = FresnelConductorAverage(eta, k);
-    Spectrum fresnel_ms = fresnel_avg * fresnel_avg * E_avg / (Spectrum(1) - fresnel_avg * (1 - E_avg));
+    SpectrumSample fresnel_avg = FresnelConductorAverage(eta, k);
+    SpectrumSample fresnel_ms = fresnel_avg * fresnel_avg * E_avg / (SpectrumSample(1) - fresnel_avg * (1 - E_avg));
 
-    Spectrum f_ms = fresnel_ms * ((1 - mf.E(wo)) * (1 - mf.E(wi))) / (pi * (1 - E_avg));
+    SpectrumSample f_ms = fresnel_ms * ((1 - mf.E(wo)) * (1 - mf.E(wi))) / (pi * (1 - E_avg));
 
     Float pdf_ss = mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
     Float pdf_ms = CosineHemispherePDF(wi.z);

@@ -16,13 +16,14 @@ NaivePathIntegrator::NaivePathIntegrator(
 {
 }
 
-Spectrum NaivePathIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium, Sampler& sampler) const
+SpectrumSample NaivePathIntegrator::Li(
+    const Ray& primary_ray, const Medium* primary_medium, WavelengthSample& lambda, Sampler& sampler
+) const
 {
     BulbitNotUsed(primary_medium);
-    // return Li(ray, sampler, 0);
 
     int32 bounce = 0;
-    Spectrum L(0), beta(1);
+    SpectrumSample L(0), beta(1);
     Float eta_scale = 1;
     Ray ray = primary_ray;
 
@@ -33,7 +34,7 @@ Spectrum NaivePathIntegrator::Li(const Ray& primary_ray, const Medium* primary_m
         {
             for (Light* light : infinite_lights)
             {
-                L += beta * light->Le(ray);
+                L += beta * light->Le(ray, lambda);
             }
 
             break;
@@ -41,10 +42,9 @@ Spectrum NaivePathIntegrator::Li(const Ray& primary_ray, const Medium* primary_m
 
         Vec3 wo = Normalize(-ray.d);
 
-        // Add surface emission
         if (const Light* area_light = GetAreaLight(isect); area_light)
         {
-            L += beta * area_light->Le(isect, wo);
+            L += beta * area_light->Le(isect, wo, lambda);
         }
 
         if (bounce++ >= max_bounces)
@@ -56,7 +56,7 @@ Spectrum NaivePathIntegrator::Li(const Ray& primary_ray, const Medium* primary_m
         BufferResource res(mem, sizeof(mem));
         Allocator alloc(&res);
         BSDF bsdf;
-        if (!isect.GetBSDF(&bsdf, wo, alloc))
+        if (!isect.GetBSDF(&bsdf, wo, lambda, alloc))
         {
             ray = Ray(isect.point, -wo);
             --bounce;
@@ -77,7 +77,6 @@ Spectrum NaivePathIntegrator::Li(const Ray& primary_ray, const Medium* primary_m
         beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
         ray = Ray(isect.point, bsdf_sample.wi);
 
-        // Terminate path with russian roulette
         if (bounce > rr_min_bounces)
         {
             if (Float p = beta.MaxComponent() * eta_scale; p < 1)
@@ -86,10 +85,7 @@ Spectrum NaivePathIntegrator::Li(const Ray& primary_ray, const Medium* primary_m
                 {
                     break;
                 }
-                else
-                {
-                    beta /= p;
-                }
+                beta /= p;
             }
         }
     }
@@ -97,9 +93,9 @@ Spectrum NaivePathIntegrator::Li(const Ray& primary_ray, const Medium* primary_m
     return L;
 }
 
-Spectrum NaivePathIntegrator::Li(const Ray& ray, Sampler& sampler, int32 depth) const
+SpectrumSample NaivePathIntegrator::Li(const Ray& ray, WavelengthSample& lambda, Sampler& sampler, int32 depth) const
 {
-    Spectrum L(0);
+    SpectrumSample L(0);
 
     if (depth > max_bounces)
     {
@@ -111,7 +107,7 @@ Spectrum NaivePathIntegrator::Li(const Ray& ray, Sampler& sampler, int32 depth) 
     {
         for (auto& light : infinite_lights)
         {
-            L += light->Le(ray);
+            L += light->Le(ray, lambda);
         }
 
         return L;
@@ -121,28 +117,26 @@ Spectrum NaivePathIntegrator::Li(const Ray& ray, Sampler& sampler, int32 depth) 
 
     if (const Light* area_light = GetAreaLight(isect); area_light)
     {
-        L += area_light->Le(isect, wo);
+        L += area_light->Le(isect, wo, lambda);
     }
 
     int8 mem[max_bxdf_size];
     BufferResource res(mem, sizeof(mem));
     Allocator alloc(&res);
     BSDF bsdf;
-    if (!isect.GetBSDF(&bsdf, wo, alloc))
+    if (!isect.GetBSDF(&bsdf, wo, lambda, alloc))
     {
         return L;
     }
 
     BSDFSample bsdf_sample;
-    if (bsdf.Sample_f(&bsdf_sample, wo, sampler.Next1D(), sampler.Next2D()))
-    {
-        Spectrum f_cos = bsdf_sample.f * Dot(isect.normal, bsdf_sample.wi);
-        return L + Li(Ray(isect.point, bsdf_sample.wi), sampler, depth + 1) * f_cos / bsdf_sample.pdf;
-    }
-    else
+    if (!bsdf.Sample_f(&bsdf_sample, wo, sampler.Next1D(), sampler.Next2D()))
     {
         return L;
     }
+
+    SpectrumSample f_cos = bsdf_sample.f * Dot(isect.normal, bsdf_sample.wi);
+    return L + Li(Ray(isect.point, bsdf_sample.wi), lambda, sampler, depth + 1) * f_cos / bsdf_sample.pdf;
 }
 
 } // namespace bulbit

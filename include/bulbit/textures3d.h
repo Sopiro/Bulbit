@@ -16,21 +16,6 @@ public:
     {
     }
 
-    int32 GetWidth() const
-    {
-        return image.dim_x;
-    }
-
-    int32 GetHeight() const
-    {
-        return image.dim_y;
-    }
-
-    int32 GetDepth() const
-    {
-        return image.dim_z;
-    }
-
     T Evaluate(const Point3& uvw) const
     {
 #if 0
@@ -149,9 +134,7 @@ private:
 };
 
 using FloatImageTexture3D = ImageTexture3D<Float>;
-using SpectrumImageTexture3D = ImageTexture3D<Spectrum>;
 
 using FloatCheckerTexture3D = CheckerTexture3D<Float>;
-using SpectrumCheckerTexture3D = CheckerTexture3D<Spectrum>;
 
 } // namespace bulbit

@@ -16,31 +16,32 @@ void UniformInfiniteLight::Preprocess(const AABB& world_bounds)
     world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
 }
 
-Spectrum UniformInfiniteLight::Le(const Intersection& isect, const Vec3& wo) const
+SpectrumSample UniformInfiniteLight::Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const
 {
-    BulbitAssert(false);
     BulbitNotUsed(isect);
     BulbitNotUsed(wo);
-    return Spectrum::black;
+    BulbitNotUsed(lambda);
+    BulbitAssert(false);
+    return SpectrumSample(0);
 }
 
-Spectrum UniformInfiniteLight::Le(const Ray& ray) const
+SpectrumSample UniformInfiniteLight::Le(const Ray& ray, const WavelengthSample& lambda) const
 {
     BulbitNotUsed(ray);
-    return scale * l;
+    return scale * l.Sample(lambda);
 }
 
-bool UniformInfiniteLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
+bool UniformInfiniteLight::Sample_Li(
+    LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda
+) const
 {
     Vec3 wi = SampleUniformSphere(u);
     sample->wi = wi;
     sample->normal = Vec3(0);
     sample->point = ref.point + wi * 2 * world_radius;
-
     sample->pdf = UniformSpherePDF();
     sample->visibility = 2 * world_radius;
-    sample->Li = scale * l;
-
+    sample->Li = scale * l.Sample(lambda);
     return true;
 }
 
@@ -50,12 +51,11 @@ Float UniformInfiniteLight::EvaluatePDF_Li(const Ray& ray) const
     return UniformSpherePDF();
 }
 
-bool UniformInfiniteLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
+bool UniformInfiniteLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const
 {
     Vec3 wo = SampleUniformSphere(u1);
 
     Frame frame(wo);
-
     Point2 u_disk = SampleUniformUnitDiskConcentric(u0);
     Point3 p_disk = world_center + world_radius * frame.FromLocal(Point3(u_disk, 0));
 
@@ -63,9 +63,8 @@ bool UniformInfiniteLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1
     sample->normal = Vec3(0);
     sample->pdf_p = 1 / (pi * Sqr(world_radius));
     sample->pdf_w = UniformSpherePDF();
-    sample->Le = scale * l;
+    sample->Le = scale * l.Sample(lambda);
     sample->medium = nullptr;
-
     return true;
 }
 
@@ -87,9 +86,9 @@ void UniformInfiniteLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection
     BulbitAssert(false);
 }
 
-Spectrum UniformInfiniteLight::Phi() const
+Float UniformInfiniteLight::Power() const
 {
-    return scale * l * four_pi * pi * Sqr(world_radius);
+    return l.Luminance() * scale * four_pi * pi * Sqr(world_radius);
 }
 
 } // namespace bulbit

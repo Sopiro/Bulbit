@@ -19,7 +19,7 @@ PrincipledMaterial::PrincipledMaterial(
     const FloatTexture* sheen,
     const FloatTexture* sheen_roughness,
     const SpectrumTexture* sheen_color,
-    const SpectrumTexture* normal,
+    const Float3Texture* normal,
     const FloatTexture* alpha
 
 )
@@ -41,21 +41,21 @@ PrincipledMaterial::PrincipledMaterial(
 {
 }
 
-bool PrincipledMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
+bool PrincipledMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, WavelengthSample& lambda, Allocator& alloc) const
 {
     Float eta = isect.front_face ? ior : 1 / ior;
 
-    Spectrum color = basecolor->Evaluate(isect.uv);
+    SpectrumSample color = basecolor->Evaluate(isect.uv, lambda);
     Float metal = metallic->Evaluate(isect.uv);
     Float rough = roughness->Evaluate(isect.uv);
     Float aniso = anisotropy->Evaluate(isect.uv);
     Float trans = transmission->Evaluate(isect.uv);
     Float cc = clearcoat->Evaluate(isect.uv);
     Float cc_rough = clearcoat_roughness->Evaluate(isect.uv);
-    Spectrum cc_color = clearcoat_color->Evaluate(isect.uv);
+    SpectrumSample cc_color = clearcoat_color->Evaluate(isect.uv, lambda);
     Float sh = sheen->Evaluate(isect.uv);
     Float sh_rough = sheen_roughness->Evaluate(isect.uv);
-    Spectrum sh_color = sheen_color->Evaluate(isect.uv);
+    SpectrumSample sh_color = sheen_color->Evaluate(isect.uv, lambda);
 
     Point2 alpha = PrincipledBxDF::RoughnessToAlpha(rough, aniso);
     Float cc_alpha = PrincipledBxDF::RoughnessToAlpha(cc_rough);
@@ -71,10 +71,13 @@ bool PrincipledMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocato
     return true;
 }
 
-bool PrincipledMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
+bool PrincipledMaterial::GetBSSRDF(
+    BSSRDF** bssrdf, const Intersection& isect, const WavelengthSample& lambda, Allocator& alloc
+) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
+    BulbitNotUsed(lambda);
     BulbitNotUsed(alloc);
     return false;
 }
@@ -84,7 +87,7 @@ const FloatTexture* PrincipledMaterial::GetAlphaTexture() const
     return alpha;
 }
 
-const SpectrumTexture* PrincipledMaterial::GetNormalTexture() const
+const Float3Texture* PrincipledMaterial::GetNormalTexture() const
 {
     return normal;
 }

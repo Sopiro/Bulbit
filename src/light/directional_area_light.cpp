@@ -7,10 +7,13 @@
 namespace bulbit
 {
 
-DirectionalAreaLight::DirectionalAreaLight(const Primitive* primitive, const SpectrumTexture* emission, bool two_sided)
+DirectionalAreaLight::DirectionalAreaLight(
+    const Primitive* primitive, const SpectrumTexture* emission, Float emission_mean_luminance, bool two_sided
+)
     : Light(TypeIndexOf<DirectionalAreaLight>())
     , primitive{ primitive }
     , emission{ emission }
+    , emission_mean_luminance{ emission_mean_luminance }
     , two_sided{ two_sided }
 {
 }
@@ -20,25 +23,30 @@ void DirectionalAreaLight::Preprocess(const AABB& world_bounds)
     BulbitNotUsed(world_bounds);
 }
 
-Spectrum DirectionalAreaLight::Le(const Intersection& isect, const Vec3& wo) const
+SpectrumSample DirectionalAreaLight::Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const
 {
     BulbitNotUsed(isect);
     BulbitNotUsed(wo);
-    return Spectrum::black;
+    BulbitNotUsed(lambda);
+    return SpectrumSample(0);
 }
 
-Spectrum DirectionalAreaLight::Le(const Ray& ray) const
+SpectrumSample DirectionalAreaLight::Le(const Ray& ray, const WavelengthSample& lambda) const
 {
-    BulbitAssert(false);
     BulbitNotUsed(ray);
-    return Spectrum::black;
+    BulbitNotUsed(lambda);
+    BulbitAssert(false);
+    return SpectrumSample(0);
 }
 
-bool DirectionalAreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
+bool DirectionalAreaLight::Sample_Li(
+    LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda
+) const
 {
     BulbitNotUsed(sample);
     BulbitNotUsed(ref);
     BulbitNotUsed(u);
+    BulbitNotUsed(lambda);
     return false;
 }
 
@@ -49,7 +57,7 @@ Float DirectionalAreaLight::EvaluatePDF_Li(const Ray& ray) const
     return 0;
 }
 
-bool DirectionalAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
+bool DirectionalAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const
 {
     ShapeSample shape_sample = primitive->GetShape()->Sample(u0);
     sample->pdf_p = shape_sample.pdf;
@@ -79,11 +87,10 @@ bool DirectionalAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1
 
     sample->ray = Ray(shape_sample.point, w);
     sample->normal = Vec3(0);
-    sample->Le = emission->Evaluate(shape_sample.uv);
+    sample->Le = emission->Evaluate(shape_sample.uv, lambda);
 
     MediumInterface medium_interface = primitive->GetMediumInterface();
     sample->medium = front_face ? medium_interface.outside : medium_interface.inside;
-
     return true;
 }
 
@@ -94,10 +101,10 @@ void DirectionalAreaLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection
     *pdf_w = 0;
 }
 
-Spectrum DirectionalAreaLight::Phi() const
+Float DirectionalAreaLight::Power() const
 {
     const Shape* shape = primitive->GetShape();
-    return emission->Average() * shape->Area() * (two_sided ? 2 : 1);
+    return emission_mean_luminance * shape->Area() * (two_sided ? 2.0f : 1.0f);
 }
 
 } // namespace bulbit

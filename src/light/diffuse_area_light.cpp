@@ -7,10 +7,13 @@
 namespace bulbit
 {
 
-DiffuseAreaLight::DiffuseAreaLight(const Primitive* primitive, const SpectrumTexture* emission, bool two_sided)
+DiffuseAreaLight::DiffuseAreaLight(
+    const Primitive* primitive, const SpectrumTexture* emission, Float emission_mean_luminance, bool two_sided
+)
     : Light(TypeIndexOf<DiffuseAreaLight>())
     , primitive{ primitive }
     , emission{ emission }
+    , emission_mean_luminance{ emission_mean_luminance }
     , two_sided{ two_sided }
 {
 }
@@ -20,27 +23,28 @@ void DiffuseAreaLight::Preprocess(const AABB& world_bounds)
     BulbitNotUsed(world_bounds);
 }
 
-Spectrum DiffuseAreaLight::Le(const Intersection& isect, const Vec3& wo) const
+SpectrumSample DiffuseAreaLight::Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const
 {
     BulbitNotUsed(wo);
     if (isect.front_face || two_sided)
     {
-        return emission->Evaluate(isect.uv);
+        return emission->Evaluate(isect.uv, lambda);
     }
     else
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 }
 
-Spectrum DiffuseAreaLight::Le(const Ray& ray) const
+SpectrumSample DiffuseAreaLight::Le(const Ray& ray, const WavelengthSample& lambda) const
 {
-    BulbitAssert(false);
     BulbitNotUsed(ray);
-    return Spectrum::black;
+    BulbitNotUsed(lambda);
+    BulbitAssert(false);
+    return SpectrumSample(0);
 }
 
-bool DiffuseAreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
+bool DiffuseAreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const
 {
     ShapeSample shape_sample = primitive->GetShape()->Sample(ref.point, u);
     Vec3 wi = shape_sample.point - ref.point;
@@ -61,8 +65,7 @@ bool DiffuseAreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref,
     Intersection isect;
     isect.front_face = front_face;
     isect.uv = shape_sample.uv;
-    sample->Li = Le(isect, -wi);
-
+    sample->Li = Le(isect, -wi, lambda);
     return true;
 }
 
@@ -71,7 +74,7 @@ Float DiffuseAreaLight::EvaluatePDF_Li(const Ray& ray) const
     return primitive->GetShape()->EvaluatePDF(ray);
 }
 
-bool DiffuseAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
+bool DiffuseAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const
 {
     ShapeSample shape_sample = primitive->GetShape()->Sample(u0);
     sample->pdf_p = shape_sample.pdf;
@@ -117,13 +120,11 @@ bool DiffuseAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) co
     Intersection isect;
     isect.uv = shape_sample.uv;
     isect.front_face = front_face;
-    sample->Le = Le(isect, -w);
+    sample->Le = Le(isect, -w, lambda);
 
     MediumInterface medium_interface = primitive->GetMediumInterface();
     sample->medium = front_face ? medium_interface.outside : medium_interface.inside;
-
     sample->ray = Ray(shape_sample.point, w);
-
     return true;
 }
 
@@ -141,10 +142,10 @@ void DiffuseAreaLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& is
     *pdf_w = CosineHemispherePDF(AbsDot(isect.normal, w)) * (two_sided ? 0.5f : 1);
 }
 
-Spectrum DiffuseAreaLight::Phi() const
+Float DiffuseAreaLight::Power() const
 {
     const Shape* shape = primitive->GetShape();
-    return emission->Average() * shape->Area() * pi * (two_sided ? 2 : 1);
+    return emission_mean_luminance * shape->Area() * pi * (two_sided ? 2.0f : 1.0f);
 }
 
 } // namespace bulbit

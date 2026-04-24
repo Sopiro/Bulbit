@@ -7,13 +7,44 @@
 namespace bulbit
 {
 
+namespace
+{
+
+bool HasSpectralDispersion(const SpectrumSample& sample)
+{
+    Float hero_value = sample[WavelengthSample::hero_lane];
+    for (int32 i = 1; i < SpectrumSample::num_lanes; ++i)
+    {
+        if (std::abs(sample[i] - hero_value) > 1e-6f)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+} // namespace
+
 DielectricMaterial::DielectricMaterial(
     Float eta,
     const FloatTexture* u_roughness,
     const FloatTexture* v_roughness,
     const SpectrumTexture* reflectance,
     bool energy_compensation,
-    const SpectrumTexture* normal
+    const Float3Texture* normal
+)
+    : DielectricMaterial(Spectrum::Constant(eta), u_roughness, v_roughness, reflectance, energy_compensation, normal)
+{
+}
+
+DielectricMaterial::DielectricMaterial(
+    const Spectrum& eta,
+    const FloatTexture* u_roughness,
+    const FloatTexture* v_roughness,
+    const SpectrumTexture* reflectance,
+    bool energy_compensation,
+    const Float3Texture* normal
 )
     : Material(TypeIndexOf<DielectricMaterial>())
     , eta{ eta }
@@ -25,11 +56,20 @@ DielectricMaterial::DielectricMaterial(
 {
 }
 
-bool DielectricMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
+bool DielectricMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, WavelengthSample& lambda, Allocator& alloc) const
 {
-    Float eta_p = isect.front_face ? eta : 1 / eta;
+    SpectrumSample eta_sample = eta.Sample(lambda);
+    if (HasSpectralDispersion(eta_sample))
+    {
+        lambda.CollapseToPrimary();
+    }
 
-    Spectrum r = reflectance->Evaluate(isect.uv);
+    Float eta_hero = eta_sample[WavelengthSample::hero_lane];
+    if (!isect.front_face)
+    {
+        eta_hero = 1.0f / eta_hero;
+    }
+    SpectrumSample r = reflectance->Evaluate(isect.uv, lambda);
     Float alpha_x = TrowbridgeReitzDistribution::RoughnessToAlpha(u_roughness->Evaluate(isect.uv));
     Float alpha_y = TrowbridgeReitzDistribution::RoughnessToAlpha(v_roughness->Evaluate(isect.uv));
 
@@ -37,24 +77,27 @@ bool DielectricMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocato
     {
         *bsdf = BSDF(
             isect.shading.normal, isect.shading.tangent,
-            alloc.new_object<DielectricMultiScatteringBxDF>(eta_p, TrowbridgeReitzDistribution(alpha_x, alpha_y), r)
+            alloc.new_object<DielectricMultiScatteringBxDF>(eta_hero, TrowbridgeReitzDistribution(alpha_x, alpha_y), r)
         );
     }
     else
     {
         *bsdf = BSDF(
             isect.shading.normal, isect.shading.tangent,
-            alloc.new_object<DielectricBxDF>(eta_p, TrowbridgeReitzDistribution(alpha_x, alpha_y), r)
+            alloc.new_object<DielectricBxDF>(eta_hero, TrowbridgeReitzDistribution(alpha_x, alpha_y), r)
         );
     }
 
     return true;
 }
 
-bool DielectricMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
+bool DielectricMaterial::GetBSSRDF(
+    BSSRDF** bssrdf, const Intersection& isect, const WavelengthSample& lambda, Allocator& alloc
+) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
+    BulbitNotUsed(lambda);
     BulbitNotUsed(alloc);
     return false;
 }
@@ -64,7 +107,7 @@ const FloatTexture* DielectricMaterial::GetAlphaTexture() const
     return nullptr;
 }
 
-const SpectrumTexture* DielectricMaterial::GetNormalTexture() const
+const Float3Texture* DielectricMaterial::GetNormalTexture() const
 {
     return normal;
 }

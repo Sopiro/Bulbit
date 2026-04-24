@@ -11,20 +11,20 @@ DiffuseMaterial* CreateDiffuseMaterial(
     Scene& scene,
     Float reflectance,
     Float roughness = 0,
-    const SpectrumTexture* normalmap = nullptr,
+    const Float3Texture* normalmap = nullptr,
     Float alpha = 1
 );
 DiffuseMaterial* CreateDiffuseMaterial(
     Scene& scene,
     const Spectrum& reflectance,
     Float roughness = 0,
-    const SpectrumTexture* normalmap = nullptr,
+    const Float3Texture* normalmap = nullptr,
     Float alpha = 1
 );
 DiffuseMaterial* CreateDiffuseMaterial(
     Scene& scene,
     const std::string& filename,
-    const SpectrumTexture* normalmap = nullptr,
+    const Float3Texture* normalmap = nullptr,
     Float alpha = 1
 );
 
@@ -34,12 +34,40 @@ DielectricMaterial* CreateDielectricMaterial(
     Float roughness = 0,
     Spectrum reflectance = Spectrum(1),
     bool energy_compensation = true,
-    const SpectrumTexture* normalmap = nullptr
+    const Float3Texture* normalmap = nullptr
+);
+DielectricMaterial* CreateDielectricMaterial(
+    Scene& scene,
+    const Spectrum& eta,
+    Float roughness = 0,
+    Spectrum reflectance = Spectrum(1),
+    bool energy_compensation = true,
+    const Float3Texture* normalmap = nullptr
+);
+DielectricMaterial* CreateDielectricMaterial(
+    Scene& scene,
+    Float cauchy_a,
+    Float cauchy_b,
+    Float roughness,
+    Spectrum reflectance = Spectrum(1),
+    bool energy_compensation = true,
+    const Float3Texture* normalmap = nullptr
 );
 
 ThinDielectricMaterial* CreateThinDielectricMaterial(
     Scene& scene,
     Float eta,
+    Spectrum reflectance = Spectrum(1)
+);
+ThinDielectricMaterial* CreateThinDielectricMaterial(
+    Scene& scene,
+    const Spectrum& eta,
+    Spectrum reflectance = Spectrum(1)
+);
+ThinDielectricMaterial* CreateThinDielectricMaterial(
+    Scene& scene,
+    Float cauchy_a,
+    Float cauchy_b,
     Spectrum reflectance = Spectrum(1)
 );
 
@@ -50,7 +78,7 @@ ConductorMaterial* CreateConductorMaterial(
     Float roughness,
     const Spectrum& reflectance = Spectrum(1),
     bool energy_compensation = true,
-    const SpectrumTexture* normalmap = nullptr,
+    const Float3Texture* normalmap = nullptr,
     Float alpha = 1
 );
 ConductorMaterial* CreateConductorMaterial(
@@ -61,7 +89,7 @@ ConductorMaterial* CreateConductorMaterial(
     Float roughness_v,
     const Spectrum& reflectance = Spectrum(1),
     bool energy_compensation = true,
-    const SpectrumTexture* normalmap = nullptr,
+    const Float3Texture* normalmap = nullptr,
     Float alpha = 1
 );
 ConductorMaterial* CreateConductorMaterial(
@@ -70,7 +98,7 @@ ConductorMaterial* CreateConductorMaterial(
     Float roughness,
     const Spectrum& reflectance = Spectrum(1),
     bool energy_compensation = true,
-    const SpectrumTexture* normalmap = nullptr,
+    const Float3Texture* normalmap = nullptr,
     Float alpha = 1
 );
 ConductorMaterial* CreateConductorMaterial(
@@ -80,7 +108,7 @@ ConductorMaterial* CreateConductorMaterial(
     Float roughness_v,
     const Spectrum& reflectance = Spectrum(1),
     bool energy_compensation = true,
-    const SpectrumTexture* normalmap = nullptr,
+    const Float3Texture* normalmap = nullptr,
     Float alpha = 1
 );
 
@@ -89,7 +117,7 @@ ClothMaterial* CreateClothMaterial(
     const Spectrum& basecolor,
     const Spectrum& sheen_color,
     Float roughness,
-    const SpectrumTexture* normalmap = nullptr,
+    const Float3Texture* normalmap = nullptr,
     Float alpha = 1
 );
 
@@ -98,7 +126,7 @@ MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
     const Spectrum& basecolor,
     Float metallic,
     Float roughness,
-    const SpectrumTexture* normalmap = nullptr,
+    const Float3Texture* normalmap = nullptr,
     const FloatTexture* alpha = nullptr
 );
 MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
@@ -107,7 +135,7 @@ MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
     Float metallic,
     Float u_roughness,
     Float v_roughness,
-    const SpectrumTexture* normalmap = nullptr,
+    const Float3Texture* normalmap = nullptr,
     const FloatTexture* alpha = nullptr
 );
 
@@ -118,7 +146,7 @@ SubstrateMaterial* CreateSubstrateMaterial(
     Float ior = 1.5f,
     const Spectrum& sigma_a = Spectrum(0),
     Float thickness = 1.0f,
-    const SpectrumTexture* normalmap = nullptr,
+    const Float3Texture* normalmap = nullptr,
     Float alpha = 1
 );
 
@@ -136,7 +164,7 @@ PrincipledMaterial* CreatePrincipledMaterial(
     Float sheen = 0,
     Float sheen_roughness = 0,
     const Spectrum& sheen_color = Spectrum(1),
-    const SpectrumTexture* normalmap = nullptr,
+    const Float3Texture* normalmap = nullptr,
     const FloatTexture* alpha = nullptr
 );
 
@@ -146,7 +174,7 @@ SubsurfaceDiffusionMaterial* CreateSubsurfaceDiffusionMaterial(
     const Spectrum& mfp,
     Float eta,
     Float roughness,
-    const SpectrumTexture* normalmap = nullptr
+    const Float3Texture* normalmap = nullptr
 );
 
 SubsurfaceDiffusionMaterial* CreateSubsurfaceDiffusionMaterial(
@@ -155,7 +183,7 @@ SubsurfaceDiffusionMaterial* CreateSubsurfaceDiffusionMaterial(
     const Spectrum& mfp,
     Float eta,
     Float roughness,
-    const SpectrumTexture* normalmap = nullptr
+    const Float3Texture* normalmap = nullptr
 );
 
 SubsurfaceRandomWalkMaterial* CreateSubsurfaceRandomWalkMaterial(
@@ -165,7 +193,7 @@ SubsurfaceRandomWalkMaterial* CreateSubsurfaceRandomWalkMaterial(
     Float eta,
     Float roughness,
     Float g = 0,
-    const SpectrumTexture* normalmap = nullptr
+    const Float3Texture* normalmap = nullptr
 );
 SubsurfaceRandomWalkMaterial* CreateSubsurfaceRandomWalkMaterial(
     Scene& scene,
@@ -174,7 +202,7 @@ SubsurfaceRandomWalkMaterial* CreateSubsurfaceRandomWalkMaterial(
     Float eta,
     Float roughness,
     Float g = 0,
-    const SpectrumTexture* normalmap = nullptr
+    const Float3Texture* normalmap = nullptr
 );
 
 MixtureMaterial* CreateMixtureMaterial(
@@ -187,7 +215,7 @@ MixtureMaterial* CreateMixtureMaterial(
 MirrorMaterial* CreateMirrorMaterial(
     Scene& scene,
     const Spectrum& reflectance,
-    const SpectrumTexture* normalmap = nullptr,
+    const Float3Texture* normalmap = nullptr,
     Float alpha = 1
 );
 
@@ -201,7 +229,7 @@ LayeredMaterial* CreateLayeredMaterial(
     Float g = 0,
     int32 max_bounces = 16,
     int32 samples = 1,
-    const SpectrumTexture* normalmap = nullptr,
+    const Float3Texture* normalmap = nullptr,
     Float alpha = 1
 );
 // clang-format on

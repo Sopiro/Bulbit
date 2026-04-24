@@ -6,7 +6,6 @@
 namespace bulbit
 {
 
-// BxDF bound with shading frame
 class BSDF
 {
 public:
@@ -16,7 +15,7 @@ public:
 
     BxDF_Flags Flags() const;
 
-    Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const;
+    SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const;
     Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -33,10 +32,10 @@ public:
         BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
     ) const;
 
-    Spectrum rho(
+    SpectrumSample rho(
         Vec3 wo, std::span<const Float> uc, std::span<const Point2> u, TransportDirection direction = TransportDirection::ToLight
     ) const;
-    Spectrum rho(
+    SpectrumSample rho(
         std::span<const Point2> u1,
         std::span<const Float> uc,
         std::span<const Point2> u2,
@@ -52,7 +51,7 @@ public:
 
 private:
     Frame frame;
-    BxDF* bxdf;
+    BxDF* bxdf = nullptr;
 };
 
 inline BSDF::BSDF(Vec3 n, BxDF* bxdf)
@@ -72,14 +71,14 @@ inline BxDF_Flags BSDF::Flags() const
     return bxdf->Flags();
 }
 
-inline Spectrum BSDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
+inline SpectrumSample BSDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     wi = WorldToLocal(wi);
     wo = WorldToLocal(wo);
 
     if (wo.z == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     return bxdf->f(wo, wi, direction);
@@ -124,14 +123,14 @@ inline bool BSDF::Sample_f(
     return true;
 }
 
-inline Spectrum BSDF::rho(
+inline SpectrumSample BSDF::rho(
     std::span<const Point2> u1, std::span<const Float> uc, std::span<const Point2> u2, TransportDirection direction
 ) const
 {
     return bxdf->rho(u1, uc, u2, direction);
 }
 
-inline Spectrum BSDF::rho(Vec3 wo, std::span<const Float> uc, std::span<const Point2> u, TransportDirection direction) const
+inline SpectrumSample BSDF::rho(Vec3 wo, std::span<const Float> uc, std::span<const Point2> u, TransportDirection direction) const
 {
     wo = WorldToLocal(wo);
     return bxdf->rho(wo, uc, u, direction);

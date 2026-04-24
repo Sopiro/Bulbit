@@ -5,13 +5,13 @@
 namespace bulbit
 {
 
-Spectrum SpecularReflectionBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
+SpectrumSample SpecularReflectionBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     BulbitNotUsed(wo);
     BulbitNotUsed(wi);
     BulbitNotUsed(direction);
 
-    return Spectrum::black;
+    return SpectrumSample(0);
 }
 
 Float SpecularReflectionBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_SamplingFlags flags) const

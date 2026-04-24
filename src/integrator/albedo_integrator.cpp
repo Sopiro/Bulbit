@@ -11,19 +11,19 @@ AlbedoIntegrator::AlbedoIntegrator(const Intersectable* accel, std::vector<Light
 {
 }
 
-Spectrum AlbedoIntegrator::Li(const Ray& ray, const Medium* medium, Sampler& sampler) const
+SpectrumSample AlbedoIntegrator::Li(const Ray& ray, const Medium* medium, WavelengthSample& lambda, Sampler& sampler) const
 {
     BulbitNotUsed(medium);
     BulbitNotUsed(sampler);
 
-    Spectrum L(0);
+    SpectrumSample L(0);
 
     Intersection isect;
     if (!Intersect(&isect, ray, Ray::epsilon, infinity))
     {
         for (Light* light : infinite_lights)
         {
-            L += light->Le(ray);
+            L += light->Le(ray, lambda);
         }
 
         return L;
@@ -45,14 +45,14 @@ Spectrum AlbedoIntegrator::Li(const Ray& ray, const Medium* medium, Sampler& sam
 
     if (const Light* area_light = GetAreaLight(isect); area_light)
     {
-        L += area_light->Le(isect, wo);
+        L += area_light->Le(isect, wo, lambda);
     }
 
     int8 mem[max_bxdf_size];
     BufferResource res(mem, sizeof(mem));
     Allocator alloc(&res);
     BSDF bsdf;
-    if (!isect.GetBSDF(&bsdf, wo, alloc))
+    if (!isect.GetBSDF(&bsdf, wo, lambda, alloc))
     {
         return L;
     }

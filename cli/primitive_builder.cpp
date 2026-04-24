@@ -11,21 +11,29 @@
 namespace bulbit
 {
 
-static const SpectrumTexture* get_emission_texture(Scene& scene, const AreaLightInfo& ali)
+struct AreaLightEmission
+{
+    const SpectrumTexture* texture;
+    Float mean_luminance;
+};
+
+static AreaLightEmission get_emission_texture(Scene& scene, const AreaLightInfo& ali)
 {
     struct eval
     {
-        const SpectrumTexture* operator()(Float e)
+        AreaLightEmission operator()(Float e)
         {
-            return CreateSpectrumConstantTexture(scene, e);
+            SpectrumConstantTexture* texture = CreateSpectrumConstantTexture(scene, Spectrum::FromIlluminantRGB(Vec3(e)));
+            return { texture, texture->MeanLuminance() };
         }
-        const SpectrumTexture* operator()(Spectrum e)
+        AreaLightEmission operator()(Spectrum e)
         {
-            return CreateSpectrumConstantTexture(scene, e);
+            SpectrumConstantTexture* texture = CreateSpectrumConstantTexture(scene, e);
+            return { texture, texture->MeanLuminance() };
         }
-        const SpectrumTexture* operator()(const SpectrumTexture* e)
+        AreaLightEmission operator()(const SpectrumTexture* e)
         {
-            return e;
+            return { e, e->MeanLuminance() };
         }
 
         Scene& scene;
@@ -48,19 +56,20 @@ void CreateSphere(
 
     if (area_light)
     {
-        const SpectrumTexture* emission = get_emission_texture(scene, area_light.value());
+        AreaLightEmission emission = get_emission_texture(scene, area_light.value());
 
         switch (area_light->type)
         {
         case AreaLightType::diffuse:
-            scene.CreateLight<DiffuseAreaLight>(primitive, emission, area_light->two_sided);
+            scene.CreateLight<DiffuseAreaLight>(primitive, emission.texture, emission.mean_luminance, area_light->two_sided);
             break;
         case AreaLightType::directional:
-            scene.CreateLight<DirectionalAreaLight>(primitive, emission, area_light->two_sided);
+            scene.CreateLight<DirectionalAreaLight>(primitive, emission.texture, emission.mean_luminance, area_light->two_sided);
             break;
         case AreaLightType::spot:
             scene.CreateLight<SpotAreaLight>(
-                primitive, emission, area_light->angle_max, area_light->angle_falloff_start, area_light->two_sided
+                primitive, emission.texture, emission.mean_luminance, area_light->angle_max, area_light->angle_falloff_start,
+                area_light->two_sided
             );
             break;
         }
@@ -82,19 +91,22 @@ void CreateTriangles(
 
         if (area_light)
         {
-            const SpectrumTexture* emission = get_emission_texture(scene, area_light.value());
+            AreaLightEmission emission = get_emission_texture(scene, area_light.value());
 
             switch (area_light->type)
             {
             case AreaLightType::diffuse:
-                scene.CreateLight<DiffuseAreaLight>(primitive, emission, area_light->two_sided);
+                scene.CreateLight<DiffuseAreaLight>(primitive, emission.texture, emission.mean_luminance, area_light->two_sided);
                 break;
             case AreaLightType::directional:
-                scene.CreateLight<DirectionalAreaLight>(primitive, emission, area_light->two_sided);
+                scene.CreateLight<DirectionalAreaLight>(
+                    primitive, emission.texture, emission.mean_luminance, area_light->two_sided
+                );
                 break;
             case AreaLightType::spot:
                 scene.CreateLight<SpotAreaLight>(
-                    primitive, emission, area_light->angle_max, area_light->angle_falloff_start, area_light->two_sided
+                    primitive, emission.texture, emission.mean_luminance, area_light->angle_max, area_light->angle_falloff_start,
+                    area_light->two_sided
                 );
                 break;
             }

@@ -9,7 +9,7 @@ void CornellBoxLaser(RendererInfo* ri)
     auto green = CreateDiffuseMaterial(scene, Spectrum(.12f, .45f, .15f));
     auto blue = CreateDiffuseMaterial(scene, Spectrum(.22f, .23f, .75f));
     auto white = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
-    auto glass = CreateDielectricMaterial(scene, 1.5f);
+    auto glass = CreateDielectricMaterial(scene, Spectrum::CauchyIOR(1.5f, 0.03f));
     auto mirror = CreateMirrorMaterial(scene, Spectrum(0.73f));
     auto mix = CreateMixtureMaterial(scene, red, blue, 0.5f);
 
@@ -59,8 +59,14 @@ void CornellBoxLaser(RendererInfo* ri)
         options.fallback_medium_interface = mi_two_sided;
         LoadModel(scene, "res/caustics/water.obj", tf, options);
 #else
-        auto tf = Transform{ Vec3(0.5f, 0.3f, -0.5f), identity, Vec3(1.0f) };
-        CreateRectXZ(scene, tf, glass, mi_two_sided);
+        auto tf = Transform{ Vec3(0.5f, 0.45f, -0.5f), identity, Vec3(.05f) };
+        // CreateRectXZ(scene, tf, glass, mi_two_sided);
+
+        ModelLoaderOptions options;
+        options.use_fallback_material = true;
+        options.fallback_material = glass;
+        options.fallback_medium_interface = mi_outside;
+        LoadModel(scene, "C:/Users/sopir/Desktop/assets/bunny.obj", tf, options);
 #endif
     }
 
@@ -69,8 +75,8 @@ void CornellBoxLaser(RendererInfo* ri)
         auto tf = Transform{ 0.5f, 0.995f, -0.5f, Quat(pi, x_axis), Vec3(0.7f) };
         // CreateRectXZ(scene, tf, white, mi_two_sided, AreaLightInfo{ .emission = 2.0f });
 
-        tf = Transform::LookAt({ 0.99, 0.5, -0.5 }, { 0.5, 0.3, -0.5 }, y_axis) * Transform::Scale(Vec3{ 0.01f });
-        CreateRectXY(scene, tf, white, mi_two_sided, AreaLightInfo{ .type = AreaLightType::directional, .emission = 50000.0f });
+        tf = Transform::LookAt({ 0.99, 0.99, -0.5 }, { 0.5, 0.5, -0.5 }, y_axis) * Transform::Scale(Vec3{ 0.01f });
+        CreateRectXY(scene, tf, white, mi_two_sided, AreaLightInfo{ .type = AreaLightType::directional, .emission = 30000.0f });
 
         // int32 s = 10;
         // Float d = 1.0f / s;
@@ -96,8 +102,8 @@ void CornellBoxLaser(RendererInfo* ri)
     Point3 position{ 0.5f, 0.5f, 2.05f };
     Point3 target{ 0.5f, 0.5f, 0.0f };
 
-    ri->integrator_info.type = IntegratorType::vol_bdpt;
-    ri->integrator_info.max_bounces = 8;
+    ri->integrator_info.type = IntegratorType::bdpt;
+    ri->integrator_info.max_bounces = 16;
     ri->camera_info.type = CameraType::perspective;
     // ri->camera_info.type = CameraType::orthographic;
     ri->camera_info.viewport_size = { 1.05, 1.05 };

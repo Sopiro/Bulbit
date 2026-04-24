@@ -20,8 +20,9 @@ NanoVDBMedium::NanoVDBMedium(
 )
     : Medium(TypeIndexOf<NanoVDBMedium>())
     , transform{ transform }
-    , sigma_a{ sigma_a * sigma_scale }
-    , sigma_s{ sigma_s * sigma_scale }
+    , sigma_a{ sigma_a }
+    , sigma_s{ sigma_s }
+    , sigma_scale{ sigma_scale }
     , phase{ g }
     , density_grid{ std::move(dg) }
     , temperature_grid{ std::move(tg) }
@@ -116,7 +117,7 @@ bool NanoVDBMedium::IsEmissive() const
     return false;
 }
 
-MediumSample NanoVDBMedium::SamplePoint(Point3 p) const
+MediumSample NanoVDBMedium::SamplePoint(Point3 p, const WavelengthSample& lambda) const
 {
     Point3 p_medium = MulT(transform, p);
     nanovdb::Vec3<float> p_index = density_float_grid->worldToIndexF(nanovdb::Vec3<float>(p_medium.x, p_medium.y, p_medium.z));
@@ -125,7 +126,7 @@ MediumSample NanoVDBMedium::SamplePoint(Point3 p) const
     using Sampler = nanovdb::SampleFromVoxels<nanovdb::FloatGrid::TreeType, 1, false>;
     Float density = Sampler(density_float_grid->tree())(p_index);
 
-    Spectrum Le = Spectrum::black;
+    SpectrumSample Le(0);
     if (temperature_float_grid)
     {
         p_index = temperature_float_grid->worldToIndexF(nanovdb::Vec3<float>(p_medium.x, p_medium.y, p_medium.z));
@@ -133,14 +134,19 @@ MediumSample NanoVDBMedium::SamplePoint(Point3 p) const
         temperature = (temperature - temperature_offset) * temperature_scale;
         if (temperature > 100.0f)
         {
-            Le = Le_scale * spectral::BlackbodyRGB(temperature);
+            Le = Spectrum::Blackbody(temperature, Le_scale).Sample(lambda);
         }
     }
 
-    return MediumSample{ sigma_a * density, sigma_s * density, Le, &phase };
+    return MediumSample{
+        density * sigma_scale * sigma_a.Sample(lambda),
+        density * sigma_scale * sigma_s.Sample(lambda),
+        Le,
+        &phase,
+    };
 }
 
-DDAMajorantIterator NanoVDBMedium::SampleRay(Ray ray, Float t_max) const
+DDAMajorantIterator NanoVDBMedium::SampleRay(Ray ray, Float t_max, const WavelengthSample& lambda) const
 {
     Ray ray_medium = MulT(transform, ray);
     Float t_hit0, t_hit1;
@@ -149,10 +155,11 @@ DDAMajorantIterator NanoVDBMedium::SampleRay(Ray ray, Float t_max) const
         return {};
     }
 
-    return DDAMajorantIterator(ray_medium, t_hit0, t_hit1, &majorant_grid, sigma_a + sigma_s);
+    SpectrumSample sigma_t = sigma_scale * (sigma_a.Sample(lambda) + sigma_s.Sample(lambda));
+    return DDAMajorantIterator(ray_medium, t_hit0, t_hit1, &majorant_grid, sigma_t);
 }
 
-RayMajorantIterator* NanoVDBMedium::SampleRay(Ray ray, Float t_max, Allocator& alloc) const
+RayMajorantIterator* NanoVDBMedium::SampleRay(Ray ray, Float t_max, const WavelengthSample& lambda, Allocator& alloc) const
 {
     Ray ray_medium = MulT(transform, ray);
     Float t_hit0, t_hit1;
@@ -161,7 +168,8 @@ RayMajorantIterator* NanoVDBMedium::SampleRay(Ray ray, Float t_max, Allocator& a
         return nullptr;
     }
 
-    return alloc.new_object<DDAMajorantIterator>(ray_medium, t_hit0, t_hit1, &majorant_grid, sigma_a + sigma_s);
+    SpectrumSample sigma_t = sigma_scale * (sigma_a.Sample(lambda) + sigma_s.Sample(lambda));
+    return alloc.new_object<DDAMajorantIterator>(ray_medium, t_hit0, t_hit1, &majorant_grid, sigma_t);
 }
 
 } // namespace bulbit

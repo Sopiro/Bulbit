@@ -5,7 +5,7 @@ namespace bulbit
 {
 
 DiffuseMaterial* CreateDiffuseMaterial(
-    Scene& scene, Float reflectance, Float roughness, const SpectrumTexture* normalmap, Float alpha
+    Scene& scene, Float reflectance, Float roughness, const Float3Texture* normalmap, Float alpha
 )
 {
     return scene.CreateMaterial<DiffuseMaterial>(
@@ -15,7 +15,7 @@ DiffuseMaterial* CreateDiffuseMaterial(
 }
 
 DiffuseMaterial* CreateDiffuseMaterial(
-    Scene& scene, const Spectrum& reflectance, Float roughness, const SpectrumTexture* normalmap, Float alpha
+    Scene& scene, const Spectrum& reflectance, Float roughness, const Float3Texture* normalmap, Float alpha
 )
 {
     return scene.CreateMaterial<DiffuseMaterial>(
@@ -24,7 +24,7 @@ DiffuseMaterial* CreateDiffuseMaterial(
     );
 }
 
-DiffuseMaterial* CreateDiffuseMaterial(Scene& scene, const std::string& filename, const SpectrumTexture* normalmap, Float alpha)
+DiffuseMaterial* CreateDiffuseMaterial(Scene& scene, const std::string& filename, const Float3Texture* normalmap, Float alpha)
 {
     return scene.CreateMaterial<DiffuseMaterial>(
         CreateSpectrumImageTexture(scene, filename), nullptr, normalmap, CreateFloatConstantTexture(scene, alpha)
@@ -32,12 +32,39 @@ DiffuseMaterial* CreateDiffuseMaterial(Scene& scene, const std::string& filename
 }
 
 DielectricMaterial* CreateDielectricMaterial(
-    Scene& scene, Float eta, Float roughness, Spectrum reflectance, bool energy_compensation, const SpectrumTexture* normalmap
+    Scene& scene, Float eta, Float roughness, Spectrum reflectance, bool energy_compensation, const Float3Texture* normalmap
+)
+{
+    return CreateDielectricMaterial(scene, Spectrum::Constant(eta), roughness, reflectance, energy_compensation, normalmap);
+}
+
+DielectricMaterial* CreateDielectricMaterial(
+    Scene& scene,
+    const Spectrum& eta,
+    Float roughness,
+    Spectrum reflectance,
+    bool energy_compensation,
+    const Float3Texture* normalmap
 )
 {
     return scene.CreateMaterial<DielectricMaterial>(
         eta, CreateFloatConstantTexture(scene, roughness), CreateFloatConstantTexture(scene, roughness),
         CreateSpectrumConstantTexture(scene, reflectance), energy_compensation, normalmap
+    );
+}
+
+DielectricMaterial* CreateDielectricMaterial(
+    Scene& scene,
+    Float cauchy_a,
+    Float cauchy_b,
+    Float roughness,
+    Spectrum reflectance,
+    bool energy_compensation,
+    const Float3Texture* normalmap
+)
+{
+    return CreateDielectricMaterial(
+        scene, Spectrum::CauchyIOR(cauchy_a, cauchy_b), roughness, reflectance, energy_compensation, normalmap
     );
 }
 
@@ -48,7 +75,7 @@ SubstrateMaterial* CreateSubstrateMaterial(
     Float ior,
     const Spectrum& sigma_a,
     Float thickness,
-    const SpectrumTexture* normalmap,
+    const Float3Texture* normalmap,
     Float alpha
 )
 {
@@ -60,7 +87,17 @@ SubstrateMaterial* CreateSubstrateMaterial(
 
 ThinDielectricMaterial* CreateThinDielectricMaterial(Scene& scene, Float eta, Spectrum reflectance)
 {
+    return CreateThinDielectricMaterial(scene, Spectrum::Constant(eta), reflectance);
+}
+
+ThinDielectricMaterial* CreateThinDielectricMaterial(Scene& scene, const Spectrum& eta, Spectrum reflectance)
+{
     return scene.CreateMaterial<ThinDielectricMaterial>(eta, CreateSpectrumConstantTexture(scene, reflectance));
+}
+
+ThinDielectricMaterial* CreateThinDielectricMaterial(Scene& scene, Float cauchy_a, Float cauchy_b, Spectrum reflectance)
+{
+    return CreateThinDielectricMaterial(scene, Spectrum::CauchyIOR(cauchy_a, cauchy_b), reflectance);
 }
 
 ConductorMaterial* CreateConductorMaterial(
@@ -70,7 +107,7 @@ ConductorMaterial* CreateConductorMaterial(
     Float roughness,
     const Spectrum& reflectance,
     bool energy_compensation,
-    const SpectrumTexture* normalmap,
+    const Float3Texture* normalmap,
     Float alpha
 )
 {
@@ -90,7 +127,7 @@ ConductorMaterial* CreateConductorMaterial(
     Float roughness_v,
     const Spectrum& reflectance,
     bool energy_compensation,
-    const SpectrumTexture* normalmap,
+    const Float3Texture* normalmap,
     Float alpha
 )
 {
@@ -108,7 +145,7 @@ ConductorMaterial* CreateConductorMaterial(
     Float roughness,
     const Spectrum& reflectance,
     bool energy_compensation,
-    const SpectrumTexture* normalmap,
+    const Float3Texture* normalmap,
     Float alpha
 )
 {
@@ -126,7 +163,7 @@ ConductorMaterial* CreateConductorMaterial(
     Float roughness_v,
     const Spectrum& reflectance,
     bool energy_compensation,
-    const SpectrumTexture* normalmap,
+    const Float3Texture* normalmap,
     Float alpha
 )
 {
@@ -142,7 +179,7 @@ ClothMaterial* CreateClothMaterial(
     const Spectrum& basecolor,
     const Spectrum& sheen_color,
     Float roughness,
-    const SpectrumTexture* normalmap,
+    const Float3Texture* normalmap,
     Float alpha
 )
 {
@@ -157,7 +194,7 @@ MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
     const Spectrum& basecolor,
     Float metallic,
     Float roughness,
-    const SpectrumTexture* normalmap,
+    const Float3Texture* normalmap,
     const FloatTexture* alpha
 )
 {
@@ -173,7 +210,7 @@ MetallicRoughnessMaterial* CreateMetallicRoughnessMaterial(
     Float metallic,
     Float u_roughness,
     Float v_roughness,
-    const SpectrumTexture* normalmap,
+    const Float3Texture* normalmap,
     const FloatTexture* alpha
 )
 {
@@ -197,7 +234,7 @@ PrincipledMaterial* CreatePrincipledMaterial(
     Float sheen,
     Float sheen_roughness,
     const Spectrum& sheen_color,
-    const SpectrumTexture* normalmap,
+    const Float3Texture* normalmap,
     const FloatTexture* alpha
 )
 {
@@ -212,7 +249,7 @@ PrincipledMaterial* CreatePrincipledMaterial(
 }
 
 SubsurfaceDiffusionMaterial* CreateSubsurfaceDiffusionMaterial(
-    Scene& scene, const Spectrum& reflectance, const Spectrum& mfp, Float eta, Float roughness, const SpectrumTexture* normalmap
+    Scene& scene, const Spectrum& reflectance, const Spectrum& mfp, Float eta, Float roughness, const Float3Texture* normalmap
 )
 {
     return scene.CreateMaterial<SubsurfaceDiffusionMaterial>(
@@ -227,7 +264,7 @@ SubsurfaceDiffusionMaterial* CreateSubsurfaceDiffusionMaterial(
     const Spectrum& mfp,
     Float eta,
     Float roughness,
-    const SpectrumTexture* normalmap
+    const Float3Texture* normalmap
 )
 {
     return scene.CreateMaterial<SubsurfaceDiffusionMaterial>(
@@ -243,7 +280,7 @@ SubsurfaceRandomWalkMaterial* CreateSubsurfaceRandomWalkMaterial(
     Float eta,
     Float roughness,
     Float g,
-    const SpectrumTexture* normalmap
+    const Float3Texture* normalmap
 )
 {
     return scene.CreateMaterial<SubsurfaceRandomWalkMaterial>(
@@ -259,7 +296,7 @@ SubsurfaceRandomWalkMaterial* CreateSubsurfaceRandomWalkMaterial(
     Float eta,
     Float roughness,
     Float g,
-    const SpectrumTexture* normalmap
+    const Float3Texture* normalmap
 )
 {
     return scene.CreateMaterial<SubsurfaceRandomWalkMaterial>(
@@ -273,7 +310,7 @@ MixtureMaterial* CreateMixtureMaterial(Scene& scene, const Material* material1, 
     return scene.CreateMaterial<MixtureMaterial>(material1, material2, CreateFloatConstantTexture(scene, amount));
 }
 
-MirrorMaterial* CreateMirrorMaterial(Scene& scene, const Spectrum& reflectance, const SpectrumTexture* normalmap, Float alpha)
+MirrorMaterial* CreateMirrorMaterial(Scene& scene, const Spectrum& reflectance, const Float3Texture* normalmap, Float alpha)
 {
     return scene.CreateMaterial<MirrorMaterial>(
         CreateSpectrumConstantTexture(scene, reflectance), normalmap, CreateFloatConstantTexture(scene, alpha)
@@ -290,7 +327,7 @@ LayeredMaterial* CreateLayeredMaterial(
     Float g,
     int32 max_bounces,
     int32 samples,
-    const SpectrumTexture* normalmap,
+    const Float3Texture* normalmap,
     Float alpha
 )
 {
@@ -302,7 +339,7 @@ LayeredMaterial* CreateLayeredMaterial(
 const Material* CreateRandomPrincipledMaterial(Scene& scene)
 {
     // clang-format off
-    Spectrum basecolor = Spectrum(Rand(0.0f, 1.0f), Rand(0.0f, 1.0f), Rand(0.0f, 1.0f)) * 0.7f;
+    Spectrum basecolor(Rand(0.0f, 1.0f) * 0.7f, Rand(0.0f, 1.0f) * 0.7f, Rand(0.0f, 1.0f) * 0.7f);
     return CreateMetallicRoughnessMaterial(scene, 
         basecolor,
         Rand() > 0.5f ? 1.0f : 0.0f,

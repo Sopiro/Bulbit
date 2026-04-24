@@ -14,7 +14,8 @@ int32 RandomWalk(
     const Integrator* I,
     Vertex* path,
     Ray ray,
-    Spectrum beta,
+    WavelengthSample& lambda,
+    SpectrumSample beta,
     Float pdf,
     int32 max_bounces,
     int32 rr_min_bounces,
@@ -66,7 +67,7 @@ int32 RandomWalk(
         }
 
         BSDF bsdf;
-        if (!isect.GetBSDF(&bsdf, wo, alloc))
+        if (!isect.GetBSDF(&bsdf, wo, lambda, alloc))
         {
             ray = Ray(isect.point, -wo);
             continue;
@@ -153,8 +154,8 @@ int32 RandomWalkVol(
     Vertex* path,
     Ray ray,
     const Medium* medium,
-    int32 wavelength,
-    Spectrum beta,
+    WavelengthSample& lambda,
+    SpectrumSample beta,
     Float pdf,
     int32 max_bounces,
     int32 rr_min_bounces,
@@ -198,11 +199,14 @@ int32 RandomWalkVol(
             Float u = sampler.Next1D();
 
             // Evaluate L_n term which is the null-scattering extended source function by delta tracking
-            Spectrum T_maj = Sample_MajorantTransmittance(
-                medium, wavelength, ray, t_max, u, rng,
-                [&](Point3 p, MediumSample ms, Spectrum sigma_maj, Spectrum T_maj) -> bool {
-                    Float p_absorb = ms.sigma_a[wavelength] / sigma_maj[wavelength];
-                    Float p_scatter = ms.sigma_s[wavelength] / sigma_maj[wavelength];
+            SpectrumSample T_maj = Sample_MajorantTransmittance(
+                medium, lambda, ray, t_max, u, rng,
+                [&](Point3 p, MediumSample ms, SpectrumSample sigma_maj, SpectrumSample T_maj) -> bool {
+                    SpectrumSample sigma_a = ms.sigma_a;
+                    SpectrumSample sigma_s = ms.sigma_s;
+                    constexpr int32 hero = WavelengthSample::hero_lane;
+                    Float p_absorb = sigma_a[hero] / sigma_maj[hero];
+                    Float p_scatter = sigma_s[hero] / sigma_maj[hero];
                     Float p_null = std::max<Float>(0, 1 - p_absorb - p_scatter);
                     Float events[3] = { p_absorb, p_scatter, p_null };
 
@@ -220,7 +224,7 @@ int32 RandomWalkVol(
                     case 1:
                     {
                         // Sampled real scattering event
-                        beta *= T_maj * ms.sigma_s / (T_maj[wavelength] * ms.sigma_s[wavelength]);
+                        beta *= T_maj * sigma_s / (T_maj[hero] * sigma_s[hero]);
 
                         // Create medium vertex
                         {
@@ -285,12 +289,12 @@ int32 RandomWalkVol(
                     case 2:
                     {
                         // Sampled null scattering event, continue sampling
-                        Spectrum sigma_n = Max(sigma_maj - ms.sigma_a - ms.sigma_s, 0);
+                        SpectrumSample sigma_n = Max(sigma_maj - sigma_a - sigma_s, 0);
 
-                        Float pdf = T_maj[wavelength] * sigma_n[wavelength];
+                        Float pdf = T_maj[hero] * sigma_n[hero];
                         if (pdf == 0)
                         {
-                            beta = Spectrum::black;
+                            beta = SpectrumSample(0);
                         }
                         else
                         {
@@ -316,7 +320,7 @@ int32 RandomWalkVol(
                 continue;
             }
 
-            beta *= T_maj / T_maj[wavelength];
+            beta *= T_maj / T_maj[WavelengthSample::hero_lane];
         }
 
         if (!found_intersection)
@@ -347,7 +351,7 @@ int32 RandomWalkVol(
         }
 
         BSDF bsdf;
-        if (!isect.GetBSDF(&bsdf, wo, alloc))
+        if (!isect.GetBSDF(&bsdf, wo, lambda, alloc))
         {
             medium = isect.GetMedium(ray.d);
             ray.o = isect.point;
@@ -520,13 +524,14 @@ Float WeightMIS(const Integrator* I, Vertex* light_path, Vertex* camera_path, in
     return 1 / (1 + ri_sum);
 }
 
-Spectrum ConnectPaths(
+SpectrumSample ConnectPaths(
     const Integrator* I,
     Vertex* light_path,
     Vertex* camera_path,
     int32 s,
     int32 t,
     const Camera* camera,
+    const WavelengthSample& lambda,
     Sampler& sampler,
     Point2* p_raster
 )
@@ -534,10 +539,10 @@ Spectrum ConnectPaths(
     // Ignore invalid connections that attempt to connect a light vertex to another light vertex
     if (t > 1 && s > 0 && camera_path[t - 1].type == VertexType::light)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
-    Spectrum L(0);
+    SpectrumSample L(0);
 
     Vertex ve;
 
@@ -547,7 +552,7 @@ Spectrum ConnectPaths(
         const Vertex& v = camera_path[t - 1];
         if (v.IsLight())
         {
-            L = v.beta * v.Le(camera_path[t - 2], I);
+            L = v.beta * v.Le(camera_path[t - 2], I, lambda);
         }
     }
     else if (t == 1)
@@ -556,14 +561,14 @@ Spectrum ConnectPaths(
         const Vertex& v = light_path[s - 1];
         if (!v.IsConnectable())
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
-        CameraSampleWi camera_sample;
+        SampledCameraSampleWi camera_sample;
         Intersection ref{ .point = v.point };
-        if (!camera->SampleWi(&camera_sample, ref, sampler.Next2D()))
+        if (!camera->SampleWi(&camera_sample, ref, sampler.Next2D(), lambda))
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         // Sample new camera vertex
@@ -583,8 +588,7 @@ Spectrum ConnectPaths(
             ve.pdf_rev = 0;
         }
 
-        L = ve.beta * v.f(camera_sample.wi, TransportDirection::ToCamera) * v.beta;
-
+        L = ve.beta * v.f(camera_sample.wi, TransportDirection::ToCamera, lambda) * v.beta;
         if (v.IsOnSurface())
         {
             L *= AbsDot(v.shading_normal, camera_sample.wi);
@@ -592,12 +596,12 @@ Spectrum ConnectPaths(
 
         if (L.IsBlack())
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         if (!V(I, v.point, camera_sample.p_aperture))
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         *p_raster = camera_sample.p_raster;
@@ -608,20 +612,20 @@ Spectrum ConnectPaths(
         const Vertex& v = camera_path[t - 1];
         if (!v.IsConnectable())
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         SampledLight sampled_light;
         Intersection isect{ .point = v.point };
         if (!I->GetLightSampler()->Sample(&sampled_light, isect, sampler.Next1D()))
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         LightSampleLi light_sample;
-        if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler.Next2D()))
+        if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler.Next2D(), lambda))
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         // Sample new light vertex
@@ -642,7 +646,7 @@ Spectrum ConnectPaths(
             ve.pdf_rev = 0;
         }
 
-        L = v.beta * v.f(light_sample.wi, TransportDirection::ToLight) * ve.beta;
+        L = v.beta * v.f(light_sample.wi, TransportDirection::ToLight, lambda) * ve.beta;
 
         if (v.IsOnSurface())
         {
@@ -651,12 +655,12 @@ Spectrum ConnectPaths(
 
         if (L.IsBlack())
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         if (!V(I, v.point, ve.point))
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
     }
     else
@@ -666,14 +670,14 @@ Spectrum ConnectPaths(
         const Vertex& vc = camera_path[t - 1];
         if (!vl.IsConnectable() || !vc.IsConnectable())
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
-        L = vc.beta * vc.f(vl, TransportDirection::ToLight) * vl.f(vc, TransportDirection::ToCamera) * vl.beta;
+        L = vc.beta * vc.f(vl, TransportDirection::ToLight, lambda) * vl.f(vc, TransportDirection::ToCamera, lambda) * vl.beta;
 
         if (L.IsBlack())
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         // Incorporate generalized geometry term
@@ -695,12 +699,12 @@ Spectrum ConnectPaths(
 
         if (L.IsBlack())
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         if (!V(I, vl.point, vc.point))
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
     }
 
@@ -734,14 +738,14 @@ Spectrum ConnectPaths(
     return mis_weight * L;
 }
 
-Spectrum ConnectPathsVol(
+SpectrumSample ConnectPathsVol(
     const Integrator* I,
     Vertex* light_path,
     Vertex* camera_path,
     int32 s,
     int32 t,
     const Camera* camera,
-    int32 wavelength,
+    const WavelengthSample& lambda,
     Sampler& sampler,
     Point2* p_raster
 )
@@ -749,10 +753,10 @@ Spectrum ConnectPathsVol(
     // Ignore invalid connections that attempt to connect a light vertex to another light vertex
     if (t > 1 && s > 0 && camera_path[t - 1].type == VertexType::light)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
-    Spectrum L(0);
+    SpectrumSample L(0);
 
     Vertex ve;
 
@@ -762,7 +766,7 @@ Spectrum ConnectPathsVol(
         const Vertex& v = camera_path[t - 1];
         if (v.IsLight())
         {
-            L = v.beta * v.Le(camera_path[t - 2], I);
+            L = v.beta * v.Le(camera_path[t - 2], I, lambda);
         }
     }
     else if (t == 1)
@@ -771,14 +775,14 @@ Spectrum ConnectPathsVol(
         const Vertex& v = light_path[s - 1];
         if (!v.IsConnectable())
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
-        CameraSampleWi camera_sample;
+        SampledCameraSampleWi camera_sample;
         Intersection ref{ .point = v.point };
-        if (!camera->SampleWi(&camera_sample, ref, sampler.Next2D()))
+        if (!camera->SampleWi(&camera_sample, ref, sampler.Next2D(), lambda))
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         // Sample new camera vertex
@@ -799,7 +803,7 @@ Spectrum ConnectPathsVol(
             ve.pdf_rev = 0;
         }
 
-        L = ve.beta * v.f(camera_sample.wi, TransportDirection::ToCamera) * v.beta;
+        L = ve.beta * v.f(camera_sample.wi, TransportDirection::ToCamera, lambda) * v.beta;
 
         if (v.IsOnSurface())
         {
@@ -808,10 +812,10 @@ Spectrum ConnectPathsVol(
 
         if (L.IsBlack())
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
-        L *= Tr(I, ve.point, v.point, camera->GetMedium(), wavelength);
+        L *= Tr(I, ve.point, v.point, camera->GetMedium(), lambda);
 
         *p_raster = camera_sample.p_raster;
     }
@@ -821,20 +825,20 @@ Spectrum ConnectPathsVol(
         const Vertex& v = camera_path[t - 1];
         if (!v.IsConnectable())
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         SampledLight sampled_light;
         Intersection isect{ .point = v.point };
         if (!I->GetLightSampler()->Sample(&sampled_light, isect, sampler.Next1D()))
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         LightSampleLi light_sample;
-        if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler.Next2D()))
+        if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler.Next2D(), lambda))
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         // Sample new light vertex
@@ -856,7 +860,7 @@ Spectrum ConnectPathsVol(
             ve.pdf_rev = 0;
         }
 
-        L = v.beta * v.f(light_sample.wi, TransportDirection::ToLight) * ve.beta;
+        L = v.beta * v.f(light_sample.wi, TransportDirection::ToLight, lambda) * ve.beta;
 
         if (v.IsOnSurface())
         {
@@ -865,11 +869,11 @@ Spectrum ConnectPathsVol(
 
         if (L.IsBlack())
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         Vec3 w = Normalize(ve.point - v.point);
-        L *= Tr(I, v.point, ve.point, v.GetMedium(w), wavelength);
+        L *= Tr(I, v.point, ve.point, v.GetMedium(w), lambda);
     }
     else
     {
@@ -878,10 +882,10 @@ Spectrum ConnectPathsVol(
         const Vertex& vc = camera_path[t - 1];
         if (!vl.IsConnectable() || !vc.IsConnectable())
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
-        L = vc.beta * vc.f(vl, TransportDirection::ToLight) * vl.f(vc, TransportDirection::ToCamera) * vl.beta;
+        L = vc.beta * vc.f(vl, TransportDirection::ToLight, lambda) * vl.f(vc, TransportDirection::ToCamera, lambda) * vl.beta;
 
         // Incorporate generalized geometry term
         Vec3 w = vl.point - vc.point;
@@ -902,10 +906,10 @@ Spectrum ConnectPathsVol(
 
         if (L.IsBlack())
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
-        L *= Tr(I, vc.point, vl.point, vc.GetMedium(w), wavelength);
+        L *= Tr(I, vc.point, vl.point, vc.GetMedium(w), lambda);
     }
 
     if (L.IsBlack())

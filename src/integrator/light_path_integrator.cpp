@@ -20,8 +20,13 @@ LightPathIntegrator::LightPathIntegrator(
 {
 }
 
-Spectrum LightPathIntegrator::L(
-    const Ray& primary_ray, const Medium* primary_medium, const Camera* camera, Film& film, Sampler& sampler
+SpectrumSample LightPathIntegrator::L(
+    const Ray& primary_ray,
+    const Medium* primary_medium,
+    WavelengthSample& lambda,
+    const Camera* camera,
+    Film& film,
+    Sampler& sampler
 ) const
 {
     BulbitNotUsed(primary_ray);
@@ -35,32 +40,32 @@ Spectrum LightPathIntegrator::L(
     SampledLight sampled_light;
     if (!light_sampler->Sample(&sampled_light, isect, sampler.Next1D()))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     // Sample point and direction from sampled light
     LightSampleLe light_sample;
-    if (!sampled_light.light->Sample_Le(&light_sample, sampler.Next2D(), sampler.Next2D()))
+    if (!sampled_light.light->Sample_Le(&light_sample, sampler.Next2D(), sampler.Next2D(), lambda))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     isect.point = light_sample.ray.o;
 
-    CameraSampleWi camera_sample;
-    if (camera->SampleWi(&camera_sample, isect, sampler.Next2D()))
+    SampledCameraSampleWi camera_sample;
+    if (camera->SampleWi(&camera_sample, isect, sampler.Next2D(), lambda))
     {
         // Add bounce 0 light to film
         LightSampleLi li_sample;
-        if (sampled_light.light->Sample_Li(&li_sample, isect, sampler.Next2D()))
+        if (sampled_light.light->Sample_Li(&li_sample, isect, sampler.Next2D(), lambda))
         {
             if (V(this, light_sample.ray.o, camera_sample.p_aperture))
             {
-                Spectrum L = li_sample.Li * AbsDot(light_sample.normal, camera_sample.wi) *
-                             AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi /
-                             (sampled_light.pmf * camera_sample.pdf * light_sample.pdf_p);
+                SpectrumSample L = li_sample.Li * AbsDot(light_sample.normal, camera_sample.wi) *
+                                   AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi /
+                                   (sampled_light.pmf * camera_sample.pdf * light_sample.pdf_p);
 
-                film.AddSplat(camera_sample.p_raster, L);
+                film.AddSplat(camera_sample.p_raster, L, lambda);
             }
         }
     }
@@ -68,7 +73,7 @@ Spectrum LightPathIntegrator::L(
     int32 bounce = 0;
     Ray ray = light_sample.ray;
 
-    Spectrum beta = light_sample.Le / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
+    SpectrumSample beta = light_sample.Le / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
     if (light_sample.normal != Vec3::zero)
     {
         beta *= AbsDot(light_sample.normal, ray.d);
@@ -88,7 +93,7 @@ Spectrum LightPathIntegrator::L(
         BufferResource res(mem, sizeof(mem));
         Allocator alloc(&res);
         BSDF bsdf;
-        if (!isect.GetBSDF(&bsdf, wo, alloc))
+        if (!isect.GetBSDF(&bsdf, wo, lambda, alloc))
         {
             ray = Ray(isect.point, -wo);
             --bounce;
@@ -100,16 +105,16 @@ Spectrum LightPathIntegrator::L(
             break;
         }
 
-        if (camera->SampleWi(&camera_sample, isect, sampler.Next2D()))
+        if (camera->SampleWi(&camera_sample, isect, sampler.Next2D(), lambda))
         {
             Vec3 wi = camera_sample.wi;
 
             if (V(this, isect.point, camera_sample.p_aperture))
             {
-                Spectrum L = beta * camera_sample.Wi * bsdf.f(wo, wi, TransportDirection::ToCamera) *
-                             AbsDot(isect.shading.normal, wi) / camera_sample.pdf;
+                SpectrumSample L = beta * camera_sample.Wi * bsdf.f(wo, wi, TransportDirection::ToCamera) *
+                                   AbsDot(isect.shading.normal, wi) / camera_sample.pdf;
 
-                film.AddSplat(camera_sample.p_raster, L);
+                film.AddSplat(camera_sample.p_raster, L, lambda);
             }
         }
 
@@ -146,7 +151,7 @@ Spectrum LightPathIntegrator::L(
         }
     }
 
-    return Spectrum::black;
+    return SpectrumSample(0);
 }
 
 } // namespace bulbit

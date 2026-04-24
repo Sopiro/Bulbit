@@ -10,41 +10,41 @@ namespace bulbit
 class DisneyBSSRDF : public SeparableBSSRDF
 {
 public:
-    DisneyBSSRDF(const Spectrum& R, const Spectrum& d, const Intersection& po, Float eta)
+    DisneyBSSRDF(const SpectrumSample& R, const SpectrumSample& d, const Intersection& po, Float eta)
         : SeparableBSSRDF(po, eta)
         , R{ R }
         , d{ d }
     {
     }
 
-    virtual Float MaxSr(int32 wavelength) const override;
-    virtual Spectrum Sr(Float d) const override;
-    virtual Float Sample_Sr(int32 wavelength, Float u) const override;
-    virtual Spectrum PDF_Sr(Float r) const override;
+    virtual Float MaxSr(const WavelengthSample& lambda) const override;
+    virtual SpectrumSample Sr(Float d) const override;
+    virtual Float Sample_Sr(const WavelengthSample& lambda, Float u) const override;
+    virtual SpectrumSample PDF_Sr(Float r) const override;
 
 private:
-    Spectrum R, d;
+    SpectrumSample R, d;
 };
 
 // Very non-physically based BSSRDF
 class GaussianBSSRDF : public SeparableBSSRDF
 {
 public:
-    GaussianBSSRDF(const Spectrum& R, const Spectrum& sigma, const Intersection& po, Float eta)
+    GaussianBSSRDF(const SpectrumSample& R, const SpectrumSample& sigma, const Intersection& po, Float eta)
         : SeparableBSSRDF(po, eta)
         , R{ R }
         , sigma{ sigma }
     {
     }
 
-    virtual Float MaxSr(int32 wavelength) const override;
-    virtual Spectrum Sr(Float d) const override;
-    virtual Float Sample_Sr(int32 wavelength, Float u) const override;
-    virtual Spectrum PDF_Sr(Float r) const override;
+    virtual Float MaxSr(const WavelengthSample& lambda) const override;
+    virtual SpectrumSample Sr(Float d) const override;
+    virtual Float Sample_Sr(const WavelengthSample& lambda, Float u) const override;
+    virtual SpectrumSample PDF_Sr(Float r) const override;
 
 private:
-    Spectrum R;
-    Spectrum sigma;
+    SpectrumSample R;
+    SpectrumSample sigma;
 };
 
 constexpr size_t max_bssrdf_size = std::max({ sizeof(DisneyBSSRDF), sizeof(GaussianBSSRDF), sizeof(RandomWalkBSSRDF) });

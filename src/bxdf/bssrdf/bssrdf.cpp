@@ -8,29 +8,34 @@
 namespace bulbit
 {
 
-Spectrum SeparableBSSRDF::S(const Intersection& pi, const Vec3& wo, const Vec3& wi, TransportDirection direction) const
+SpectrumSample SeparableBSSRDF::S(const Intersection& pi, const Vec3& wo, const Vec3& wi, TransportDirection direction) const
 {
     // Fresnel transmittance when the ray exits a material into direction w_o
     Float F_t = 1 - FresnelDielectric(Dot(wo, po.shading.normal), eta);
     return F_t * Sp(pi) * Sw(pi, wi, direction);
 }
 
-Spectrum SeparableBSSRDF::Sw(const Intersection& pi, const Vec3& wi, TransportDirection direction) const
+SpectrumSample SeparableBSSRDF::Sw(const Intersection& pi, const Vec3& wi, TransportDirection direction) const
 {
     // S_w accounts for the influence of the boundary
     // on the directional distribution of light entering the object from direction w_i
     Frame frame(pi.shading.normal);
     // We don't need w_o
-    return sw.f(z_axis, frame.ToLocal(wi), direction);
+    return SpectrumSample(sw.f(z_axis, frame.ToLocal(wi), direction).Average());
 }
 
-Spectrum SeparableBSSRDF::Sp(const Intersection& pi) const
+SpectrumSample SeparableBSSRDF::Sp(const Intersection& pi) const
 {
     return Sr(Dist(po.point, pi.point));
 }
 
 bool SeparableBSSRDF::Sample_S(
-    BSSRDFSample* bssrdf_sample, const BSDFSample& bsdf_sample, const Intersectable* accel, int32 wavelength, Float u0, Point2 u12
+    BSSRDFSample* bssrdf_sample,
+    const BSDFSample& bsdf_sample,
+    const Intersectable* accel,
+    const WavelengthSample& lambda,
+    Float u0,
+    Point2 u12
 )
 {
     BulbitNotUsed(bsdf_sample);
@@ -51,7 +56,7 @@ bool SeparableBSSRDF::Sample_S(
     }
 
     // Sample scattering distance
-    Float r = Sample_Sr(wavelength, u12[0]);
+    Float r = Sample_Sr(lambda, u12[0]);
     if (r < 0)
     {
         return false;
@@ -60,7 +65,7 @@ bool SeparableBSSRDF::Sample_S(
     // Uniform in azimuth
     Float phi = two_pi * u12[1];
 
-    Float r_max = MaxSr(wavelength);
+    Float r_max = MaxSr(lambda);
     if (r > r_max)
     {
         return false;
@@ -108,7 +113,7 @@ bool SeparableBSSRDF::Sample_S(
     return true;
 }
 
-Spectrum SeparableBSSRDF::PDF_Sp(const Intersection& pi) const
+SpectrumSample SeparableBSSRDF::PDF_Sp(const Intersection& pi) const
 {
     Frame f(po.shading.normal);
 
@@ -121,11 +126,12 @@ Spectrum SeparableBSSRDF::PDF_Sp(const Intersection& pi) const
                              std::sqrt(Sqr(d_local.x) + Sqr(d_local.y)) };
 
     // Combine all wavelength dependent sampling probabilities
-    Spectrum pdf(0, 0, 0);
+    SpectrumSample pdf(0.0f);
     for (int32 axis = 0; axis < 3; ++axis)
     {
         // Sum up Sr(r) * ds cos\theta * p[axis]
-        pdf += PDF_Sr(projected_r[axis]) * std::abs(n_local[axis]) * axis_sampling_probabilities[axis];
+        Float weight = std::abs(n_local[axis]) * axis_sampling_probabilities[axis];
+        pdf += weight * PDF_Sr(projected_r[axis]);
     }
 
     return pdf;

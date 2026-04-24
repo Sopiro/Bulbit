@@ -13,7 +13,7 @@ struct BSSRDFSample
     Intersection pi;
     Vec3 wo; // Dummy direction
 
-    Spectrum Sp, pdf;
+    SpectrumSample Sp, pdf;
     Float p; // vertex sampling probability
 
     BSDF Sw;
@@ -28,14 +28,14 @@ public:
     {
     }
 
-    virtual Spectrum S(
+    virtual SpectrumSample S(
         const Intersection& pi, const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight
     ) const = 0;
     virtual bool Sample_S(
         BSSRDFSample* bssrdf_sample,
         const BSDFSample& bsdf_sample,
         const Intersectable* accel,
-        int32 wavelength,
+        const WavelengthSample& lambda,
         Float u0,
         Point2 u12
     ) = 0;
@@ -54,27 +54,27 @@ public:
     {
     }
 
-    virtual Spectrum S(
+    virtual SpectrumSample S(
         const Intersection& pi, const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight
     ) const override;
-    Spectrum Sw(const Intersection& pi, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const;
-    Spectrum Sp(const Intersection& pi) const;
+    SpectrumSample Sw(const Intersection& pi, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight) const;
+    SpectrumSample Sp(const Intersection& pi) const;
 
     virtual bool Sample_S(
         BSSRDFSample* bssrdf_sample,
         const BSDFSample& bsdf_sample,
         const Intersectable* accel,
-        int32 wavelength,
+        const WavelengthSample& lambda,
         Float u0,
         Point2 u12
     ) override;
 
-    Spectrum PDF_Sp(const Intersection& pi) const;
+    SpectrumSample PDF_Sp(const Intersection& pi) const;
 
-    virtual Float MaxSr(int32 wavelength) const = 0;
-    virtual Spectrum Sr(Float d) const = 0;
-    virtual Float Sample_Sr(int32 wavelength, Float u) const = 0;
-    virtual Spectrum PDF_Sr(Float r) const = 0;
+    virtual Float MaxSr(const WavelengthSample& lambda) const = 0;
+    virtual SpectrumSample Sr(Float d) const = 0;
+    virtual Float Sample_Sr(const WavelengthSample& lambda, Float u) const = 0;
+    virtual SpectrumSample PDF_Sr(Float r) const = 0;
 
 private:
     static inline Float axis_sampling_probabilities[3] = { 0.25f, 0.25f, 0.5f };
@@ -85,32 +85,37 @@ class RandomWalkBSSRDF : public BSSRDF
 {
 public:
     RandomWalkBSSRDF(
-        const Spectrum& R, const Spectrum& sigma_a, const Spectrum& sigma_s, const Intersection& po, Float eta, Float g
+        const SpectrumSample& R,
+        const SpectrumSample& sigma_a,
+        const SpectrumSample& sigma_s,
+        const Intersection& po,
+        Float eta,
+        Float g
     )
         : BSSRDF(po, eta)
         , R{ R }
-        , sigma_t{ sigma_a + sigma_s }
-        , albedo{ sigma_s / (sigma_a + sigma_s) }
+        , sigma_a{ sigma_a }
+        , sigma_s{ sigma_s }
         , phase_function{ g }
         , sw{ eta }
     {
     }
 
-    virtual Spectrum S(
+    virtual SpectrumSample S(
         const Intersection& pi, const Vec3& wo, const Vec3& wi, TransportDirection direction = TransportDirection::ToLight
     ) const override;
     virtual bool Sample_S(
         BSSRDFSample* bssrdf_sample,
         const BSDFSample& bsdf_sample,
         const Intersectable* accel,
-        int32 wavelength,
+        const WavelengthSample& lambda,
         Float u0,
         Point2 u12
     ) override;
 
 private:
-    Spectrum R;
-    Spectrum sigma_t, albedo;
+    SpectrumSample R;
+    SpectrumSample sigma_a, sigma_s;
     HenyeyGreensteinPhaseFunction phase_function;
     NormalizedFresnelBxDF sw;
 };

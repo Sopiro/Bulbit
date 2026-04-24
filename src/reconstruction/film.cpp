@@ -10,33 +10,48 @@ Film::Film(const Camera* camera)
 {
     Point2i res = camera->GetScreenResolution();
     int32 size = res.x * res.y;
-    samples = std::make_unique<Spectrum[]>(size);
+    samples = std::make_unique<Vec3[]>(size);
     sample_counts = std::make_unique<int32[]>(size);
     moments = std::make_unique<Point2[]>(size);
 
     splats = std::make_unique<std::atomic<Float>[]>(Spectrum::num_spectral_samples * size);
 
-    memset((void*)samples.get(), 0, sizeof(Spectrum) * size);
+    memset((void*)samples.get(), 0, sizeof(Vec3) * size);
     memset((void*)sample_counts.get(), 0, sizeof(int32) * size);
     memset((void*)moments.get(), 0, sizeof(Point2) * size);
 
     ParallelFor(0, Spectrum::num_spectral_samples * size, [&](int32 i) { splats[i].store(0); });
 }
 
-void Film::AddSample(const Point2i& pixel, const Spectrum& L)
+void Film::AddSample(const Point2i& pixel, const SpectrumSample& L, const WavelengthSample& lambda)
+{
+    AccumulateSample(pixel, spectral::SpectrumSampleToXYZ(L, lambda));
+}
+
+void Film::AddSample(const Point2i& pixel, const Vec3& xyz)
+{
+    AccumulateSample(pixel, xyz);
+}
+
+void Film::AccumulateSample(const Point2i& pixel, const Vec3& xyz)
 {
     Point2i res = camera->GetScreenResolution();
     int32 index = pixel.y * res.x + pixel.x;
-    samples[index] += L;
+    samples[index] += xyz;
     sample_counts[index] += 1;
 
-    Float l = L.Luminance();
+    Float l = xyz.y;
 
     Float alpha = 1.0f / sample_counts[index];
     moments[index] = Lerp(moments[index], Point2(l, l * l), alpha);
 }
 
-void Film::AddSplat(const Point2& pixel, const Spectrum& L)
+void Film::AddSplat(const Point2& pixel, const SpectrumSample& L, const WavelengthSample& lambda)
+{
+    AccumulateSplat(pixel, spectral::SpectrumSampleToXYZ(L, lambda));
+}
+
+void Film::AccumulateSplat(const Point2& pixel, const Vec3& xyz)
 {
     const Filter* filter = camera->GetFilter();
     Float half_extent = filter->extent / 2;
@@ -48,7 +63,6 @@ void Film::AddSplat(const Point2& pixel, const Spectrum& L)
     // Compute the pixel bounds affected by this splat
     Point2i res = camera->GetScreenResolution();
     bounds = AABB2i::Intersection(AABB2i(Point2i(0), res), bounds);
-
     for (Point2i pi : bounds)
     {
         Float weight = filter->Evaluate(pixel - (Point2(pi) + Point2(0.5f)));
@@ -57,8 +71,7 @@ void Film::AddSplat(const Point2& pixel, const Spectrum& L)
             int32 index = Spectrum::num_spectral_samples * (pi.y * res.x + pi.x);
             for (int32 s = 0; s < Spectrum::num_spectral_samples; ++s)
             {
-                Float old = splats[index + s].load();
-                splats[index + s].store(old + weight * L[s]);
+                splats[index + s].fetch_add(weight * xyz[s], std::memory_order_relaxed);
             }
         }
     }
@@ -83,17 +96,18 @@ Image3 Film::GetRenderedImage() const
     Image3 image(res.x, res.y);
 
     ParallelFor(0, res.x * res.y, [&](int32 i) {
-        image[i] = samples[i] / sample_counts[i];
+        Vec3 xyz = sample_counts[i] > 0 ? samples[i] / sample_counts[i] : Vec3(0);
 
         int32 index = Spectrum::num_spectral_samples * i;
 
-        Spectrum splat;
+        Vec3 splat(0);
         for (int32 s = 0; s < Spectrum::num_spectral_samples; ++s)
         {
             splat[s] = splats[index + s].load();
         }
 
-        image[i] += splat;
+        xyz += splat;
+        image[i] = Max(spectral::XYZToLinearRGB(xyz), Vec3(0));
     });
 
     return image;

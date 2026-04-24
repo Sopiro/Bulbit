@@ -15,7 +15,7 @@ class DebugIntegrator : public UniDirectionalRayIntegrator
 public:
     DebugIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler);
 
-    virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
+    virtual SpectrumSample Li(const Ray& ray, const Medium* medium, WavelengthSample& lambda, Sampler& sampler) const override;
 };
 
 class RandomWalkIntegrator : public UniDirectionalRayIntegrator
@@ -23,7 +23,7 @@ class RandomWalkIntegrator : public UniDirectionalRayIntegrator
 public:
     RandomWalkIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_bounces);
 
-    virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
+    virtual SpectrumSample Li(const Ray& ray, const Medium* medium, WavelengthSample& lambda, Sampler& sampler) const override;
 
 private:
     int32 max_bounces;
@@ -34,10 +34,9 @@ class AOIntegrator : public UniDirectionalRayIntegrator
 public:
     AOIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, Float ao_range);
 
-    virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
+    virtual SpectrumSample Li(const Ray& ray, const Medium* medium, WavelengthSample& lambda, Sampler& sampler) const override;
 
 private:
-    // maximum range to consider occlusuion
     Float range;
 };
 
@@ -46,24 +45,22 @@ class AlbedoIntegrator : public UniDirectionalRayIntegrator
 public:
     AlbedoIntegrator(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler);
 
-    virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
+    virtual SpectrumSample Li(const Ray& ray, const Medium* medium, WavelengthSample& lambda, Sampler& sampler) const override;
 };
 
-// Whitted-style raytracer
 class WhittedStyle : public UniDirectionalRayIntegrator
 {
 public:
     WhittedStyle(const Intersectable* accel, std::vector<Light*> lights, const Sampler* sampler, int32 max_depth);
 
-    virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override
+    virtual SpectrumSample Li(const Ray& ray, const Medium* medium, WavelengthSample& lambda, Sampler& sampler) const override
     {
         BulbitNotUsed(medium);
-
-        return Li(ray, sampler, 0);
+        return Li(ray, lambda, sampler, 0);
     }
 
 private:
-    Spectrum Li(const Ray& ray, Sampler& sampler, int32 depth) const;
+    SpectrumSample Li(const Ray& ray, WavelengthSample& lambda, Sampler& sampler, int32 depth) const;
 
     int32 max_depth;
 };
@@ -79,16 +76,15 @@ public:
         int32 rr_min_bounces = 1
     );
 
-    virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
+    virtual SpectrumSample Li(const Ray& ray, const Medium* medium, WavelengthSample& lambda, Sampler& sampler) const override;
 
 private:
-    Spectrum Li(const Ray& ray, Sampler& sampler, int32 depth) const;
+    SpectrumSample Li(const Ray& ray, WavelengthSample& lambda, Sampler& sampler, int32 depth) const;
 
     int32 max_bounces;
     int32 rr_min_bounces;
 };
 
-// Uni-directional path tracer
 class PathIntegrator : public UniDirectionalRayIntegrator
 {
 public:
@@ -101,11 +97,16 @@ public:
         bool regularize_bsdf = false
     );
 
-    virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
+    virtual SpectrumSample Li(const Ray& ray, const Medium* medium, WavelengthSample& lambda, Sampler& sampler) const override;
 
 private:
-    Spectrum SampleDirectLight(
-        const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler& sampler, const Spectrum& beta
+    SpectrumSample SampleDirectLight(
+        const Vec3& wo,
+        const Intersection& isect,
+        BSDF* bsdf,
+        const WavelengthSample& lambda,
+        Sampler& sampler,
+        const SpectrumSample& beta
     ) const;
 
     int32 max_bounces;
@@ -124,7 +125,7 @@ public:
         int32 rr_min_bounces = 1
     );
 
-    virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
+    virtual SpectrumSample Li(const Ray& ray, const Medium* medium, WavelengthSample& lambda, Sampler& sampler) const override;
 
 private:
     int32 max_bounces;
@@ -143,19 +144,19 @@ public:
         bool regularize_bsdf = false
     );
 
-    virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const override;
+    virtual SpectrumSample Li(const Ray& ray, const Medium* medium, WavelengthSample& lambda, Sampler& sampler) const override;
 
 private:
-    Spectrum SampleDirectLight(
+    SpectrumSample SampleDirectLight(
         const Vec3& wo,
         const Intersection& isect,
         const Medium* medium,
         const BSDF* bsdf,
         const PhaseFunction* phase,
-        int32 wavelength,
+        const WavelengthSample& lambda,
         Sampler& sampler,
-        Spectrum beta,
-        Spectrum r_p
+        SpectrumSample beta,
+        SpectrumSample r_p
     ) const;
 
     int32 max_bounces;
@@ -163,7 +164,6 @@ private:
     bool regularize_bsdf;
 };
 
-// ReSTIR direct lighting integrator (first-bounce direct illumination only)
 class ReSTIRDIIntegrator : public Integrator
 {
 public:
@@ -191,7 +191,6 @@ private:
     bool include_visibility;
 };
 
-// ReSTIR path tracing integrator
 class ReSTIRPTIntegrator : public Integrator
 {
 public:
@@ -216,7 +215,6 @@ private:
     int32 num_spatial_samples;
 };
 
-// Light/Particle tracing integrator
 class LightPathIntegrator : public BiDirectionalRayIntegrator
 {
 public:
@@ -228,7 +226,9 @@ public:
         int32 rr_min_bounces = 1
     );
 
-    virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
+    virtual SpectrumSample L(
+        const Ray& ray, const Medium* medium, WavelengthSample& lambda, const Camera* camera, Film& film, Sampler& sampler
+    ) const override;
 
 private:
     int32 max_bounces;
@@ -246,7 +246,9 @@ public:
         int32 rr_min_bounces = 1
     );
 
-    virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
+    virtual SpectrumSample L(
+        const Ray& ray, const Medium* medium, WavelengthSample& lambda, const Camera* camera, Film& film, Sampler& sampler
+    ) const override;
 
 private:
     int32 max_bounces;
@@ -266,11 +268,15 @@ public:
         int32 rr_min_bounces = 1
     );
 
-    virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
+    virtual SpectrumSample L(
+        const Ray& ray, const Medium* medium, WavelengthSample& lambda, const Camera* camera, Film& film, Sampler& sampler
+    ) const override;
 
 private:
-    int32 SampleCameraPath(Vertex* path, const Ray& ray, const Camera* camera, Sampler& sampler, Allocator& alloc) const;
-    int32 SampleLightPath(Vertex* path, Sampler& sampler, Allocator& alloc) const;
+    int32 SampleCameraPath(
+        Vertex* path, const Ray& ray, const Camera* camera, WavelengthSample& lambda, Sampler& sampler, Allocator& alloc
+    ) const;
+    int32 SampleLightPath(Vertex* path, WavelengthSample& lambda, Sampler& sampler, Allocator& alloc) const;
 
     int32 max_bounces;
     int32 rr_min_bounces;
@@ -287,7 +293,9 @@ public:
         int32 rr_min_bounces = 1
     );
 
-    virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const override;
+    virtual SpectrumSample L(
+        const Ray& ray, const Medium* medium, WavelengthSample& lambda, const Camera* camera, Film& film, Sampler& sampler
+    ) const override;
 
 private:
     int32 SampleCameraPath(
@@ -295,11 +303,11 @@ private:
         const Ray& ray,
         const Medium* medium,
         const Camera* camera,
-        int32 wavelength,
+        WavelengthSample& lambda,
         Sampler& sampler,
         Allocator& alloc
     ) const;
-    int32 SampleLightPath(Vertex* path, int32 wavelength, Sampler& sampler, Allocator& alloc) const;
+    int32 SampleLightPath(Vertex* path, WavelengthSample& lambda, Sampler& sampler, Allocator& alloc) const;
 
     int32 max_bounces;
     int32 rr_min_bounces;
@@ -323,13 +331,20 @@ public:
     virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
 
 private:
-    void EmitPhotons(MultiPhaseRendering* progress);
-    void GatherPhotons(const Camera* camera, int32 tile_size, MultiPhaseRendering* progress);
+    void EmitPhotons(MultiPhaseRendering* progress, WavelengthSample lambda, int32 phase_index);
+    void GatherPhotons(
+        const Camera* camera, WavelengthSample lambda, int32 tile_size, MultiPhaseRendering* progress, int32 phase_index
+    );
 
-    Spectrum SampleDirectLight(
-        const Vec3& wo, const Intersection& isect, const BSDF* bsdf, Sampler& sampler, const Spectrum& beta
+    SpectrumSample SampleDirectLight(
+        const Vec3& wo,
+        const Intersection& isect,
+        const BSDF* bsdf,
+        const WavelengthSample& lambda,
+        Sampler& sampler,
+        const SpectrumSample& beta
     ) const;
-    Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const;
+    Vec3 Li(const Ray& ray, WavelengthSample& lambda, Sampler& sampler) const;
 
     const Sampler* sampler_prototype;
     int32 max_bounces;
@@ -359,22 +374,24 @@ public:
     virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
 
 private:
-    void EmitPhotons(MultiPhaseRendering* progress);
-    void GatherPhotons(const Camera* camera, int32 tile_size, MultiPhaseRendering* progress);
+    void EmitPhotons(MultiPhaseRendering* progress, WavelengthSample lambda, int32 phase_index);
+    void GatherPhotons(
+        const Camera* camera, WavelengthSample lambda, int32 tile_size, MultiPhaseRendering* progress, int32 phase_index
+    );
 
-    Spectrum SampleDirectLight(
+    SpectrumSample SampleDirectLight(
         const Vec3& wo,
         const Intersection& isect,
         const Medium* medium,
         const BSDF* bsdf,
         const PhaseFunction* phase,
-        int32 wavelength,
+        const WavelengthSample& lambda,
         Sampler& sampler,
-        const Spectrum& beta,
-        Spectrum r_p
+        const SpectrumSample& beta,
+        SpectrumSample r_p
     ) const;
 
-    Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const;
+    Vec3 Li(const Ray& ray, const Medium* medium, WavelengthSample& lambda, Sampler& sampler) const;
 
     const Sampler* sampler_prototype;
     int32 max_bounces;
@@ -387,7 +404,6 @@ private:
     HashGrid photon_map, vol_photon_map;
 };
 
-// Stochastic Progressive Photon Mapping
 class SPPMIntegrator : public Integrator
 {
 public:
@@ -404,8 +420,13 @@ public:
     virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
 
 private:
-    Spectrum SampleDirectLight(
-        const Vec3& wo, const Intersection& isect, BSDF* bsdf, Sampler& sampler, const Spectrum& beta
+    SpectrumSample SampleDirectLight(
+        const Vec3& wo,
+        const Intersection& isect,
+        BSDF* bsdf,
+        const WavelengthSample& lambda,
+        Sampler& sampler,
+        const SpectrumSample& beta
     ) const;
 
     const Sampler* sampler_prototype;
@@ -416,7 +437,6 @@ private:
     bool sample_direct_light;
 };
 
-// Volumetric SPPM
 class VolSPPMIntegrator : public Integrator
 {
 public:
@@ -434,16 +454,16 @@ public:
     virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
 
 private:
-    Spectrum SampleDirectLight(
+    SpectrumSample SampleDirectLight(
         const Vec3& wo,
         const Intersection& isect,
         const Medium* medium,
         const BSDF* bsdf,
         const PhaseFunction* phase,
-        int32 wavelength,
+        const WavelengthSample& lambda,
         Sampler& sampler,
-        Spectrum beta,
-        Spectrum r_p
+        SpectrumSample beta,
+        SpectrumSample r_p
     ) const;
 
     const Sampler* sampler_prototype;
@@ -454,7 +474,6 @@ private:
     bool sample_direct_light;
 };
 
-// Vertex Connection and Merging (VCM)
 class VCMIntegrator : public Integrator
 {
 public:

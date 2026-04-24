@@ -5,34 +5,34 @@
 namespace bulbit
 {
 
-Spectrum MetallicRoughnessBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
+SpectrumSample MetallicRoughnessBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     BulbitNotUsed(direction);
 
     if (!SameHemisphere(wo, wi))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Float cos_theta_o = AbsCosTheta(wo);
     Float cos_theta_i = AbsCosTheta(wi);
     if (cos_theta_i == 0 || cos_theta_o == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Vec3 wm = wo + wi;
     if (Length2(wm) == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
     wm.Normalize();
 
-    Spectrum f0 = F0(color, metallic);
-    Spectrum F = F_Schlick(f0, Dot(wi, wm));
+    SpectrumSample f0 = F0(color, metallic);
+    SpectrumSample F = F_Schlick(f0, Dot(wi, wm));
 
-    Spectrum f_s = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
-    Spectrum f_d = (1 - metallic) * (Spectrum(1) - F) * (color * inv_pi);
+    SpectrumSample f_s = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
+    SpectrumSample f_d = (1 - metallic) * (SpectrumSample(1) - F) * (color * inv_pi);
 
     return f_d + f_s;
 }
@@ -146,11 +146,11 @@ bool MetallicRoughnessBxDF::Sample_f(
         return false;
     }
 
-    Spectrum f0 = F0(color, metallic);
-    Spectrum F = F_Schlick(f0, Dot(wi, wm));
+    SpectrumSample f0 = F0(color, metallic);
+    SpectrumSample F = F_Schlick(f0, Dot(wi, wm));
 
-    Spectrum f_r = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
-    Spectrum f_d = (1 - metallic) * (Spectrum(1) - F) * (color * inv_pi);
+    SpectrumSample f_r = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
+    SpectrumSample f_d = (1 - metallic) * (SpectrumSample(1) - F) * (color * inv_pi);
 
     Float pdf_r = mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
     Float pdf_d = cos_theta_i * inv_pi;

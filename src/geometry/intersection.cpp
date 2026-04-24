@@ -6,12 +6,12 @@
 namespace bulbit
 {
 
-static void NormalMapping(Intersection* isect, const Vec3& wo, const SpectrumTexture* normalmap)
+static void NormalMapping(Intersection* isect, const Vec3& wo, const Float3Texture* normalmap)
 {
     BulbitAssert(normalmap != nullptr);
 
-    Spectrum sp = normalmap->Evaluate(isect->uv);
-    Vec3 sn(sp.r * 2 - 1, sp.g * 2 - 1, sp.b * 2 - 1);
+    Vec3 sp = normalmap->Evaluate(isect->uv);
+    Vec3 sn(sp.x * 2 - 1, sp.y * 2 - 1, sp.z * 2 - 1);
     sn.Normalize();
 
     Frame tbn = Frame::FromXZ(isect->shading.tangent, isect->shading.normal);
@@ -29,7 +29,7 @@ static void NormalMapping(Intersection* isect, const Vec3& wo, const SpectrumTex
     isect->shading.tangent = t;
 }
 
-bool Intersection::GetBSDF(BSDF* bsdf, const Vec3& wo, Allocator& alloc)
+bool Intersection::GetBSDF(BSDF* bsdf, const Vec3& wo, WavelengthSample& lambda, Allocator& alloc)
 {
     const Material* mat = primitive->GetMaterial();
     if (!mat)
@@ -42,16 +42,16 @@ bool Intersection::GetBSDF(BSDF* bsdf, const Vec3& wo, Allocator& alloc)
         mat = ((MixtureMaterial*)mat)->ChooseMaterial(*this, wo);
     }
 
-    const SpectrumTexture* normal = mat->GetNormalTexture();
+    const Float3Texture* normal = mat->GetNormalTexture();
     if (normal)
     {
         NormalMapping(this, wo, normal);
     }
 
-    return mat->GetBSDF(bsdf, *this, alloc);
+    return mat->GetBSDF(bsdf, *this, lambda, alloc);
 }
 
-bool Intersection::GetBSSRDF(BSSRDF** bssrdf, const Vec3& wo, Allocator& alloc)
+bool Intersection::GetBSSRDF(BSSRDF** bssrdf, const Vec3& wo, const WavelengthSample& lambda, Allocator& alloc)
 {
     const Material* mat = primitive->GetMaterial();
     while (mat->Is<MixtureMaterial>())
@@ -64,13 +64,13 @@ bool Intersection::GetBSSRDF(BSSRDF** bssrdf, const Vec3& wo, Allocator& alloc)
         return false;
     }
 
-    const SpectrumTexture* normalmap = mat->GetNormalTexture();
+    const Float3Texture* normalmap = mat->GetNormalTexture();
     if (normalmap)
     {
         NormalMapping(this, wo, normalmap);
     }
 
-    return mat->GetBSSRDF(bssrdf, *this, alloc);
+    return mat->GetBSSRDF(bssrdf, *this, lambda, alloc);
 }
 
 const Medium* Intersection::GetMedium(const Vec3& w) const

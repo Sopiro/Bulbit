@@ -17,22 +17,24 @@ void PointLight::Preprocess(const AABB& world_bounds)
     BulbitNotUsed(world_bounds);
 }
 
-Spectrum PointLight::Le(const Intersection& isect, const Vec3& wo) const
+SpectrumSample PointLight::Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const
 {
-    BulbitAssert(false);
     BulbitNotUsed(isect);
     BulbitNotUsed(wo);
-    return Spectrum::black;
-}
-
-Spectrum PointLight::Le(const Ray& ray) const
-{
+    BulbitNotUsed(lambda);
     BulbitAssert(false);
-    BulbitNotUsed(ray);
-    return Spectrum::black;
+    return SpectrumSample(0);
 }
 
-bool PointLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
+SpectrumSample PointLight::Le(const Ray& ray, const WavelengthSample& lambda) const
+{
+    BulbitNotUsed(ray);
+    BulbitNotUsed(lambda);
+    BulbitAssert(false);
+    return SpectrumSample(0);
+}
+
+bool PointLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const
 {
     BulbitNotUsed(u);
 
@@ -41,12 +43,10 @@ bool PointLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point
 
     sample->point = p;
     sample->normal = Vec3(0);
-
     sample->wi = wi;
     sample->visibility = distance;
     sample->pdf = 1;
-    sample->Li = intensity / (distance * distance);
-
+    sample->Li = intensity.Sample(lambda) / (distance * distance);
     return true;
 }
 
@@ -57,19 +57,18 @@ Float PointLight::EvaluatePDF_Li(const Ray& ray) const
     return 0;
 }
 
-bool PointLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
+bool PointLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const
 {
     BulbitNotUsed(u0);
 
     Vec3 w = SampleUniformSphere(u1);
 
-    sample->Le = intensity;
+    sample->Le = intensity.Sample(lambda);
     sample->ray = Ray(p, w);
     sample->normal = Vec3(0);
     sample->pdf_p = 1;
     sample->pdf_w = UniformSpherePDF();
     sample->medium = medium;
-
     return true;
 }
 
@@ -90,9 +89,9 @@ void PointLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, c
     BulbitAssert(false);
 }
 
-Spectrum PointLight::Phi() const
+Float PointLight::Power() const
 {
-    return four_pi * intensity;
+    return four_pi * intensity.Luminance();
 }
 
 } // namespace bulbit

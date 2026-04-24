@@ -29,8 +29,8 @@ struct Intersection
         Vec3 normal, tangent;
     } shading;
 
-    bool GetBSDF(BSDF* bsdf, const Vec3& wo, Allocator& alloc);
-    bool GetBSSRDF(BSSRDF** bssrdf, const Vec3& wo, Allocator& alloc);
+    bool GetBSDF(BSDF* bsdf, const Vec3& wo, WavelengthSample& lambda, Allocator& alloc);
+    bool GetBSSRDF(BSSRDF** bssrdf, const Vec3& wo, const WavelengthSample& lambda, Allocator& alloc);
     const Medium* GetMedium(const Vec3& w) const;
 };
 

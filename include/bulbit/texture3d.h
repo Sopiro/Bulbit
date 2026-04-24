@@ -15,7 +15,6 @@ struct Texture3D
 };
 
 using FloatTexture3D = Texture3D<Float>;
-using SpectrumTexture3D = Texture3D<Spectrum>;
 
 inline void FilterTexCoord3D(int32* u, int32* v, int32* w, int32 dim_x, int32 dim_y, int32 dim_z, TexCoordFilter texcoord_filter)
 {

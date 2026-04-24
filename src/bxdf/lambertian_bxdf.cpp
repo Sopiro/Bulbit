@@ -5,13 +5,13 @@
 namespace bulbit
 {
 
-Spectrum LambertianBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
+SpectrumSample LambertianBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     BulbitNotUsed(direction);
 
     if (!SameHemisphere(wo, wi))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     return r * inv_pi;

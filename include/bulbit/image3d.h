@@ -66,7 +66,7 @@ struct Image3D
 };
 
 using Image3D1f = Image3D<Float>;
-using Image3D3f = Image3D<RGBSpectrum>;
+using Image3D3f = Image3D<Vec3>;
 using Image3D4f = Image3D<Vec4f>;
 using Image3D1 = Image3D1f;
 using Image3D3 = Image3D3f;

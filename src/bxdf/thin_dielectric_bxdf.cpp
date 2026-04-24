@@ -4,13 +4,34 @@
 namespace bulbit
 {
 
-Spectrum ThinDielectricBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
+namespace
+{
+
+Float ThinDielectricReflectance(Float eta, Float cos_theta)
+{
+    Float R = FresnelDielectric(cos_theta, eta);
+    Float T = 1 - R;
+
+    if (R < 1)
+    {
+        R += Sqr(T) * R / (1 - Sqr(R));
+    }
+
+    return R;
+}
+
+Float HeroEta(const SpectrumSample& eta)
+{
+    return eta[WavelengthSample::hero_lane];
+}
+} // namespace
+
+SpectrumSample ThinDielectricBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     BulbitNotUsed(wo);
     BulbitNotUsed(wi);
     BulbitNotUsed(direction);
-
-    return Spectrum::black;
+    return SpectrumSample(0);
 }
 
 Float ThinDielectricBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_SamplingFlags flags) const
@@ -19,7 +40,6 @@ Float ThinDielectricBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, Bx
     BulbitNotUsed(wi);
     BulbitNotUsed(direction);
     BulbitNotUsed(flags);
-
     return 0;
 }
 
@@ -30,18 +50,11 @@ bool ThinDielectricBxDF::Sample_f(
     BulbitNotUsed(u12);
     BulbitNotUsed(direction);
 
-    Float R = FresnelDielectric(AbsCosTheta(wo), eta);
-    Float T = 1 - R;
+    Float R_hero = ThinDielectricReflectance(HeroEta(eta), AbsCosTheta(wo));
+    Float T_hero = 1 - R_hero;
 
-    // Update R and T accounting for scattering at thin dielectric interfaces
-    if (R < 1)
-    {
-        R += Sqr(T) * R / (1 - Sqr(R));
-        T = 1 - R;
-    }
-
-    Float pr = R;
-    Float pt = T;
+    Float pr = R_hero;
+    Float pt = T_hero;
     if (!(flags & BxDF_SamplingFlags::Reflection)) pr = 0;
     if (!(flags & BxDF_SamplingFlags::Transmission)) pt = 0;
     if (pr == 0 && pt == 0)
@@ -51,17 +64,27 @@ bool ThinDielectricBxDF::Sample_f(
 
     if (u0 < pr / (pr + pt))
     {
-        // Sample perfect specular dielectric BRDF
         Vec3 wi(-wo.x, -wo.y, wo.z);
-        Spectrum fr(R / AbsCosTheta(wi));
+        SpectrumSample fr(0);
+        for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+        {
+            fr[i] = ThinDielectricReflectance(eta[i], AbsCosTheta(wo)) / AbsCosTheta(wi);
+        }
+
         *sample = BSDFSample(fr, wi, pr / (pr + pt), BxDF_Flags::SpecularReflection);
     }
     else
     {
-        // Sample perfect specular transmission at thin dielectric interface
         Vec3 wi = -wo;
-        Spectrum ft(T / AbsCosTheta(wi));
-        *sample = BSDFSample(ft * r, wi, pt / (pr + pt), BxDF_Flags::SpecularTransmission);
+        SpectrumSample ft(0);
+        for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+        {
+            Float R = ThinDielectricReflectance(eta[i], AbsCosTheta(wo));
+            ft[i] = (1 - R) / AbsCosTheta(wi);
+        }
+
+        SpectrumSample fs = ft * r;
+        *sample = BSDFSample(fs, wi, pt / (pr + pt), BxDF_Flags::SpecularTransmission);
     }
 
     return true;

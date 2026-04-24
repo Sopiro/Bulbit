@@ -7,7 +7,7 @@
 namespace bulbit
 {
 
-Spectrum PrincipledBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
+SpectrumSample PrincipledBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     Float cos_theta_o = CosTheta(wo);
     Float cos_theta_i = CosTheta(wi);
@@ -24,7 +24,7 @@ Spectrum PrincipledBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
     Vec3 wm = wi * eta_p + wo;
     if (cos_theta_i == 0 || cos_theta_o == 0 || Length2(wm) == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     wm.Normalize();
@@ -36,19 +36,19 @@ Spectrum PrincipledBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
     // Discard backfacing microfacets
     if (Dot(wm, wi) * cos_theta_i < 0 || Dot(wm, wo) * cos_theta_o < 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Float F_cc = clearcoat * FresnelDielectric(Dot(wo, wm), PrincipledBxDF::default_clearcoat_ior);
     Float T_cc = 1 - F_cc;
 
-    Spectrum F_d = Spectrum(FresnelDielectric(Dot(wo, wm), eta));
-    Spectrum F_c = F_Schlick(color, Dot(wi, wm));
+    SpectrumSample F_d(FresnelDielectric(Dot(wo, wm), eta));
+    SpectrumSample F_c = F_Schlick(color, Dot(wi, wm));
 
-    Spectrum F = Lerp(F_d, F_c, metallic);
-    Spectrum T = Spectrum(1) - F;
+    SpectrumSample F = Lerp(F_d, F_c, metallic);
+    SpectrumSample T = SpectrumSample(1) - F;
 
-    Spectrum f(0);
+    SpectrumSample f(0);
 
     if (reflect)
     {
@@ -61,11 +61,11 @@ Spectrum PrincipledBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
         // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_slides_v2.pdf
         Float E_avg = mf.E_avg();
 
-        Spectrum f0 = F0(eta, color, metallic);
-        Spectrum fresnel_avg = F_avg_Schlick(f0);
-        Spectrum fresnel_ms = fresnel_avg * fresnel_avg * E_avg / (Spectrum(1) - fresnel_avg * (1 - E_avg));
+        SpectrumSample f0 = F0(eta, color, metallic);
+        SpectrumSample fresnel_avg = F_avg_Schlick(f0);
+        SpectrumSample fresnel_ms = fresnel_avg * fresnel_avg * E_avg / (SpectrumSample(1) - fresnel_avg * (1 - E_avg));
 
-        Spectrum f_ms = fresnel_ms * ((1 - mf.E(wo)) * (1 - mf.E(wi))) / (pi * (1 - E_avg));
+        SpectrumSample f_ms = fresnel_ms * ((1 - mf.E(wo)) * (1 - mf.E(wi))) / (pi * (1 - E_avg));
 
         // Add dielectric reflection and metal reflection
         f += T_cc * (F * mf.D(wm) * mf.G(wo, wi) / denom + f_ms);

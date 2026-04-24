@@ -13,7 +13,7 @@ SubsurfaceDiffusionMaterial::SubsurfaceDiffusionMaterial(
     Float eta,
     const FloatTexture* u_roughness,
     const FloatTexture* v_roughness,
-    const SpectrumTexture* normal
+    const Float3Texture* normal
 )
     : Material(TypeIndexOf<SubsurfaceDiffusionMaterial>())
     , reflectance{ reflectance }
@@ -25,7 +25,7 @@ SubsurfaceDiffusionMaterial::SubsurfaceDiffusionMaterial(
 {
 }
 
-bool SubsurfaceDiffusionMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
+bool SubsurfaceDiffusionMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, WavelengthSample& lambda, Allocator& alloc) const
 {
     Float alpha_x = TrowbridgeReitzDistribution::RoughnessToAlpha(u_roughness->Evaluate(isect.uv));
     Float alpha_y = TrowbridgeReitzDistribution::RoughnessToAlpha(v_roughness->Evaluate(isect.uv));
@@ -34,17 +34,25 @@ bool SubsurfaceDiffusionMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect,
 
     *bsdf = BSDF(
         isect.shading.normal, isect.shading.tangent,
-        alloc.new_object<DielectricMultiScatteringBxDF>(eta_p, TrowbridgeReitzDistribution(alpha_x, alpha_y), Spectrum(1))
+        alloc.new_object<DielectricMultiScatteringBxDF>(
+            SpectrumSample(eta_p), TrowbridgeReitzDistribution(alpha_x, alpha_y), SpectrumSample(1)
+        )
     );
+
+    BulbitNotUsed(lambda);
 
     return true;
 }
 
-bool SubsurfaceDiffusionMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
+bool SubsurfaceDiffusionMaterial::GetBSSRDF(
+    BSSRDF** bssrdf, const Intersection& isect, const WavelengthSample& lambda, Allocator& alloc
+) const
 {
-    Spectrum R = reflectance->Evaluate(isect.uv);
-    Spectrum s = Spectrum(1.9f) - R + 3.5f * Sqr(R - Spectrum(0.8f)); // Eq. 6
-    Spectrum d = l / s;
+    SpectrumSample R = reflectance->Evaluate(isect.uv, lambda);
+    SpectrumSample l_sample = l.Sample(lambda);
+    SpectrumSample diff = R - SpectrumSample(0.8f);
+    SpectrumSample s = SpectrumSample(1.9f) - R + 3.5f * diff * diff;
+    SpectrumSample d = SafeDiv(l_sample, s);
 
     *bssrdf = alloc.new_object<DisneyBSSRDF>(R, d, isect, eta);
     return true;
@@ -55,7 +63,7 @@ const FloatTexture* SubsurfaceDiffusionMaterial::GetAlphaTexture() const
     return nullptr;
 }
 
-const SpectrumTexture* SubsurfaceDiffusionMaterial::GetNormalTexture() const
+const Float3Texture* SubsurfaceDiffusionMaterial::GetNormalTexture() const
 {
     return normal;
 }

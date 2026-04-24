@@ -18,16 +18,18 @@ NaiveVolPathIntegrator::NaiveVolPathIntegrator(
 {
 }
 
-Spectrum NaiveVolPathIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium, Sampler& sampler) const
+SpectrumSample NaiveVolPathIntegrator::Li(
+    const Ray& primary_ray, const Medium* primary_medium, WavelengthSample& lambda, Sampler& sampler
+) const
 {
     int32 bounce = 0;
-    Spectrum L(0), beta(1);
-    Spectrum r_u(1); // Rescaled path sampling probability
+    const int32 hero = WavelengthSample::hero_lane;
+
+    SpectrumSample L(0), beta(1);
+    SpectrumSample r_u(1);
     Float eta_scale = 1;
 
     Ray ray = primary_ray;
-    int32 wavelength = std::min<int32>(int32(sampler.Next1D() * 3), 2);
-
     const Medium* medium = primary_medium;
 
     while (true)
@@ -49,12 +51,15 @@ Spectrum NaiveVolPathIntegrator::Li(const Ray& primary_ray, const Medium* primar
             Float u = sampler.Next1D();
             Float u_event = sampler.Next1D();
 
-            // Evaluate L_n term which is the null-scattering extended source function by delta tracking
-            Spectrum T_maj = Sample_MajorantTransmittance(
-                medium, wavelength, ray, t_max, u, rng,
-                [&](Point3 p, MediumSample ms, Spectrum sigma_maj, Spectrum T_maj) -> bool {
-                    Float p_absorb = ms.sigma_a[wavelength] / sigma_maj[wavelength];
-                    Float p_scatter = ms.sigma_s[wavelength] / sigma_maj[wavelength];
+            SpectrumSample T_maj = Sample_MajorantTransmittance(
+                medium, lambda, ray, t_max, u, rng,
+                [&](Point3 p, MediumSample ms, SpectrumSample sigma_maj, SpectrumSample T_maj) -> bool {
+                    SpectrumSample sigma_a = ms.sigma_a;
+                    SpectrumSample sigma_s = ms.sigma_s;
+                    SpectrumSample Le = ms.Le;
+
+                    Float p_absorb = sigma_a[hero] / sigma_maj[hero];
+                    Float p_scatter = sigma_s[hero] / sigma_maj[hero];
                     Float p_null = std::max<Float>(0, 1 - p_absorb - p_scatter);
                     Float events[3] = { p_absorb, p_scatter, p_null };
 
@@ -63,27 +68,23 @@ Spectrum NaiveVolPathIntegrator::Li(const Ray& primary_ray, const Medium* primar
                     {
                     case 0:
                     {
-                        // Sampled absorption event, incorporate emission and terminate path
-                        Float pdf = T_maj[wavelength] * ms.sigma_a[wavelength];
+                        Float pdf = T_maj[hero] * sigma_a[hero];
                         beta *= T_maj / pdf;
-                        r_u *= T_maj * ms.sigma_a / pdf;
+                        r_u *= T_maj * sigma_a / pdf;
 
-                        L += beta * ms.sigma_a * ms.Le / r_u.Average();
+                        L += beta * sigma_a * Le / r_u.Average();
                         terminated = true;
-
                         return false;
                     }
 
                     case 1:
                     {
-                        // Sampled real scattering event
                         if (bounce++ >= max_bounces)
                         {
                             terminated = true;
                             return false;
                         }
 
-                        // Sample phase function to find next path direction
                         Point2 u{ rng.NextFloat(), rng.NextFloat() };
                         PhaseFunctionSample ps;
                         if (!ms.phase->Sample_p(&ps, wo, u))
@@ -92,28 +93,26 @@ Spectrum NaiveVolPathIntegrator::Li(const Ray& primary_ray, const Medium* primar
                             return false;
                         }
 
-                        Float pdf = T_maj[wavelength] * ms.sigma_s[wavelength];
-                        beta *= T_maj * ms.sigma_s / pdf;
-                        r_u *= T_maj * ms.sigma_s / pdf;
+                        Float pdf = T_maj[hero] * sigma_s[hero];
+                        beta *= T_maj * sigma_s / pdf;
+                        r_u *= T_maj * sigma_s / pdf;
 
                         beta *= ps.p / ps.pdf;
                         ray.o = p;
                         ray.d = ps.wi;
                         scattered = true;
-
                         return false;
                     }
 
                     case 2:
                     {
-                        // Sampled null scattering event, continue sampling
                         u_event = rng.NextFloat();
-                        Spectrum sigma_n = Max(sigma_maj - ms.sigma_a - ms.sigma_s, 0);
+                        SpectrumSample sigma_n = Max(sigma_maj - sigma_a - sigma_s, 0);
 
-                        Float pdf = T_maj[wavelength] * sigma_n[wavelength];
+                        Float pdf = T_maj[hero] * sigma_n[hero];
                         if (pdf == 0)
                         {
-                            beta = Spectrum::black;
+                            beta = SpectrumSample(0);
                         }
                         else
                         {
@@ -121,7 +120,6 @@ Spectrum NaiveVolPathIntegrator::Li(const Ray& primary_ray, const Medium* primar
                         }
 
                         r_u *= T_maj * sigma_n / pdf;
-
                         return !beta.IsBlack() && !r_u.IsBlack();
                     }
 
@@ -132,8 +130,8 @@ Spectrum NaiveVolPathIntegrator::Li(const Ray& primary_ray, const Medium* primar
                 }
             );
 
-            beta *= T_maj / T_maj[wavelength];
-            r_u *= T_maj / T_maj[wavelength];
+            beta *= T_maj / T_maj[hero];
+            r_u *= T_maj / T_maj[hero];
 
             if (terminated)
             {
@@ -149,16 +147,16 @@ Spectrum NaiveVolPathIntegrator::Li(const Ray& primary_ray, const Medium* primar
         {
             for (Light* light : infinite_lights)
             {
-                L += beta * light->Le(ray) / r_u.Average();
+                L += beta * light->Le(ray, lambda) / r_u.Average();
             }
 
             break;
         }
 
-        // Add surface emission
         if (const Light* area_light = GetAreaLight(isect); area_light)
         {
-            if (Spectrum Le = area_light->Le(isect, wo); !Le.IsBlack())
+            SpectrumSample Le = area_light->Le(isect, wo, lambda);
+            if (!Le.IsBlack())
             {
                 L += beta * Le / r_u.Average();
             }
@@ -173,7 +171,7 @@ Spectrum NaiveVolPathIntegrator::Li(const Ray& primary_ray, const Medium* primar
         BufferResource res(mem, sizeof(mem));
         Allocator alloc(&res);
         BSDF bsdf;
-        if (!isect.GetBSDF(&bsdf, wo, alloc))
+        if (!isect.GetBSDF(&bsdf, wo, lambda, alloc))
         {
             medium = isect.GetMedium(ray.d);
             ray.o = isect.point;
@@ -197,48 +195,43 @@ Spectrum NaiveVolPathIntegrator::Li(const Ray& primary_ray, const Medium* primar
         medium = isect.GetMedium(bsdf_sample.wi);
 
         BSSRDF* bssrdf;
-        if (isect.GetBSSRDF(&bssrdf, wo, alloc) && bsdf_sample.IsTransmission())
+        if (isect.GetBSSRDF(&bssrdf, wo, lambda, alloc) && bsdf_sample.IsTransmission())
         {
             Float u0 = sampler.Next1D();
             Point2 u12 = sampler.Next2D();
 
             BSSRDFSample bssrdf_sample;
-            if (!bssrdf->Sample_S(&bssrdf_sample, bsdf_sample, accel, wavelength, u0, u12))
+            if (!bssrdf->Sample_S(&bssrdf_sample, bsdf_sample, accel, lambda, u0, u12))
             {
                 break;
             }
 
-            Float pdf = bssrdf_sample.pdf[wavelength] * bssrdf_sample.p;
+            SpectrumSample bssrdf_pdf = bssrdf_sample.pdf;
+            Float pdf = bssrdf_pdf[hero] * bssrdf_sample.p;
             beta *= bssrdf_sample.Sp / pdf;
-            r_u *= bssrdf_sample.pdf / bssrdf_sample.pdf[wavelength];
+            r_u *= bssrdf_pdf / bssrdf_pdf[hero];
 
             BSDF& Sw = bssrdf_sample.Sw;
-            // Sample next path direction at the BSSRDF sample point
             if (!Sw.Sample_f(&bsdf_sample, bssrdf_sample.wo, sampler.Next1D(), sampler.Next2D()))
             {
                 break;
             }
 
             beta *= bsdf_sample.f * AbsDot(bsdf_sample.wi, bssrdf_sample.pi.shading.normal) / bsdf_sample.pdf;
-
             ray = Ray(bssrdf_sample.pi.point, bsdf_sample.wi);
             medium = bssrdf_sample.pi.GetMedium(bsdf_sample.wi);
         }
 
-        // Terminate path with russian roulette
         if (bounce > rr_min_bounces)
         {
-            Spectrum rr = beta * eta_scale / r_u.Average();
+            SpectrumSample rr = beta * eta_scale / r_u.Average();
             if (Float p = rr.MaxComponent(); p < 1)
             {
                 if (sampler.Next1D() > p)
                 {
                     break;
                 }
-                else
-                {
-                    beta /= p;
-                }
+                beta /= p;
             }
         }
     }

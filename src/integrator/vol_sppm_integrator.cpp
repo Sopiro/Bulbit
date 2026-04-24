@@ -13,6 +13,17 @@
 namespace bulbit
 {
 
+namespace
+{
+
+WavelengthSample IterationLambda(int32 iteration, int32 total_iterations)
+{
+    Float u = Float(iteration + 0.5f) / Float(std::max(1, total_iterations));
+    return WavelengthSample::Sample(std::fmod(u, 1.0f));
+}
+
+} // namespace
+
 VolSPPMIntegrator::VolSPPMIntegrator(
     const Intersectable* accel,
     std::vector<Light*> lights,
@@ -22,7 +33,6 @@ VolSPPMIntegrator::VolSPPMIntegrator(
     Float radius_surface,
     Float radius_volume,
     bool sample_direct_light
-
 )
     : Integrator(accel, std::move(lights), std::make_unique<PowerLightSampler>())
     , sampler_prototype{ sampler }
@@ -47,44 +57,42 @@ VolSPPMIntegrator::VolSPPMIntegrator(
     }
 }
 
-// Exactly same as volpath integrator
-Spectrum VolSPPMIntegrator::SampleDirectLight(
+SpectrumSample VolSPPMIntegrator::SampleDirectLight(
     const Vec3& wo,
     const Intersection& isect,
     const Medium* medium,
     const BSDF* bsdf,
     const PhaseFunction* phase,
-    int32 wavelength,
+    const WavelengthSample& lambda,
     Sampler& sampler,
-    Spectrum beta,
-    Spectrum r_p
+    SpectrumSample beta,
+    SpectrumSample r_p
 ) const
 {
-    Float u0 = sampler.Next1D();
-    Point2 u12 = sampler.Next2D();
+    constexpr int32 hero = WavelengthSample::hero_lane;
+
     SampledLight sampled_light;
-    if (!light_sampler->Sample(&sampled_light, isect, u0))
+    if (!light_sampler->Sample(&sampled_light, isect, sampler.Next1D()))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     LightSampleLi light_sample;
-    if (!sampled_light.light->Sample_Li(&light_sample, isect, u12))
+    if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler.Next2D(), lambda))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     if (light_sample.Li.IsBlack() || light_sample.pdf == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Float light_pdf = sampled_light.pmf * light_sample.pdf;
-
-    Spectrum scattering_f;
-    Float scattering_pdf;
     Vec3 wi = light_sample.wi;
 
+    SpectrumSample scattering_f;
+    Float scattering_pdf;
     if (bsdf)
     {
         medium = isect.GetMedium(wi);
@@ -95,22 +103,21 @@ Spectrum VolSPPMIntegrator::SampleDirectLight(
     {
         BulbitAssert(medium != nullptr);
         BulbitAssert(phase != nullptr);
-        scattering_f = Spectrum(phase->p(wo, wi));
+        scattering_f = SpectrumSample(phase->p(wo, wi));
         scattering_pdf = phase->PDF(wo, wi);
     }
 
     if (scattering_f.IsBlack())
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Ray light_ray(isect.point, wi);
     Float visibility = light_sample.visibility;
 
-    Spectrum T_ray(1); // Transmittance estimate by ratio tracking
-    Spectrum r_u(1);   // Rescaled null scattered distance sampling pdf
-    Spectrum r_l(1);   // Rescaled ratio tracking pdf
-
+    SpectrumSample T_ray(1);
+    SpectrumSample r_u(1);
+    SpectrumSample r_l(1);
     RNG rng(Hash(light_ray.o), Hash(light_ray.d));
 
     while (visibility > 0)
@@ -120,8 +127,7 @@ Spectrum VolSPPMIntegrator::SampleDirectLight(
 
         if (found_intersection && light_isect.primitive->GetMaterial())
         {
-            // Intersects opaque surface
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         if (medium)
@@ -129,26 +135,26 @@ Spectrum VolSPPMIntegrator::SampleDirectLight(
             Float t_max = found_intersection ? light_isect.t : visibility;
             Float u = rng.NextFloat();
 
-            Spectrum T_maj = Sample_MajorantTransmittance(
-                medium, wavelength, light_ray, t_max, u, rng,
-                [&](Point3 p, MediumSample ms, Spectrum sigma_maj, Spectrum T_maj) -> bool {
+            SpectrumSample T_maj = Sample_MajorantTransmittance(
+                medium, lambda, light_ray, t_max, u, rng,
+                [&](Point3 p, MediumSample ms, SpectrumSample sigma_maj, SpectrumSample T_maj) -> bool {
                     BulbitNotUsed(p);
 
-                    // Estimate transmittance along the light ray by ratio tracking
-                    Spectrum sigma_n = Max<Float>(sigma_maj - ms.sigma_a - ms.sigma_s, 0);
-                    Float pdf = T_maj[wavelength] * sigma_maj[wavelength];
+                    SpectrumSample sigma_a = ms.sigma_a;
+                    SpectrumSample sigma_s = ms.sigma_s;
+                    SpectrumSample sigma_n = Max(sigma_maj - sigma_a - sigma_s, 0);
+                    Float pdf = T_maj[hero] * sigma_maj[hero];
                     T_ray *= T_maj * sigma_n / pdf;
                     r_l *= T_maj * sigma_maj / pdf;
                     r_u *= T_maj * sigma_n / pdf;
 
-                    // Stochastically terminate distance sampling with russian roulette
-                    Spectrum Tr = T_ray / (r_u + r_l).Average();
+                    SpectrumSample Tr = T_ray / (r_u + r_l).Average();
                     if (Tr.MaxComponent() < 0.05f)
                     {
                         constexpr Float rr = 0.75f;
                         if (rng.NextFloat() < rr)
                         {
-                            T_ray = Spectrum::black;
+                            T_ray = SpectrumSample(0);
                         }
                         else
                         {
@@ -160,15 +166,14 @@ Spectrum VolSPPMIntegrator::SampleDirectLight(
                 }
             );
 
-            // Update transmittance estimate for last majorant segment
-            T_ray *= T_maj / T_maj[wavelength];
-            r_l *= T_maj / T_maj[wavelength];
-            r_u *= T_maj / T_maj[wavelength];
+            T_ray *= T_maj / T_maj[hero];
+            r_l *= T_maj / T_maj[hero];
+            r_u *= T_maj / T_maj[hero];
         }
 
         if (T_ray.IsBlack())
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         if (!found_intersection)
@@ -176,15 +181,11 @@ Spectrum VolSPPMIntegrator::SampleDirectLight(
             break;
         }
 
-        // Move the ray origin toward the intersection point
         light_ray.o = light_isect.point;
         visibility -= light_isect.t;
         medium = light_isect.GetMedium(light_ray.d);
     }
 
-    // Multiply the rescaled path probabilities for path sampling of the path
-    // up to the last real-scattering vertex where direct lighting is being computed
-    // Division by the light path PDF canceled out
     r_l *= r_p * light_pdf;
     r_u *= r_p * scattering_pdf;
 
@@ -192,22 +193,22 @@ Spectrum VolSPPMIntegrator::SampleDirectLight(
     {
         return beta * scattering_f * T_ray * light_sample.Li / r_l.Average();
     }
-    else
-    {
-        return beta * scattering_f * T_ray * light_sample.Li / (r_u + r_l).Average();
-    }
+
+    return beta * scattering_f * T_ray * light_sample.Li / (r_u + r_l).Average();
 }
 
 Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 {
-    const int32 n_interations = sampler_prototype->samples_per_pixel;
+    constexpr int32 hero = WavelengthSample::hero_lane;
+
+    const int32 n_iterations = std::max<int32>(1, sampler_prototype->samples_per_pixel);
     const int32 tile_size = 16;
 
     Point2i res = camera->GetScreenResolution();
     Point2i num_tiles = (res + (tile_size - 1)) / tile_size;
     int32 tile_count = num_tiles.x * num_tiles.y;
 
-    std::vector<size_t> phase_works(2 * n_interations);
+    std::vector<size_t> phase_works(2 * n_iterations);
     for (size_t i = 0; i < phase_works.size(); i += 2)
     {
         phase_works[i] = size_t(tile_count);
@@ -229,11 +230,17 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
         {
             vp.radius = initial_radius_surface;
             vp.radius_vol = initial_radius_volume;
+            for (int32 c = 0; c < 3; ++c)
+            {
+                vp.phi_i[c].store(0, std::memory_order_relaxed);
+                vp.phi_i_vol[c].store(0, std::memory_order_relaxed);
+            }
         }
 
-        for (int32 iteration = 0; iteration < n_interations; ++iteration)
+        for (int32 iteration = 0; iteration < n_iterations; ++iteration)
         {
-            // Generate visible points
+            WavelengthSample lambda = IterationLambda(iteration, n_iterations);
+            // camera pass
             ParallelFor2D(
                 res,
                 [&](AABB2i tile) {
@@ -251,24 +258,20 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         int32 index = res.x * pixel.y + pixel.x;
                         VisiblePoint& vp = visible_points[index];
+                        vp.secondary_terminated = false;
 
                         Float eta_scale = 1;
-
                         int32 bounce = 0;
                         bool specular_bounce = true;
                         bool found_visible_point = false;
 
-                        int32 wavelength = std::min<int32>(int32(sampler->Next1D() * 3), 2);
-
-                        Spectrum beta(primary_ray.weight);
-
-                        Spectrum r_u(1); // Indirect path sampling pdf
-                        Spectrum r_l(1); // Light path sampling pdf
+                        SpectrumSample beta(primary_ray.weight);
+                        SpectrumSample r_u(1);
+                        SpectrumSample r_l(1);
 
                         Ray ray = primary_ray.ray;
                         const Medium* medium = camera->GetMedium();
 
-                        // Trace camera ray and find appropriate visible point
                         while (true)
                         {
                             Vec3 wo = Normalize(-ray.d);
@@ -287,33 +290,33 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 uint64 hash1 = Hash(sampler->Next1D());
                                 RNG rng(hash0, hash1);
 
-                                Spectrum T_maj = Sample_MajorantTransmittance(
-                                    medium, wavelength, ray, t_max, u, rng,
-                                    [&](Point3 point, MediumSample ms, Spectrum sigma_maj, Spectrum T_maj) -> bool {
+                                SpectrumSample T_maj = Sample_MajorantTransmittance(
+                                    medium, lambda, ray, t_max, u, rng,
+                                    [&](Point3 point, MediumSample ms, SpectrumSample sigma_maj, SpectrumSample T_maj) -> bool {
                                         if (beta.IsBlack())
                                         {
                                             terminated = true;
                                             return false;
                                         }
 
-                                        if (bounce < max_bounces && !ms.Le.IsBlack())
+                                        SpectrumSample sigma_a = ms.sigma_a;
+                                        SpectrumSample sigma_s = ms.sigma_s;
+                                        SpectrumSample Le = ms.Le;
+
+                                        if (bounce < max_bounces && !Le.IsBlack())
                                         {
-                                            // Add medium emission
-                                            Float pdf = sigma_maj[wavelength] * T_maj[wavelength];
-                                            Spectrum beta_e = beta * T_maj / pdf;
-
-                                            // Rescaled sampling probability for emission event
-                                            Spectrum r_e = r_u * sigma_maj * T_maj / pdf;
-
+                                            Float pdf = sigma_maj[hero] * T_maj[hero];
+                                            SpectrumSample beta_e = beta * T_maj / pdf;
+                                            SpectrumSample r_e = r_u * sigma_maj * T_maj / pdf;
                                             if (!r_e.IsBlack())
                                             {
-                                                // Single sample wavelength-wise MIS estimator with balance heuristic
-                                                vp.Ld += beta_e * ms.sigma_a * ms.Le / r_e.Average();
+                                                vp.Ld +=
+                                                    spectral::SpectrumSampleToXYZ(beta_e * sigma_a * Le / r_e.Average(), lambda);
                                             }
                                         }
 
-                                        Float p_absorb = ms.sigma_a[wavelength] / sigma_maj[wavelength];
-                                        Float p_scatter = ms.sigma_s[wavelength] / sigma_maj[wavelength];
+                                        Float p_absorb = sigma_a[hero] / sigma_maj[hero];
+                                        Float p_scatter = sigma_s[hero] / sigma_maj[hero];
                                         Float p_null = std::max<Float>(0, 1 - p_absorb - p_scatter);
                                         Float events[3] = { p_absorb, p_scatter, p_null };
 
@@ -321,84 +324,72 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         switch (event)
                                         {
                                         case 0:
-                                        {
-                                            // Sampled absorption event
-                                            // Add medium emission with MIS weight of 0
                                             terminated = true;
                                             return false;
-                                        }
 
                                         case 1:
                                         {
-                                            // Sampled real scattering event
                                             if (bounce++ >= max_bounces || found_visible_point)
                                             {
                                                 terminated = true;
                                                 return false;
                                             }
 
-                                            Float pdf = T_maj[wavelength] * ms.sigma_s[wavelength];
-                                            beta *= T_maj * ms.sigma_s / pdf;
-                                            r_u *= T_maj * ms.sigma_s / pdf;
+                                            Float pdf = T_maj[hero] * sigma_s[hero];
+                                            beta *= T_maj * sigma_s / pdf;
+                                            r_u *= T_maj * sigma_s / pdf;
 
-                                            // Add direct light
                                             if (sample_direct_light)
                                             {
                                                 Intersection medium_isect{ .point = point };
-                                                vp.Ld += SampleDirectLight(
-                                                    wo, medium_isect, medium, nullptr, ms.phase, wavelength, *sampler, beta, r_u
+                                                vp.Ld += spectral::SpectrumSampleToXYZ(
+                                                    SampleDirectLight(
+                                                        wo, medium_isect, medium, nullptr, ms.phase, lambda, *sampler, beta, r_u
+                                                    ),
+                                                    lambda
                                                 );
                                             }
 
-                                            // Create visible point inside medium
+                                            vp.primitive = nullptr;
+                                            vp.p = point;
+                                            vp.normal = Vec3::zero;
+                                            vp.wo = wo;
+                                            vp.secondary_terminated = lambda.IsCollapse();
+                                            vp.bsdf = {};
+                                            vp.phase = ms.phase;
+                                            vp.beta = beta;
+
+                                            if (!sample_direct_light)
                                             {
-                                                vp.primitive = nullptr;
-                                                vp.p = point;
-                                                vp.normal = Vec3::zero;
-                                                vp.wo = wo;
-                                                vp.bsdf = {};
-                                                vp.phase = ms.phase;
-                                                vp.beta = beta;
-
-                                                if (!sample_direct_light)
-                                                {
-                                                    terminated = true;
-                                                    return false;
-                                                }
-
-                                                found_visible_point = true;
+                                                terminated = true;
+                                                return false;
                                             }
 
-                                            // Sample phase function to find next path direction
+                                            found_visible_point = true;
+
                                             PhaseFunctionSample phase_sample;
                                             if (!ms.phase->Sample_p(&phase_sample, wo, sampler->Next2D()))
                                             {
                                                 terminated = true;
+                                                return false;
                                             }
 
                                             beta *= phase_sample.p / phase_sample.pdf;
-                                            // light sampling PDF at this vertex will be incorporated into r_l when it intersects
-                                            // the light source
                                             r_l = r_u / phase_sample.pdf;
-
                                             ray.o = point;
                                             ray.d = phase_sample.wi;
-
                                             specular_bounce = false;
-
                                             scattered = true;
-
                                             return false;
                                         }
 
                                         case 2:
                                         {
-                                            // Sampled null scattering event, continue sampling
-                                            Spectrum sigma_n = Max<Float>(sigma_maj - ms.sigma_a - ms.sigma_s, 0);
-                                            Float pdf = T_maj[wavelength] * sigma_n[wavelength];
+                                            SpectrumSample sigma_n = Max(sigma_maj - sigma_a - sigma_s, 0);
+                                            Float pdf = T_maj[hero] * sigma_n[hero];
                                             if (pdf == 0)
                                             {
-                                                beta = Spectrum::black;
+                                                beta = SpectrumSample(0);
                                             }
                                             else
                                             {
@@ -406,8 +397,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                             }
 
                                             r_u *= T_maj * sigma_n / pdf;
-                                            r_l *= T_maj * sigma_maj / pdf; // Rescaled ratio tracking pdf
-
+                                            r_l *= T_maj * sigma_maj / pdf;
                                             return !beta.IsBlack() && !r_u.IsBlack();
                                         }
 
@@ -425,60 +415,55 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                 if (scattered)
                                 {
-                                    // Continue medium sampling
                                     continue;
                                 }
 
-                                // It past the medium extent
-                                beta *= T_maj / T_maj[wavelength];
-                                r_u *= T_maj / T_maj[wavelength];
-                                r_l *= T_maj / T_maj[wavelength];
+                                beta *= T_maj / T_maj[hero];
+                                r_u *= T_maj / T_maj[hero];
+                                r_l *= T_maj / T_maj[hero];
                             }
 
                             if (!found_intersection)
                             {
-                                Spectrum L(0);
-
+                                SpectrumSample L(0);
                                 if (bounce == 0 || specular_bounce)
                                 {
                                     for (Light* light : infinite_lights)
                                     {
-                                        L += beta * light->Le(ray) / r_u.Average();
+                                        L += beta * light->Le(ray, lambda) / r_u.Average();
                                     }
                                 }
                                 else
                                 {
-                                    // Evaluate BSDF sample MIS for infinite light
                                     for (Light* light : infinite_lights)
                                     {
                                         Float light_pdf = light->EvaluatePDF_Li(ray) * light_sampler->EvaluatePMF(light);
-                                        L += beta * light->Le(ray) / (r_u + r_l * light_pdf).Average();
+                                        L += beta * light->Le(ray, lambda) / (r_u + r_l * light_pdf).Average();
                                     }
                                 }
 
-                                vp.Ld += L;
+                                vp.Ld += spectral::SpectrumSampleToXYZ(L, lambda);
                                 break;
                             }
 
                             if (const Light* area_light = GetAreaLight(isect); area_light)
                             {
-                                if (Spectrum Le = area_light->Le(isect, wo); !Le.IsBlack())
+                                SpectrumSample Le = area_light->Le(isect, wo, lambda);
+                                if (!Le.IsBlack())
                                 {
-                                    Spectrum L(0);
-
+                                    SpectrumSample L(0);
                                     if (bounce == 0 || specular_bounce)
                                     {
                                         L += beta * Le / r_u.Average();
                                     }
                                     else
                                     {
-                                        // Evaluate BSDF sample with MIS for area light
                                         Float light_pdf =
                                             isect.primitive->GetShape()->PDF(isect, ray) * light_sampler->EvaluatePMF(area_light);
                                         L += beta * Le / (r_u + r_l * light_pdf).Average();
                                     }
 
-                                    vp.Ld += L;
+                                    vp.Ld += spectral::SpectrumSampleToXYZ(L, lambda);
                                 }
                             }
 
@@ -487,9 +472,10 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 break;
                             }
 
-                            Allocator& alloc = thread_allocators.Get();
+                            Allocator& thread_alloc = thread_allocators.Get();
                             BSDF bsdf;
-                            if (!isect.GetBSDF(&bsdf, wo, alloc))
+                            WavelengthSample path_lambda = lambda;
+                            if (!isect.GetBSDF(&bsdf, wo, path_lambda, thread_alloc))
                             {
                                 medium = isect.GetMedium(ray.d);
                                 ray = Ray(isect.point, -wo);
@@ -499,18 +485,21 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             if (sample_direct_light)
                             {
-                                vp.Ld += SampleDirectLight(wo, isect, medium, &bsdf, nullptr, wavelength, *sampler, beta, r_u);
+                                vp.Ld += spectral::SpectrumSampleToXYZ(
+                                    SampleDirectLight(wo, isect, medium, &bsdf, nullptr, path_lambda, *sampler, beta, r_u),
+                                    path_lambda
+                                );
                             }
 
                             BxDF_Flags flags = bsdf.Flags();
                             if (IsDiffuse(flags) || (IsGlossy(flags) && bounce == max_bounces) ||
                                 (IsNonSpecular(flags) && !sample_direct_light))
                             {
-                                // Create visible point on surface
                                 vp.primitive = isect.primitive;
                                 vp.p = isect.point;
                                 vp.normal = isect.normal;
                                 vp.wo = wo;
+                                vp.secondary_terminated = path_lambda.IsCollapse();
                                 vp.bsdf = bsdf;
                                 vp.phase = nullptr;
                                 vp.beta = beta;
@@ -521,7 +510,6 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 }
 
                                 found_visible_point = true;
-                                // Trace one bounce more for the unidirectional MIS contribution
                             }
 
                             BSDFSample bsdf_sample;
@@ -537,7 +525,6 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
-
                             if (bsdf_sample.is_stochastic)
                             {
                                 r_l = r_u / bsdf.PDF(wo, bsdf_sample.wi);
@@ -548,22 +535,19 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             ray = Ray(isect.point, bsdf_sample.wi);
+                            medium = isect.GetMedium(bsdf_sample.wi);
 
-                            // Terminate path with russian roulette
                             constexpr int32 min_bounces = 2;
                             if (bounce > min_bounces)
                             {
-                                Spectrum rr = beta * eta_scale / r_u.Average();
+                                SpectrumSample rr = beta * eta_scale / r_u.Average();
                                 if (Float p = rr.MaxComponent(); p < 1)
                                 {
                                     if (sampler->Next1D() > p)
                                     {
                                         break;
                                     }
-                                    else
-                                    {
-                                        beta /= p;
-                                    }
+                                    beta /= p;
                                 }
                             }
                         }
@@ -585,7 +569,6 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                 max_radius = std::max({ max_radius, vp.radius, vp.radius_vol });
             }
 
-            // Build hash grid of visible points
             HashGrid grid;
             grid.Build(visible_points, max_radius);
 
@@ -607,21 +590,15 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                         continue;
                     }
 
-                    const Light* light = sampled_light.light;
-
                     LightSampleLe light_sample;
-                    if (!light->Sample_Le(&light_sample, sampler->Next2D(), sampler->Next2D()))
+                    if (!sampled_light.light->Sample_Le(&light_sample, sampler->Next2D(), sampler->Next2D(), lambda))
                     {
                         continue;
                     }
 
-                    int32 wavelength = std::min<int32>(int32(sampler->Next1D() * 3), 2);
-
                     Ray ray = light_sample.ray;
                     const Medium* medium = light_sample.medium;
-
-                    Spectrum beta = light_sample.Le / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
-
+                    SpectrumSample beta = light_sample.Le / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
                     if (light_sample.normal != Vec3::zero)
                     {
                         beta *= AbsDot(light_sample.normal, ray.d);
@@ -632,7 +609,6 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                         continue;
                     }
 
-                    // Trace photon path and add indirect illumination to nearby visible points
                     int32 bounce = 0;
                     while (true)
                     {
@@ -652,17 +628,20 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             uint64 hash1 = Hash(sampler->Next1D());
                             RNG rng(hash0, hash1);
 
-                            Spectrum T_maj = Sample_MajorantTransmittance(
-                                medium, wavelength, ray, t_max, u, rng,
-                                [&](Point3 point, MediumSample ms, Spectrum sigma_maj, Spectrum T_maj) -> bool {
+                            SpectrumSample T_maj = Sample_MajorantTransmittance(
+                                medium, lambda, ray, t_max, u, rng,
+                                [&](Point3 point, MediumSample ms, SpectrumSample sigma_maj, SpectrumSample T_maj) -> bool {
                                     if (beta.IsBlack())
                                     {
                                         terminated = true;
                                         return false;
                                     }
 
-                                    Float p_absorb = ms.sigma_a[wavelength] / sigma_maj[wavelength];
-                                    Float p_scatter = ms.sigma_s[wavelength] / sigma_maj[wavelength];
+                                    SpectrumSample sigma_a = ms.sigma_a;
+                                    SpectrumSample sigma_s = ms.sigma_s;
+
+                                    Float p_absorb = sigma_a[hero] / sigma_maj[hero];
+                                    Float p_scatter = sigma_s[hero] / sigma_maj[hero];
                                     Float p_null = std::max<Float>(0, 1 - p_absorb - p_scatter);
                                     Float events[3] = { p_absorb, p_scatter, p_null };
 
@@ -670,23 +649,19 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     switch (event)
                                     {
                                     case 0:
-                                    {
-                                        // Sampled absorption event
                                         terminated = true;
                                         return false;
-                                    }
 
                                     case 1:
                                     {
-                                        // Sampled real scattering event
                                         if (bounce++ >= max_bounces)
                                         {
                                             terminated = true;
                                             return false;
                                         }
 
-                                        Float pdf = T_maj[wavelength] * ms.sigma_s[wavelength];
-                                        beta *= T_maj * ms.sigma_s / pdf;
+                                        Float pdf = T_maj[hero] * sigma_s[hero];
+                                        beta *= T_maj * sigma_s / pdf;
 
                                         if (!sample_direct_light || bounce > 1)
                                         {
@@ -701,41 +676,44 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                                     return;
                                                 }
 
-                                                Spectrum phi = beta * vp.phase->p(vp.wo, wo);
-                                                for (int32 s = 0; s < 3; ++s)
+                                                SpectrumSample phi = beta * SpectrumSample(vp.phase->p(vp.wo, wo));
+                                                WavelengthSample photon_lambda = lambda;
+                                                if (vp.secondary_terminated)
                                                 {
-                                                    vp.phi_i_vol[s] += phi[s];
+                                                    photon_lambda.CollapseToPrimary();
                                                 }
 
-                                                ++vp.m_vol;
+                                                Vec3 phi_xyz = spectral::SpectrumSampleToXYZ(vp.beta * phi, photon_lambda);
+                                                for (int32 c = 0; c < 3; ++c)
+                                                {
+                                                    vp.phi_i_vol[c].fetch_add(phi_xyz[c], std::memory_order_relaxed);
+                                                }
+
+                                                vp.m_vol.fetch_add(1, std::memory_order_relaxed);
                                             });
                                         }
 
-                                        // Sample phase function to find next path direction
                                         PhaseFunctionSample phase_sample;
                                         if (!ms.phase->Sample_p(&phase_sample, wo, sampler->Next2D()))
                                         {
                                             terminated = true;
+                                            return false;
                                         }
 
                                         beta *= phase_sample.p / phase_sample.pdf;
-
                                         ray.o = point;
                                         ray.d = phase_sample.wi;
-
                                         scattered = true;
-
                                         return false;
                                     }
 
                                     case 2:
                                     {
-                                        // Sampled null scattering event, continue sampling
-                                        Spectrum sigma_n = Max<Float>(sigma_maj - ms.sigma_a - ms.sigma_s, 0);
-                                        Float pdf = T_maj[wavelength] * sigma_n[wavelength];
+                                        SpectrumSample sigma_n = Max(sigma_maj - sigma_a - sigma_s, 0);
+                                        Float pdf = T_maj[hero] * sigma_n[hero];
                                         if (pdf == 0)
                                         {
-                                            beta = Spectrum::black;
+                                            beta = SpectrumSample(0);
                                         }
                                         else
                                         {
@@ -759,12 +737,10 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             if (scattered)
                             {
-                                // Continue medium sampling
                                 continue;
                             }
 
-                            // It past the medium extent
-                            beta *= T_maj / T_maj[wavelength];
+                            beta *= T_maj / T_maj[hero];
                         }
 
                         if (!found_intersection)
@@ -779,7 +755,6 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         if (!sample_direct_light || bounce > 1)
                         {
-                            // Query hash grid for nearby visible points
                             grid.Query<VisiblePoint>(visible_points, isect.point, [&](VisiblePoint& vp) {
                                 if (!vp.primitive)
                                 {
@@ -801,15 +776,20 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     return;
                                 }
 
-                                // Compute photon flux and record to visible point
-                                Spectrum phi = beta * vp.bsdf.f(vp.wo, wo);
-
-                                for (int32 s = 0; s < 3; ++s)
+                                SpectrumSample phi = beta * vp.bsdf.f(vp.wo, wo);
+                                WavelengthSample photon_lambda = lambda;
+                                if (vp.secondary_terminated)
                                 {
-                                    vp.phi_i[s] += phi[s];
+                                    photon_lambda.CollapseToPrimary();
                                 }
 
-                                ++vp.m;
+                                Vec3 phi_xyz = spectral::SpectrumSampleToXYZ(vp.beta * phi, photon_lambda);
+                                for (int32 c = 0; c < 3; ++c)
+                                {
+                                    vp.phi_i[c].fetch_add(phi_xyz[c], std::memory_order_relaxed);
+                                }
+
+                                vp.m.fetch_add(1, std::memory_order_relaxed);
                             });
                         }
 
@@ -817,8 +797,10 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                         BufferResource bsdf_res(bsdf_mem, sizeof(bsdf_mem));
                         Allocator bsdf_alloc(&bsdf_res);
                         BSDF bsdf;
-                        if (!isect.GetBSDF(&bsdf, wo, bsdf_alloc))
+                        WavelengthSample path_lambda = lambda;
+                        if (!isect.GetBSDF(&bsdf, wo, path_lambda, bsdf_alloc))
                         {
+                            medium = isect.GetMedium(ray.d);
                             ray = Ray(isect.point, -wo);
                             --bounce;
                             continue;
@@ -830,21 +812,18 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             continue;
                         }
 
-                        Spectrum beta0 = beta;
+                        SpectrumSample beta0 = beta;
                         beta *= bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi) / bsdf_sample.pdf;
                         ray = Ray(isect.point, bsdf_sample.wi);
+                        medium = isect.GetMedium(bsdf_sample.wi);
 
-                        // Terminate path with russian roulette based on beta ratio
                         if (Float p = beta.MaxComponent() / beta0.MaxComponent(); p < 1)
                         {
                             if (sampler->Next1D() > p)
                             {
                                 break;
                             }
-                            else
-                            {
-                                beta /= p;
-                            }
+                            beta /= p;
                         }
                     }
                 }
@@ -860,29 +839,25 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                         int32 index = res.x * pixel.y + pixel.x;
                         VisiblePoint& vp = visible_points[index];
 
-                        const Float gamma = 2.0f / 3.0f;
+                        constexpr Float gamma = 2.0f / 3.0f;
                         if (int32 m = vp.m.load(std::memory_order_relaxed); m > 0)
                         {
-                            // Update effective photon count
                             Float n_new = vp.n + gamma * m;
-
-                            // Update search radius so that the expected photon density
-                            // inside the new radius matches the updated photon count
-                            // r_{i+1} = r_i * sqrt(N_{i+1} / (N_i + M_i))
                             Float r_new = vp.radius * std::sqrt(n_new / (vp.n + m));
 
-                            // Update τ, the accumulated flux scaled to remain consistent after the radius update:
-                            // tau_{i+1} = (tau_i + phi_i) * (r_{i+1}^2 / r_i^2)
-                            Spectrum phi_i(vp.phi_i[0], vp.phi_i[1], vp.phi_i[2]);
-                            vp.tau = (vp.tau + vp.beta * phi_i) * Sqr(r_new / vp.radius);
+                            Vec3 phi_i_xyz(0);
+                            for (int32 c = 0; c < 3; ++c)
+                            {
+                                phi_i_xyz[c] = vp.phi_i[c].load(std::memory_order_relaxed);
+                            }
 
+                            vp.tau = (vp.tau + phi_i_xyz) * Sqr(r_new / vp.radius);
                             vp.n = n_new;
                             vp.radius = r_new;
-
-                            vp.m = 0;
-                            for (int32 s = 0; s < 3; ++s)
+                            vp.m.store(0, std::memory_order_relaxed);
+                            for (int32 c = 0; c < 3; ++c)
                             {
-                                vp.phi_i[s] = 0;
+                                vp.phi_i[c].store(0, std::memory_order_relaxed);
                             }
                         }
 
@@ -891,20 +866,23 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             Float n_new = vp.n_vol + gamma * m_vol;
                             Float r_new = vp.radius_vol * std::sqrt(n_new / (vp.n_vol + m_vol));
 
-                            Spectrum phi_i_vol(vp.phi_i_vol[0], vp.phi_i_vol[1], vp.phi_i_vol[2]);
-                            vp.tau_vol = (vp.tau_vol + vp.beta * phi_i_vol) * Sqr(r_new / vp.radius_vol);
+                            Vec3 phi_i_vol_xyz(0);
+                            for (int32 c = 0; c < 3; ++c)
+                            {
+                                phi_i_vol_xyz[c] = vp.phi_i_vol[c].load(std::memory_order_relaxed);
+                            }
 
+                            vp.tau_vol = (vp.tau_vol + phi_i_vol_xyz) * Sqr(r_new / vp.radius_vol);
                             vp.n_vol = n_new;
                             vp.radius_vol = r_new;
-
-                            vp.m_vol = 0;
-                            for (int32 s = 0; s < 3; ++s)
+                            vp.m_vol.store(0, std::memory_order_relaxed);
+                            for (int32 c = 0; c < 3; ++c)
                             {
-                                vp.phi_i_vol[s] = 0;
+                                vp.phi_i_vol[c].store(0, std::memory_order_relaxed);
                             }
                         }
 
-                        vp.beta = Spectrum::black;
+                        vp.beta = SpectrumSample(0);
                         vp.bsdf = {};
                         vp.phase = nullptr;
                     }
@@ -912,18 +890,18 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                 tile_size
             );
 
-            if (iteration < n_interations - 1)
+            if (iteration < n_iterations - 1)
             {
                 progress->phase_dones[2 * iteration + 1].store(true, std::memory_order_release);
             }
 
-            for (size_t i = 0; i < thread_buffers.size(); ++i)
+            for (std::unique_ptr<BufferResource>& thread_buffer : thread_buffers)
             {
-                thread_buffers[i]->release();
+                thread_buffer->release();
             }
         }
 
-        size_t total_photons = n_interations * photons_per_iteration;
+        size_t total_photons = n_iterations * photons_per_iteration;
 
         ParallelFor2D(
             res,
@@ -933,21 +911,18 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                     int32 index = res.x * pixel.y + pixel.x;
                     VisiblePoint& vp = visible_points[index];
 
-                    Spectrum L = vp.Ld / n_interations;
-
-                    const Float circle_area = pi * vp.radius * vp.radius;
-                    const Float sphere_volume = 4 / 3.0f * pi * vp.radius_vol * vp.radius_vol * vp.radius_vol;
+                    Vec3 L = vp.Ld / n_iterations;
+                    Float circle_area = pi * vp.radius * vp.radius;
+                    Float sphere_volume = 4 / 3.0f * pi * vp.radius_vol * vp.radius_vol * vp.radius_vol;
                     L += vp.tau / (total_photons * circle_area);
                     L += vp.tau_vol / (total_photons * sphere_volume);
-
                     progress->film.AddSample(pixel, L);
                 }
             },
             tile_size
         );
 
-        progress->phase_dones[2 * (n_interations - 1) + 1].store(true, std::memory_order_release);
-
+        progress->phase_dones[2 * (n_iterations - 1) + 1].store(true, std::memory_order_release);
         return true;
     });
 

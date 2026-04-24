@@ -16,22 +16,24 @@ void DirectionalLight::Preprocess(const AABB& world_bounds)
     world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
 }
 
-Spectrum DirectionalLight::Le(const Intersection& isect, const Vec3& wo) const
+SpectrumSample DirectionalLight::Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const
 {
-    BulbitAssert(false);
     BulbitNotUsed(isect);
     BulbitNotUsed(wo);
-    return Spectrum::black;
-}
-
-Spectrum DirectionalLight::Le(const Ray& ray) const
-{
+    BulbitNotUsed(lambda);
     BulbitAssert(false);
-    BulbitNotUsed(ray);
-    return Spectrum::black;
+    return SpectrumSample(0);
 }
 
-bool DirectionalLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
+SpectrumSample DirectionalLight::Le(const Ray& ray, const WavelengthSample& lambda) const
+{
+    BulbitNotUsed(ray);
+    BulbitNotUsed(lambda);
+    BulbitAssert(false);
+    return SpectrumSample(0);
+}
+
+bool DirectionalLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const
 {
     BulbitNotUsed(u);
 
@@ -40,8 +42,7 @@ bool DirectionalLight::Sample_Li(LightSampleLi* sample, const Intersection& ref,
     sample->point = ref.point + w * 2 * world_radius;
     sample->pdf = 1;
     sample->visibility = 2 * world_radius;
-    sample->Li = intensity;
-
+    sample->Li = intensity.Sample(lambda);
     return true;
 }
 
@@ -52,12 +53,11 @@ Float DirectionalLight::EvaluatePDF_Li(const Ray& ray) const
     return 0;
 }
 
-bool DirectionalLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
+bool DirectionalLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const
 {
     BulbitNotUsed(u1);
 
     Frame frame(w);
-
     Point2 u_disk = SampleUniformUnitDiskConcentric(u0);
     Point3 p_disk = world_center + world_radius * frame.FromLocal(Point3(u_disk, 0));
 
@@ -65,9 +65,8 @@ bool DirectionalLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) co
     sample->normal = Vec3(0);
     sample->pdf_p = 1 / (pi * Sqr(world_radius));
     sample->pdf_w = 1;
-    sample->Le = intensity;
+    sample->Le = intensity.Sample(lambda);
     sample->medium = nullptr;
-
     return true;
 }
 
@@ -89,9 +88,9 @@ void DirectionalLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& is
     BulbitAssert(false);
 }
 
-Spectrum DirectionalLight::Phi() const
+Float DirectionalLight::Power() const
 {
-    return intensity * pi * Sqr(world_radius);
+    return intensity.Luminance() * pi * Sqr(world_radius);
 }
 
 } // namespace bulbit

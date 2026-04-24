@@ -19,8 +19,12 @@ public:
     virtual void SampleRay(PrimaryRay* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const override;
 
     virtual Spectrum We(const Ray& ray, Point2* p_raster = nullptr) const override;
+    virtual SpectrumSample We(const Ray& ray, const WavelengthSample& lambda, Point2* p_raster = nullptr) const override;
     virtual void PDF_We(Float* pdf_p, Float* pdf_w, const Ray& ray) const override;
     virtual bool SampleWi(CameraSampleWi* sample, const Intersection& ref, Point2 u) const override;
+    virtual bool SampleWi(
+        SampledCameraSampleWi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda
+    ) const override;
 
 private:
     Point3 origin;
@@ -49,8 +53,12 @@ public:
     virtual void SampleRay(PrimaryRay* out_ray, const Point2i& pixel, Point2 u0, Point2 u1) const override;
 
     virtual Spectrum We(const Ray& ray, Point2* p_raster = nullptr) const override;
+    virtual SpectrumSample We(const Ray& ray, const WavelengthSample& lambda, Point2* p_raster = nullptr) const override;
     virtual void PDF_We(Float* pdf_p, Float* pdf_w, const Ray& ray) const override;
     virtual bool SampleWi(CameraSampleWi* sample, const Intersection& ref, Point2 u) const override;
+    virtual bool SampleWi(
+        SampledCameraSampleWi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda
+    ) const override;
 
 private:
     Point3 origin;

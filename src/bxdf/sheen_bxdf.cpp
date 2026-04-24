@@ -3,13 +3,13 @@
 namespace bulbit
 {
 
-Spectrum SheenBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
+SpectrumSample SheenBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     BulbitNotUsed(direction);
 
     if (!SameHemisphere(wo, wi))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Vec3 wm = Normalize(wi + wo);
@@ -20,8 +20,8 @@ Spectrum SheenBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
     Float denom = std::abs(4 * cos_theta_i * cos_theta_o);
 
     // Combine with lambertian BRDF by albedo normalization technique
-    Spectrum f_diffuse = (1 - mf.E(wo)) * base * inv_pi;
-    Spectrum f_sheen = sheen * mf.D(wm) * mf.G(wo, wi) / denom;
+    SpectrumSample f_diffuse = (1 - mf.E(wo)) * base * inv_pi;
+    SpectrumSample f_sheen = sheen * mf.D(wm) * mf.G(wo, wi) / denom;
 
     return f_diffuse + f_sheen;
 }
@@ -60,8 +60,8 @@ bool SheenBxDF::Sample_f(
 
     Float denom = std::abs(4 * cos_theta_i * cos_theta_o);
 
-    Spectrum f_diffuse = (1 - mf.E(wo)) * base * inv_pi;
-    Spectrum f_sheen = sheen * mf.D(wm) * mf.G(wo, wi) / denom;
+    SpectrumSample f_diffuse = (1 - mf.E(wo)) * base * inv_pi;
+    SpectrumSample f_sheen = sheen * mf.D(wm) * mf.G(wo, wi) / denom;
 
     *sample = BSDFSample(f_diffuse + f_sheen, wi, pdf, BxDF_Flags::DiffuseReflection);
     return true;

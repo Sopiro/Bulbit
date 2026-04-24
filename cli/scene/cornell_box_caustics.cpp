@@ -12,7 +12,9 @@ void CornellBoxCaustics(RendererInfo* ri)
     auto box = CreateDiffuseMaterial(scene, Spectrum(.73f, .73f, .73f));
     auto mirror = CreateMirrorMaterial(scene, Spectrum(0.73f));
     auto mix = CreateMixtureMaterial(scene, red, blue, 0.5f);
-    auto ss = CreateSubsurfaceRandomWalkMaterial(scene, Spectrum(1.0), Spectrum(0.5, 0.25, 0.125) * 0.03, 1.0f, 0.0f);
+    auto ss = CreateSubsurfaceRandomWalkMaterial(
+        scene, Spectrum(1.0), Spectrum(0.5f * 0.03f, 0.25f * 0.03f, 0.125f * 0.03f), 1.0f, 0.0f
+    );
     auto glass = CreateDielectricMaterial(scene, 1.5f);
     auto water = CreateDielectricMaterial(scene, 1.333f);
     auto rough_glass = CreateDielectricMaterial(scene, 1.5f, 0.2f);

@@ -10,6 +10,7 @@ ImageInfiniteLight::ImageInfiniteLight(const SpectrumImageTexture* l_map, const 
     : Light(TypeIndexOf<ImageInfiniteLight>())
     , l_map{ l_map }
     , l_scale{ l_scale }
+    , l_map_mean_luminance{ l_map ? l_map->MeanLuminance() : 0.0f }
     , transform{ tf }
 {
     int32 width = l_map->GetWidth();
@@ -23,8 +24,7 @@ ImageInfiniteLight::ImageInfiniteLight(const SpectrumImageTexture* l_map, const 
 
         for (int32 u = 0; u < width; ++u)
         {
-            Float up = Float(u) / width;
-            image[u + v * width] = (Float)std::fmax(0, sin_theta * l_map->Evaluate(Point2(up, vp)).Luminance());
+            image[u + v * width] = (Float)std::fmax(0, sin_theta * l_map->GetTexel(u, v).Luminance());
         }
     }
 
@@ -41,24 +41,26 @@ void ImageInfiniteLight::Preprocess(const AABB& world_bounds)
     world_bounds.ComputeBoundingSphere(&world_center, &world_radius);
 }
 
-Spectrum ImageInfiniteLight::Le(const Intersection& isect, const Vec3& wo) const
+SpectrumSample ImageInfiniteLight::Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const
 {
-    BulbitAssert(false);
     BulbitNotUsed(isect);
     BulbitNotUsed(wo);
-    return Spectrum::black;
+    BulbitNotUsed(lambda);
+    BulbitAssert(false);
+    return SpectrumSample(0);
 }
 
-Spectrum ImageInfiniteLight::Le(const Ray& ray) const
+SpectrumSample ImageInfiniteLight::Le(const Ray& ray, const WavelengthSample& lambda) const
 {
     Vec3 w = MulT(transform, Normalize(ray.d));
     Float theta = SphericalTheta(w), phi = SphericalPhi(w);
     Point2 uv(phi * inv_two_pi, 1 - theta * inv_pi);
-
-    return l_scale * l_map->Evaluate(uv);
+    return l_scale * l_map->Evaluate(uv, lambda);
 }
 
-bool ImageInfiniteLight::Sample_Li(LightSampleLi* light_sample, const Intersection& ref, Point2 u) const
+bool ImageInfiniteLight::Sample_Li(
+    LightSampleLi* light_sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda
+) const
 {
     Float map_pdf;
     Point2 uv = distribution->SampleContinuous(u, &map_pdf);
@@ -89,8 +91,7 @@ bool ImageInfiniteLight::Sample_Li(LightSampleLi* light_sample, const Intersecti
     }
 
     light_sample->visibility = 2 * world_radius;
-    light_sample->Li = l_scale * l_map->Evaluate(uv);
-
+    light_sample->Li = l_scale * l_map->Evaluate(uv, lambda);
     return true;
 }
 
@@ -108,7 +109,7 @@ Float ImageInfiniteLight::EvaluatePDF_Li(const Ray& ray) const
     return distribution->PDF(uv) / (2 * Sqr(pi) * sin_theta);
 }
 
-bool ImageInfiniteLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
+bool ImageInfiniteLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const
 {
     Float map_pdf;
     Point2 uv = distribution->SampleContinuous(u1, &map_pdf);
@@ -127,7 +128,6 @@ bool ImageInfiniteLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) 
     Vec3 wo = -Mul(transform, SphericalDirectionY(sin_theta, cos_theta, sin_phi, cos_phi));
 
     Frame frame(wo);
-
     Point2 u_disk = SampleUniformUnitDiskConcentric(u0);
     Point3 p_disk = world_center + world_radius * frame.FromLocal(Point3(u_disk, 0));
 
@@ -135,9 +135,8 @@ bool ImageInfiniteLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) 
     sample->normal = Vec3(0);
     sample->pdf_p = 1 / (pi * Sqr(world_radius));
     sample->pdf_w = map_pdf / (2 * Sqr(pi) * sin_theta);
-    sample->Le = l_scale * l_map->Evaluate(uv);
+    sample->Le = l_scale * l_map->Evaluate(uv, lambda);
     sample->medium = nullptr;
-
     return true;
 }
 
@@ -169,9 +168,9 @@ void ImageInfiniteLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& 
     BulbitAssert(false);
 }
 
-Spectrum ImageInfiniteLight::Phi() const
+Float ImageInfiniteLight::Power() const
 {
-    return l_scale * l_map->Average() * four_pi * pi * Sqr(world_radius);
+    return l_map_mean_luminance * l_scale * four_pi * pi * Sqr(world_radius);
 }
 
 } // namespace bulbit

@@ -3,16 +3,16 @@
 namespace bulbit
 {
 
-Spectrum NormalizedFresnelBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
+SpectrumSample NormalizedFresnelBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     if (!SameHemisphere(wo, wi))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     // Normalization constant
     Float c = 1 / (pi * (1 - 2 * FresnelMoment1(1 / eta)));
-    Spectrum f(c * (1 - FresnelDielectric(CosTheta(wi), eta)));
+    SpectrumSample f(c * (1 - FresnelDielectric(CosTheta(wi), eta)));
 
     // Handle solid angle squeezing for BSSRDF transmission
     if (direction == TransportDirection::ToLight)

@@ -81,6 +81,38 @@ Spectrum PerspectiveCamera::We(const Ray& ray, Point2* p_raster) const
     return Spectrum(1 / (A_viewport * A_lens * Sqr(Sqr(cos_theta))));
 }
 
+SpectrumSample PerspectiveCamera::We(const Ray& ray, const WavelengthSample& lambda, Point2* p_raster) const
+{
+    BulbitNotUsed(lambda);
+
+    Float cos_theta = Dot(w, ray.d);
+    if (cos_theta <= 0)
+    {
+        return SpectrumSample(0);
+    }
+
+    Point3 p_focus = ray.At(focus_distance / cos_theta);
+
+    Vec3 ll2p = p_focus - lower_left;
+    Float w2 = Length2(horizontal);
+    Float h2 = Length2(vertical);
+
+    Float px = resolution.x * Dot(horizontal, ll2p) / w2;
+    Float py = resolution.y * Dot(vertical, ll2p) / h2;
+
+    if (p_raster)
+    {
+        *p_raster = Point2(px, py);
+    }
+
+    if (px < 0 || px >= resolution.x || py < 0 || py >= resolution.y)
+    {
+        return SpectrumSample(0);
+    }
+
+    return SpectrumSample(1 / (A_viewport * A_lens * Sqr(Sqr(cos_theta))));
+}
+
 void PerspectiveCamera::PDF_We(Float* pdf_p, Float* pdf_w, const Ray& ray) const
 {
     Float cos_theta = Dot(w, ray.d);
@@ -125,12 +157,38 @@ bool PerspectiveCamera::SampleWi(CameraSampleWi* sample, const Intersection& ref
 
     Point2 p_raster;
     Spectrum Wi = We(Ray(p_aperture, -wi), &p_raster);
-    if (Wi == Spectrum::black)
+    if (Wi.IsBlack())
     {
         return false;
     }
 
     *sample = CameraSampleWi(Wi, wi, pdf, p_raster, p_aperture, w, medium);
+
+    return true;
+}
+
+bool PerspectiveCamera::SampleWi(
+    SampledCameraSampleWi* sample, const Intersection& ref, Point2 u0, const WavelengthSample& lambda
+) const
+{
+    Point2 aperture_sample = lens_radius * SampleUniformUnitDiskConcentric(u0);
+    Point3 aperture_offset = u * aperture_sample.x + v * aperture_sample.y;
+    Point3 p_aperture = origin + aperture_offset;
+
+    Vec3 wi = p_aperture - ref.point;
+    Float dist = wi.Normalize();
+
+    Float leas_area = lens_radius != 0 ? (pi * Sqr(lens_radius)) : 1;
+    Float pdf = Sqr(dist) / (AbsDot(w, wi) * leas_area);
+
+    Point2 p_raster;
+    SpectrumSample Wi = We(Ray(p_aperture, -wi), lambda, &p_raster);
+    if (Wi.IsBlack())
+    {
+        return false;
+    }
+
+    *sample = SampledCameraSampleWi(Wi, wi, pdf, p_raster, p_aperture, w, medium);
 
     return true;
 }

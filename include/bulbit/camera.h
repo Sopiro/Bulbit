@@ -33,6 +33,31 @@ struct CameraSampleWi
     const Medium* medium;
 };
 
+struct SampledCameraSampleWi
+{
+    SampledCameraSampleWi() = default;
+    SampledCameraSampleWi(
+        SpectrumSample Wi, Vec3 wi, Float pdf, Point2 p_raster, Point3 p_aperture, Vec3 normal, const Medium* medium
+    )
+        : Wi{ Wi }
+        , wi{ wi }
+        , pdf{ pdf }
+        , p_raster{ p_raster }
+        , p_aperture{ p_aperture }
+        , normal{ normal }
+        , medium{ medium }
+    {
+    }
+
+    SpectrumSample Wi;
+    Vec3 wi;
+    Float pdf;
+    Point2 p_raster;
+    Point3 p_aperture;
+    Vec3 normal;
+    const Medium* medium;
+};
+
 struct PrimaryRay
 {
     Ray ray;
@@ -60,8 +85,10 @@ public:
 
     // Image measurement importance functions
     virtual Spectrum We(const Ray& ray, Point2* p_raster = nullptr) const;
+    virtual SpectrumSample We(const Ray& ray, const WavelengthSample& lambda, Point2* p_raster = nullptr) const;
     virtual void PDF_We(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     virtual bool SampleWi(CameraSampleWi* sample, const Intersection& ref, Point2 u) const;
+    virtual bool SampleWi(SampledCameraSampleWi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const;
 
     const Point2i& GetScreenResolution() const;
     const Medium* GetMedium() const;
@@ -104,12 +131,33 @@ inline void Camera::PDF_We(Float* pdf_p, Float* pdf_w, const Ray& ray) const
     BulbitNotUsed(ray);
 }
 
+inline SpectrumSample Camera::We(const Ray& ray, const WavelengthSample& lambda, Point2* p_raster) const
+{
+    BulbitNotUsed(ray);
+    BulbitNotUsed(lambda);
+    BulbitNotUsed(p_raster);
+    BulbitAssert(false && "Not implemented");
+    return SpectrumSample(0);
+}
+
 inline bool Camera::SampleWi(CameraSampleWi* sample, const Intersection& ref, Point2 u) const
 {
     BulbitAssert(false && "Not implemented");
     BulbitNotUsed(sample);
     BulbitNotUsed(ref);
     BulbitNotUsed(u);
+    return false;
+}
+
+inline bool Camera::SampleWi(
+    SampledCameraSampleWi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda
+) const
+{
+    BulbitNotUsed(sample);
+    BulbitNotUsed(ref);
+    BulbitNotUsed(u);
+    BulbitNotUsed(lambda);
+    BulbitAssert(false && "Not implemented");
     return false;
 }
 

@@ -21,10 +21,10 @@ BiDirectionalPathIntegrator::BiDirectionalPathIntegrator(
 }
 
 int32 BiDirectionalPathIntegrator::SampleCameraPath(
-    Vertex* path, const Ray& ray, const Camera* camera, Sampler& sampler, Allocator& alloc
+    Vertex* path, const Ray& ray, const Camera* camera, WavelengthSample& lambda, Sampler& sampler, Allocator& alloc
 ) const
 {
-    Spectrum beta(1);
+    SpectrumSample beta(1);
     Float pdf_p, pdf_w;
     camera->PDF_We(&pdf_p, &pdf_w, ray);
 
@@ -39,7 +39,7 @@ int32 BiDirectionalPathIntegrator::SampleCameraPath(
         v.shading_normal = Vec3::zero;
         v.wo = Vec3::zero;
 
-        v.beta = Spectrum(1);
+        v.beta = SpectrumSample(1);
         v.delta = false;
 
         v.pdf_fwd = 1;
@@ -47,11 +47,14 @@ int32 BiDirectionalPathIntegrator::SampleCameraPath(
     }
 
     return 1 + RandomWalk(
-                   this, path + 1, ray, beta, pdf_w, max_bounces + 1, rr_min_bounces, TransportDirection::ToLight, sampler, alloc
+                   this, path + 1, ray, lambda, beta, pdf_w, max_bounces + 1, rr_min_bounces, TransportDirection::ToLight,
+                   sampler, alloc
                );
 }
 
-int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sampler, Allocator& alloc) const
+int32 BiDirectionalPathIntegrator::SampleLightPath(
+    Vertex* path, WavelengthSample& lambda, Sampler& sampler, Allocator& alloc
+) const
 {
     Intersection isect;
     SampledLight sl;
@@ -61,7 +64,7 @@ int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sample
     }
 
     LightSampleLe light_sample;
-    if (!sl.light->Sample_Le(&light_sample, sampler.Next2D(), sampler.Next2D()))
+    if (!sl.light->Sample_Le(&light_sample, sampler.Next2D(), sampler.Next2D(), lambda))
     {
         return 0;
     }
@@ -85,7 +88,7 @@ int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sample
         v.pdf_rev = 0;
     }
 
-    Spectrum beta = light_sample.Le / (sl.pmf * light_sample.pdf_p * light_sample.pdf_w);
+    SpectrumSample beta = light_sample.Le / (sl.pmf * light_sample.pdf_p * light_sample.pdf_w);
     if (light_sample.normal != Vec3::zero)
     {
         beta *= AbsDot(light_sample.normal, light_sample.ray.d);
@@ -93,8 +96,8 @@ int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sample
 
     // Note light paths sample one fewer vertex than the target path length
     int32 num_light_vertices = RandomWalk(
-        this, path + 1, light_sample.ray, beta, light_sample.pdf_w, max_bounces, rr_min_bounces, TransportDirection::ToCamera,
-        sampler, alloc
+        this, path + 1, light_sample.ray, lambda, beta, light_sample.pdf_w, max_bounces, rr_min_bounces,
+        TransportDirection::ToCamera, sampler, alloc
     );
 
     // Correct sampling densities for initial infinite light vertex
@@ -129,8 +132,13 @@ int32 BiDirectionalPathIntegrator::SampleLightPath(Vertex* path, Sampler& sample
     return 1 + num_light_vertices;
 }
 
-Spectrum BiDirectionalPathIntegrator::L(
-    const Ray& primary_ray, const Medium* primary_medium, const Camera* camera, Film& film, Sampler& sampler
+SpectrumSample BiDirectionalPathIntegrator::L(
+    const Ray& primary_ray,
+    const Medium* primary_medium,
+    WavelengthSample& lambda,
+    const Camera* camera,
+    Film& film,
+    Sampler& sampler
 ) const
 {
     BulbitNotUsed(primary_medium);
@@ -143,10 +151,10 @@ Spectrum BiDirectionalPathIntegrator::L(
     Vertex* camera_path = (Vertex*)path_alloc.allocate(sizeof(Vertex) * (max_bounces + 2));
     Vertex* light_path = (Vertex*)path_alloc.allocate(sizeof(Vertex) * (max_bounces + 2));
 
-    int32 num_camera_vertices = SampleCameraPath(camera_path, primary_ray, camera, sampler, vertex_alloc);
-    int32 num_light_vertices = SampleLightPath(light_path, sampler, vertex_alloc);
+    int32 num_camera_vertices = SampleCameraPath(camera_path, primary_ray, camera, lambda, sampler, vertex_alloc);
+    int32 num_light_vertices = SampleLightPath(light_path, lambda, sampler, vertex_alloc);
 
-    Spectrum Li(0);
+    SpectrumSample Li(0);
 
     for (int32 t = 1; t <= num_camera_vertices; ++t)
     {
@@ -159,11 +167,11 @@ Spectrum BiDirectionalPathIntegrator::L(
             }
 
             Point2 p_raster;
-            Spectrum L_path = ConnectPaths(this, light_path, camera_path, s, t, camera, sampler, &p_raster);
+            SpectrumSample L_path = ConnectPaths(this, light_path, camera_path, s, t, camera, lambda, sampler, &p_raster);
 
             if (t == 1)
             {
-                film.AddSplat(p_raster, L_path);
+                film.AddSplat(p_raster, L_path, lambda);
             }
             else
             {

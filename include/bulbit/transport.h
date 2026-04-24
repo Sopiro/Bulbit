@@ -15,7 +15,8 @@ int32 RandomWalk(
     const Integrator* integrator,
     Vertex* path,
     Ray ray,
-    Spectrum beta,
+    WavelengthSample& lambda,
+    SpectrumSample beta,
     Float pdf,
     int32 max_bounces,
     int32 rr_min_bounces,
@@ -29,8 +30,8 @@ int32 RandomWalkVol(
     Vertex* path,
     Ray ray,
     const Medium* medium,
-    int32 wavelength,
-    Spectrum beta,
+    WavelengthSample& lambda,
+    SpectrumSample beta,
     Float pdf,
     int32 max_bounces,
     int32 rr_min_bounces,
@@ -39,25 +40,26 @@ int32 RandomWalkVol(
     Allocator& alloc
 );
 
-Spectrum ConnectPaths(
+SpectrumSample ConnectPaths(
     const Integrator* integrator,
     Vertex* light_path,
     Vertex* camera_path,
     int32 s,
     int32 t,
     const Camera* camera,
+    const WavelengthSample& lambda,
     Sampler& sampler,
     Point2* p_raster
 );
 
-Spectrum ConnectPathsVol(
+SpectrumSample ConnectPathsVol(
     const Integrator* integrator,
     Vertex* light_path,
     Vertex* camera_path,
     int32 s,
     int32 t,
     const Camera* camera,
-    int32 wavelength,
+    const WavelengthSample& lambda,
     Sampler& sampler,
     Point2* p_raster
 );

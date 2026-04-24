@@ -188,11 +188,12 @@ Rendering* UniDirectionalRayIntegrator::Render(Allocator& alloc, const Camera* c
 
                         PrimaryRay primary_ray;
                         camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
+                        WavelengthSample lambda = WavelengthSample::Sample(sampler->Next1D());
 
-                        Spectrum L = Li(primary_ray.ray, camera->GetMedium(), *sampler);
+                        SpectrumSample L = Li(primary_ray.ray, camera->GetMedium(), lambda, *sampler);
                         if (!L.IsNullish())
                         {
-                            progress->film.AddSample(pixel, primary_ray.weight * L);
+                            progress->film.AddSample(pixel, primary_ray.weight * L, lambda);
                         }
                     }
                 }
@@ -246,11 +247,12 @@ Rendering* BiDirectionalRayIntegrator::Render(Allocator& alloc, const Camera* ca
 
                         PrimaryRay primary_ray;
                         camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
+                        WavelengthSample lambda = WavelengthSample::Sample(sampler->Next1D());
 
-                        Spectrum Li = L(primary_ray.ray, camera->GetMedium(), camera, progress->film, *sampler);
+                        SpectrumSample Li = L(primary_ray.ray, camera->GetMedium(), lambda, camera, progress->film, *sampler);
                         if (!Li.IsNullish())
                         {
-                            progress->film.AddSample(pixel, primary_ray.weight * Li);
+                            progress->film.AddSample(pixel, primary_ray.weight * Li, lambda);
                         }
                     }
                 }

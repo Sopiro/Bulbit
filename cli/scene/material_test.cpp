@@ -20,7 +20,7 @@ void MaterialTest(RendererInfo* ri)
         LoadModel(scene, "res/background.obj", tf, options);
     }
 
-    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+    auto normalmap = CreateFloat3ImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* white = CreateDiffuseMaterial(scene, 1.0f);
     const Material* air = CreateDielectricMaterial(scene, 1.0f);
@@ -102,7 +102,7 @@ void MetallicRoughness(RendererInfo* ri)
 
     const int32 count = 3;
 
-    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+    auto normalmap = CreateFloat3ImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
     outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.3f);
@@ -192,7 +192,7 @@ void Dielectrics(RendererInfo* ri)
 
     const int32 count = 3;
 
-    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+    auto normalmap = CreateFloat3ImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
     outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.15f);
@@ -282,17 +282,20 @@ void Skins(RendererInfo* ri)
 
     const int32 count = 3;
 
-    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+    auto normalmap = CreateFloat3ImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* skins[count];
     skins[1] = CreateSubsurfaceRandomWalkMaterial(
-        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 1.0, Spectrum(0.5, 0.25, 0.125) * 0.07, 1.38f, 0.2f
+        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0), Spectrum(0.5f * 0.07f, 0.25f * 0.07f, 0.125f * 0.07f),
+        1.38f, 0.2f
     );
     skins[0] = CreateSubsurfaceRandomWalkMaterial(
-        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 0.8, Spectrum(0.5, 0.25, 0.125) * 0.03, 1.38f, 0.2f
+        scene, Spectrum(0.8f, 195 / 255.0 * 0.8f, 150 / 255.0 * 0.8f), Spectrum(0.5f * 0.03f, 0.25f * 0.03f, 0.125f * 0.03f),
+        1.38f, 0.2f
     );
     skins[2] = CreateSubsurfaceRandomWalkMaterial(
-        scene, Spectrum(255 / 255.0, 195 / 255.0, 150 / 255.0) * 0.3, Spectrum(0.5, 0.25, 0.125) * 0.01, 1.38f, 0.2f
+        scene, Spectrum(0.3f, 195 / 255.0 * 0.3f, 150 / 255.0 * 0.3f), Spectrum(0.5f * 0.01f, 0.25f * 0.01f, 0.125f * 0.01f),
+        1.38f, 0.2f
     );
 
     for (int32 j = 0; j < h; ++j)
@@ -377,7 +380,7 @@ void Mixtures(RendererInfo* ri)
 
     const int32 count = 3;
 
-    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+    auto normalmap = CreateFloat3ImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
     auto a = CreateDielectricMaterial(scene, 1.5f, 0.0f);
@@ -477,7 +480,7 @@ void Alphas(RendererInfo* ri)
 
     const int32 count = 3;
 
-    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+    auto normalmap = CreateFloat3ImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
     outers[0] = CreateDiffuseMaterial(scene, Spectrum(.65f, .05f, .05f), 0, nullptr, 0.4f);
@@ -567,10 +570,17 @@ void ColoredDielectrics(RendererInfo* ri)
 
     const int32 count = 3;
 
-    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+    auto normalmap = CreateFloat3ImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
-    outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.0f, Sqrt(Spectrum(1.0f, 0.5f, 0.8f)));
+    {
+        std::array<Float, spectral::num_samples> transmittance = Spectrum(1.0f, 0.5f, 0.8f).Materialize();
+        for (Float& value : transmittance)
+        {
+            value = std::sqrt(value);
+        }
+        outers[0] = CreateDielectricMaterial(scene, 1.5f, 0.0f, Spectrum::FromData(transmittance));
+    }
     outers[1] = CreateDielectricMaterial(scene, 1.5f, 0.0f, Spectrum(1.0f));
     outers[2] = CreateDielectricMaterial(scene, 1.5f, 0.0f, Spectrum(1.0f, 0.5f, 0.8f));
 

@@ -4,30 +4,30 @@
 namespace bulbit
 {
 
-Spectrum ConductorBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
+SpectrumSample ConductorBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     BulbitNotUsed(direction);
 
     if (!SameHemisphere(wo, wi) || mf.EffectivelySmooth())
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Float cos_theta_o = AbsCosTheta(wo);
     Float cos_theta_i = AbsCosTheta(wi);
     if (cos_theta_i == 0 || cos_theta_o == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Vec3 wm = wo + wi;
     if (Length2(wm) == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
     wm.Normalize();
 
-    Spectrum F = FresnelComplex(AbsDot(wo, wm), eta, k);
+    SpectrumSample F = FresnelComplex(AbsDot(wo, wm), eta, k);
     return reflectance * F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
 }
 
@@ -76,7 +76,7 @@ bool ConductorBxDF::Sample_f(
     {
         // Sample perfect specular conductor BRDF
         Vec3 wi(-wo.x, -wo.y, wo.z);
-        Spectrum f = FresnelComplex(AbsCosTheta(wi), eta, k) / AbsCosTheta(wi);
+        SpectrumSample f = FresnelComplex(AbsCosTheta(wi), eta, k) / AbsCosTheta(wi);
         *sample = BSDFSample(reflectance * f, wi, 1, BxDF_Flags::SpecularReflection);
         return true;
     }
@@ -104,8 +104,8 @@ bool ConductorBxDF::Sample_f(
 
     Float pdf = mf.PDF(wo, wm) / (4 * AbsDot(wo, wm));
 
-    Spectrum F = FresnelComplex(AbsDot(wo, wm), eta, k);
-    Spectrum f = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
+    SpectrumSample F = FresnelComplex(AbsDot(wo, wm), eta, k);
+    SpectrumSample f = F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
 
     *sample = BSDFSample(reflectance * f, wi, pdf, BxDF_Flags::GlossyReflection);
     return true;

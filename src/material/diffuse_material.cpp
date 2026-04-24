@@ -8,7 +8,7 @@ namespace bulbit
 {
 
 DiffuseMaterial::DiffuseMaterial(
-    const SpectrumTexture* reflectance, const FloatTexture* roughness, const SpectrumTexture* normal, const FloatTexture* alpha
+    const SpectrumTexture* reflectance, const FloatTexture* roughness, const Float3Texture* normal, const FloatTexture* alpha
 )
     : Material(TypeIndexOf<DiffuseMaterial>())
     , reflectance{ reflectance }
@@ -18,10 +18,10 @@ DiffuseMaterial::DiffuseMaterial(
 {
 }
 
-bool DiffuseMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
+bool DiffuseMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, WavelengthSample& lambda, Allocator& alloc) const
 {
     Float r = roughness ? roughness->Evaluate(isect.uv) : 0;
-    Spectrum rho = reflectance->Evaluate(isect.uv);
+    SpectrumSample rho = reflectance->Evaluate(isect.uv, lambda);
 
     if (r > 0)
     {
@@ -35,10 +35,13 @@ bool DiffuseMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& 
     return true;
 }
 
-bool DiffuseMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
+bool DiffuseMaterial::GetBSSRDF(
+    BSSRDF** bssrdf, const Intersection& isect, const WavelengthSample& lambda, Allocator& alloc
+) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
+    BulbitNotUsed(lambda);
     BulbitNotUsed(alloc);
     return false;
 }
@@ -48,7 +51,7 @@ const FloatTexture* DiffuseMaterial::GetAlphaTexture() const
     return alpha;
 }
 
-const SpectrumTexture* DiffuseMaterial::GetNormalTexture() const
+const Float3Texture* DiffuseMaterial::GetNormalTexture() const
 {
     return normal;
 }

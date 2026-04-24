@@ -21,7 +21,7 @@ struct LightSampleLi
     Vec3 wi;
     Float visibility;
 
-    Spectrum Li;
+    SpectrumSample Li;
     Float pdf;
 };
 
@@ -32,7 +32,7 @@ struct LightSampleLe
     Ray ray;
     Vec3 normal;
     Float pdf_p, pdf_w;
-    Spectrum Le;
+    SpectrumSample Le;
     const Medium* medium;
 };
 
@@ -53,17 +53,17 @@ public:
 
     void Preprocess(const AABB& world_bounds);
 
-    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    Spectrum Le(const Ray& ray) const;
+    SpectrumSample Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const;
+    SpectrumSample Le(const Ray& ray, const WavelengthSample& lambda) const;
 
-    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
-    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
-    Spectrum Phi() const;
+    Float Power() const;
 
     bool IsDeltaLight() const;
     bool IsInfiniteLight() const;

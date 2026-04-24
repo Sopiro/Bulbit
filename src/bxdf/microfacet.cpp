@@ -145,8 +145,8 @@ void DielectricBxDF::PrepareReflectanceTexture(int32 texture_size, std::span<Flo
 
                     Vec3 wo(sin_theta, 0, cos_theta);
 
-                    DielectricBxDF bsdf_i(ior, TrowbridgeReitzDistribution(a, a), Spectrum(1));
-                    DielectricBxDF bsdf_t(1 / ior, TrowbridgeReitzDistribution(a, a), Spectrum(1));
+                    DielectricBxDF bsdf_i(ior, TrowbridgeReitzDistribution(a, a), SpectrumSample(1));
+                    DielectricBxDF bsdf_t(1 / ior, TrowbridgeReitzDistribution(a, a), SpectrumSample(1));
 
                     Float r = bsdf_i.rho(wo, u0, u12, TransportDirection::ToLight).Average();
                     Float r_inv = bsdf_t.rho(wo, u0, u12, TransportDirection::ToLight).Average();
@@ -206,8 +206,8 @@ void DielectricMultiScatteringBxDF::PrepareReflectanceTexture(int32 texture_size
 
                     Vec3 wo(sin_theta, 0, cos_theta);
 
-                    DielectricBxDF bsdf_i(ior, TrowbridgeReitzDistribution(a, a), Spectrum(1));
-                    DielectricBxDF bsdf_t(1 / ior, TrowbridgeReitzDistribution(a, a), Spectrum(1));
+                    DielectricBxDF bsdf_i(ior, TrowbridgeReitzDistribution(a, a), SpectrumSample(1));
+                    DielectricBxDF bsdf_t(1 / ior, TrowbridgeReitzDistribution(a, a), SpectrumSample(1));
 
                     Float r = bsdf_i.rho(wo, u0, u12, TransportDirection::ToCamera).Average();
                     Float r_inv = bsdf_t.rho(wo, u0, u12, TransportDirection::ToCamera).Average();

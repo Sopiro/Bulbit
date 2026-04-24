@@ -107,13 +107,13 @@ Float cltc_pdf(Vec3 wo_local, Vec3 wi_local, Float r)
 //  rho = single-scattering albedo
 //  r = roughness in [0,1]
 //  exact = flag to select exact or fast approx. version
-Spectrum EONBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
+SpectrumSample EONBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     BulbitNotUsed(direction);
 
     if (!SameHemisphere(wo, wi))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Float mu_i = wi.z;
@@ -123,17 +123,18 @@ Spectrum EONBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
     Float sovertF = s > 0 ? s / std::max(mu_i, mu_o) : s;
     Float AF = 1.0f / (1.0f + constant1_FON * r);
 
-    Spectrum f_ss = (rho * inv_pi) * AF * (1.0f + r * sovertF);
+    SpectrumSample f_ss = (rho * inv_pi) * AF * (1.0f + r * sovertF);
 
     Float EFo = exact ? E_FON_exact(mu_o, r) : E_FON_approx(mu_o, r);
     Float EFi = exact ? E_FON_exact(mu_i, r) : E_FON_approx(mu_i, r);
 
     Float avgEF = AF * (1.0f + constant2_FON * r);
 
-    Spectrum rho_ms = (rho * rho) * avgEF / (Spectrum(1.0f) - rho * (1.0f - avgEF));
+    SpectrumSample rho_ms = (rho * rho) * avgEF / (SpectrumSample(1.0f) - rho * (1.0f - avgEF));
     constexpr Float eps = 1.0e-7f;
 
-    Spectrum f_ms = (rho_ms * inv_pi) * std::max(eps, 1.0f - EFo) * std::max(eps, 1.0f - EFi) / std::max(eps, 1.0f - avgEF);
+    SpectrumSample f_ms =
+        (rho_ms * inv_pi) * std::max(eps, 1.0f - EFo) * std::max(eps, 1.0f - EFi) / std::max(eps, 1.0f - avgEF);
 
     return f_ss + f_ms;
 }

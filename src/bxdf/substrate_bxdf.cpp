@@ -22,26 +22,26 @@ Float SubstrateBxDF::GlossyProbability(Vec3 wo) const
     return Clamp(glossy / denominator, 0, 1);
 }
 
-Spectrum SubstrateBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
+SpectrumSample SubstrateBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
     BulbitNotUsed(direction);
 
     if (!SameHemisphere(wo, wi))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Float cos_theta_o = AbsCosTheta(wo);
     Float cos_theta_i = AbsCosTheta(wi);
     if (cos_theta_i == 0 || cos_theta_o == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Vec3 wm = wo + wi;
     if (Length2(wm) == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     wm.Normalize();
@@ -73,8 +73,8 @@ Spectrum SubstrateBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
     // This keeps the model local (BRDF-only), while approximating multi-bounce
     // energy that would otherwise require explicit sub-surface path simulation.
     // Integrators multiply by AbsDot(n, wi) outside.
-    Spectrum denom = Max(Spectrum(1) - reflectance * fresnel_avg, 1e-4f);
-    Spectrum diffuse = ((1 - F_i) * (1 - F_o) * Sqr(1 / eta) * inv_pi) * (reflectance / denom);
+    SpectrumSample denom = Max(SpectrumSample(1) - reflectance * fresnel_avg, 1e-4f);
+    SpectrumSample diffuse = ((1 - F_i) * (1 - F_o) * Sqr(1 / eta) * inv_pi) * (reflectance / denom);
 
     if (sigma_a_dt.MaxComponent() > 0)
     {
@@ -87,7 +87,7 @@ Spectrum SubstrateBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 
     // Glossy top-coat reflection (GGX microfacet dielectric BRDF).
     Float F = FresnelDielectric(Dot(wo, wm), eta);
-    Spectrum glossy(F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o));
+    SpectrumSample glossy(F * mf.D(wm) * mf.G(wo, wi) / (4 * cos_theta_i * cos_theta_o));
 
     return glossy + diffuse;
 }
@@ -180,7 +180,7 @@ bool SubstrateBxDF::Sample_f(
         return false;
     }
 
-    Spectrum r = f(wo, wi, direction);
+    SpectrumSample r = f(wo, wi, direction);
     if (r.IsBlack())
     {
         return false;

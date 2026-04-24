@@ -11,14 +11,17 @@ AOIntegrator::AOIntegrator(const Intersectable* accel, std::vector<Light*> light
 {
 }
 
-Spectrum AOIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium, Sampler& sampler) const
+SpectrumSample AOIntegrator::Li(
+    const Ray& primary_ray, const Medium* primary_medium, WavelengthSample& lambda, Sampler& sampler
+) const
 {
     BulbitNotUsed(primary_medium);
+    BulbitNotUsed(lambda);
 
     Intersection isect;
     if (!Intersect(&isect, primary_ray, Ray::epsilon, infinity))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Vec3 wi_local = SampleCosineHemisphere(sampler.Next2D());
@@ -26,7 +29,7 @@ Spectrum AOIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium, 
 
     if (wi_local.z <= 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Frame frame(isect.normal);
@@ -38,12 +41,12 @@ Spectrum AOIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium, 
 #if 0
         return Spectrum(wi_local.z * inv_pi / pdf);
 #else
-        return Spectrum(1); // importance sampling cancels all terms!
+        return SpectrumSample(1); // importance sampling cancels all terms!
 #endif
     }
     else
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 }
 

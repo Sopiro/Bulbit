@@ -67,11 +67,12 @@ struct Image
 };
 
 using Image1f = Image<Float>;
-using Image3f = Image<RGBSpectrum>;
+using Image3f = Image<Vec3>;
 using Image4f = Image<Vec4f>;
 using Image1 = Image1f;
 using Image3 = Image3f;
 using Image4 = Image4f;
+using Float3Image = Image<Vec3>;
 
 Image1 ReadImage1(
     const std::filesystem::path& filename,

@@ -17,7 +17,7 @@ LayeredMaterial::LayeredMaterial(
     Float g,
     int32 max_bounces,
     int32 samples,
-    const SpectrumTexture* normal,
+    const Float3Texture* normal,
     const FloatTexture* alpha
 )
     : Material(TypeIndexOf<LayeredMaterial>())
@@ -36,10 +36,10 @@ LayeredMaterial::LayeredMaterial(
     BulbitAssert(bottom != nullptr);
 }
 
-bool LayeredMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
+bool LayeredMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, WavelengthSample& lambda, Allocator& alloc) const
 {
     BSDF top_bsdf, bottom_bsdf;
-    if (!top->GetBSDF(&top_bsdf, isect, alloc) || !bottom->GetBSDF(&bottom_bsdf, isect, alloc))
+    if (!top->GetBSDF(&top_bsdf, isect, lambda, alloc) || !bottom->GetBSDF(&bottom_bsdf, isect, lambda, alloc))
     {
         return false;
     }
@@ -47,17 +47,20 @@ bool LayeredMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& 
     *bsdf = BSDF(
         isect.shading.normal, isect.shading.tangent,
         alloc.new_object<LayeredBxDF>(
-            top_bsdf.GetBxDF(), bottom_bsdf.GetBxDF(), two_sided, albedo, thickness, g, max_bounces, samples
+            top_bsdf.GetBxDF(), bottom_bsdf.GetBxDF(), two_sided, albedo.Sample(lambda), thickness, g, max_bounces, samples
         )
     );
 
     return true;
 }
 
-bool LayeredMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
+bool LayeredMaterial::GetBSSRDF(
+    BSSRDF** bssrdf, const Intersection& isect, const WavelengthSample& lambda, Allocator& alloc
+) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
+    BulbitNotUsed(lambda);
     BulbitNotUsed(alloc);
     return false;
 }
@@ -67,7 +70,7 @@ const FloatTexture* LayeredMaterial::GetAlphaTexture() const
     return alpha;
 }
 
-const SpectrumTexture* LayeredMaterial::GetNormalTexture() const
+const Float3Texture* LayeredMaterial::GetNormalTexture() const
 {
     return normal;
 }

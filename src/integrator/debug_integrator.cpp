@@ -8,7 +8,9 @@ DebugIntegrator::DebugIntegrator(const Intersectable* accel, std::vector<Light*>
 {
 }
 
-Spectrum DebugIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium, Sampler& sampler) const
+SpectrumSample DebugIntegrator::Li(
+    const Ray& primary_ray, const Medium* primary_medium, WavelengthSample& lambda, Sampler& sampler
+) const
 {
     BulbitNotUsed(primary_medium);
     BulbitNotUsed(sampler);
@@ -16,7 +18,7 @@ Spectrum DebugIntegrator::Li(const Ray& primary_ray, const Medium* primary_mediu
     Intersection isect;
     if (!Intersect(&isect, primary_ray, Ray::epsilon, infinity))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     // const Material* mat = isect.primitive->GetMaterial();
@@ -25,7 +27,7 @@ Spectrum DebugIntegrator::Li(const Ray& primary_ray, const Medium* primary_mediu
     // Vec3 wo = Normalize(Reflect(wi, isect.normal));
 
     // return Spectrum(1 / (1 + isect.t));
-    return Spectrum(isect.shading.normal) * 0.5 + Spectrum(0.5);
+    return Spectrum::FromRGB(isect.shading.normal * 0.5f + Vec3(0.5f)).Sample(lambda);
 }
 
 } // namespace bulbit

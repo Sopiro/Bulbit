@@ -5,6 +5,8 @@
 namespace bulbit
 {
 
+using Float3 = Vec3;
+
 template <typename T>
 struct Texture
 {
@@ -15,7 +17,15 @@ struct Texture
 };
 
 using FloatTexture = Texture<Float>;
-using SpectrumTexture = Texture<Spectrum>;
+using Float3Texture = Texture<Vec3>;
+
+struct SpectrumTexture
+{
+    virtual ~SpectrumTexture() = default;
+
+    virtual SpectrumSample Evaluate(const Point2& uv, const WavelengthSample& lambda) const = 0;
+    virtual Float MeanLuminance() const = 0;
+};
 
 enum TexCoordFilter
 {

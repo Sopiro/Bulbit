@@ -1,361 +1,473 @@
 #pragma once
 
-#include "math.h"
-#include "vectors.h"
+#include "spectral_data.h"
 
 namespace bulbit
 {
 
-using Spectrum = struct RGBSpectrum;
+struct SpectrumSample;
+struct WavelengthSample;
 
-struct RGBSpectrum
+class Spectrum
 {
-    Float r, g, b;
-
-    RGBSpectrum() = default;
-
-    explicit constexpr RGBSpectrum(Float s)
-        : r{ s }
-        , g{ s }
-        , b{ s }
+public:
+    enum class Representation : uint8_t
     {
+        Constant,
+        RGBReflectance,
+        RGBIlluminant,
+        Blackbody,
+        Data,
+    };
+
+    Spectrum();
+    explicit Spectrum(Float value);
+    explicit Spectrum(const Vec3& rgb);
+    Spectrum(Float red, Float green, Float blue);
+    Spectrum(const Spectrum& other);
+
+    Spectrum(Spectrum&&) noexcept = default;
+
+    ~Spectrum() = default;
+
+    Spectrum& operator=(const Spectrum& other);
+
+    Spectrum& operator=(Spectrum&&) noexcept = default;
+
+    static Spectrum Constant(Float value);
+    static Spectrum FromRGB(const Vec3& rgb);
+    static Spectrum FromIlluminantRGB(const Vec3& rgb);
+    static Spectrum Blackbody(Float temperature, Float scale = 1.0f);
+    static Spectrum FromData(const std::array<Float, spectral::num_samples>& sampled);
+    static Spectrum FromData(const SpectralData& sampled);
+    static Spectrum CauchyIOR(Float ior, Float dispersion);
+    static Spectrum FromDataTriplet(const Vec3& v);
+
+    SpectrumSample Sample(const WavelengthSample& wavelengths) const;
+    std::array<Float, spectral::num_samples> Materialize() const;
+    Vec3 ToLinearRGB() const;
+    Float operator[](int32 i) const;
+    bool IsBlack() const;
+    bool IsNullish() const;
+    Float Luminance() const;
+    bool IsWavelengthConstant(Float epsilon = 1e-6f) const;
+    Float Average() const;
+    Float MinComponent() const;
+    Float MaxComponent() const;
+    bool Equals(const Spectrum& other) const;
+    std::string ToString() const;
+
+    static const int32 num_spectral_samples = 3;
+    static const Spectrum black;
+
+private:
+    friend uint64_t HashSpectrum(const Spectrum& sp);
+
+    static Float SampleRGBBasis(const Vec3& rgb, Float wavelength);
+    static Float SampleIlluminantBasis(const Vec3& rgb, Float wavelength);
+    static Float InterpolateProduct(const SpectralData& a, const SpectralData& b, Float wavelength);
+
+    Float SampleRGBReflectance(Float wavelength) const;
+    Float SampleRGBIlluminant(Float wavelength) const;
+    Float SampleBlackbody(Float wavelength) const;
+    Float ValueAtIndex(int32 i) const;
+
+    explicit Spectrum(Representation representation, const Vec3& payload);
+    explicit Spectrum(std::unique_ptr<SpectralData>&& data);
+
+    Representation representation;
+    Vec3 payload;
+    std::unique_ptr<SpectralData> data;
+};
+
+uint64_t HashSpectrum(const Spectrum& sp);
+bool operator==(const Spectrum& lhs, const Spectrum& rhs);
+bool operator!=(const Spectrum& lhs, const Spectrum& rhs);
+
+struct WavelengthSample
+{
+    static constexpr int32 num_lanes = spectral::num_wavelength_samples;
+    static constexpr int32 hero_lane = 0;
+
+    std::array<Float, num_lanes> lambda{};
+    std::array<Float, num_lanes> pdf{};
+
+    static WavelengthSample Sample(Float u_lambda)
+    {
+        constexpr Float domain = 400.0f;
+
+        WavelengthSample sample;
+
+        for (int32 i = 0; i < num_lanes; ++i)
+        {
+            Float t = std::fmod(u_lambda + Float(i - hero_lane) / Float(num_lanes) + 1.0f, 1.0f);
+            sample.lambda[i] = spectral::lambda_min + domain * t;
+            sample.pdf[i] = 1.0f / domain;
+        }
+
+        return sample;
     }
 
-    constexpr RGBSpectrum(Float red, Float green, Float blue)
-        : r{ red }
-        , g{ green }
-        , b{ blue }
+    void CollapseToPrimary()
     {
+        if (IsCollapse())
+        {
+            return;
+        }
+
+        for (int32 i = 1; i < num_lanes; ++i)
+        {
+            pdf[i] = 0.0f;
+        }
+
+        pdf[hero_lane] /= Float(num_lanes);
     }
 
-    constexpr RGBSpectrum(const Vec3& rgb)
-        : r{ rgb.x }
-        , g{ rgb.y }
-        , b{ rgb.z }
+    bool IsCollapse() const
+    {
+        for (int32 i = 1; i < num_lanes; ++i)
+        {
+            if (pdf[i] != 0.0f)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    SpectrumSample PDF() const;
+};
+
+struct SpectrumSample
+{
+    static constexpr int32 num_lanes = WavelengthSample::num_lanes;
+
+    std::array<Float, num_lanes> values{};
+
+    SpectrumSample() = default;
+
+    explicit constexpr SpectrumSample(Float value)
+    {
+        values.fill(value);
+    }
+
+    template <typename... Ts>
+    requires(sizeof...(Ts) == num_lanes)
+    constexpr SpectrumSample(Ts... lane_values)
+        : values{ Float(lane_values)... }
     {
     }
 
     Float operator[](int32 i) const
     {
-        return (&r)[i];
+        return values[i];
     }
 
     Float& operator[](int32 i)
     {
-        return (&r)[i];
+        return values[i];
     }
 
     bool IsBlack() const
     {
-        return r == 0.0f && g == 0.0f && b == 0.0f;
-    }
-
-    Float Luminance() const
-    {
-        constexpr RGBSpectrum coefficient(0.2126f, 0.7152f, 0.0722f);
-        return r * coefficient.r + g * coefficient.g + b * coefficient.b;
-    }
-
-    Float Average() const
-    {
-#if 0
-        Float sp = 0;
-        for (int32 i = 0; i < num_spectral_samples; ++i)
+        for (Float value : values)
         {
-            sp += (*this)[i];
+            if (value != 0.0f)
+            {
+                return false;
+            }
         }
-        return sp / num_spectral_samples;
-#else
-        return (r + g + b) / 3;
-#endif
-    }
 
-    Float MinComponent() const
-    {
-        return std::min({ r, g, b });
-    }
-
-    Float MaxComponent() const
-    {
-        return std::max({ r, g, b });
+        return true;
     }
 
     bool IsNullish() const
     {
-        return std::isnan(r) || std::isinf(r) || std::isnan(g) || std::isinf(g) || std::isnan(b) || std::isinf(b);
+        for (Float value : values)
+        {
+            if (std::isnan(value) || std::isinf(value))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    std::string ToString() const
+    Float Average() const
     {
-        return std::format("{:.4f}\t{:.4f}\t{:.4f}", r, g, b);
+        Float sum = 0;
+        for (Float value : values)
+        {
+            sum += value;
+        }
+        return sum / Float(num_lanes);
     }
 
-    static const int32 num_spectral_samples;
-    static const RGBSpectrum black;
+    Float MaxComponent() const
+    {
+        Float maximum = values[0];
+        for (int32 i = 1; i < num_lanes; ++i)
+        {
+            maximum = std::max(maximum, values[i]);
+        }
+        return maximum;
+    }
+
+    Float MinComponent() const
+    {
+        Float minimum = values[0];
+        for (int32 i = 1; i < num_lanes; ++i)
+        {
+            minimum = std::min(minimum, values[i]);
+        }
+        return minimum;
+    }
 };
 
-constexpr inline int32 RGBSpectrum::num_spectral_samples(3);
-constexpr inline RGBSpectrum RGBSpectrum::black(0);
-
-constexpr inline RGBSpectrum operator-(const RGBSpectrum& sp)
+constexpr inline SpectrumSample operator-(const SpectrumSample& sp)
 {
-    return RGBSpectrum(-sp.r, -sp.g, -sp.b);
+    SpectrumSample result;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        result[i] = -sp[i];
+    }
+    return result;
 }
 
-constexpr inline RGBSpectrum operator+(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
+constexpr inline SpectrumSample operator+(const SpectrumSample& sp1, const SpectrumSample& sp2)
 {
-    return RGBSpectrum(sp1.r + sp2.r, sp1.g + sp2.g, sp1.b + sp2.b);
+    SpectrumSample result;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        result[i] = sp1[i] + sp2[i];
+    }
+    return result;
 }
 
-constexpr inline RGBSpectrum operator-(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
+constexpr inline SpectrumSample operator-(const SpectrumSample& sp1, const SpectrumSample& sp2)
 {
-    return RGBSpectrum(sp1.r - sp2.r, sp1.g - sp2.g, sp1.b - sp2.b);
-}
-
-template <typename T>
-constexpr inline RGBSpectrum operator*(const RGBSpectrum& sp, T s)
-{
-    return RGBSpectrum(sp.r * Float(s), sp.g * Float(s), sp.b * Float(s));
-}
-
-template <typename T>
-constexpr inline RGBSpectrum operator*(T s, const RGBSpectrum& sp)
-{
-    return RGBSpectrum(sp.r * s, sp.g * s, sp.b * s);
-}
-
-constexpr inline RGBSpectrum operator*(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
-{
-    return RGBSpectrum(sp1.r * sp2.r, sp1.g * sp2.g, sp1.b * sp2.b);
+    SpectrumSample result;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        result[i] = sp1[i] - sp2[i];
+    }
+    return result;
 }
 
 template <typename T>
-constexpr inline RGBSpectrum operator/(const RGBSpectrum& sp, T s)
+requires(std::is_arithmetic_v<T>)
+constexpr inline SpectrumSample operator*(const SpectrumSample& sp, T s)
 {
-    return RGBSpectrum(sp.r / s, sp.g / s, sp.b / s);
+    SpectrumSample result;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        result[i] = sp[i] * Float(s);
+    }
+    return result;
 }
 
 template <typename T>
-constexpr inline RGBSpectrum operator/(T s, const RGBSpectrum& sp)
+requires(std::is_arithmetic_v<T>)
+constexpr inline SpectrumSample operator*(T s, const SpectrumSample& sp)
 {
-    return RGBSpectrum(s / sp.r, s / sp.g, s / sp.b);
+    return sp * s;
 }
 
-constexpr inline RGBSpectrum operator/(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
+constexpr inline SpectrumSample operator*(const SpectrumSample& sp1, const SpectrumSample& sp2)
 {
-    return RGBSpectrum(sp1.r / sp2.r, sp1.g / sp2.g, sp1.b / sp2.b);
-}
-
-constexpr inline bool operator==(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
-{
-    return sp1.r == sp2.r && sp1.g == sp2.g && sp1.b == sp2.b;
-}
-
-constexpr inline bool operator!=(const RGBSpectrum& sp1, const RGBSpectrum& sp2)
-{
-    return sp1.r != sp2.r || sp1.g != sp2.g || sp1.b != sp2.b;
+    SpectrumSample result;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        result[i] = sp1[i] * sp2[i];
+    }
+    return result;
 }
 
 template <typename T>
-constexpr inline RGBSpectrum operator+=(RGBSpectrum& sp1, T s)
+requires(std::is_arithmetic_v<T>)
+constexpr inline SpectrumSample operator/(const SpectrumSample& sp, T s)
 {
-    sp1.r += s;
-    sp1.g += s;
-    sp1.b += s;
+    SpectrumSample result;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        result[i] = sp[i] / Float(s);
+    }
+    return result;
+}
+
+constexpr inline SpectrumSample operator/(const SpectrumSample& sp1, const SpectrumSample& sp2)
+{
+    SpectrumSample result;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        result[i] = sp1[i] / sp2[i];
+    }
+    return result;
+}
+
+constexpr inline SpectrumSample SafeDiv(const SpectrumSample& sp1, const SpectrumSample& sp2)
+{
+    SpectrumSample result;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        result[i] = sp2[i] != 0.0f ? sp1[i] / sp2[i] : 0.0f;
+    }
+    return result;
+}
+
+template <typename T>
+requires(std::is_arithmetic_v<T>)
+constexpr inline SpectrumSample& operator+=(SpectrumSample& sp, T s)
+{
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        sp[i] += Float(s);
+    }
+    return sp;
+}
+
+constexpr inline SpectrumSample& operator+=(SpectrumSample& sp1, const SpectrumSample& sp2)
+{
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        sp1[i] += sp2[i];
+    }
     return sp1;
 }
 
 template <typename T>
-constexpr inline RGBSpectrum operator-=(RGBSpectrum& sp1, T s)
+requires(std::is_arithmetic_v<T>)
+constexpr inline SpectrumSample& operator-=(SpectrumSample& sp, T s)
 {
-    sp1.r -= s;
-    sp1.g -= s;
-    sp1.b -= s;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        sp[i] -= Float(s);
+    }
+    return sp;
+}
+
+constexpr inline SpectrumSample& operator-=(SpectrumSample& sp1, const SpectrumSample& sp2)
+{
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        sp1[i] -= sp2[i];
+    }
     return sp1;
 }
 
 template <typename T>
-constexpr inline RGBSpectrum operator*=(RGBSpectrum& sp1, T s)
+requires(std::is_arithmetic_v<T>)
+constexpr inline SpectrumSample& operator*=(SpectrumSample& sp, T s)
 {
-    sp1.r *= s;
-    sp1.g *= s;
-    sp1.b *= s;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        sp[i] *= Float(s);
+    }
+    return sp;
+}
+
+constexpr inline SpectrumSample& operator*=(SpectrumSample& sp1, const SpectrumSample& sp2)
+{
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        sp1[i] *= sp2[i];
+    }
     return sp1;
 }
 
 template <typename T>
-constexpr inline RGBSpectrum operator/=(RGBSpectrum& sp1, T s)
+requires(std::is_arithmetic_v<T>)
+constexpr inline SpectrumSample& operator/=(SpectrumSample& sp, T s)
 {
-    sp1.r /= s;
-    sp1.g /= s;
-    sp1.b /= s;
-    return sp1;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        sp[i] /= Float(s);
+    }
+    return sp;
 }
 
-constexpr inline RGBSpectrum operator+=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
+constexpr inline SpectrumSample& operator/=(SpectrumSample& sp1, const SpectrumSample& sp2)
 {
-    sp1.r += sp2.r;
-    sp1.g += sp2.g;
-    sp1.b += sp2.b;
-    return sp1;
-}
-
-constexpr inline RGBSpectrum operator-=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
-{
-    sp1.r -= sp2.r;
-    sp1.g -= sp2.g;
-    sp1.b -= sp2.b;
-    return sp1;
-}
-
-constexpr inline RGBSpectrum operator*=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
-{
-    sp1.r *= sp2.r;
-    sp1.g *= sp2.g;
-    sp1.b *= sp2.b;
-    return sp1;
-}
-
-constexpr inline RGBSpectrum operator/=(RGBSpectrum& sp1, const RGBSpectrum& sp2)
-{
-    sp1.r /= sp2.r;
-    sp1.g /= sp2.g;
-    sp1.b /= sp2.b;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        sp1[i] /= sp2[i];
+    }
     return sp1;
 }
 
 template <typename T>
-constexpr inline RGBSpectrum Lerp(const RGBSpectrum& sp1, const RGBSpectrum& sp2, T t)
+requires(std::is_arithmetic_v<T>)
+constexpr inline SpectrumSample Lerp(const SpectrumSample& sp1, const SpectrumSample& sp2, T t)
 {
     return (T(1) - t) * sp1 + t * sp2;
 }
 
-inline RGBSpectrum Sqrt(const RGBSpectrum& sp)
+inline SpectrumSample Sqrt(const SpectrumSample& sp)
 {
-    return RGBSpectrum(std::sqrt(sp.r), std::sqrt(sp.g), std::sqrt(sp.b));
+    SpectrumSample result;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        result[i] = std::sqrt(sp[i]);
+    }
+    return result;
 }
 
-inline RGBSpectrum Exp(const RGBSpectrum& sp)
+inline SpectrumSample Exp(const SpectrumSample& sp)
 {
-    return RGBSpectrum(std::exp(sp.r), std::exp(sp.g), std::exp(sp.b));
+    SpectrumSample result;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        result[i] = std::exp(sp[i]);
+    }
+    return result;
 }
 
 template <typename T>
-constexpr inline RGBSpectrum Min(const RGBSpectrum& sp, T val)
+requires(std::is_arithmetic_v<T>)
+constexpr inline SpectrumSample Min(const SpectrumSample& sp, T val)
 {
-    return RGBSpectrum(std::min(Float(val), sp.r), std::min(Float(val), sp.g), std::min(Float(val), sp.b));
+    SpectrumSample result;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        result[i] = std::min(Float(val), sp[i]);
+    }
+    return result;
 }
 
 template <typename T>
-constexpr inline RGBSpectrum Max(const RGBSpectrum& sp, T val)
+requires(std::is_arithmetic_v<T>)
+constexpr inline SpectrumSample Max(const SpectrumSample& sp, T val)
 {
-    return RGBSpectrum(std::max(Float(val), sp.r), std::max(Float(val), sp.g), std::max(Float(val), sp.b));
+    SpectrumSample result;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        result[i] = std::max(Float(val), sp[i]);
+    }
+    return result;
 }
 
 template <typename U, typename V>
-constexpr inline RGBSpectrum Clamp(const RGBSpectrum& sp, U left, V right)
+requires(std::is_arithmetic_v<U> && std::is_arithmetic_v<V>)
+constexpr inline SpectrumSample Clamp(const SpectrumSample& sp, U left, V right)
 {
-    return RGBSpectrum(Clamp(sp.r, left, right), Clamp(sp.g, left, right), Clamp(sp.b, left, right));
-}
-
-namespace spectral
-{
-
-// Analytic fit of CIE XYZ curve proposed by Wyman et al.: https://jcgt.org/published/0002/02/01/
-inline Float X_Fit_1931(Float wavelength)
-{
-    Float d_param_1 = (wavelength - Float(442.0)) * ((wavelength < Float(442.0)) ? Float(0.0624) : Float(0.0374));
-    Float d_param_2 = (wavelength - Float(599.8)) * ((wavelength < Float(599.8)) ? Float(0.0264) : Float(0.0323));
-    Float d_param_3 = (wavelength - Float(501.1)) * ((wavelength < Float(501.1)) ? Float(0.0490) : Float(0.0382));
-    return Float(0.362) * std::exp(-Float(0.5) * d_param_1 * d_param_1) +
-           Float(1.056) * std::exp(-Float(0.5) * d_param_2 * d_param_2) -
-           Float(0.065) * std::exp(-Float(0.5) * d_param_3 * d_param_3);
-}
-
-inline Float Y_Fit_1931(Float wavelength)
-{
-    Float d_param_1 = (wavelength - Float(568.8)) * ((wavelength < Float(568.8)) ? Float(0.0213) : Float(0.0247));
-    Float d_param_2 = (wavelength - Float(530.9)) * ((wavelength < Float(530.9)) ? Float(0.0613) : Float(0.0322));
-    return Float(0.821) * std::exp(-Float(0.5) * d_param_1 * d_param_1) +
-           Float(0.286) * std::exp(-Float(0.5) * d_param_2 * d_param_2);
-}
-
-inline Float Z_Fit_1931(Float wavelength)
-{
-    Float d_param_1 = (wavelength - Float(437.0)) * ((wavelength < Float(437.0)) ? Float(0.0845) : Float(0.0278));
-    Float d_param_2 = (wavelength - Float(459.0)) * ((wavelength < Float(459.0)) ? Float(0.0385) : Float(0.0725));
-    return Float(1.217) * std::exp(-Float(0.5) * d_param_1 * d_param_1) +
-           Float(0.681) * std::exp(-Float(0.5) * d_param_2 * d_param_2);
-}
-
-inline Vec3 XYZ_integral_coeff(Float wavelength)
-{
-    return Vec3{ X_Fit_1931(wavelength), Y_Fit_1931(wavelength), Z_Fit_1931(wavelength) };
-}
-
-inline Vec3 XYZ_to_sRGB(const Vec3& xyz)
-{
-    // clang-format off
-    Mat3 m(
-        Vec3(3.2404542f, -0.9692660f, 0.0556434f),
-        Vec3(-1.5371385f, 1.8760108f, -0.2040259f),
-        Vec3(-0.4985314f, 0.0415560f, 1.0572252f)
-    );
-    // clang-format on
-
-    return Mul(m, xyz);
-}
-
-constexpr inline Float Blackbody(Float lambda, Float T)
-{
-    if (T <= 0)
+    SpectrumSample result;
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
     {
-        return 0;
+        result[i] = Clamp(sp[i], left, right);
     }
-
-    constexpr Float h = 6.62606957e-34f; // Planck constant (J·s)
-    constexpr Float c = 299792458.0f;    // Speed of light (m/s)
-    constexpr Float kb = 1.3806488e-23f; // Boltzmann constant (J/K)
-
-    Float l = lambda * 1e-9f;            // nm -> m
-    Float exponent = (h * c) / (l * kb * T);
-
-    if (exponent > 80.0f)
-    {
-        return 0;
-    }
-
-    Float Le = (2 * h * c * c) / (std::pow(l, Float(5)) * std::expm1(exponent));
-    return Le;
+    return result;
 }
 
-inline Spectrum BlackbodyRGB(Float T, Float step = 10)
+inline Vec3 SpectrumSampleToLinearRGB(const SpectrumSample& sp, const WavelengthSample& lambda)
 {
-    constexpr Float wavelength_begin = 400.0f;
-    constexpr Float wavelength_end = 700.0f;
-
-    Vec3 XYZ(0);
-
-    for (Float wavelength = wavelength_begin; wavelength <= wavelength_end; wavelength += step)
-    {
-        Float Le = Blackbody(wavelength, T);
-        Vec3 coeff = XYZ_integral_coeff(wavelength);
-
-        XYZ += coeff * Le;
-    }
-
-    // Wien’s displacement constant
-    constexpr Float b = 2.8977721e-3f;
-    Float lambda_max = b / T;
-    Float normalization = 1 / Blackbody(lambda_max * 1e9f, T);
-
-    XYZ *= normalization;
-
-    // XYZ to linear sRGB
-    Spectrum RGB = XYZ_to_sRGB(XYZ);
-    return Max(RGB, 0);
+    return spectral::SpectrumSampleToLinearRGB(sp, lambda);
 }
 
-} // namespace spectral
+inline Float SpectrumSampleToLuminance(const SpectrumSample& sp, const WavelengthSample& lambda)
+{
+    return spectral::SpectrumSampleToLuminance(sp, lambda);
+}
 
 } // namespace bulbit

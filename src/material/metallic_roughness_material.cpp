@@ -11,7 +11,7 @@ MetallicRoughnessMaterial::MetallicRoughnessMaterial(
     const FloatTexture* metallic,
     const FloatTexture* u_roughness,
     const FloatTexture* v_roughness,
-    const SpectrumTexture* normal,
+    const Float3Texture* normal,
     const FloatTexture* alpha
 
 )
@@ -25,9 +25,9 @@ MetallicRoughnessMaterial::MetallicRoughnessMaterial(
 {
 }
 
-bool MetallicRoughnessMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
+bool MetallicRoughnessMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, WavelengthSample& lambda, Allocator& alloc) const
 {
-    Spectrum b = basecolor->Evaluate(isect.uv);
+    SpectrumSample b = basecolor->Evaluate(isect.uv, lambda);
     Float m = metallic->Evaluate(isect.uv);
     Float alpha_x = MetallicRoughnessBxDF::RoughnessToAlpha(u_roughness->Evaluate(isect.uv));
     Float alpha_y = MetallicRoughnessBxDF::RoughnessToAlpha(v_roughness->Evaluate(isect.uv));
@@ -39,10 +39,13 @@ bool MetallicRoughnessMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, A
     return true;
 }
 
-bool MetallicRoughnessMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
+bool MetallicRoughnessMaterial::GetBSSRDF(
+    BSSRDF** bssrdf, const Intersection& isect, const WavelengthSample& lambda, Allocator& alloc
+) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
+    BulbitNotUsed(lambda);
     BulbitNotUsed(alloc);
     return false;
 }
@@ -52,7 +55,7 @@ const FloatTexture* MetallicRoughnessMaterial::GetAlphaTexture() const
     return alpha;
 }
 
-const SpectrumTexture* MetallicRoughnessMaterial::GetNormalTexture() const
+const Float3Texture* MetallicRoughnessMaterial::GetNormalTexture() const
 {
     return normal;
 }

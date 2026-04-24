@@ -5,9 +5,9 @@
 namespace bulbit
 {
 
-Spectrum BxDF::rho(Vec3 wo, std::span<const Float> uc, std::span<const Point2> u, TransportDirection direction) const
+SpectrumSample BxDF::rho(Vec3 wo, std::span<const Float> uc, std::span<const Point2> u, TransportDirection direction) const
 {
-    Spectrum r(0);
+    SpectrumSample r(0);
     for (size_t i = 0; i < uc.size(); ++i)
     {
         BSDFSample sample;
@@ -19,11 +19,11 @@ Spectrum BxDF::rho(Vec3 wo, std::span<const Float> uc, std::span<const Point2> u
     return r / uc.size();
 }
 
-Spectrum BxDF::rho(
+SpectrumSample BxDF::rho(
     std::span<const Point2> u1, std::span<const Float> uc, std::span<const Point2> u2, TransportDirection direction
 ) const
 {
-    Spectrum r(0);
+    SpectrumSample r(0);
     for (size_t i = 0; i < uc.size(); ++i)
     {
         Vec3 wo = SampleUniformHemisphere(u1[i]);

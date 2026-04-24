@@ -619,22 +619,37 @@ static Spectrum ParseColor(pugi::xml_node node, const DefaultMap& dm)
     else if (type == "rgb")
     {
         Vec3 rgb = ParseVec3(node.attribute("value"), dm);
-        return Spectrum(rgb.x, rgb.y, rgb.z);
+        return Spectrum::FromRGB(rgb);
     }
     else if (type == "srgb")
     {
         Vec3 rgb = RGB_from_sRGB(ParseSRGB(node.attribute("value"), dm));
-        return Spectrum(rgb.x, rgb.y, rgb.z);
+        return Spectrum::FromRGB(rgb);
     }
     else if (type == "float")
     {
-        return Spectrum(ParseFloat(node.attribute("value"), dm));
+        return Spectrum::Constant(ParseFloat(node.attribute("value"), dm));
     }
     else
     {
         std::cerr << "Unknown color type: " << type << std::endl;
         return Spectrum::black;
     }
+}
+
+static Spectrum ParsePhysicalSpectrum(pugi::xml_node node, const DefaultMap& dm)
+{
+    std::string type = node.attribute("type").value();
+    if (type == "rgb" || type == "srgb")
+    {
+        return Spectrum::FromDataTriplet(ParseVec3(node.attribute("value"), dm));
+    }
+    if (type == "float")
+    {
+        return Spectrum::Constant(ParseFloat(node.attribute("value"), dm));
+    }
+
+    return ParseColor(node, dm);
 }
 
 static Spectrum ParseIntensity(pugi::xml_node node, const DefaultMap& dm)
@@ -648,15 +663,50 @@ static Spectrum ParseIntensity(pugi::xml_node node, const DefaultMap& dm)
     else if (rad_type == "rgb")
     {
         Vec3 rgb = ParseVec3(node.attribute("value"), dm);
-        return Spectrum(rgb.x, rgb.y, rgb.z);
+        return Spectrum::FromIlluminantRGB(rgb);
     }
     else if (rad_type == "srgb")
     {
         Vec3 rgb = RGB_from_sRGB(ParseSRGB(node.attribute("value"), dm));
-        return Spectrum(rgb.x, rgb.y, rgb.z);
+        return Spectrum::FromIlluminantRGB(rgb);
+    }
+    else if (rad_type == "float")
+    {
+        Float v = ParseFloat(node.attribute("value"), dm);
+        return Spectrum::FromIlluminantRGB(Vec3(v));
     }
 
-    return Spectrum(1);
+    return Spectrum::FromIlluminantRGB(Vec3(1));
+}
+
+static Spectrum MakeIorSpectrum(Float ior, Float dispersion = 0.0f)
+{
+    return dispersion != 0.0f ? Spectrum::CauchyIOR(ior, dispersion) : Spectrum::Constant(ior);
+}
+
+static Spectrum MakeRelativeIorSpectrum(Float int_ior, Float ext_ior, Float int_dispersion = 0.0f, Float ext_dispersion = 0.0f)
+{
+    if (ext_dispersion == 0.0f)
+    {
+        if (ext_ior == 1.0f)
+        {
+            return MakeIorSpectrum(int_ior, int_dispersion);
+        }
+
+        if (int_dispersion == 0.0f)
+        {
+            return Spectrum::Constant(int_ior / ext_ior);
+        }
+    }
+
+    SpectralData inside = int_dispersion == 0.0f ? SpectralData::Constant(int_ior) : SpectralData::CauchyIOR(int_ior, int_dispersion);
+    if (ext_dispersion == 0.0f)
+    {
+        return Spectrum::FromData(inside / ext_ior);
+    }
+
+    SpectralData outside = SpectralData::CauchyIOR(ext_ior, ext_dispersion);
+    return Spectrum::FromData(inside / outside);
 }
 
 enum class TextureType
@@ -786,7 +836,7 @@ static FloatTexture* ParseFloatTexture(
     else if (type == "rgb")
     {
         Spectrum value = ParseColor(node, dm);
-        return CreateFloatConstantTexture(*scene, value.r);
+        return CreateFloatConstantTexture(*scene, value.ToLinearRGB().x);
     }
     else if (type == "ref")
     {
@@ -806,7 +856,7 @@ static SpectrumTexture* ParseSpectrumTexture(
     const DefaultMap& dm,
     Scene* scene,
     bool non_color = false,
-    std::function<Spectrum(Spectrum)> transform = [](Spectrum v) { return v; }
+    std::function<Vec3(Vec3)> transform = [](Vec3 v) { return v; }
 )
 {
     std::string type = node.name();
@@ -818,12 +868,12 @@ static SpectrumTexture* ParseSpectrumTexture(
     else if (type == "rgb")
     {
         Vec3 rgb = ParseVec3(node.attribute("value"), dm);
-        return CreateSpectrumConstantTexture(*scene, transform({ rgb.x, rgb.y, rgb.z }));
+        return CreateSpectrumConstantTexture(*scene, Spectrum::FromRGB(transform(rgb)));
     }
     else if (type == "srgb")
     {
         Vec3 rgb = RGB_from_sRGB(ParseVec3(node.attribute("value"), dm));
-        return CreateSpectrumConstantTexture(*scene, transform({ rgb.x, rgb.y, rgb.z }));
+        return CreateSpectrumConstantTexture(*scene, Spectrum::FromRGB(transform(rgb)));
     }
     else if (type == "texture")
     {
@@ -835,7 +885,10 @@ static SpectrumTexture* ParseSpectrumTexture(
         }
         else if (t.type == TextureType::checkboard)
         {
-            return CreateSpectrumCheckerTexture(*scene, transform(t.color0), transform(t.color1), t.scale);
+            return CreateSpectrumCheckerTexture(
+                *scene, Spectrum::FromRGB(transform(t.color0.ToLinearRGB())),
+                Spectrum::FromRGB(transform(t.color1.ToLinearRGB())), t.scale
+            );
         }
         else
         {
@@ -856,10 +909,56 @@ static SpectrumTexture* ParseSpectrumTexture(
     }
 }
 
+static Float3Texture* ParseFloat3Texture(
+    pugi::xml_node node,
+    const DefaultMap& dm,
+    Scene* scene,
+    bool non_color = false,
+    std::function<Float3(Float3)> transform = [](Float3 v) { return v; }
+)
+{
+    std::string type = node.name();
+    if (type == "rgb")
+    {
+        return CreateFloat3ConstantTexture(*scene, transform(ParseVec3(node.attribute("value"), dm)));
+    }
+    else if (type == "srgb")
+    {
+        return CreateFloat3ConstantTexture(*scene, transform(RGB_from_sRGB(ParseVec3(node.attribute("value"), dm))));
+    }
+    else if (type == "texture")
+    {
+        TextureInfo t = ParseTexture(node, dm);
+
+        if (t.type == TextureType::bitmap)
+        {
+            return CreateFloat3ImageTexture(*scene, t.filename.string(), non_color, std::move(transform));
+        }
+        else if (t.type == TextureType::checkboard)
+        {
+            return CreateFloat3CheckerTexture(
+                *scene, transform(t.color0.ToLinearRGB()), transform(t.color1.ToLinearRGB()), t.scale
+            );
+        }
+
+        std::cerr << "Texture type not supported: " << int32(t.type) << std::endl;
+    }
+    else if (type == "ref")
+    {
+        std::cerr << "Not a supported float3 texture type: ref" << std::endl;
+    }
+    else
+    {
+        std::cerr << "Unknown float3 texture type: " << type << std::endl;
+    }
+
+    return CreateFloat3ConstantTexture(*scene, Float3(0));
+}
+
 struct MaterialInfo
 {
     bool two_sided = false;
-    const SpectrumTexture* normal = nullptr;
+    const Float3Texture* normal = nullptr;
     const FloatTexture* alpha = nullptr;
 };
 
@@ -912,14 +1011,14 @@ static const Material* ParseMaterial(
     }
     else if (type == "normalmap" || type == "normal")
     {
-        const SpectrumTexture* normalmap = nullptr;
+        const Float3Texture* normalmap = nullptr;
 
         for (auto child : node.children())
         {
             std::string name = child.attribute("name").value();
             if (name == "normalmap")
             {
-                normalmap = ParseSpectrumTexture(child, dm, scene, true);
+                normalmap = ParseFloat3Texture(child, dm, scene, true);
             }
         }
 
@@ -1145,7 +1244,7 @@ static const Material* ParseMaterial(
             }
             else if (name == "sigma_a" || name == "sigmaA")
             {
-                sigma_a = ParseColor(child, dm);
+                sigma_a = ParsePhysicalSpectrum(child, dm);
             }
             else if (name == "distribution")
             {
@@ -1263,6 +1362,8 @@ static const Material* ParseMaterial(
     {
         Float int_ior = 1.5046f;
         Float ext_ior = 1.000277f;
+        Float int_dispersion = 0.0f;
+        Float ext_dispersion = 0.0f;
 
         const SpectrumTexture* reflectance = CreateSpectrumConstantTexture(*scene, 1);
         const FloatTexture* u_roughness;
@@ -1301,6 +1402,14 @@ static const Material* ParseMaterial(
             {
                 ext_ior = ParseFloat(child.attribute("value"), dm);
             }
+            else if (name == "dispersion" || name == "cauchy_b" || name == "int_dispersion" || name == "int_cauchy_b")
+            {
+                int_dispersion = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "ext_dispersion" || name == "ext_cauchy_b")
+            {
+                ext_dispersion = ParseFloat(child.attribute("value"), dm);
+            }
             else if (name == "reflectance" || name == "specular_transmittance")
             {
                 reflectance = ParseSpectrumTexture(child, dm, scene);
@@ -1319,13 +1428,15 @@ static const Material* ParseMaterial(
             }
         }
 
-        Float eta = int_ior / ext_ior;
+        Spectrum eta = MakeRelativeIorSpectrum(int_ior, ext_ior, int_dispersion, ext_dispersion);
         mat = scene->CreateMaterial<DielectricMaterial>(eta, u_roughness, v_roughness, reflectance, true, mi.normal);
     }
     else if (type == "thindielectric" || type == "thin_dielectric")
     {
         Float int_ior = 1.5046f;
         Float ext_ior = 1.000277f;
+        Float int_dispersion = 0.0f;
+        Float ext_dispersion = 0.0f;
         const SpectrumTexture* reflectance = CreateSpectrumConstantTexture(*scene, 1);
 
         for (auto child : node.children())
@@ -1339,6 +1450,14 @@ static const Material* ParseMaterial(
             {
                 ext_ior = ParseFloat(child.attribute("value"), dm);
             }
+            else if (name == "dispersion" || name == "cauchy_b" || name == "int_dispersion" || name == "int_cauchy_b")
+            {
+                int_dispersion = ParseFloat(child.attribute("value"), dm);
+            }
+            else if (name == "ext_dispersion" || name == "ext_cauchy_b")
+            {
+                ext_dispersion = ParseFloat(child.attribute("value"), dm);
+            }
             else if (name == "reflectance")
             {
                 reflectance = ParseSpectrumTexture(child, dm, scene);
@@ -1349,7 +1468,7 @@ static const Material* ParseMaterial(
             }
         }
 
-        Float eta = int_ior / ext_ior;
+        Spectrum eta = MakeRelativeIorSpectrum(int_ior, ext_ior, int_dispersion, ext_dispersion);
         mat = scene->CreateMaterial<ThinDielectricMaterial>(eta, reflectance);
     }
     else if (type == "principled")
@@ -1447,7 +1566,7 @@ static const Material* ParseMaterial(
             }
             else if (name == "mfp")
             {
-                mfp = ParseColor(child, dm);
+                mfp = ParsePhysicalSpectrum(child, dm);
             }
             else if (name == "rougness")
             {
@@ -1505,7 +1624,7 @@ static const Material* ParseMaterial(
     }
     else if (type == "debug1")
     {
-        SpectrumTexture* reflectance = CreateSpectrumConstantTexture(*scene, 0.7f * RandVec3());
+        SpectrumTexture* reflectance = CreateSpectrumConstantTexture(*scene, Spectrum::FromRGB(0.7f * RandVec3()));
         mat = scene->CreateMaterial<DiffuseMaterial>(reflectance, nullptr, mi.normal, mi.alpha);
     }
     else if (type == "debug2")
@@ -1608,10 +1727,19 @@ static const Medium* ParseMedium(pugi::xml_node node, const DefaultMap& dm, Medi
             }
         }
 
-        Spectrum sigma_s = albedo * sigma_t;
-        Spectrum sigma_a = sigma_t - sigma_s;
+        std::array<Float, spectral::num_samples> sigma_s_samples = albedo.Materialize();
+        std::array<Float, spectral::num_samples> sigma_t_samples = sigma_t.Materialize();
+        std::array<Float, spectral::num_samples> sigma_a_samples{};
+        for (int32 i = 0; i < spectral::num_samples; ++i)
+        {
+            Float sigma_s_value = sigma_s_samples[i] * sigma_t_samples[i];
+            sigma_s_samples[i] = sigma_s_value * scale;
+            sigma_a_samples[i] = (sigma_t_samples[i] - sigma_s_value) * scale;
+        }
 
-        medium = scene->CreateMedium<HomogeneousMedium>(sigma_a * scale, sigma_s * scale, emission, g);
+        Spectrum sigma_s = Spectrum::FromData(sigma_s_samples);
+        Spectrum sigma_a = Spectrum::FromData(sigma_a_samples);
+        medium = scene->CreateMedium<HomogeneousMedium>(sigma_a, sigma_s, emission, g);
     }
     else if (type == "nvdb")
     {
@@ -1639,11 +1767,11 @@ static const Medium* ParseMedium(pugi::xml_node node, const DefaultMap& dm, Medi
             }
             else if (name == "sigma_a")
             {
-                sigma_a = ParseColor(child, dm);
+                sigma_a = ParsePhysicalSpectrum(child, dm);
             }
             else if (name == "sigma_s")
             {
-                sigma_s = ParseColor(child, dm);
+                sigma_s = ParsePhysicalSpectrum(child, dm);
             }
             else if (name == "sigma_scale")
             {

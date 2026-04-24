@@ -20,14 +20,18 @@ LightVolPathIntegrator::LightVolPathIntegrator(
 {
 }
 
-Spectrum LightVolPathIntegrator::L(
-    const Ray& primary_ray, const Medium* primary_medium, const Camera* camera, Film& film, Sampler& sampler
+SpectrumSample LightVolPathIntegrator::L(
+    const Ray& primary_ray,
+    const Medium* primary_medium,
+    WavelengthSample& lambda,
+    const Camera* camera,
+    Film& film,
+    Sampler& sampler
 ) const
 {
     BulbitNotUsed(primary_ray);
     BulbitNotUsed(primary_medium);
 
-    int32 wavelength = std::min<int32>(int32(sampler.Next1D() * 3), 2);
     Float eta_scale = 1;
     Intersection isect;
 
@@ -35,33 +39,33 @@ Spectrum LightVolPathIntegrator::L(
     SampledLight sampled_light;
     if (!light_sampler->Sample(&sampled_light, isect, sampler.Next1D()))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     // Sample point and direction from sampled light
     LightSampleLe light_sample;
-    if (!sampled_light.light->Sample_Le(&light_sample, sampler.Next2D(), sampler.Next2D()))
+    if (!sampled_light.light->Sample_Le(&light_sample, sampler.Next2D(), sampler.Next2D(), lambda))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     const Medium* medium = light_sample.medium;
     isect.point = light_sample.ray.o;
 
-    CameraSampleWi camera_sample;
-    if (camera->SampleWi(&camera_sample, isect, sampler.Next2D()))
+    SampledCameraSampleWi camera_sample;
+    if (camera->SampleWi(&camera_sample, isect, sampler.Next2D(), lambda))
     {
         // Add bounce 0 light to film
         LightSampleLi li_sample;
-        if (sampled_light.light->Sample_Li(&li_sample, isect, sampler.Next2D()))
+        if (sampled_light.light->Sample_Li(&li_sample, isect, sampler.Next2D(), lambda))
         {
-            if (Spectrum V = Tr(this, light_sample.ray.o, camera_sample.p_aperture, medium, wavelength); !V.IsBlack())
+            if (SpectrumSample V = Tr(this, light_sample.ray.o, camera_sample.p_aperture, medium, lambda); !V.IsBlack())
             {
-                Spectrum L = V * li_sample.Li * AbsDot(light_sample.normal, camera_sample.wi) *
-                             AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi /
-                             (sampled_light.pmf * camera_sample.pdf * light_sample.pdf_p);
+                SpectrumSample L = V * li_sample.Li * AbsDot(light_sample.normal, camera_sample.wi) *
+                                   AbsDot(camera_sample.normal, camera_sample.wi) * camera_sample.Wi /
+                                   (sampled_light.pmf * camera_sample.pdf * light_sample.pdf_p);
 
-                film.AddSplat(camera_sample.p_raster, L);
+                film.AddSplat(camera_sample.p_raster, L, lambda);
             }
         }
     }
@@ -69,13 +73,13 @@ Spectrum LightVolPathIntegrator::L(
     int32 bounce = 0;
     Ray ray = light_sample.ray;
 
-    Spectrum beta = light_sample.Le / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
+    SpectrumSample beta = light_sample.Le / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
     if (light_sample.normal != Vec3::zero)
     {
         beta *= AbsDot(light_sample.normal, ray.d);
     }
 
-    Spectrum r_u(1);
+    SpectrumSample r_u(1);
 
     // Trace light path
     while (true)
@@ -85,6 +89,7 @@ Spectrum LightVolPathIntegrator::L(
 
         if (medium)
         {
+            constexpr int32 hero = WavelengthSample::hero_lane;
             bool scattered = false;
             bool terminated = false;
 
@@ -95,17 +100,20 @@ Spectrum LightVolPathIntegrator::L(
             uint64 hash1 = Hash(sampler.Next1D());
             RNG rng(hash0, hash1);
 
-            Spectrum T_maj = Sample_MajorantTransmittance(
-                medium, wavelength, ray, t_max, u, rng,
-                [&](Point3 p, MediumSample ms, Spectrum sigma_maj, Spectrum T_maj) -> bool {
+            SpectrumSample T_maj = Sample_MajorantTransmittance(
+                medium, lambda, ray, t_max, u, rng,
+                [&](Point3 p, MediumSample ms, SpectrumSample sigma_maj, SpectrumSample T_maj) -> bool {
                     if (beta.IsBlack())
                     {
                         terminated = true;
                         return false;
                     }
 
-                    Float p_absorb = ms.sigma_a[wavelength] / sigma_maj[wavelength];
-                    Float p_scatter = ms.sigma_s[wavelength] / sigma_maj[wavelength];
+                    SpectrumSample sigma_a = ms.sigma_a;
+                    SpectrumSample sigma_s = ms.sigma_s;
+                    SpectrumSample Le = ms.Le;
+                    Float p_absorb = sigma_a[hero] / sigma_maj[hero];
+                    Float p_scatter = sigma_s[hero] / sigma_maj[hero];
                     Float p_null = std::max<Float>(0, 1 - p_absorb - p_scatter);
                     Float events[3] = { p_absorb, p_scatter, p_null };
 
@@ -117,16 +125,16 @@ Spectrum LightVolPathIntegrator::L(
                         // Sampled absorption event
 
                         Intersection medium_isect{ .point = p };
-                        if (camera->SampleWi(&camera_sample, medium_isect, { rng.NextFloat(), rng.NextFloat() }))
+                        if (camera->SampleWi(&camera_sample, medium_isect, { rng.NextFloat(), rng.NextFloat() }, lambda))
                         {
-                            if (Spectrum V = Tr(this, p, camera_sample.p_aperture, medium, wavelength); !V.IsBlack())
+                            if (SpectrumSample V = Tr(this, p, camera_sample.p_aperture, medium, lambda); !V.IsBlack())
                             {
-                                Float pdf = T_maj[wavelength] * ms.sigma_a[wavelength];
-                                beta *= T_maj * ms.sigma_a / pdf;
-                                r_u *= T_maj * ms.sigma_a / pdf;
+                                Float pdf = T_maj[hero] * sigma_a[hero];
+                                beta *= T_maj * sigma_a / pdf;
+                                r_u *= T_maj * sigma_a / pdf;
 
-                                Spectrum L = camera_sample.Wi * V * ms.Le * beta / r_u.Average();
-                                film.AddSplat(camera_sample.p_raster, L / camera_sample.pdf);
+                                SpectrumSample L = camera_sample.Wi * V * Le * beta / r_u.Average();
+                                film.AddSplat(camera_sample.p_raster, L / camera_sample.pdf, lambda);
                             }
                         }
 
@@ -143,19 +151,19 @@ Spectrum LightVolPathIntegrator::L(
                             return false;
                         }
 
-                        Float pdf = T_maj[wavelength] * ms.sigma_s[wavelength];
-                        beta *= T_maj * ms.sigma_s / pdf;
-                        r_u *= T_maj * ms.sigma_s / pdf;
+                        Float pdf = T_maj[hero] * sigma_s[hero];
+                        beta *= T_maj * sigma_s / pdf;
+                        r_u *= T_maj * sigma_s / pdf;
 
                         // Add light contribution to film
                         Intersection medium_isect{ .point = p };
-                        if (camera->SampleWi(&camera_sample, medium_isect, { rng.NextFloat(), rng.NextFloat() }))
+                        if (camera->SampleWi(&camera_sample, medium_isect, { rng.NextFloat(), rng.NextFloat() }, lambda))
                         {
                             Vec3 wi = camera_sample.wi;
-                            if (Spectrum V = Tr(this, p, camera_sample.p_aperture, medium, wavelength); !V.IsBlack())
+                            if (SpectrumSample V = Tr(this, p, camera_sample.p_aperture, medium, lambda); !V.IsBlack())
                             {
-                                Spectrum L = camera_sample.Wi * V * ms.phase->p(wo, wi) * beta / r_u.Average();
-                                film.AddSplat(camera_sample.p_raster, L / camera_sample.pdf);
+                                SpectrumSample L = camera_sample.Wi * V * ms.phase->p(wo, wi) * beta / r_u.Average();
+                                film.AddSplat(camera_sample.p_raster, L / camera_sample.pdf, lambda);
                             }
                         }
 
@@ -179,11 +187,11 @@ Spectrum LightVolPathIntegrator::L(
                     case 2:
                     {
                         // Sampled null scattering event, continue sampling
-                        Spectrum sigma_n = Max<Float>(sigma_maj - ms.sigma_a - ms.sigma_s, 0);
-                        Float pdf = T_maj[wavelength] * sigma_n[wavelength];
+                        SpectrumSample sigma_n = Max<Float>(sigma_maj - sigma_a - sigma_s, 0);
+                        Float pdf = T_maj[hero] * sigma_n[hero];
                         if (pdf == 0)
                         {
-                            beta = Spectrum::black;
+                            beta = SpectrumSample(0);
                         }
                         else
                         {
@@ -214,8 +222,8 @@ Spectrum LightVolPathIntegrator::L(
             }
 
             // It past the medium extent
-            beta *= T_maj / T_maj[wavelength];
-            r_u *= T_maj / T_maj[wavelength];
+            beta *= T_maj / T_maj[hero];
+            r_u *= T_maj / T_maj[hero];
         }
 
         if (!found_intersection)
@@ -232,7 +240,7 @@ Spectrum LightVolPathIntegrator::L(
         BufferResource res(mem, sizeof(mem));
         Allocator alloc(&res);
         BSDF bsdf;
-        if (!isect.GetBSDF(&bsdf, wo, alloc))
+        if (!isect.GetBSDF(&bsdf, wo, lambda, alloc))
         {
             medium = isect.GetMedium(ray.d);
             ray.o = isect.point;
@@ -240,16 +248,16 @@ Spectrum LightVolPathIntegrator::L(
             continue;
         }
 
-        if (camera->SampleWi(&camera_sample, isect, sampler.Next2D()))
+        if (camera->SampleWi(&camera_sample, isect, sampler.Next2D(), lambda))
         {
             Vec3 wi = camera_sample.wi;
 
-            if (Spectrum V = Tr(this, isect.point, camera_sample.p_aperture, isect.GetMedium(wi), wavelength); !V.IsBlack())
+            if (SpectrumSample V = Tr(this, isect.point, camera_sample.p_aperture, isect.GetMedium(wi), lambda); !V.IsBlack())
             {
-                Spectrum L = camera_sample.Wi * V * bsdf.f(wo, wi, TransportDirection::ToCamera) *
-                             AbsDot(isect.shading.normal, wi) * beta / r_u.Average();
+                SpectrumSample L = camera_sample.Wi * V * bsdf.f(wo, wi, TransportDirection::ToCamera) *
+                                   AbsDot(isect.shading.normal, wi) * beta / r_u.Average();
 
-                film.AddSplat(camera_sample.p_raster, L / camera_sample.pdf);
+                film.AddSplat(camera_sample.p_raster, L / camera_sample.pdf, lambda);
             }
         }
 
@@ -273,7 +281,7 @@ Spectrum LightVolPathIntegrator::L(
         // Terminate path with russian roulette
         if (bounce > rr_min_bounces)
         {
-            Spectrum rr = beta * eta_scale / r_u.Average();
+            SpectrumSample rr = beta * eta_scale / r_u.Average();
             if (Float p = rr.MaxComponent(); p < 1)
             {
                 if (sampler.Next1D() > p)
@@ -288,7 +296,7 @@ Spectrum LightVolPathIntegrator::L(
         }
     }
 
-    return Spectrum::black;
+    return SpectrumSample(0);
 }
 
 } // namespace bulbit

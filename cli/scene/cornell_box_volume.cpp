@@ -12,16 +12,23 @@ void CornellBoxVolume(RendererInfo* ri)
     auto mirror = CreateMirrorMaterial(scene, Spectrum(0.73f));
     auto mix = CreateMixtureMaterial(scene, red, blue, 0.5f);
 
-    Spectrum sigma_a(0);
-    Spectrum sigma_s(20, 100, 200);
+    Spectrum sigma_a = Spectrum::Constant(0.0f);
+    Spectrum sigma_s = Spectrum::FromDataTriplet(Vec3(20.0f, 100.0f, 200.0f));
     // Spectrum sigma_s(100);
+    std::array<Float, spectral::num_samples> reduced_scattering = sigma_s.Materialize();
+    std::array<Float, spectral::num_samples> sigma_a_samples = sigma_a.Materialize();
+    for (int32 i = 0; i < spectral::num_samples; ++i)
+    {
+        reduced_scattering[i] = 1.0f / (sigma_a_samples[i] + reduced_scattering[i]);
+    }
+    Spectrum mean_free_path = Spectrum::FromData(reduced_scattering);
 
-    auto diffusion = CreateSubsurfaceDiffusionMaterial(scene, Spectrum(1.0), Spectrum(1) / (sigma_a + sigma_s), 1.0f, 0.0f);
-    auto random_walk = CreateSubsurfaceRandomWalkMaterial(scene, Spectrum(1.0), Spectrum(1) / (sigma_a + sigma_s), 1.0f, 0.0f);
+    auto diffusion = CreateSubsurfaceDiffusionMaterial(scene, Spectrum::Constant(1.0f), mean_free_path, 1.0f, 0.0f);
+    auto random_walk = CreateSubsurfaceRandomWalkMaterial(scene, Spectrum::Constant(1.0f), mean_free_path, 1.0f, 0.0f);
 
     auto boundary = CreateDielectricMaterial(scene, 1.0f);
     auto mat = random_walk;
-    HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(sigma_a, sigma_s, Spectrum(0.0), 0.0f);
+    HomogeneousMedium* hm = scene.CreateMedium<HomogeneousMedium>(sigma_a, sigma_s, Spectrum::Constant(0.0f), 0.0f);
 
     MediumInterface mi_outside(nullptr, nullptr);
     MediumInterface mi_inside(nullptr, nullptr);

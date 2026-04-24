@@ -28,29 +28,31 @@ void SpotLight::Preprocess(const AABB& world_bounds)
     BulbitNotUsed(world_bounds);
 }
 
-Spectrum SpotLight::Le(const Intersection& isect, const Vec3& wo) const
+SpectrumSample SpotLight::Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const
 {
-    BulbitAssert(false);
     BulbitNotUsed(isect);
     BulbitNotUsed(wo);
-    return Spectrum::black;
-}
-
-Spectrum SpotLight::Le(const Ray& ray) const
-{
+    BulbitNotUsed(lambda);
     BulbitAssert(false);
-    BulbitNotUsed(ray);
-    return Spectrum::black;
+    return SpectrumSample(0);
 }
 
-bool SpotLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
+SpectrumSample SpotLight::Le(const Ray& ray, const WavelengthSample& lambda) const
+{
+    BulbitNotUsed(ray);
+    BulbitNotUsed(lambda);
+    BulbitAssert(false);
+    return SpectrumSample(0);
+}
+
+bool SpotLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const
 {
     BulbitNotUsed(u);
 
     Vec3 wi = p - ref.point;
     Float distance = wi.Normalize();
 
-    Spectrum l = SmoothStep(cos_theta_max, cos_theta_min, CosTheta(-frame.ToLocal(wi))) * intensity;
+    SpectrumSample l = SmoothStep(cos_theta_max, cos_theta_min, CosTheta(-frame.ToLocal(wi))) * intensity.Sample(lambda);
     if (l.IsBlack())
     {
         return false;
@@ -58,12 +60,10 @@ bool SpotLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2
 
     sample->point = p;
     sample->normal = Vec3(0);
-
     sample->wi = wi;
     sample->visibility = distance;
     sample->pdf = 1;
     sample->Li = l / (distance * distance);
-
     return true;
 }
 
@@ -74,19 +74,18 @@ Float SpotLight::EvaluatePDF_Li(const Ray& ray) const
     return 0;
 }
 
-bool SpotLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
+bool SpotLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const
 {
     BulbitNotUsed(u0);
 
     Vec3 w = SampleUniformCone(u1, cos_theta_max);
 
-    sample->Le = SmoothStep(cos_theta_max, cos_theta_min, CosTheta(w)) * intensity;
+    sample->Le = SmoothStep(cos_theta_max, cos_theta_min, CosTheta(w)) * intensity.Sample(lambda);
     sample->ray = Ray(p, frame.FromLocal(w));
     sample->normal = Vec3(0);
     sample->pdf_p = 1;
     sample->pdf_w = UniformConePDF(cos_theta_max);
     sample->medium = medium;
-
     return true;
 }
 
@@ -108,9 +107,9 @@ void SpotLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, co
     BulbitAssert(false);
 }
 
-Spectrum SpotLight::Phi() const
+Float SpotLight::Power() const
 {
-    return intensity * two_pi * ((1 - cos_theta_min) + (cos_theta_min - cos_theta_max) / 2);
+    return intensity.Luminance() * two_pi * ((1 - cos_theta_min) + (cos_theta_min - cos_theta_max) / 2);
 }
 
 } // namespace bulbit

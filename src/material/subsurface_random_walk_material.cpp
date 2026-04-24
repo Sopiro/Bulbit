@@ -14,7 +14,7 @@ SubsurfaceRandomWalkMaterial::SubsurfaceRandomWalkMaterial(
     const FloatTexture* u_roughness,
     const FloatTexture* v_roughness,
     Float g,
-    const SpectrumTexture* normal
+    const Float3Texture* normal
 )
     : Material(TypeIndexOf<SubsurfaceRandomWalkMaterial>())
     , reflectance{ reflectance }
@@ -27,7 +27,9 @@ SubsurfaceRandomWalkMaterial::SubsurfaceRandomWalkMaterial(
 {
 }
 
-bool SubsurfaceRandomWalkMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
+bool SubsurfaceRandomWalkMaterial::GetBSDF(
+    BSDF* bsdf, const Intersection& isect, WavelengthSample& lambda, Allocator& alloc
+) const
 {
     Float alpha_x = TrowbridgeReitzDistribution::RoughnessToAlpha(u_roughness->Evaluate(isect.uv));
     Float alpha_y = TrowbridgeReitzDistribution::RoughnessToAlpha(v_roughness->Evaluate(isect.uv));
@@ -36,18 +38,24 @@ bool SubsurfaceRandomWalkMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect
 
     *bsdf = BSDF(
         isect.shading.normal, isect.shading.tangent,
-        alloc.new_object<DielectricMultiScatteringBxDF>(eta_p, TrowbridgeReitzDistribution(alpha_x, alpha_y), Spectrum(1))
+        alloc.new_object<DielectricMultiScatteringBxDF>(
+            SpectrumSample(eta_p), TrowbridgeReitzDistribution(alpha_x, alpha_y), SpectrumSample(1)
+        )
     );
+
+    BulbitNotUsed(lambda);
 
     return true;
 }
 
-bool SubsurfaceRandomWalkMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
+bool SubsurfaceRandomWalkMaterial::GetBSSRDF(
+    BSSRDF** bssrdf, const Intersection& isect, const WavelengthSample& lambda, Allocator& alloc
+) const
 {
-    Spectrum R = reflectance->Evaluate(isect.uv);
-    Spectrum sigma_t = 1 / l;
+    SpectrumSample R = reflectance->Evaluate(isect.uv, lambda);
+    SpectrumSample sigma_s = SafeDiv(SpectrumSample(1.0f), l.Sample(lambda));
 
-    *bssrdf = alloc.new_object<RandomWalkBSSRDF>(R, Spectrum(0), sigma_t, isect, eta, g);
+    *bssrdf = alloc.new_object<RandomWalkBSSRDF>(R, SpectrumSample(0), sigma_s, isect, eta, g);
     return true;
 }
 
@@ -56,7 +64,7 @@ const FloatTexture* SubsurfaceRandomWalkMaterial::GetAlphaTexture() const
     return nullptr;
 }
 
-const SpectrumTexture* SubsurfaceRandomWalkMaterial::GetNormalTexture() const
+const Float3Texture* SubsurfaceRandomWalkMaterial::GetNormalTexture() const
 {
     return normal;
 }

@@ -13,7 +13,7 @@ ConductorMaterial::ConductorMaterial(
     const FloatTexture* v_roughness,
     const SpectrumTexture* reflectance,
     bool energy_compensation,
-    const SpectrumTexture* normal,
+    const Float3Texture* normal,
     const FloatTexture* alpha
 )
     : Material(TypeIndexOf<ConductorMaterial>())
@@ -34,7 +34,7 @@ ConductorMaterial::ConductorMaterial(
     const FloatTexture* v_roughness,
     const SpectrumTexture* reflectance,
     bool energy_compensation,
-    const SpectrumTexture* normal,
+    const Float3Texture* normal,
     const FloatTexture* alpha
 )
     : Material(TypeIndexOf<ConductorMaterial>())
@@ -49,16 +49,16 @@ ConductorMaterial::ConductorMaterial(
 {
 }
 
-bool ConductorMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
+bool ConductorMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, WavelengthSample& lambda, Allocator& alloc) const
 {
     Float alpha_x = TrowbridgeReitzDistribution::RoughnessToAlpha(u_roughness->Evaluate(isect.uv));
     Float alpha_y = TrowbridgeReitzDistribution::RoughnessToAlpha(v_roughness->Evaluate(isect.uv));
-    Spectrum r = reflectance ? reflectance->Evaluate(isect.uv) : Spectrum(1);
+    SpectrumSample r = reflectance ? reflectance->Evaluate(isect.uv, lambda) : SpectrumSample(1);
 
     if (eta)
     {
-        Spectrum k_s = k->Evaluate(isect.uv);
-        Spectrum eta_s = eta->Evaluate(isect.uv);
+        SpectrumSample k_s = k->Evaluate(isect.uv, lambda);
+        SpectrumSample eta_s = eta->Evaluate(isect.uv, lambda);
 
         if (energy_compensation)
         {
@@ -77,7 +77,7 @@ bool ConductorMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator
     }
     else
     {
-        Spectrum R = k->Evaluate(isect.uv);
+        SpectrumSample R = k->Evaluate(isect.uv, lambda);
 
         if (energy_compensation)
         {
@@ -98,10 +98,13 @@ bool ConductorMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator
     return true;
 }
 
-bool ConductorMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
+bool ConductorMaterial::GetBSSRDF(
+    BSSRDF** bssrdf, const Intersection& isect, const WavelengthSample& lambda, Allocator& alloc
+) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
+    BulbitNotUsed(lambda);
     BulbitNotUsed(alloc);
     return false;
 }
@@ -111,7 +114,7 @@ const FloatTexture* ConductorMaterial::GetAlphaTexture() const
     return alpha;
 }
 
-const SpectrumTexture* ConductorMaterial::GetNormalTexture() const
+const Float3Texture* ConductorMaterial::GetNormalTexture() const
 {
     return normal;
 }

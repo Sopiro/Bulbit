@@ -106,7 +106,7 @@ public:
 
     virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
 
-    virtual Spectrum Li(const Ray& ray, const Medium* medium, Sampler& sampler) const = 0;
+    virtual SpectrumSample Li(const Ray& ray, const Medium* medium, WavelengthSample& lambda, Sampler& sampler) const = 0;
 
 private:
     const Sampler* sampler_prototype;
@@ -124,7 +124,9 @@ public:
 
     virtual Rendering* Render(Allocator& alloc, const Camera* camera) override;
 
-    virtual Spectrum L(const Ray& ray, const Medium* medium, const Camera* camera, Film& film, Sampler& sampler) const = 0;
+    virtual SpectrumSample L(
+        const Ray& ray, const Medium* medium, WavelengthSample& lambda, const Camera* camera, Film& film, Sampler& sampler
+    ) const = 0;
 
 private:
     const Sampler* sampler_prototype;

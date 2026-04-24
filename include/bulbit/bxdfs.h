@@ -12,7 +12,7 @@ namespace bulbit
 class LambertianBxDF : public BxDF
 {
 public:
-    LambertianBxDF(const Spectrum& reflectance)
+    LambertianBxDF(const SpectrumSample& reflectance)
         : r{ reflectance }
     {
     }
@@ -22,7 +22,7 @@ public:
         return !r.IsBlack() ? BxDF_Flags::DiffuseReflection : BxDF_Flags::Unset;
     }
 
-    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -41,13 +41,13 @@ public:
 
 private:
     // Reflectance [0, 1]
-    Spectrum r;
+    SpectrumSample r;
 };
 
 class SpecularReflectionBxDF : public BxDF
 {
 public:
-    SpecularReflectionBxDF(const Spectrum& reflectance)
+    SpecularReflectionBxDF(const SpectrumSample& reflectance)
         : r{ reflectance }
     {
     }
@@ -57,7 +57,7 @@ public:
         return !r.IsBlack() ? BxDF_Flags::SpecularReflection : BxDF_Flags::Unset;
     }
 
-    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -76,13 +76,18 @@ public:
 
 private:
     // Reflectance [0, 1]
-    Spectrum r;
+    SpectrumSample r;
 };
 
 class DielectricBxDF : public BxDF
 {
 public:
-    DielectricBxDF(Float eta, TrowbridgeReitzDistribution mf, Spectrum r)
+    DielectricBxDF(Float eta, TrowbridgeReitzDistribution mf, SpectrumSample r)
+        : DielectricBxDF(SpectrumSample(eta), mf, r)
+    {
+    }
+
+    DielectricBxDF(SpectrumSample eta, TrowbridgeReitzDistribution mf, SpectrumSample r)
         : eta{ eta }
         , mf{ mf }
         , r{ Sqrt(r) }
@@ -91,11 +96,11 @@ public:
 
     virtual BxDF_Flags Flags() const override
     {
-        BxDF_Flags flags = (eta == 1) ? BxDF_Flags::Transmission : (BxDF_Flags::Reflection | BxDF_Flags::Transmission);
+        BxDF_Flags flags = HeroEta() == 1 ? BxDF_Flags::Transmission : (BxDF_Flags::Reflection | BxDF_Flags::Transmission);
         return flags | (mf.EffectivelySmooth() ? BxDF_Flags::Specular : BxDF_Flags::Glossy);
     }
 
-    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -111,7 +116,6 @@ public:
         TransportDirection direction = TransportDirection::ToLight,
         BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
     ) const override;
-
     virtual void Regularize() override;
 
     static void PrepareReflectanceTexture(int32 texture_size, std::span<Float> uc, std::span<Point2> u);
@@ -134,18 +138,28 @@ public:
     }
 
 private:
+    Float HeroEta() const
+    {
+        return eta[WavelengthSample::hero_lane];
+    }
+
     static inline std::unique_ptr<FloatImageTexture3D> E_texture = nullptr;
     static inline std::unique_ptr<FloatImageTexture3D> E_inv_texture = nullptr;
 
-    Float eta;
+    SpectrumSample eta;
     TrowbridgeReitzDistribution mf;
-    Spectrum r;
+    SpectrumSample r;
 };
 
 class DielectricMultiScatteringBxDF : public BxDF
 {
 public:
-    DielectricMultiScatteringBxDF(Float eta, TrowbridgeReitzDistribution mf, Spectrum r)
+    DielectricMultiScatteringBxDF(Float eta, TrowbridgeReitzDistribution mf, SpectrumSample r)
+        : DielectricMultiScatteringBxDF(SpectrumSample(eta), mf, r)
+    {
+    }
+
+    DielectricMultiScatteringBxDF(SpectrumSample eta, TrowbridgeReitzDistribution mf, SpectrumSample r)
         : eta{ eta }
         , mf{ mf }
         , r{ Sqrt(r) }
@@ -154,11 +168,11 @@ public:
 
     virtual BxDF_Flags Flags() const override
     {
-        BxDF_Flags flags = (eta == 1) ? BxDF_Flags::Transmission : (BxDF_Flags::Reflection | BxDF_Flags::Transmission);
+        BxDF_Flags flags = HeroEta() == 1 ? BxDF_Flags::Transmission : (BxDF_Flags::Reflection | BxDF_Flags::Transmission);
         return flags | (mf.EffectivelySmooth() ? BxDF_Flags::Specular : BxDF_Flags::Glossy);
     }
 
-    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -174,7 +188,6 @@ public:
         TransportDirection direction = TransportDirection::ToLight,
         BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
     ) const override;
-
     virtual void Regularize() override;
 
     Float E(Vec3 wo, Float eta) const
@@ -219,9 +232,9 @@ private:
     static inline std::unique_ptr<FloatImageTexture> E_avg_texture = nullptr;
     static inline std::unique_ptr<FloatImageTexture> E_inv_avg_texture = nullptr;
 
-    Float ComputeScatteringRatio(Float eta_o) const
+    Float ComputeScatteringRatio(Float eta_forward, Float eta_o) const
     {
-        Float eta_i = eta >= 1 ? eta : 1 / eta;
+        Float eta_i = eta_forward >= 1 ? eta_forward : 1 / eta_forward;
         Float eta_t = 1 / eta_i;
 
         Float a = (1 - FresnelDielectricAverage(eta_i)) / (1 - E_avg(eta_t));
@@ -241,16 +254,23 @@ private:
         return ratio;
     }
 
-    Float eta;
+    Float HeroEta() const
+    {
+        return eta[WavelengthSample::hero_lane];
+    }
+
+    SpectrumSample eta;
     TrowbridgeReitzDistribution mf;
-    Spectrum r;
+    SpectrumSample r;
 };
 
 class ConductorBxDF : public BxDF
 {
     // Physically correct BRDF assumes reflectance = 1
 public:
-    ConductorBxDF(Spectrum eta, Spectrum k, TrowbridgeReitzDistribution mf, Spectrum reflectance = Spectrum(1))
+    ConductorBxDF(
+        SpectrumSample eta, SpectrumSample k, TrowbridgeReitzDistribution mf, SpectrumSample reflectance = SpectrumSample(1)
+    )
         : mf{ mf }
         , eta{ eta }
         , k{ k }
@@ -258,7 +278,7 @@ public:
     {
     }
 
-    ConductorBxDF(Spectrum R, TrowbridgeReitzDistribution mf, Spectrum reflectance = Spectrum(1))
+    ConductorBxDF(SpectrumSample R, TrowbridgeReitzDistribution mf, SpectrumSample reflectance = SpectrumSample(1))
         : mf{ mf }
         , eta{ 1 }
         , reflectance{ reflectance }
@@ -267,8 +287,8 @@ public:
         // R = \frac{(\eta - 1)^2 + k^2}{(\eta + 1)^2 + k^2}
         // Assume \eta = 1 and solve for k
 
-        Spectrum r = Clamp(R, 0, 1 - 1e-4f);
-        k = 2 * Sqrt(r) / Sqrt(Max(Spectrum(1) - r, 0));
+        SpectrumSample r = Clamp(R, 0, 1 - 1e-4f);
+        k = 2 * Sqrt(r) / Sqrt(Max(SpectrumSample(1) - r, 0));
     }
 
     virtual BxDF_Flags Flags() const override
@@ -276,7 +296,7 @@ public:
         return mf.EffectivelySmooth() ? BxDF_Flags::SpecularReflection : BxDF_Flags::GlossyReflection;
     }
 
-    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -297,14 +317,16 @@ public:
 
 private:
     TrowbridgeReitzDistribution mf;
-    Spectrum eta, k, reflectance;
+    SpectrumSample eta, k, reflectance;
 };
 
 class ConductorMultiScatteringBxDF : public BxDF
 {
     // Physically correct BRDF assumes reflectance = 1
 public:
-    ConductorMultiScatteringBxDF(Spectrum eta, Spectrum k, TrowbridgeReitzDistribution mf, Spectrum reflectance = Spectrum(1))
+    ConductorMultiScatteringBxDF(
+        SpectrumSample eta, SpectrumSample k, TrowbridgeReitzDistribution mf, SpectrumSample reflectance = SpectrumSample(1)
+    )
         : mf{ mf }
         , eta{ eta }
         , k{ k }
@@ -312,7 +334,7 @@ public:
     {
     }
 
-    ConductorMultiScatteringBxDF(Spectrum R, TrowbridgeReitzDistribution mf, Spectrum reflectance = Spectrum(1))
+    ConductorMultiScatteringBxDF(SpectrumSample R, TrowbridgeReitzDistribution mf, SpectrumSample reflectance = SpectrumSample(1))
         : mf{ mf }
         , eta{ 1 }
         , reflectance{ reflectance }
@@ -321,8 +343,8 @@ public:
         // R = \frac{(\eta - 1)^2 + k^2}{(\eta + 1)^2 + k^2}
         // Assume \eta = 1 and solve for k
 
-        Spectrum r = Clamp(R, 0, 1 - 1e-4f);
-        k = 2 * Sqrt(r) / Sqrt(Max(Spectrum(1) - r, 0));
+        SpectrumSample r = Clamp(R, 0, 1 - 1e-4f);
+        k = 2 * Sqrt(r) / Sqrt(Max(SpectrumSample(1) - r, 0));
     }
 
     virtual BxDF_Flags Flags() const override
@@ -330,7 +352,7 @@ public:
         return mf.EffectivelySmooth() ? BxDF_Flags::SpecularReflection : BxDF_Flags::GlossyReflection;
     }
 
-    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -351,13 +373,18 @@ public:
 
 private:
     TrowbridgeReitzDistribution mf;
-    Spectrum eta, k, reflectance;
+    SpectrumSample eta, k, reflectance;
 };
 
 class ThinDielectricBxDF : public BxDF
 {
 public:
-    ThinDielectricBxDF(Float eta, Spectrum r)
+    ThinDielectricBxDF(Float eta, SpectrumSample r)
+        : ThinDielectricBxDF(SpectrumSample(eta), r)
+    {
+    }
+
+    ThinDielectricBxDF(SpectrumSample eta, SpectrumSample r)
         : eta{ eta }
         , r{ Sqrt(r) }
     {
@@ -368,7 +395,7 @@ public:
         return BxDF_Flags::Specular | BxDF_Flags::Reflection | BxDF_Flags::Transmission;
     }
 
-    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -386,14 +413,14 @@ public:
     ) const override;
 
 private:
-    Float eta;
-    Spectrum r;
+    SpectrumSample eta;
+    SpectrumSample r;
 };
 
 class SheenBxDF : public BxDF
 {
 public:
-    SheenBxDF(Spectrum base, Spectrum sheen, CharlieSheenDistribution mf)
+    SheenBxDF(SpectrumSample base, SpectrumSample sheen, CharlieSheenDistribution mf)
         : base{ base }
         , sheen{ sheen }
         , mf{ mf }
@@ -405,7 +432,7 @@ public:
         return BxDF_Flags::Diffuse | BxDF_Flags::Reflection;
     }
 
-    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -425,14 +452,14 @@ public:
     virtual void Regularize() override {}
 
 private:
-    Spectrum base, sheen;
+    SpectrumSample base, sheen;
     CharlieSheenDistribution mf;
 };
 
 class MetallicRoughnessBxDF : public BxDF
 {
 public:
-    MetallicRoughnessBxDF(Spectrum color, Float metallic, TrowbridgeReitzDistribution mf)
+    MetallicRoughnessBxDF(SpectrumSample color, Float metallic, TrowbridgeReitzDistribution mf)
         : color{ color }
         , metallic{ metallic }
         , mf{ mf }
@@ -444,7 +471,7 @@ public:
         return BxDF_Flags::Diffuse | BxDF_Flags::Glossy | BxDF_Flags::Reflection;
     }
 
-    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -464,7 +491,7 @@ public:
     virtual void Regularize() override;
 
     static const inline Float detault_ior = 1.5f;
-    static const inline Spectrum default_dielectric_f0 = Spectrum(0.04f);
+    static const inline SpectrumSample default_dielectric_f0 = SpectrumSample(0.04f);
     static const inline Float min_alpha = 1e-3f;
 
     static Float RoughnessToAlpha(Float roughness)
@@ -472,24 +499,24 @@ public:
         return std::fmax(TrowbridgeReitzDistribution::RoughnessToAlpha(roughness), min_alpha);
     }
 
-    static Spectrum F0(Float ior, Spectrum color, Float metallic)
+    static SpectrumSample F0(Float ior, SpectrumSample color, Float metallic)
     {
-        Spectrum f0(Sqr((ior - 1) / (ior + 1)));
+        SpectrumSample f0(Sqr((ior - 1) / (ior + 1)));
         return Lerp(f0, color, metallic);
     }
 
-    static Spectrum F0(Spectrum color, Float metallic)
+    static SpectrumSample F0(SpectrumSample color, Float metallic)
     {
         return Lerp(default_dielectric_f0, color, metallic);
     }
 
-    static Spectrum F_Schlick(Spectrum f0, Float cosine_theta)
+    static SpectrumSample F_Schlick(SpectrumSample f0, Float cosine_theta)
     {
-        return f0 + (/*f90*/ Spectrum(1) - f0) * std::pow(1 - cosine_theta, 5.0f);
+        return f0 + (/*f90*/ SpectrumSample(1) - f0) * std::pow(1 - cosine_theta, 5.0f);
     }
 
 private:
-    Spectrum color;
+    SpectrumSample color;
     Float metallic;
     TrowbridgeReitzDistribution mf;
 };
@@ -501,7 +528,9 @@ class SubstrateBxDF : public BxDF
     // 1) glossy microfacet reflection at the top interface
     // 2) diffuse substrate reflection attenuated by in/out Fresnel terms
 public:
-    SubstrateBxDF(Spectrum reflectance, Float ior, TrowbridgeReitzDistribution mf, Spectrum sigma_a, Float thickness = 1.0f)
+    SubstrateBxDF(
+        SpectrumSample reflectance, Float ior, TrowbridgeReitzDistribution mf, SpectrumSample sigma_a, Float thickness = 1.0f
+    )
         : reflectance{ Clamp(reflectance, 0, 1) }
         , eta{ std::max(ior, 1.0001f) }
         , mf{ mf }
@@ -521,7 +550,7 @@ public:
         return flags;
     }
 
-    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -550,12 +579,12 @@ public:
 private:
     Float GlossyProbability(Vec3 wo) const;
 
-    Spectrum reflectance;           // Substrate diffuse albedo (rho_d)
+    SpectrumSample reflectance;     // Substrate diffuse albedo (rho_d)
 
     Float eta;                      // Relative IOR for the top dielectric interface
     TrowbridgeReitzDistribution mf; // Microfacet distribution for the coating
 
-    Spectrum sigma_a_dt;            // sigma_a * thickness, used for Beer-Lambert attenuation
+    SpectrumSample sigma_a_dt;      // sigma_a * thickness, used for Beer-Lambert attenuation
 
     Float fresnel_avg;              // Hemispherical-average Fresnel term for diffuse normalization
     Float avg_transmittance;        // Average round-trip transmittance through the coating
@@ -565,17 +594,17 @@ class PrincipledBxDF : public BxDF
 {
 public:
     PrincipledBxDF(
-        Spectrum color,
+        SpectrumSample color,
         Float metallic,
         TrowbridgeReitzDistribution mf,
         Float eta,
         Float transmission,
         Float clearcoat,
         TrowbridgeReitzDistribution mf_clearcoat,
-        Spectrum clearcoat_color,
+        SpectrumSample clearcoat_color,
         Float sheen,
         CharlieSheenDistribution mf_sheen,
-        Spectrum sheen_color
+        SpectrumSample sheen_color
     )
         : color{ color }
         , metallic{ metallic }
@@ -596,7 +625,7 @@ public:
         return BxDF_Flags::Diffuse | BxDF_Flags::Glossy | BxDF_Flags::Reflection | BxDF_Flags::Transmission;
     }
 
-    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -616,7 +645,7 @@ public:
     virtual void Regularize() override;
 
     static const inline Float default_clearcoat_ior = 1.5f;
-    static const inline Spectrum default_dielectric_f0 = Spectrum(0.04f);
+    static const inline SpectrumSample default_dielectric_f0 = SpectrumSample(0.04f);
     static const inline Float min_alpha = 1e-3f;
 
     static Float RoughnessToAlpha(Float roughness)
@@ -635,34 +664,34 @@ public:
         return { alpha_x, alpha_y };
     }
 
-    static Spectrum F0(Float ior, Spectrum color, Float metallic)
+    static SpectrumSample F0(Float ior, SpectrumSample color, Float metallic)
     {
-        Spectrum f0(Sqr((ior - 1) / (ior + 1)));
+        SpectrumSample f0(Sqr((ior - 1) / (ior + 1)));
         return Lerp(f0, color, metallic);
     }
 
-    static Spectrum F_Schlick(Spectrum f0, Float cos_theta)
+    static SpectrumSample F_Schlick(SpectrumSample f0, Float cos_theta)
     {
-        return f0 + (/*f90*/ Spectrum(1) - f0) * std::pow(1 - cos_theta, 5.0f);
+        return f0 + (/*f90*/ SpectrumSample(1) - f0) * std::pow(1 - cos_theta, 5.0f);
     }
 
-    static Spectrum F_avg_Schlick(Spectrum f0)
+    static SpectrumSample F_avg_Schlick(SpectrumSample f0)
     {
-        return (Spectrum(1) + 20 * f0) / 21;
+        return (SpectrumSample(1) + 20 * f0) / 21;
     }
 
 private:
-    Spectrum color;
+    SpectrumSample color;
     Float metallic;
     TrowbridgeReitzDistribution mf;
     Float eta;
     Float transmission;
     Float clearcoat;
     TrowbridgeReitzDistribution mf_clearcoat;
-    Spectrum clearcoat_color;
+    SpectrumSample clearcoat_color;
     Float sheen;
     CharlieSheenDistribution mf_sheen;
-    Spectrum sheen_color;
+    SpectrumSample sheen_color;
 };
 
 class NormalizedFresnelBxDF : public BxDF
@@ -678,7 +707,7 @@ public:
         return BxDF_Flags(BxDF_Flags::Diffuse | BxDF_Flags::Reflection);
     }
 
-    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -703,11 +732,11 @@ private:
 
 class EONBxDF : public BxDF
 {
-    // Energy-preserving Oren–Nayar BRDF
+    // Energy-preserving Oren?밡ayar BRDF
     // EON: APractical Energy-Preserving Rough Diffuse BRDF (Portsmouth et al., 2025)
     // https://jcgt.org/published/0014/01/06/
 public:
-    EONBxDF(const Spectrum& reflectance, Float roughness, bool exact = true)
+    EONBxDF(const SpectrumSample& reflectance, Float roughness, bool exact = true)
         : rho{ reflectance }
         , r{ roughness }
         , exact{ exact }
@@ -719,7 +748,7 @@ public:
         return !rho.IsBlack() ? BxDF_Flags::DiffuseReflection : BxDF_Flags::Unset;
     }
 
-    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -737,7 +766,7 @@ public:
     ) const override;
 
 private:
-    Spectrum rho;
+    SpectrumSample rho;
     Float r;
     bool exact;
 };
@@ -749,7 +778,7 @@ public:
         BxDF* top,
         BxDF* bottom,
         bool two_sided,
-        const Spectrum& albedo,
+        const SpectrumSample& albedo,
         Float thickness,
         Float g = 0,
         int32 max_bounces = 16,
@@ -778,7 +807,7 @@ public:
             flags = flags | BxDF_Flags::Specular;
         }
 
-        if (IsDiffuse(top_flags) || IsDiffuse(bottom_flags) || albedo != Spectrum::black)
+        if (IsDiffuse(top_flags) || IsDiffuse(bottom_flags) || !albedo.IsBlack())
         {
             flags = flags | BxDF_Flags::Diffuse;
         }
@@ -795,7 +824,7 @@ public:
         return flags;
     }
 
-    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
+    virtual SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const override;
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -828,7 +857,7 @@ private:
     BxDF* bottom;
     bool two_sided;
 
-    Spectrum albedo; // single scattering albedo
+    SpectrumSample albedo; // single scattering albedo
     Float thickness, g;
 
     int32 max_bounces, samples;

@@ -20,17 +20,17 @@ public:
 
     void Preprocess(const AABB& world_bounds);
 
-    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    Spectrum Le(const Ray& ray) const;
+    SpectrumSample Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const;
+    SpectrumSample Le(const Ray& ray, const WavelengthSample& lambda) const;
 
-    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
-    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
-    Spectrum Phi() const;
+    Float Power() const;
 
 private:
     Point3 p;
@@ -53,17 +53,17 @@ public:
 
     void Preprocess(const AABB& world_bounds);
 
-    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    Spectrum Le(const Ray& ray) const;
+    SpectrumSample Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const;
+    SpectrumSample Le(const Ray& ray, const WavelengthSample& lambda) const;
 
-    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
-    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
-    Spectrum Phi() const;
+    Float Power() const;
 
 private:
     Point3 p;
@@ -85,17 +85,17 @@ public:
 
     void Preprocess(const AABB& world_bounds);
 
-    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    Spectrum Le(const Ray& ray) const;
+    SpectrumSample Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const;
+    SpectrumSample Le(const Ray& ray, const WavelengthSample& lambda) const;
 
-    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
-    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
-    Spectrum Phi() const;
+    Float Power() const;
 
 private:
     Vec3 w;
@@ -108,27 +108,28 @@ private:
 class DiffuseAreaLight : public Light
 {
 public:
-    DiffuseAreaLight(const Primitive* primitive, const SpectrumTexture* emission, bool two_sided);
+    DiffuseAreaLight(const Primitive* primitive, const SpectrumTexture* emission, Float emission_mean_luminance, bool two_sided);
     void Destroy() {}
 
     void Preprocess(const AABB& world_bounds);
 
-    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    Spectrum Le(const Ray& ray) const;
+    SpectrumSample Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const;
+    SpectrumSample Le(const Ray& ray, const WavelengthSample& lambda) const;
 
-    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
-    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
-    Spectrum Phi() const;
+    Float Power() const;
 
     const Primitive* primitive;
 
 private:
     const SpectrumTexture* emission;
+    Float emission_mean_luminance;
     bool two_sided;
 };
 
@@ -139,26 +140,29 @@ class DirectionalAreaLight : public Light
     // and also will not rendered correctly with photon mapping based integrators
     // that explicitly sample direct illumination, since it cannot be sampled directly.
 public:
-    DirectionalAreaLight(const Primitive* primitive, const SpectrumTexture* emission, bool two_sided);
+    DirectionalAreaLight(
+        const Primitive* primitive, const SpectrumTexture* emission, Float emission_mean_luminance, bool two_sided
+    );
     void Destroy() {}
 
     void Preprocess(const AABB& world_bounds);
 
-    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    Spectrum Le(const Ray& ray) const;
+    SpectrumSample Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const;
+    SpectrumSample Le(const Ray& ray, const WavelengthSample& lambda) const;
 
-    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
-    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
-    Spectrum Phi() const;
+    Float Power() const;
 
     const Primitive* primitive;
 
 private:
     const SpectrumTexture* emission;
+    Float emission_mean_luminance;
     bool two_sided;
 };
 
@@ -171,6 +175,7 @@ public:
     SpotAreaLight(
         const Primitive* primitive,
         const SpectrumTexture* emission,
+        Float emission_mean_luminance,
         Float angle_max,           // degrees
         Float angle_falloff_start, // degrees
         bool two_sided = false
@@ -180,22 +185,23 @@ public:
 
     void Preprocess(const AABB& world_bounds);
 
-    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    Spectrum Le(const Ray& ray) const;
+    SpectrumSample Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const;
+    SpectrumSample Le(const Ray& ray, const WavelengthSample& lambda) const;
 
-    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
-    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
-    Spectrum Phi() const;
+    Float Power() const;
 
     const Primitive* primitive;
 
 private:
     const SpectrumTexture* emission;
+    Float emission_mean_luminance;
 
     Float cos_theta_min, cos_theta_max;
     bool two_sided;
@@ -209,21 +215,22 @@ public:
 
     void Preprocess(const AABB& world_bounds);
 
-    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    Spectrum Le(const Ray& ray) const;
+    SpectrumSample Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const;
+    SpectrumSample Le(const Ray& ray, const WavelengthSample& lambda) const;
 
-    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
-    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
-    Spectrum Phi() const;
+    Float Power() const;
 
 private:
     const SpectrumImageTexture* l_map; // Environment(Radiance) map
     Float l_scale;
+    Float l_map_mean_luminance;
 
     std::unique_ptr<Distribution2D> distribution;
 
@@ -241,17 +248,17 @@ public:
 
     void Preprocess(const AABB& world_bounds);
 
-    Spectrum Le(const Intersection& isect, const Vec3& wo) const;
-    Spectrum Le(const Ray& ray) const;
+    SpectrumSample Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const;
+    SpectrumSample Le(const Ray& ray, const WavelengthSample& lambda) const;
 
-    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const;
+    bool Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const;
     Float EvaluatePDF_Li(const Ray& ray) const;
 
-    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const;
+    bool Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const;
     void EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const;
     void PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect, const Vec3& w) const;
 
-    Spectrum Phi() const;
+    Float Power() const;
 
 private:
     Spectrum l;
@@ -271,19 +278,19 @@ inline void Light::Preprocess(const AABB& world_bounds)
     Dispatch([&](auto light) { light->Preprocess(world_bounds); });
 }
 
-inline Spectrum Light::Le(const Intersection& isect, const Vec3& wo) const
+inline SpectrumSample Light::Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const
 {
-    return Dispatch([&](auto light) { return light->Le(isect, wo); });
+    return Dispatch([&](auto light) { return light->Le(isect, wo, lambda); });
 }
 
-inline Spectrum Light::Le(const Ray& ray) const
+inline SpectrumSample Light::Le(const Ray& ray, const WavelengthSample& lambda) const
 {
-    return Dispatch([&](auto light) { return light->Le(ray); });
+    return Dispatch([&](auto light) { return light->Le(ray, lambda); });
 }
 
-inline bool Light::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
+inline bool Light::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const
 {
-    return Dispatch([&](auto light) { return light->Sample_Li(sample, ref, u); });
+    return Dispatch([&](auto light) { return light->Sample_Li(sample, ref, u, lambda); });
 }
 
 inline Float Light::EvaluatePDF_Li(const Ray& ray) const
@@ -291,9 +298,9 @@ inline Float Light::EvaluatePDF_Li(const Ray& ray) const
     return Dispatch([&](auto light) { return light->EvaluatePDF_Li(ray); });
 }
 
-inline bool Light::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
+inline bool Light::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const
 {
-    return Dispatch([&](auto light) { return light->Sample_Le(sample, u0, u1); });
+    return Dispatch([&](auto light) { return light->Sample_Le(sample, u0, u1, lambda); });
 }
 
 inline void Light::EvaluatePDF_Le(Float* pdf_p, Float* pdf_w, const Ray& ray) const
@@ -306,9 +313,9 @@ inline void Light::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect,
     Dispatch([&](auto light) { light->PDF_Le(pdf_p, pdf_w, isect, w); });
 }
 
-inline Spectrum Light::Phi() const
+inline Float Light::Power() const
 {
-    return Dispatch([&](auto light) { return light->Phi(); });
+    return Dispatch([&](auto light) { return light->Power(); });
 }
 
 inline bool Light::IsDeltaLight() const

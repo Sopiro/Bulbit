@@ -51,7 +51,7 @@ void Principled(RendererInfo* ri, int32 lobe, int32 model)
 
     const int32 count = 5;
 
-    auto normalmap = CreateSpectrumImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
+    auto normalmap = CreateFloat3ImageTexture(scene, "res/bistro/Concrete_Normal.png", true);
 
     const Material* outers[count];
     switch (lobe)
@@ -98,14 +98,14 @@ void Principled(RendererInfo* ri, int32 lobe, int32 model)
 
     case colored_transmission:
     {
-        Spectrum c0 = Spectrum(1);
-        Spectrum c1 = Spectrum{ 1.0f, 0.5f, 0.8f };
+        Vec3 c0(1.0f);
+        Vec3 c1(1.0f, 0.5f, 0.8f);
 
-        outers[3] = CreatePrincipledMaterial(scene, Lerp(c0, c1, 0.0f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f, 0.0f, 0.0f);
-        outers[1] = CreatePrincipledMaterial(scene, Lerp(c0, c1, 0.25f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f, 0.0f, 0.0f);
-        outers[0] = CreatePrincipledMaterial(scene, Lerp(c0, c1, 0.5f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f, 0.0f, 0.0f);
-        outers[2] = CreatePrincipledMaterial(scene, Lerp(c0, c1, 0.75f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f, 0.0f, 0.0f);
-        outers[4] = CreatePrincipledMaterial(scene, Lerp(c0, c1, 1.0f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f, 0.0f, 0.0f);
+        outers[3] = CreatePrincipledMaterial(scene, Spectrum(c0 * 1.0f + c1 * 0.0f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f, 0.0f, 0.0f);
+        outers[1] = CreatePrincipledMaterial(scene, Spectrum(c0 * 0.75f + c1 * 0.25f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f, 0.0f, 0.0f);
+        outers[0] = CreatePrincipledMaterial(scene, Spectrum(c0 * 0.5f + c1 * 0.5f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f, 0.0f, 0.0f);
+        outers[2] = CreatePrincipledMaterial(scene, Spectrum(c0 * 0.25f + c1 * 0.75f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f, 0.0f, 0.0f);
+        outers[4] = CreatePrincipledMaterial(scene, Spectrum(c0 * 0.0f + c1 * 1.0f), 0.0f, 0.1f, 0.0f, 1.5f, 1.0f, 0.0f, 0.0f);
     }
     break;
 

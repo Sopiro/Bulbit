@@ -31,11 +31,11 @@ class Material : public DynamicDispatcher<Materials>
 public:
     using Types = Materials;
 
-    bool GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const;
-    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const;
+    bool GetBSDF(BSDF* bsdf, const Intersection& isect, WavelengthSample& lambda, Allocator& alloc) const;
+    bool GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const WavelengthSample& lambda, Allocator& alloc) const;
 
     const FloatTexture* GetAlphaTexture() const;
-    const SpectrumTexture* GetNormalTexture() const;
+    const Float3Texture* GetNormalTexture() const;
 
 protected:
     Material(int32 type_index)

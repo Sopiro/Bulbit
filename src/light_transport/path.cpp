@@ -63,11 +63,11 @@ const Medium* Vertex::GetMedium(const Vec3& w) const
     }
 }
 
-Spectrum Vertex::Le(const Vertex& v, const Integrator* I) const
+SpectrumSample Vertex::Le(const Vertex& v, const Integrator* I, const WavelengthSample& lambda) const
 {
     if (!IsLight())
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     if (IsInfiniteLight())
@@ -75,10 +75,10 @@ Spectrum Vertex::Le(const Vertex& v, const Integrator* I) const
         Ray ray(point, -wo);
 
         // Return emitted radiance for infinite light sources
-        Spectrum Le(0);
+        SpectrumSample Le(0);
         for (const Light* light : I->InfiniteLights())
         {
-            Le += light->Le(ray);
+            Le += light->Le(ray, lambda);
         }
         return Le;
     }
@@ -87,37 +87,38 @@ Spectrum Vertex::Le(const Vertex& v, const Integrator* I) const
         Vec3 wo = v.point - point;
         if (wo.Normalize() == 0)
         {
-            return Spectrum::black;
+            return SpectrumSample(0);
         }
 
         Intersection isect{ .uv = sv.uv, .front_face = sv.front_face };
-        return sv.area_light->Le(isect, wo);
+        return sv.area_light->Le(isect, wo, lambda);
     }
 }
 
-Spectrum Vertex::f(const Vec3& wi, TransportDirection direction) const
+SpectrumSample Vertex::f(const Vec3& wi, TransportDirection direction, const WavelengthSample& lambda) const
 {
+    BulbitNotUsed(lambda);
     switch (type)
     {
     case VertexType::surface:
         return sv.bsdf.f(wo, wi, direction);
     case VertexType::medium:
-        return Spectrum(mv.phase->p(wo, wi));
+        return SpectrumSample(mv.phase->p(wo, wi));
     default:
         BulbitAssert(false);
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 }
 
-Spectrum Vertex::f(const Vertex& next, TransportDirection direction) const
+SpectrumSample Vertex::f(const Vertex& next, TransportDirection direction, const WavelengthSample& lambda) const
 {
     Vec3 wi = next.point - point;
     if (wi.Normalize() == 0)
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
-    return f(wi, direction);
+    return f(wi, direction, lambda);
 }
 
 Float Vertex::PDF(const Vertex& next, const Vertex* prev, const Integrator* I) const

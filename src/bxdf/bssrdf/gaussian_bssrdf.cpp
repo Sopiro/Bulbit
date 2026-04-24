@@ -3,25 +3,29 @@
 namespace bulbit
 {
 
-Float GaussianBSSRDF::MaxSr(int32 wavelength) const
+Float GaussianBSSRDF::MaxSr(const WavelengthSample& lambda) const
 {
-    return Sample_Sr(wavelength, 1 - 0.999f);
+    return Sample_Sr(lambda, 1 - 0.999f);
 }
 
-Spectrum GaussianBSSRDF::Sr(Float r) const
+SpectrumSample GaussianBSSRDF::Sr(Float r) const
 {
     return R * PDF_Sr(r);
 }
 
-Float GaussianBSSRDF::Sample_Sr(int32 wavelength, Float u) const
+Float GaussianBSSRDF::Sample_Sr(const WavelengthSample& lambda, Float u) const
 {
-    return sigma[wavelength] * std::sqrt(-2 * std::log(std::max<Float>(u, Float(1e-8))));
+    const int32 hero = WavelengthSample::hero_lane;
+    BulbitNotUsed(lambda);
+    Float sigma_hero = sigma[hero];
+    return sigma_hero * std::sqrt(-2 * std::log(std::max<Float>(u, Float(1e-8))));
 }
 
-Spectrum GaussianBSSRDF::PDF_Sr(Float r) const
+SpectrumSample GaussianBSSRDF::PDF_Sr(Float r) const
 {
-    Spectrum sigma2 = Sqr(sigma);
-    return Exp(-Sqr(r) / (2 * sigma2)) / (two_pi * sigma2);
+    SpectrumSample sigma2 = sigma * sigma;
+    SpectrumSample exponent = SpectrumSample(-Sqr(r)) / (2.0f * sigma2);
+    return SafeDiv(Exp(exponent), two_pi * sigma2);
 }
 
 } // namespace bulbit

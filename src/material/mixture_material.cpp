@@ -20,11 +20,12 @@ MixtureMaterial::MixtureMaterial(
     materials[1] = material2;
 }
 
-bool MixtureMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
+bool MixtureMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, WavelengthSample& lambda, Allocator& alloc) const
 {
     BulbitAssert(false);
     BulbitNotUsed(bsdf);
     BulbitNotUsed(isect);
+    BulbitNotUsed(lambda);
     BulbitNotUsed(alloc);
     return false;
 }
@@ -52,10 +53,13 @@ const Material* MixtureMaterial::ChooseMaterial(const Intersection& isect, const
     }
 }
 
-bool MixtureMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
+bool MixtureMaterial::GetBSSRDF(
+    BSSRDF** bssrdf, const Intersection& isect, const WavelengthSample& lambda, Allocator& alloc
+) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
+    BulbitNotUsed(lambda);
     BulbitNotUsed(alloc);
     return false;
 }
@@ -65,7 +69,7 @@ const FloatTexture* MixtureMaterial::GetAlphaTexture() const
     return alpha;
 }
 
-const SpectrumTexture* MixtureMaterial::GetNormalTexture() const
+const Float3Texture* MixtureMaterial::GetNormalTexture() const
 {
     BulbitAssert(false);
     return nullptr;

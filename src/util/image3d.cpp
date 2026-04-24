@@ -137,13 +137,13 @@ Image3D3 ReadImage3D(
         if (transform)
         {
             ParallelFor(0, dim_x * dim_y * dim_z, [&](int32 i) {
-                image[i] = transform(Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0));
+                image[i] = transform(Max(Vec3(data[stride * i + 0], data[stride * i + 1], data[stride * i + 2]), Vec3(0)));
             });
         }
         else
         {
             ParallelFor(0, dim_x * dim_y * dim_z, [&](int32 i) {
-                image[i] = Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0);
+                image[i] = Max(Vec3(data[stride * i + 0], data[stride * i + 1], data[stride * i + 2]), Vec3(0));
             });
         }
     }
@@ -153,14 +153,14 @@ Image3D3 ReadImage3D(
         {
             for (int32 i = 0; i < dim_x * dim_y * dim_z; ++i)
             {
-                image[i] = transform(Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0));
+                image[i] = transform(Max(Vec3(data[stride * i + 0], data[stride * i + 1], data[stride * i + 2]), Vec3(0)));
             }
         }
         else
         {
             for (int32 i = 0; i < dim_x * dim_y * dim_z; ++i)
             {
-                image[i] = Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0);
+                image[i] = Max(Vec3(data[stride * i + 0], data[stride * i + 1], data[stride * i + 2]), Vec3(0));
             }
         }
     }
@@ -194,7 +194,7 @@ void WriteImage3D(const Image3D3& image, const std::filesystem::path& filename)
 
     if (extension == ".hdr")
     {
-        stbi_write_hdr(filename.string().c_str(), image.dim_x, image.dim_y * image.dim_z, 3, &image[0].r);
+        stbi_write_hdr(filename.string().c_str(), image.dim_x, image.dim_y * image.dim_z, 3, &image[0].x);
     }
     else
     {

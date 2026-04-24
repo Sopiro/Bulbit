@@ -39,7 +39,7 @@ public:
     {
     }
 
-    HomogeneousMajorantIterator(Float t_min, Float t_max, Spectrum sigma_maj)
+    HomogeneousMajorantIterator(Float t_min, Float t_max, SpectrumSample sigma_maj)
         : segment{ t_min, t_max, sigma_maj }
         , called{ false }
     {
@@ -67,7 +67,7 @@ class DDAMajorantIterator : public RayMajorantIterator
 {
 public:
     DDAMajorantIterator() = default;
-    DDAMajorantIterator(Ray ray, Float t_min, Float t_max, const VoxelGrid<Float>* grid, Spectrum sigma_t)
+    DDAMajorantIterator(Ray ray, Float t_min, Float t_max, const VoxelGrid<Float>* grid, SpectrumSample sigma_t)
         : sigma_t{ sigma_t }
         , t_min{ t_min }
         , t_max{ t_max }
@@ -148,7 +148,7 @@ public:
     }
 
 private:
-    Spectrum sigma_t;
+    SpectrumSample sigma_t;
     Float t_min = infinity, t_max = -infinity;
     const VoxelGrid<Float>* grid;
 
@@ -166,9 +166,9 @@ public:
     void Destroy() {}
 
     bool IsEmissive() const;
-    MediumSample SamplePoint(Point3 p) const;
-    HomogeneousMajorantIterator SampleRay(Ray ray, Float t_max) const;
-    RayMajorantIterator* SampleRay(Ray ray, Float t_max, Allocator& alloc) const;
+    MediumSample SamplePoint(Point3 p, const WavelengthSample& lambda) const;
+    HomogeneousMajorantIterator SampleRay(Ray ray, Float t_max, const WavelengthSample& lambda) const;
+    RayMajorantIterator* SampleRay(Ray ray, Float t_max, const WavelengthSample& lambda, Allocator& alloc) const;
 
 private:
     Spectrum sigma_a, sigma_s, Le;
@@ -195,15 +195,16 @@ public:
     void Destroy();
 
     bool IsEmissive() const;
-    MediumSample SamplePoint(Point3 p) const;
-    DDAMajorantIterator SampleRay(Ray ray, Float t_max) const;
-    RayMajorantIterator* SampleRay(Ray ray, Float t_max, Allocator& alloc) const;
+    MediumSample SamplePoint(Point3 p, const WavelengthSample& lambda) const;
+    DDAMajorantIterator SampleRay(Ray ray, Float t_max, const WavelengthSample& lambda) const;
+    RayMajorantIterator* SampleRay(Ray ray, Float t_max, const WavelengthSample& lambda, Allocator& alloc) const;
 
 private:
     AABB3 bounds;
     Transform transform;
 
     Spectrum sigma_a, sigma_s;
+    Float sigma_scale;
     HenyeyGreensteinPhaseFunction phase;
     VoxelGrid<Float> majorant_grid;
 
@@ -226,14 +227,14 @@ inline bool Medium::IsEmissive() const
     return Dispatch([](auto medium) { return medium->IsEmissive(); });
 }
 
-inline MediumSample Medium::SamplePoint(Point3 p) const
+inline MediumSample Medium::SamplePoint(Point3 p, const WavelengthSample& lambda) const
 {
-    return Dispatch([&](auto medium) { return medium->SamplePoint(p); });
+    return Dispatch([&](auto medium) { return medium->SamplePoint(p, lambda); });
 }
 
-inline RayMajorantIterator* Medium::SampleRay(Ray ray, Float t_max, Allocator& alloc) const
+inline RayMajorantIterator* Medium::SampleRay(Ray ray, Float t_max, const WavelengthSample& lambda, Allocator& alloc) const
 {
-    return Dispatch([&](auto medium) { return medium->SampleRay(ray, t_max, alloc); });
+    return Dispatch([&](auto medium) { return medium->SampleRay(ray, t_max, lambda, alloc); });
 }
 
 } // namespace bulbit

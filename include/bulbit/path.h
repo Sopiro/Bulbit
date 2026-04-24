@@ -77,10 +77,10 @@ struct Vertex
 
     const Medium* GetMedium(const Vec3& w) const;
 
-    Spectrum Le(const Vertex& v, const Integrator* I) const;
+    SpectrumSample Le(const Vertex& v, const Integrator* I, const WavelengthSample& lambda) const;
 
-    Spectrum f(const Vec3& wi, TransportDirection direction) const;
-    Spectrum f(const Vertex& next, TransportDirection direction) const;
+    SpectrumSample f(const Vec3& wi, TransportDirection direction, const WavelengthSample& lambda) const;
+    SpectrumSample f(const Vertex& next, TransportDirection direction, const WavelengthSample& lambda) const;
 
     Float PDF(const Vertex& next, const Vertex* prev, const Integrator* I) const;
     Float PDFLight(const Vertex& next, const Integrator* I) const;
@@ -102,7 +102,7 @@ struct Vertex
     Vec3 normal, shading_normal;
     Vec3 wo;
 
-    Spectrum beta;
+    SpectrumSample beta;
     bool delta;
 
     Float pdf_fwd, pdf_rev;

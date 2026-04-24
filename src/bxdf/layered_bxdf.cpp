@@ -3,9 +3,9 @@
 namespace bulbit
 {
 
-Spectrum LayeredBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
+SpectrumSample LayeredBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
 {
-    Spectrum f(0);
+    SpectrumSample f(0);
 
     if (two_sided && wo.z < 0)
     {
@@ -64,7 +64,7 @@ Spectrum LayeredBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
             continue;
         }
 
-        if (wo_sample.f == Spectrum::black || wo_sample.pdf == 0 || wo_sample.wi.z == 0)
+        if (wo_sample.f.IsBlack() || wo_sample.pdf == 0 || wo_sample.wi.z == 0)
         {
             continue;
         }
@@ -80,13 +80,13 @@ Spectrum LayeredBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
             continue;
         }
 
-        if (wi_sample.f == Spectrum::black || wi_sample.pdf == 0 || wi_sample.wi.z == 0)
+        if (wi_sample.f.IsBlack() || wi_sample.pdf == 0 || wi_sample.wi.z == 0)
         {
             continue;
         }
 
         // Path states for random walk BSDF evaluation
-        Spectrum beta = wo_sample.f * AbsCosTheta(wo_sample.wi) / wo_sample.pdf;
+        SpectrumSample beta = wo_sample.f * AbsCosTheta(wo_sample.wi) / wo_sample.pdf;
         Float z = entered_top ? thickness : 0;
         Vec3 w = wo_sample.wi;
         HenyeyGreensteinPhaseFunction phase_function(g);
@@ -110,7 +110,7 @@ Spectrum LayeredBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
                 }
             }
 
-            if (albedo == Spectrum::black)
+            if (albedo.IsBlack())
             {
                 // No medium scattering, advance to next layer boundary
                 z = (z == thickness) ? 0 : thickness;
@@ -161,8 +161,8 @@ Spectrum LayeredBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
                         if ((w.z > 0 && z < z_exit) || (w.z < 0 && z > z_exit))
                         {
                             // Incorporate contribution from exit interface
-                            Spectrum f_exit = exit_interface->f(-w, wi, direction);
-                            if (f_exit != Spectrum::black)
+                            SpectrumSample f_exit = exit_interface->f(-w, wi, direction);
+                            if (!f_exit.IsBlack())
                             {
                                 Float pdf_exit = exit_interface->PDF(-w, wi, direction, BxDF_SamplingFlags::Transmission);
                                 w_mis = PowerHeuristic(phase_sample.pdf, pdf_exit);
@@ -192,7 +192,7 @@ Spectrum LayeredBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
                     break;
                 }
 
-                if (exit_sample.f == Spectrum::black || exit_sample.pdf == 0 || exit_sample.wi.z == 0)
+                if (exit_sample.f.IsBlack() || exit_sample.pdf == 0 || exit_sample.wi.z == 0)
                 {
                     break;
                 }
@@ -225,7 +225,7 @@ Spectrum LayeredBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
                     break;
                 }
 
-                if (ref_sample.f == Spectrum::black || ref_sample.pdf == 0 || ref_sample.wi.z == 0)
+                if (ref_sample.f.IsBlack() || ref_sample.pdf == 0 || ref_sample.wi.z == 0)
                 {
                     break;
                 }
@@ -237,8 +237,8 @@ Spectrum LayeredBxDF::f(Vec3 wo, Vec3 wi, TransportDirection direction) const
                 if (!IsSpecular(exit_interface->Flags()))
                 {
                     // Add light contribution from BSDF sampling
-                    Spectrum f_exit = exit_interface->f(-w, wi, direction);
-                    if (f_exit != Spectrum::black)
+                    SpectrumSample f_exit = exit_interface->f(-w, wi, direction);
+                    if (!f_exit.IsBlack())
                     {
                         Float w_mis = 1;
                         if (!IsSpecular(non_exit_interface->Flags()))
@@ -308,12 +308,12 @@ Float LayeredBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_Samp
                     BxDF_SamplingFlags::Transmission
                 ))
             {
-                if (wo_sample.f == Spectrum::black || wo_sample.pdf == 0)
+                if (wo_sample.f.IsBlack() || wo_sample.pdf == 0)
                 {
                     continue;
                 }
 
-                if (wi_sample.f == Spectrum::black || wi_sample.pdf == 0)
+                if (wi_sample.f.IsBlack() || wi_sample.pdf == 0)
                 {
                     continue;
                 }
@@ -329,7 +329,7 @@ Float LayeredBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_Samp
                             &r_sample, -wo_sample.wi, rng.NextFloat(), { rng.NextFloat(), rng.NextFloat() }, direction
                         ))
                     {
-                        if (r_sample.f == Spectrum::black || r_sample.pdf == 0)
+                        if (r_sample.f.IsBlack() || r_sample.pdf == 0)
                         {
                             continue;
                         }
@@ -375,7 +375,7 @@ Float LayeredBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_Samp
                 continue;
             }
 
-            if (wo_sample.f == Spectrum::black || wo_sample.pdf == 0 || wo_sample.wi.z == 0 || wo_sample.IsReflection())
+            if (wo_sample.f.IsBlack() || wo_sample.pdf == 0 || wo_sample.wi.z == 0 || wo_sample.IsReflection())
             {
                 continue;
             }
@@ -386,7 +386,7 @@ Float LayeredBxDF::PDF(Vec3 wo, Vec3 wi, TransportDirection direction, BxDF_Samp
                 continue;
             }
 
-            if (wi_sample.f == Spectrum::black || wi_sample.pdf == 0 || wi_sample.wi.z == 0 || wi_sample.IsReflection())
+            if (wi_sample.f.IsBlack() || wi_sample.pdf == 0 || wi_sample.wi.z == 0 || wi_sample.IsReflection())
             {
                 continue;
             }
@@ -439,7 +439,7 @@ bool LayeredBxDF::Sample_f(
         sampled = bottom->Sample_f(&wo_sample, wo, u0, u12, direction);
     }
 
-    if (!sampled || wo_sample.f == Spectrum::black || wo_sample.pdf == 0 || wo_sample.wi.z == 0)
+    if (!sampled || wo_sample.f.IsBlack() || wo_sample.pdf == 0 || wo_sample.wi.z == 0)
     {
         return false;
     }
@@ -469,7 +469,7 @@ bool LayeredBxDF::Sample_f(
     RNG rng(Hash(wo), Hash(u0, u12));
 
     // Path states intialized with initial w sample
-    Spectrum f = wo_sample.f * AbsCosTheta(wo_sample.wi);
+    SpectrumSample f = wo_sample.f * AbsCosTheta(wo_sample.wi);
     Float pdf = wo_sample.pdf;
 
     Float z = entered_top ? thickness : 0;
@@ -501,7 +501,7 @@ bool LayeredBxDF::Sample_f(
             return false;
         }
 
-        if (albedo == Spectrum::black)
+        if (albedo.IsBlack())
         {
             // No medium scattering, advance to next layer boundary
             z = (z == thickness) ? 0 : thickness;
@@ -559,7 +559,7 @@ bool LayeredBxDF::Sample_f(
             return false;
         }
 
-        if (bsdf_sample.f == Spectrum::black || bsdf_sample.pdf == 0 || bsdf_sample.wi.z == 0)
+        if (bsdf_sample.f.IsBlack() || bsdf_sample.pdf == 0 || bsdf_sample.wi.z == 0)
         {
             return false;
         }

@@ -35,6 +35,8 @@ public:
 
     template <template <typename> class TextureType, typename T, typename... Args>
     TextureType<T>* CreateTexture(Args&&... args);
+    template <BuiltInSpectrumTexture TextureType, typename... Args>
+    TextureType* CreateSpectrumTexture(Args&&... args);
     template <typename MaterialType, typename... Args>
     MaterialType* CreateMaterial(Args&&... args);
 
@@ -142,6 +144,12 @@ template <template <typename> class TextureType, typename T, typename... Args>
 inline TextureType<T>* Scene::CreateTexture(Args&&... args)
 {
     return texture_pool.CreateTexture<TextureType, T>(std::forward<Args>(args)...);
+}
+
+template <BuiltInSpectrumTexture TextureType, typename... Args>
+inline TextureType* Scene::CreateSpectrumTexture(Args&&... args)
+{
+    return texture_pool.CreateSpectrumTexture<TextureType>(std::forward<Args>(args)...);
 }
 
 template <typename MaterialType, typename... Args>

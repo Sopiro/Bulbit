@@ -25,7 +25,8 @@ void SSSTest(RendererInfo* ri)
         auto normalmap = nullptr;
         // auto mat = CreateDiffuseMaterial(scene, Spectrum(212 / 255.f, 175 / 255.f, 55 / 255.f), 0, normalmap);
         auto mat = CreateSubsurfaceRandomWalkMaterial(
-            scene, Spectrum(255 / 255.0, 195 / 255.0, 170 / 255.0) * 0.6, Spectrum(0.5, 0.25, 0.125) * 0.03, 1.5f, 0.05f
+        scene, Spectrum(0.6f, 195 / 255.0 * 0.6f, 170 / 255.0 * 0.6f),
+        Spectrum(0.5f * 0.03f, 0.25f * 0.03f, 0.125f * 0.03f), 1.5f, 0.05f
         );
         // auto mat = CreateSubsurfaceDiffusionMaterial(scene, Spectrum(1.0), Spectrum(0.01), 1.0, 0.0);
         // auto mat = CreateConductorMaterial(scene, Spectrum(0.1, 0.2, 1.9), Spectrum(3, 2.5, 2), (0.05f), (0.4f), normalmap);
@@ -113,29 +114,32 @@ void SSSTest2(RendererInfo* ri)
 
         Spectrum r(0, 163 / 255.0, 108 / 255.0);
         Spectrum ssc(1);
+        auto scaled_ssc = [](Float scale) {
+            return Spectrum(scale);
+        };
 
         auto tf = Transform{ Vec3(-2 * d, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(1) };
-        auto mat = CreateSubsurfaceDiffusionMaterial(scene, r, ssc * 0.001, 1.5f, 0.0f);
+        auto mat = CreateSubsurfaceDiffusionMaterial(scene, r, scaled_ssc(0.001f), 1.5f, 0.0f);
         options.fallback_material = mat;
         LoadModel(scene, "res/stanford/lucy.obj", tf, options);
 
         tf = Transform{ Vec3(-1 * d, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(1) };
-        mat = CreateSubsurfaceDiffusionMaterial(scene, r, ssc * 0.005, 1.5f, 0.0f);
+        mat = CreateSubsurfaceDiffusionMaterial(scene, r, scaled_ssc(0.005f), 1.5f, 0.0f);
         options.fallback_material = mat;
         LoadModel(scene, "res/stanford/lucy.obj", tf, options);
 
         tf = Transform{ Vec3(0, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(1) };
-        mat = CreateSubsurfaceDiffusionMaterial(scene, r, ssc * 0.008, 1.5f, 0.0f);
+        mat = CreateSubsurfaceDiffusionMaterial(scene, r, scaled_ssc(0.008f), 1.5f, 0.0f);
         options.fallback_material = mat;
         LoadModel(scene, "res/stanford/lucy.obj", tf, options);
 
         tf = Transform{ Vec3(1 * d, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(1) };
-        mat = CreateSubsurfaceDiffusionMaterial(scene, r, ssc * 0.01, 1.5f, 0.0f);
+        mat = CreateSubsurfaceDiffusionMaterial(scene, r, scaled_ssc(0.01f), 1.5f, 0.0f);
         options.fallback_material = mat;
         LoadModel(scene, "res/stanford/lucy.obj", tf, options);
 
         tf = Transform{ Vec3(2 * d, 0, 0), Quat::FromEuler({ 0, 0, 0 }), Vec3(1) };
-        mat = CreateSubsurfaceDiffusionMaterial(scene, r, ssc * 0.02, 1.5f, 0.0f);
+        mat = CreateSubsurfaceDiffusionMaterial(scene, r, scaled_ssc(0.02f), 1.5f, 0.0f);
         options.fallback_material = mat;
         LoadModel(scene, "res/stanford/lucy.obj", tf, options);
     }

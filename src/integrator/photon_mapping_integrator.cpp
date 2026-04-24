@@ -12,6 +12,17 @@
 namespace bulbit
 {
 
+namespace
+{
+
+WavelengthSample IterationLambda(int32 iteration, int32 total_iterations)
+{
+    Float u = Float(iteration + 0.5f) / Float(std::max(1, total_iterations));
+    return WavelengthSample::Sample(std::fmod(u, 1.0f));
+}
+
+} // namespace
+
 PhotonMappingIntegrator::PhotonMappingIntegrator(
     const Intersectable* accel,
     std::vector<Light*> lights,
@@ -39,7 +50,7 @@ PhotonMappingIntegrator::PhotonMappingIntegrator(
     }
 }
 
-void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
+void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress, WavelengthSample lambda, int32 phase_index)
 {
     const int32 min_bounces = 2;
 
@@ -60,13 +71,13 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
         Point2 u1(rng.NextFloat(), rng.NextFloat());
 
         LightSampleLe light_sample;
-        if (!sampled_light.light->Sample_Le(&light_sample, u0, u1))
+        if (!sampled_light.light->Sample_Le(&light_sample, u0, u1, lambda))
         {
             return;
         }
 
         Ray photon_ray = light_sample.ray;
-        Spectrum beta = light_sample.Le / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
+        SpectrumSample beta = light_sample.Le / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
         if (light_sample.normal != Vec3::zero)
         {
             beta *= AbsDot(light_sample.normal, photon_ray.d);
@@ -94,14 +105,13 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
             BufferResource res(mem, sizeof(mem));
             Allocator alloc(&res);
             BSDF bsdf;
-            if (!isect.GetBSDF(&bsdf, wo, alloc))
+            if (!isect.GetBSDF(&bsdf, wo, lambda, alloc))
             {
                 photon_ray.o = isect.point;
                 --bounce;
                 continue;
             }
 
-            // Store photon to non specular surface
             if (IsNonSpecular(bsdf.Flags()) && (!sample_direct_light || (bounce > 1)))
             {
                 Photon p;
@@ -110,7 +120,7 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
                 p.normal = isect.normal;
                 p.wi = wo;
                 p.beta = beta;
-
+                p.secondary_terminated = lambda.IsCollapse();
                 ps.push_back(p);
             }
 
@@ -138,17 +148,15 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
                     {
                         break;
                     }
-                    else
-                    {
-                        beta /= p;
-                    }
+                    beta /= p;
                 }
             }
         }
 
-        progress->phase_works_dones[0].fetch_add(1, std::memory_order_relaxed);
+        progress->phase_works_dones[phase_index].fetch_add(1, std::memory_order_relaxed);
     });
 
+    photons.clear();
     photons.reserve(n_photons * min_bounces);
 
     tl_photons.ForEach([&](std::thread::id tid, std::vector<Photon>& ps) {
@@ -159,44 +167,46 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress)
     photon_map.Build(photons, gather_radius);
 }
 
-Spectrum PhotonMappingIntegrator::SampleDirectLight(
-    const Vec3& wo, const Intersection& isect, const BSDF* bsdf, Sampler& sampler, const Spectrum& beta
+SpectrumSample PhotonMappingIntegrator::SampleDirectLight(
+    const Vec3& wo,
+    const Intersection& isect,
+    const BSDF* bsdf,
+    const WavelengthSample& lambda,
+    Sampler& sampler,
+    const SpectrumSample& beta
 ) const
 {
     SampledLight sampled_light;
     if (!light_sampler->Sample(&sampled_light, isect, sampler.Next1D()))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     LightSampleLi light_sample;
-    if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler.Next2D()))
+    if (!sampled_light.light->Sample_Li(&light_sample, isect, sampler.Next2D(), lambda))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     if (light_sample.Li.IsBlack())
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     if (!V(this, isect.point, light_sample.point))
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 
     Float pdf = light_sample.pdf * sampled_light.pmf;
     return beta * light_sample.Li * bsdf->f(wo, light_sample.wi) * AbsDot(isect.shading.normal, light_sample.wi) / pdf;
 }
 
-Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium, Sampler& sampler) const
+Vec3 PhotonMappingIntegrator::Li(const Ray& primary_ray, WavelengthSample& lambda, Sampler& sampler) const
 {
-    BulbitNotUsed(primary_medium);
-
     int32 bounce = 0;
-
-    Spectrum L(0);
-    Spectrum beta(1);
+    Vec3 L(0);
+    SpectrumSample beta(1);
 
     Ray ray = primary_ray;
     bool specular_bounce = false;
@@ -210,7 +220,7 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
             {
                 for (Light* light : infinite_lights)
                 {
-                    L += beta * light->Le(ray);
+                    L += spectral::SpectrumSampleToXYZ(beta * light->Le(ray, lambda), lambda);
                 }
             }
 
@@ -221,12 +231,10 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
 
         if (const Light* area_light = GetAreaLight(isect); area_light)
         {
-            if (Spectrum Le = area_light->Le(isect, wo); !Le.IsBlack())
+            SpectrumSample Le = area_light->Le(isect, wo, lambda);
+            if (!Le.IsBlack() && (bounce == 0 || specular_bounce))
             {
-                if (bounce == 0 || specular_bounce)
-                {
-                    L += beta * Le;
-                }
+                L += spectral::SpectrumSampleToXYZ(beta * Le, lambda);
             }
         }
 
@@ -239,7 +247,7 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
         BufferResource res(mem, sizeof(mem));
         Allocator alloc(&res);
         BSDF bsdf;
-        if (!isect.GetBSDF(&bsdf, wo, alloc))
+        if (!isect.GetBSDF(&bsdf, wo, lambda, alloc))
         {
             ray.o = isect.point;
             --bounce;
@@ -248,15 +256,12 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
 
         if (IsNonSpecular(bsdf.Flags()))
         {
-            // Estimate direct light
             if (sample_direct_light)
             {
-                L += SampleDirectLight(wo, isect, &bsdf, sampler, beta);
+                L += spectral::SpectrumSampleToXYZ(SampleDirectLight(wo, isect, &bsdf, lambda, sampler, beta), lambda);
             }
 
-            // Estimate indirect light by gathering nearby photons
-            Spectrum L_i(0);
-
+            Vec3 Li(0);
             photon_map.Query<Photon>(photons, isect.point, gather_radius, [&](const Photon& p) {
                 if (isect.primitive->GetMaterial() != p.primitive->GetMaterial())
                 {
@@ -268,13 +273,17 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
                     return;
                 }
 
-                L_i += bsdf.f(wo, p.wi) * AbsDot(isect.shading.normal, p.wi) * p.beta;
+                SpectrumSample contribution = beta * bsdf.f(wo, p.wi) * AbsDot(isect.shading.normal, p.wi) * p.beta;
+                WavelengthSample photon_lambda = lambda;
+                if (p.secondary_terminated)
+                {
+                    photon_lambda.CollapseToPrimary();
+                }
+                Li += spectral::SpectrumSampleToXYZ(contribution, photon_lambda);
             });
 
-            L_i *= 1 / (pi * Sqr(gather_radius) * n_photons);
-            L += beta * L_i;
-
-            // Done!
+            Li *= 1 / (pi * Sqr(gather_radius) * n_photons);
+            L += Li;
             break;
         }
 
@@ -292,10 +301,11 @@ Spectrum PhotonMappingIntegrator::Li(const Ray& primary_ray, const Medium* prima
     return L;
 }
 
-void PhotonMappingIntegrator::GatherPhotons(const Camera* camera, int32 tile_size, MultiPhaseRendering* progress)
+void PhotonMappingIntegrator::GatherPhotons(
+    const Camera* camera, WavelengthSample lambda, int32 tile_size, MultiPhaseRendering* progress, int32 phase_index
+)
 {
     Point2i res = camera->GetScreenResolution();
-    const int32 spp = sampler_prototype->samples_per_pixel;
 
     ParallelFor2D(
         res,
@@ -307,22 +317,19 @@ void PhotonMappingIntegrator::GatherPhotons(const Camera* camera, int32 tile_siz
 
             for (Point2i pixel : tile)
             {
-                for (int32 sample = 0; sample < spp; ++sample)
+                sampler->StartPixelSample(pixel, phase_index / 2);
+
+                PrimaryRay primary_ray;
+                camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
+
+                Vec3 L = Li(primary_ray.ray, lambda, *sampler);
+                if (!L.IsNullish())
                 {
-                    sampler->StartPixelSample(pixel, sample);
-
-                    PrimaryRay primary_ray;
-                    camera->SampleRay(&primary_ray, pixel, sampler->Next2D(), sampler->Next2D());
-
-                    Spectrum L = Li(primary_ray.ray, camera->GetMedium(), *sampler);
-                    if (!L.IsNullish())
-                    {
-                        progress->film.AddSample(pixel, primary_ray.weight * L);
-                    }
+                    progress->film.AddSample(pixel, primary_ray.weight * L);
                 }
             }
 
-            progress->phase_works_dones[1].fetch_add(1, std::memory_order_relaxed);
+            progress->phase_works_dones[phase_index].fetch_add(1, std::memory_order_relaxed);
         },
         tile_size
     );
@@ -331,19 +338,32 @@ void PhotonMappingIntegrator::GatherPhotons(const Camera* camera, int32 tile_siz
 Rendering* PhotonMappingIntegrator::Render(Allocator& alloc, const Camera* camera)
 {
     const int32 tile_size = 16;
+    const int32 n_iterations = std::max<int32>(1, sampler_prototype->samples_per_pixel);
 
     Point2i res = camera->GetScreenResolution();
     Point2i num_tiles = (res + (tile_size - 1)) / tile_size;
     int32 tile_count = num_tiles.x * num_tiles.y;
 
-    std::array<size_t, 2> phase_works = { size_t(n_photons), size_t(tile_count) };
+    std::vector<size_t> phase_works(2 * n_iterations);
+    for (int32 i = 0; i < n_iterations; ++i)
+    {
+        phase_works[2 * i] = size_t(n_photons);
+        phase_works[2 * i + 1] = size_t(tile_count);
+    }
+
     MultiPhaseRendering* progress = alloc.new_object<MultiPhaseRendering>(camera, phase_works);
 
     progress->job = RunAsync([=, this]() {
-        EmitPhotons(progress);
-        progress->phase_dones[0].store(true, std::memory_order_release);
-        GatherPhotons(camera, tile_size, progress);
-        progress->phase_dones[1].store(true, std::memory_order_release);
+        for (int32 iteration = 0; iteration < n_iterations; ++iteration)
+        {
+            WavelengthSample lambda = IterationLambda(iteration, n_iterations);
+            EmitPhotons(progress, lambda, 2 * iteration);
+            progress->phase_dones[2 * iteration].store(true, std::memory_order_release);
+
+            GatherPhotons(camera, lambda, tile_size, progress, 2 * iteration + 1);
+            progress->phase_dones[2 * iteration + 1].store(true, std::memory_order_release);
+        }
+
         return true;
     });
 

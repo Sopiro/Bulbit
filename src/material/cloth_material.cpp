@@ -11,7 +11,7 @@ ClothMaterial::ClothMaterial(
     const SpectrumTexture* basecolor,
     const SpectrumTexture* sheen_color,
     const FloatTexture* roughness,
-    const SpectrumTexture* normal,
+    const Float3Texture* normal,
     const FloatTexture* alpha
 )
     : Material(TypeIndexOf<ClothMaterial>())
@@ -23,10 +23,10 @@ ClothMaterial::ClothMaterial(
 {
 }
 
-bool ClothMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& alloc) const
+bool ClothMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, WavelengthSample& lambda, Allocator& alloc) const
 {
-    Spectrum base = basecolor->Evaluate(isect.uv);
-    Spectrum sheen = sheen_color->Evaluate(isect.uv);
+    SpectrumSample base = basecolor->Evaluate(isect.uv, lambda);
+    SpectrumSample sheen = sheen_color->Evaluate(isect.uv, lambda);
     Float alpha = std::fmax(TrowbridgeReitzDistribution::RoughnessToAlpha(roughness->Evaluate(isect.uv)), 1e-3f);
 
     *bsdf = BSDF(
@@ -35,10 +35,11 @@ bool ClothMaterial::GetBSDF(BSDF* bsdf, const Intersection& isect, Allocator& al
     return true;
 }
 
-bool ClothMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, Allocator& alloc) const
+bool ClothMaterial::GetBSSRDF(BSSRDF** bssrdf, const Intersection& isect, const WavelengthSample& lambda, Allocator& alloc) const
 {
     BulbitNotUsed(bssrdf);
     BulbitNotUsed(isect);
+    BulbitNotUsed(lambda);
     BulbitNotUsed(alloc);
     return false;
 }
@@ -48,7 +49,7 @@ const FloatTexture* ClothMaterial::GetAlphaTexture() const
     return alpha;
 }
 
-const SpectrumTexture* ClothMaterial::GetNormalTexture() const
+const Float3Texture* ClothMaterial::GetNormalTexture() const
 {
     return normal;
 }

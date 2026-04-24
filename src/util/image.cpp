@@ -115,13 +115,13 @@ Image3 ReadImage3(const std::filesystem::path& filename, bool non_color, std::fu
         if (transform)
         {
             ParallelFor(0, width * height, [&](int32 i) {
-                image[i] = transform(Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0));
+                image[i] = transform(Max(Vec3{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, Vec3(0)));
             });
         }
         else
         {
             ParallelFor(0, width * height, [&](int32 i) {
-                image[i] = Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0);
+                image[i] = Max(Vec3{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, Vec3(0));
             });
         }
     }
@@ -131,14 +131,14 @@ Image3 ReadImage3(const std::filesystem::path& filename, bool non_color, std::fu
         {
             for (int32 i = 0; i < width * height; ++i)
             {
-                image[i] = transform(Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0));
+                image[i] = transform(Max(Vec3{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, Vec3(0)));
             }
         }
         else
         {
             for (int32 i = 0; i < width * height; ++i)
             {
-                image[i] = Max(Spectrum{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, 0);
+                image[i] = Max(Vec3{ data[stride * i + 0], data[stride * i + 1], data[stride * i + 2] }, Vec3(0));
             }
         }
     }
@@ -223,7 +223,7 @@ void WriteImage(const Image3& image, const std::filesystem::path& filename, Tone
     std::string extension = filename.extension().string();
     if (extension == ".hdr")
     {
-        stbi_write_hdr(filename.string().c_str(), image.width, image.height, 3, &image[0].r);
+        stbi_write_hdr(filename.string().c_str(), image.width, image.height, 3, &image[0].x);
     }
     else if (extension == ".jpg" || extension == ".png")
     {
@@ -232,7 +232,7 @@ void WriteImage(const Image3& image, const std::filesystem::path& filename, Tone
         if (image.width * image.height > 64 * 1024)
         {
             ParallelFor(0, image.width * image.height, [&](int32 i) {
-                Vec3 mapped = callback({ image[i].r, image[i].g, image[i].b });
+                Vec3 mapped = callback({ image[i].x, image[i].y, image[i].z });
 
                 pixels[i * 3 + 0] = uint8(std::min(std::clamp(mapped[0], 0.0f, 1.0f) * 256.0, 255.0));
                 pixels[i * 3 + 1] = uint8(std::min(std::clamp(mapped[1], 0.0f, 1.0f) * 256.0, 255.0));
@@ -243,7 +243,7 @@ void WriteImage(const Image3& image, const std::filesystem::path& filename, Tone
         {
             for (int32 i = 0; i < image.width * image.height; ++i)
             {
-                Vec3 mapped = callback({ image[i].r, image[i].g, image[i].b });
+                Vec3 mapped = callback({ image[i].x, image[i].y, image[i].z });
 
                 pixels[i * 3 + 0] = uint8(std::min(std::clamp(mapped[0], 0.0f, 1.0f) * 256.0, 255.0));
                 pixels[i * 3 + 1] = uint8(std::min(std::clamp(mapped[1], 0.0f, 1.0f) * 256.0, 255.0));

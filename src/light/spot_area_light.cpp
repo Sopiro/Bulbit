@@ -9,6 +9,7 @@ namespace bulbit
 SpotAreaLight::SpotAreaLight(
     const Primitive* primitive,
     const SpectrumTexture* emission,
+    Float emission_mean_luminance,
     Float angle_max,           // degrees
     Float angle_falloff_start, // degrees
     bool two_sided
@@ -16,6 +17,7 @@ SpotAreaLight::SpotAreaLight(
     : Light(TypeIndexOf<SpotAreaLight>())
     , primitive{ primitive }
     , emission{ emission }
+    , emission_mean_luminance{ emission_mean_luminance }
     , cos_theta_min{ std::cos(DegToRad(angle_falloff_start)) }
     , cos_theta_max{ std::cos(DegToRad(angle_max)) }
     , two_sided{ two_sided }
@@ -28,27 +30,28 @@ void SpotAreaLight::Preprocess(const AABB& world_bounds)
     BulbitNotUsed(world_bounds);
 }
 
-Spectrum SpotAreaLight::Le(const Intersection& isect, const Vec3& wo) const
+SpectrumSample SpotAreaLight::Le(const Intersection& isect, const Vec3& wo, const WavelengthSample& lambda) const
 {
     if (isect.front_face || two_sided)
     {
         Float cos_theta = Dot(wo, isect.normal);
-        return SmoothStep(cos_theta_max, cos_theta_min, cos_theta) * emission->Evaluate(isect.uv);
+        return SmoothStep(cos_theta_max, cos_theta_min, cos_theta) * emission->Evaluate(isect.uv, lambda);
     }
     else
     {
-        return Spectrum::black;
+        return SpectrumSample(0);
     }
 }
 
-Spectrum SpotAreaLight::Le(const Ray& ray) const
+SpectrumSample SpotAreaLight::Le(const Ray& ray, const WavelengthSample& lambda) const
 {
-    BulbitAssert(false);
     BulbitNotUsed(ray);
-    return Spectrum::black;
+    BulbitNotUsed(lambda);
+    BulbitAssert(false);
+    return SpectrumSample(0);
 }
 
-bool SpotAreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u) const
+bool SpotAreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Point2 u, const WavelengthSample& lambda) const
 {
     const Shape* shape = primitive->GetShape();
     ShapeSample shape_sample = shape->Sample(ref.point, u);
@@ -63,8 +66,8 @@ bool SpotAreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Po
         normal.Negate();
     }
 
-    Float cos_theta = Dot(-wi, normal); // directional spot along -normal
-    Spectrum l = SmoothStep(cos_theta_max, cos_theta_min, cos_theta) * emission->Evaluate(shape_sample.uv);
+    Float cos_theta = Dot(-wi, normal);
+    SpectrumSample l = SmoothStep(cos_theta_max, cos_theta_min, cos_theta) * emission->Evaluate(shape_sample.uv, lambda);
     if (l.IsBlack())
     {
         return false;
@@ -72,12 +75,10 @@ bool SpotAreaLight::Sample_Li(LightSampleLi* sample, const Intersection& ref, Po
 
     sample->normal = normal;
     sample->point = shape_sample.point;
-
     sample->wi = wi;
     sample->visibility = distance - Ray::epsilon;
     sample->pdf = shape_sample.pdf;
     sample->Li = l;
-
     return true;
 }
 
@@ -88,7 +89,7 @@ Float SpotAreaLight::EvaluatePDF_Li(const Ray& ray) const
     return 0;
 }
 
-bool SpotAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
+bool SpotAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1, const WavelengthSample& lambda) const
 {
     const Shape* shape = primitive->GetShape();
     ShapeSample shape_sample = shape->Sample(u0);
@@ -126,7 +127,7 @@ bool SpotAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
     sample->pdf_w = pdf_w;
 
     Float cos_theta = CosTheta(w);
-    sample->Le = SmoothStep(cos_theta_max, cos_theta_min, cos_theta) * emission->Evaluate(shape_sample.uv);
+    sample->Le = SmoothStep(cos_theta_max, cos_theta_min, cos_theta) * emission->Evaluate(shape_sample.uv, lambda);
 
     Frame f(normal);
     w = f.FromLocal(w);
@@ -136,7 +137,6 @@ bool SpotAreaLight::Sample_Le(LightSampleLe* sample, Point2 u0, Point2 u1) const
 
     MediumInterface medium_interface = primitive->GetMediumInterface();
     sample->medium = front_face ? medium_interface.outside : medium_interface.inside;
-
     return true;
 }
 
@@ -157,11 +157,11 @@ void SpotAreaLight::PDF_Le(Float* pdf_p, Float* pdf_w, const Intersection& isect
     *pdf_w = (Dot(isect.normal, w) >= cos_theta_max) ? UniformConePDF(cos_theta_max) : 0;
 }
 
-Spectrum SpotAreaLight::Phi() const
+Float SpotAreaLight::Power() const
 {
     const Shape* shape = primitive->GetShape();
     Float cone_integral = two_pi * ((1 - cos_theta_min) + (cos_theta_min - cos_theta_max) / 2);
-    return emission->Average() * shape->Area() * cone_integral;
+    return emission_mean_luminance * shape->Area() * cone_integral;
 }
 
 } // namespace bulbit

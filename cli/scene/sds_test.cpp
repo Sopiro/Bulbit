@@ -21,7 +21,7 @@ void SDSTest(RendererInfo* ri)
 
     // Model
     {
-        auto glass = CreateDielectricMaterial(scene, 1.5f, 0.0f);
+        auto glass = CreateDielectricMaterial(scene, Spectrum::CauchyIOR(1.5f, 0.01f));
         auto diffuse = CreateDiffuseMaterial(scene, Spectrum(0.9, 0.5, 0.6));
         // Srand(1213212);
         // auto mat = CreateRandomPrincipledMaterial(scene);

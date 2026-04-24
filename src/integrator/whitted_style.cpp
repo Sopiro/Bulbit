@@ -13,9 +13,9 @@ WhittedStyle::WhittedStyle(const Intersectable* accel, std::vector<Light*> light
 {
 }
 
-Spectrum WhittedStyle::Li(const Ray& ray, Sampler& sampler, int32 depth) const
+SpectrumSample WhittedStyle::Li(const Ray& ray, WavelengthSample& lambda, Sampler& sampler, int32 depth) const
 {
-    Spectrum L(0);
+    SpectrumSample L(0);
 
     if (depth > max_depth)
     {
@@ -27,7 +27,7 @@ Spectrum WhittedStyle::Li(const Ray& ray, Sampler& sampler, int32 depth) const
     {
         for (auto& light : infinite_lights)
         {
-            L += light->Le(ray);
+            L += light->Le(ray, lambda);
         }
 
         return L;
@@ -38,14 +38,14 @@ Spectrum WhittedStyle::Li(const Ray& ray, Sampler& sampler, int32 depth) const
     // Evaluate surface emission
     if (const Light* area_light = GetAreaLight(isect); area_light)
     {
-        L += area_light->Le(isect, wo);
+        L += area_light->Le(isect, wo, lambda);
     }
 
     int8 mem[max_bxdf_size];
     BufferResource res(mem, sizeof(mem));
     Allocator alloc(&res);
     BSDF bsdf;
-    if (isect.GetBSDF(&bsdf, wo, alloc) == false)
+    if (isect.GetBSDF(&bsdf, wo, lambda, alloc) == false)
     {
         return L;
     }
@@ -54,7 +54,7 @@ Spectrum WhittedStyle::Li(const Ray& ray, Sampler& sampler, int32 depth) const
     for (const Light* light : all_lights)
     {
         LightSampleLi light_sample;
-        if (!light->Sample_Li(&light_sample, isect, sampler.Next2D()))
+        if (!light->Sample_Li(&light_sample, isect, sampler.Next2D(), lambda))
         {
             continue;
         }
@@ -64,7 +64,7 @@ Spectrum WhittedStyle::Li(const Ray& ray, Sampler& sampler, int32 depth) const
             Ray shadow_ray{ isect.point, light_sample.wi };
             if (IntersectAny(shadow_ray, Ray::epsilon, light_sample.visibility) == false)
             {
-                Spectrum f_cos = bsdf.f(wo, light_sample.wi);
+                SpectrumSample f_cos = bsdf.f(wo, light_sample.wi);
                 L += light_sample.Li * f_cos / light_sample.pdf;
             }
         }
@@ -75,8 +75,8 @@ Spectrum WhittedStyle::Li(const Ray& ray, Sampler& sampler, int32 depth) const
 
     if (Dot(isect.normal, wi) > 0)
     {
-        Spectrum f_cos = bsdf.f(wo, wi) * Dot(isect.shading.normal, wi);
-        return L + Li(Ray(isect.point, wi), sampler, depth + 1) * f_cos;
+        SpectrumSample f_cos = bsdf.f(wo, wi) * Dot(isect.shading.normal, wi);
+        return L + Li(Ray(isect.point, wi), lambda, sampler, depth + 1) * f_cos;
     }
     else
     {

@@ -44,7 +44,7 @@ inline int32 operator&(BxDF_Flags a, BxDF_SamplingFlags b) { return ((int32)a & 
 inline BxDF_Flags& operator|=(BxDF_Flags& a, BxDF_Flags b) { (int32&)a |= int32(b); return a; }
 inline BxDF_SamplingFlags operator|(BxDF_SamplingFlags a, BxDF_SamplingFlags b) { return BxDF_SamplingFlags((int)a | (int)b); }
 inline int operator&(BxDF_SamplingFlags a, BxDF_SamplingFlags b) { return ((int)a & (int)b); }
-inline BxDF_SamplingFlags& operator|=(BxDF_SamplingFlags& a, BxDF_SamplingFlags b) { (int&)a |= int(b); return a;}
+inline BxDF_SamplingFlags& operator|=(BxDF_SamplingFlags& a, BxDF_SamplingFlags b) { (int&)a |= int(b); return a; }
 // clang-format on
 
 enum class TransportDirection
@@ -62,7 +62,7 @@ struct BSDFSample
 {
     BSDFSample() = default;
 
-    BSDFSample(Spectrum f, Vec3 wi, Float pdf, BxDF_Flags flags, Float eta = 1, bool is_stochastic = false)
+    BSDFSample(SpectrumSample f, Vec3 wi, Float pdf, BxDF_Flags flags, Float eta = 1, bool is_stochastic = false)
         : f{ f }
         , wi{ wi }
         , pdf{ pdf }
@@ -80,7 +80,7 @@ struct BSDFSample
     bool IsSpecular() const { return bulbit::IsSpecular(flags); }
     // clang-format on
 
-    Spectrum f;
+    SpectrumSample f;
     Vec3 wi;
     Float pdf;
     BxDF_Flags flags;
@@ -93,7 +93,8 @@ class BxDF
 public:
     virtual BxDF_Flags Flags() const = 0;
 
-    virtual Spectrum f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const = 0;
+    virtual SpectrumSample f(Vec3 wo, Vec3 wi, TransportDirection direction = TransportDirection::ToLight) const = 0;
+
     virtual Float PDF(
         Vec3 wo,
         Vec3 wi,
@@ -110,15 +111,12 @@ public:
         BxDF_SamplingFlags flags = BxDF_SamplingFlags::All
     ) const = 0;
 
-    virtual void Regularize() {};
+    virtual void Regularize() {}
 
-    // Compute Hemispherical-Directional reflectance (albedo)
-    Spectrum rho(
+    SpectrumSample rho(
         Vec3 wo, std::span<const Float> uc, std::span<const Point2> u2, TransportDirection direction = TransportDirection::ToLight
     ) const;
-
-    // Compute Hemispherical-Hemispherical reflectance
-    Spectrum rho(
+    SpectrumSample rho(
         std::span<const Point2> u1,
         std::span<const Float> uc,
         std::span<const Point2> u2,

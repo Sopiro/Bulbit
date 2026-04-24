@@ -5,7 +5,7 @@
 namespace bulbit
 {
 
-Spectrum RandomWalkBSSRDF::S(const Intersection& pi, const Vec3& wo, const Vec3& wi, TransportDirection direction) const
+SpectrumSample RandomWalkBSSRDF::S(const Intersection& pi, const Vec3& wo, const Vec3& wi, TransportDirection direction) const
 {
     BulbitNotUsed(pi);
     BulbitNotUsed(wo);
@@ -13,17 +13,29 @@ Spectrum RandomWalkBSSRDF::S(const Intersection& pi, const Vec3& wo, const Vec3&
     BulbitNotUsed(direction);
     BulbitAssert(false);
 
-    return Spectrum::black;
+    return SpectrumSample(0);
 }
 
 bool RandomWalkBSSRDF::Sample_S(
-    BSSRDFSample* bssrdf_sample, const BSDFSample& bsdf_sample, const Intersectable* accel, int32 wavelength, Float u0, Point2 u12
+    BSSRDFSample* bssrdf_sample,
+    const BSDFSample& bsdf_sample,
+    const Intersectable* accel,
+    const WavelengthSample& lambda,
+    Float u0,
+    Point2 u12
 )
 {
     BulbitAssert(bsdf_sample.IsTransmission());
 
-    Spectrum beta(1);
-    Spectrum pdf(1);
+    BulbitNotUsed(lambda);
+
+    const int32 hero = WavelengthSample::hero_lane;
+    SpectrumSample R_sample = R;
+    SpectrumSample sigma_t = sigma_a + sigma_s;
+    SpectrumSample albedo = SafeDiv(sigma_s, sigma_t);
+
+    SpectrumSample beta(1);
+    SpectrumSample pdf(1);
 
     RNG rng(Hash(po, u0, u12));
 
@@ -48,7 +60,7 @@ bool RandomWalkBSSRDF::Sample_S(
             pdf /= rr;
         }
 
-        Float d = SampleExponential(rng.NextFloat(), sigma_t[wavelength]);
+        Float d = SampleExponential(rng.NextFloat(), sigma_t[hero]);
 
         bool found_intersection = accel->Intersect(&pi, ray, Ray::epsilon, d);
         if (found_intersection)
@@ -56,17 +68,18 @@ bool RandomWalkBSSRDF::Sample_S(
             // Sampled L_o, escaped medium boundary
             if (pi.primitive->GetMaterial() == po.primitive->GetMaterial())
             {
-                Spectrum Tr = Exp(-sigma_t * pi.t);
+                SpectrumSample Tr = Exp(-sigma_t * pi.t);
 
-                beta *= Tr / Tr[wavelength];
-                pdf *= Tr / Tr[wavelength];
+                beta *= Tr / Tr[hero];
+                pdf *= Tr / Tr[hero];
                 break;
             }
         }
 
-        Spectrum Tr = Exp(-sigma_t * d);
-        beta *= sigma_t * Tr / sigma_t[wavelength] * Tr[wavelength];
-        pdf *= sigma_t * Tr / sigma_t[wavelength] * Tr[wavelength];
+        SpectrumSample Tr = Exp(-sigma_t * d);
+        Float distance_pdf = sigma_t[hero] * Tr[hero];
+        beta *= sigma_t * Tr / distance_pdf;
+        pdf *= sigma_t * Tr / distance_pdf;
 
         // Random walk forward
         ray.o += d * ray.d;
@@ -80,7 +93,6 @@ bool RandomWalkBSSRDF::Sample_S(
 
         // Evaluate L_s
         beta *= albedo * sample.p / sample.pdf;
-        pdf *= sample.pdf / sample.pdf;
     }
 
     if (bounce >= max_bounces)
@@ -88,13 +100,13 @@ bool RandomWalkBSSRDF::Sample_S(
         return false;
     }
 
-    if (pdf == Spectrum::black)
+    if (pdf.IsBlack())
     {
         return false;
     }
 
     bssrdf_sample->pi = pi;
-    bssrdf_sample->Sp = beta * R / pdf.Average();
+    bssrdf_sample->Sp = beta * R_sample / pdf.Average();
     bssrdf_sample->pdf = pdf / pdf.Average();
     bssrdf_sample->p = 1;
 

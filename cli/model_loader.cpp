@@ -53,11 +53,10 @@ static void LoadMaterials(
         SpectrumTexture* sheen_color_texture = nullptr;
         FloatTexture* sheen_roughness_texture = nullptr;
         SpectrumTexture* emission_texture = nullptr;
-        SpectrumTexture* normal_texture = nullptr;
+        Float3Texture* normal_texture = nullptr;
         FloatTexture* alpha_texture = nullptr;
 
-        Spectrum basecolor_factor = { Float(pbr.baseColorFactor[0]), Float(pbr.baseColorFactor[1]),
-                                      Float(pbr.baseColorFactor[2]) };
+        Vec3 basecolor_factor = { Float(pbr.baseColorFactor[0]), Float(pbr.baseColorFactor[1]), Float(pbr.baseColorFactor[2]) };
         Float metallic_factor = Float(pbr.metallicFactor);
         Float roughness_factor = Float(pbr.roughnessFactor);
         Float anisotropy_factor = 0.0f;
@@ -65,11 +64,11 @@ static void LoadMaterials(
         Float transmission_factor = 0.0f;
         Float clearcoat_factor = 0.0f;
         Float clearcoat_roughness_factor = 0.0f;
-        Spectrum clearcoat_color_factor = { 1.0f, 1.0f, 1.0f };
-        Spectrum sheen_color_factor = { 0.0f, 0.0f, 0.0f };
+        Vec3 clearcoat_color_factor = { 1.0f, 1.0f, 1.0f };
+        Vec3 sheen_color_factor = { 0.0f, 0.0f, 0.0f };
         Float sheen_roughness_factor = 0.0f;
-        Spectrum emission_factor = { Float(gltf_material.emissiveFactor[0]), Float(gltf_material.emissiveFactor[1]),
-                                     Float(gltf_material.emissiveFactor[2]) };
+        Vec3 emission_factor = { Float(gltf_material.emissiveFactor[0]), Float(gltf_material.emissiveFactor[1]),
+                                 Float(gltf_material.emissiveFactor[2]) };
 
         // basecolor, alpha
         {
@@ -83,7 +82,7 @@ static void LoadMaterials(
             }
             else
             {
-                basecolor_texture = CreateSpectrumConstantTexture(scene, basecolor_factor);
+                basecolor_texture = CreateSpectrumConstantTexture(scene, Spectrum::FromRGB(basecolor_factor));
                 alpha_texture = nullptr;
             }
         }
@@ -116,7 +115,7 @@ static void LoadMaterials(
                 tinygltf::Texture& texture = model.textures[gltf_material.normalTexture.index];
                 tinygltf::Image& image = model.images[texture.source];
 
-                normal_texture = CreateSpectrumImageTexture(scene, base_path + image.uri, true);
+                normal_texture = CreateFloat3ImageTexture(scene, base_path + image.uri, true);
             }
             else
             {
@@ -126,20 +125,20 @@ static void LoadMaterials(
 
         // emission
         {
-            if (emission_factor != Spectrum::black)
+            if (emission_factor != Vec3(0.0f))
             {
                 if (gltf_material.emissiveTexture.index > -1)
                 {
                     tinygltf::Texture& texture = model.textures[gltf_material.emissiveTexture.index];
                     tinygltf::Image& image = model.images[texture.source];
 
-                    emission_texture = CreateSpectrumImageTexture(scene, base_path + image.uri, false, [=](Spectrum v) {
+                    emission_texture = CreateSpectrumIlluminantImageTexture(scene, base_path + image.uri, false, [=](Vec3 v) {
                         return v * emission_factor;
                     });
                 }
                 else
                 {
-                    emission_texture = CreateSpectrumConstantTexture(scene, emission_factor);
+                    emission_texture = CreateSpectrumConstantTexture(scene, Spectrum::FromIlluminantRGB(emission_factor));
                 }
             }
         }
@@ -308,7 +307,7 @@ static void LoadMaterials(
 
             if (clearcoat_color_texture == nullptr)
             {
-                clearcoat_color_texture = CreateSpectrumConstantTexture(scene, clearcoat_color_factor);
+                clearcoat_color_texture = CreateSpectrumConstantTexture(scene, Spectrum::FromRGB(clearcoat_color_factor));
             }
         }
 
@@ -339,7 +338,7 @@ static void LoadMaterials(
                     {
                         tinygltf::Texture& texture = model.textures[tex_index];
                         tinygltf::Image& image = model.images[texture.source];
-                        sheen_color_texture = CreateSpectrumImageTexture(scene, base_path + image.uri, false, [=](Spectrum v) {
+                        sheen_color_texture = CreateSpectrumImageTexture(scene, base_path + image.uri, false, [=](Vec3 v) {
                             return v * sheen_color_factor;
                         });
                     }
@@ -371,7 +370,7 @@ static void LoadMaterials(
                 }
             }
 
-            if (sheen_color_factor == Spectrum(0))
+            if (sheen_color_factor == Vec3::zero)
             {
                 sheen_texture = CreateFloatConstantTexture(scene, 0);
             }
@@ -382,7 +381,7 @@ static void LoadMaterials(
 
             if (sheen_color_texture == nullptr)
             {
-                sheen_color_texture = CreateSpectrumConstantTexture(scene, sheen_color_factor);
+                sheen_color_texture = CreateSpectrumConstantTexture(scene, Spectrum::FromRGB(sheen_color_factor));
             }
 
             if (sheen_roughness_texture == nullptr)
@@ -743,10 +742,10 @@ std::pair<const Material*, const SpectrumTexture*> CreateOBJMaterial(
     Scene& scene, const tinyobj::material_t& mat, const std::string& root
 )
 {
-    Spectrum basecolor_factor = { Float(mat.diffuse[0]), Float(mat.diffuse[1]), Float(mat.diffuse[2]) };
+    Vec3 basecolor_factor = { Float(mat.diffuse[0]), Float(mat.diffuse[1]), Float(mat.diffuse[2]) };
     Float metallic_factor = 0;
     Float roughness_factor = 1;
-    Spectrum emission_factor = { Float(mat.emission[0]), Float(mat.emission[1]), Float(mat.emission[2]) };
+    Vec3 emission_factor = { Float(mat.emission[0]), Float(mat.emission[1]), Float(mat.emission[2]) };
 
     // Create a texture for the diffuse component if available; otherwise use a constant texture.
     SpectrumTexture* basecolor_texture = nullptr;
@@ -758,7 +757,7 @@ std::pair<const Material*, const SpectrumTexture*> CreateOBJMaterial(
     }
     else
     {
-        basecolor_texture = CreateSpectrumConstantTexture(scene, basecolor_factor);
+        basecolor_texture = CreateSpectrumConstantTexture(scene, Spectrum::FromRGB(basecolor_factor));
     }
 
     // Use constant textures for metallic/roughness as OBJ does not provide them.
@@ -766,21 +765,21 @@ std::pair<const Material*, const SpectrumTexture*> CreateOBJMaterial(
     FloatTexture* roughness_texture = CreateFloatConstantTexture(scene, roughness_factor);
 
     // Use the bump texture as a normal texture if available.
-    SpectrumTexture* normal_texture = nullptr;
+    Float3Texture* normal_texture = nullptr;
     if (!mat.bump_texname.empty())
     {
-        normal_texture = CreateSpectrumImageTexture(scene, root + mat.bump_texname, true);
+        normal_texture = CreateFloat3ImageTexture(scene, root + mat.bump_texname, true);
     }
 
     // Create an emission texture if provided, otherwise use a constant emission texture.
     SpectrumTexture* emission_texture = nullptr;
     if (!mat.emissive_texname.empty())
     {
-        emission_texture = CreateSpectrumImageTexture(scene, root + mat.emissive_texname);
+        emission_texture = CreateSpectrumIlluminantImageTexture(scene, root + mat.emissive_texname);
     }
     else
     {
-        emission_texture = CreateSpectrumConstantTexture(scene, emission_factor);
+        emission_texture = CreateSpectrumConstantTexture(scene, Spectrum::FromIlluminantRGB(emission_factor));
     }
 
     return { scene.CreateMaterial<MetallicRoughnessMaterial>(

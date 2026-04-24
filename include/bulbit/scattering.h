@@ -45,11 +45,6 @@ inline Float SchlickR0(Float eta)
     return Sqr(eta - 1) / Sqr(eta + 1);
 }
 
-inline Spectrum FresnelSchlick(const Spectrum& r0, Float cos_theta)
-{
-    return r0 + (Spectrum(1) - r0) * std::pow<Float>(1 - cos_theta, 5);
-}
-
 inline Float FresnelDielectric(Float cos_theta_i, Float eta)
 {
     cos_theta_i = Clamp(cos_theta_i, -1, 1);
@@ -122,12 +117,22 @@ inline Float FresnelComplex(Float cos_theta_i, const std::complex<Float>& eta /*
 
 inline Spectrum FresnelComplex(Float cos_theta_i, const Spectrum& eta, const Spectrum& k)
 {
-    Spectrum result;
+    Vec3 result(0);
     for (int32 i = 0; i < Spectrum::num_spectral_samples; ++i)
     {
         result[i] = FresnelComplex(cos_theta_i, std::complex<Float>(eta[i], k[i]));
     }
 
+    return Spectrum::FromDataTriplet(result);
+}
+
+inline SpectrumSample FresnelComplex(Float cos_theta_i, const SpectrumSample& eta, const SpectrumSample& k)
+{
+    SpectrumSample result(0);
+    for (int32 i = 0; i < SpectrumSample::num_lanes; ++i)
+    {
+        result[i] = FresnelComplex(cos_theta_i, std::complex<Float>(eta[i], k[i]));
+    }
     return result;
 }
 
@@ -171,15 +176,14 @@ inline Float FresnelDielectricAverage(Float eta_p)
     }
 }
 
-inline Spectrum FresnelConductorAverage(const Spectrum& eta, const Spectrum& k)
+inline SpectrumSample FresnelConductorAverage(const SpectrumSample& eta, const SpectrumSample& k)
 {
     // Analytic solution to the Schlick fresnel
     // F_schlick = F0 + (F90-F0) * (1-cos_theta)^5
     // F_avg = 2*\int_0^1 F(\mu) \mu d\mu
     //       = (20*F0 + F90) / 21
-
-    Spectrum F0 = FresnelComplex(1, eta, k);
-    Spectrum F90 = FresnelComplex(0, eta, k);
+    SpectrumSample F0 = FresnelComplex(1, eta, k);
+    SpectrumSample F90 = FresnelComplex(0, eta, k);
 
     return (20 * F0 + F90) / 21;
 }

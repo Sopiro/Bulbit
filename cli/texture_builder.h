@@ -11,16 +11,20 @@ ConstantTexture<Float>* CreateFloatConstantTexture(
     Scene& scene,
     Float value
 );
-ConstantTexture<Spectrum>* CreateSpectrumConstantTexture(
+ConstantTexture<Float3>* CreateFloat3ConstantTexture(
+    Scene& scene,
+    const Float3& value
+);
+SpectrumConstantTexture* CreateSpectrumConstantTexture(
     Scene& scene,
     const Spectrum&
     value
 );
-ConstantTexture<Spectrum>* CreateSpectrumConstantTexture(
+SpectrumConstantTexture* CreateSpectrumConstantTexture(
     Scene& scene,
     Float value
 );
-ConstantTexture<Spectrum>* CreateSpectrumConstantTexture(
+SpectrumConstantTexture* CreateSpectrumConstantTexture(
     Scene& scene,
     Float r,
     Float g,
@@ -34,11 +38,23 @@ ImageTexture<Float>* CreateFloatImageTexture(
     bool non_color = false,
     std::function<Float(Float)> transform = {}
 );
-ImageTexture<Spectrum>* CreateSpectrumImageTexture(
+ImageTexture<Float3>* CreateFloat3ImageTexture(
     Scene& scene,
     std::string filename,
     bool non_color = false,
-    std::function<Spectrum(Spectrum)> transform = {}
+    std::function<Float3(Float3)> transform = {}
+);
+SpectrumImageTexture* CreateSpectrumImageTexture(
+    Scene& scene,
+    std::string filename,
+    bool non_color = false,
+    std::function<Vec3(Vec3)> transform = {}
+);
+SpectrumImageTexture* CreateSpectrumIlluminantImageTexture(
+    Scene& scene,
+    std::string filename,
+    bool non_color = false,
+    std::function<Vec3(Vec3)> transform = {}
 );
 
 CheckerTexture<Float>* CreateFloatCheckerTexture(
@@ -54,22 +70,35 @@ CheckerTexture<Float>* CreateFloatCheckerTexture(
     const Point2& resolution
 );
 
-CheckerTexture<Spectrum>* CreateSpectrumCheckerTexture(
+CheckerTexture<Float3>* CreateFloat3CheckerTexture(
+    Scene& scene,
+    const Float3& a,
+    const Float3& b,
+    const Point2& resolution
+);
+CheckerTexture<Float3>* CreateFloat3CheckerTexture(
+    Scene& scene,
+    const Texture<Float3>* a,
+    const Texture<Float3>* b,
+    const Point2& resolution
+);
+
+SpectrumCheckerTexture* CreateSpectrumCheckerTexture(
     Scene& scene,
     Float a,
     Float b,
     const Point2& resolution
 );
-CheckerTexture<Spectrum>* CreateSpectrumCheckerTexture(
+SpectrumCheckerTexture* CreateSpectrumCheckerTexture(
     Scene& scene,
     const Spectrum& a,
     const Spectrum& b,
     const Point2& resolution
 );
-CheckerTexture<Spectrum>* CreateSpectrumCheckerTexture(
+SpectrumCheckerTexture* CreateSpectrumCheckerTexture(
     Scene& scene,
-    const Texture<Spectrum>* a,
-    const Texture<Spectrum>* b,
+    const SpectrumTexture* a,
+    const SpectrumTexture* b,
     const Point2& resolution
 );
 // clang-format on

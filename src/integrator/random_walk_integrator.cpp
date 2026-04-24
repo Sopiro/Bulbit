@@ -14,12 +14,14 @@ RandomWalkIntegrator::RandomWalkIntegrator(
 {
 }
 
-Spectrum RandomWalkIntegrator::Li(const Ray& primary_ray, const Medium* primary_medium, Sampler& sampler) const
+SpectrumSample RandomWalkIntegrator::Li(
+    const Ray& primary_ray, const Medium* primary_medium, WavelengthSample& lambda, Sampler& sampler
+) const
 {
     BulbitNotUsed(primary_medium);
 
     int32 bounce = 0;
-    Spectrum L(0), beta(1);
+    SpectrumSample L(0), beta(1);
     Ray ray = primary_ray;
 
     while (true)
@@ -29,7 +31,7 @@ Spectrum RandomWalkIntegrator::Li(const Ray& primary_ray, const Medium* primary_
         {
             for (Light* light : infinite_lights)
             {
-                L += beta * light->Le(ray);
+                L += beta * light->Le(ray, lambda);
             }
 
             break;
@@ -40,7 +42,7 @@ Spectrum RandomWalkIntegrator::Li(const Ray& primary_ray, const Medium* primary_
         // Add surface emission
         if (const Light* area_light = GetAreaLight(isect); area_light)
         {
-            L += beta * area_light->Le(isect, wo);
+            L += beta * area_light->Le(isect, wo, lambda);
         }
 
         if (bounce++ >= max_bounces)
@@ -52,7 +54,7 @@ Spectrum RandomWalkIntegrator::Li(const Ray& primary_ray, const Medium* primary_
         BufferResource res(mem, sizeof(mem));
         Allocator alloc(&res);
         BSDF bsdf;
-        if (!isect.GetBSDF(&bsdf, wo, alloc))
+        if (!isect.GetBSDF(&bsdf, wo, lambda, alloc))
         {
             ray = Ray(isect.point, -wo);
             --bounce;

@@ -15,7 +15,7 @@ void PowerLightSampler::Init(std::span<Light*> all_lights)
     for (int32 i = 0; i < light_count; ++i)
     {
         const Light* light = lights[i];
-        powers[i] = light->Phi().Luminance();
+        powers[i] = light->Power();
         light_to_index.Insert(light, i);
     }
 
