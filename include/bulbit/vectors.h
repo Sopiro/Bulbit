@@ -218,6 +218,12 @@ constexpr inline Vector2<T> Max(const Vector2<T>& a, const Vector2<T>& b)
 }
 
 template <typename T>
+constexpr inline Vector2<T> Clamp(const Vector2<T>& a, const Vector2<T>& min, const Vector2<T>& max)
+{
+    return Vector2<T>(std::clamp(a.x, min.x, max.x), std::clamp(a.y, min.y, max.y));
+}
+
+template <typename T>
 constexpr inline T Dot(const Vector2<T>& a, const Vector2<T>& b)
 {
     return a.x * b.x + a.y * b.y;
@@ -348,6 +354,12 @@ constexpr inline Vector3<T> Max(const Vector3<T>& a, const Vector3<T>& b)
 }
 
 template <typename T>
+constexpr inline Vector3<T> Clamp(const Vector3<T>& a, const Vector3<T>& min, const Vector3<T>& max)
+{
+    return Vector3<T>(std::clamp(a.x, min.x, max.x), std::clamp(a.y, min.y, max.y), std::clamp(a.z, min.z, max.z));
+}
+
+template <typename T>
 constexpr inline T Dot(const Vector3<T>& a, const Vector3<T>& b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z;
@@ -469,6 +481,14 @@ template <typename T>
 constexpr inline Vector4<T> Max(const Vector4<T>& a, const Vector4<T>& b)
 {
     return Vector4<T>(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z), std::max(a.w, b.w));
+}
+
+template <typename T>
+constexpr inline Vector4<T> Clamp(const Vector4<T>& a, const Vector4<T>& min, const Vector4<T>& max)
+{
+    return Vector4<T>(
+        std::clamp(a.x, min.x, max.x), std::clamp(a.y, min.y, max.y), std::clamp(a.z, min.z, max.z), std::clamp(a.w, min.w, max.w)
+    );
 }
 
 template <typename T>

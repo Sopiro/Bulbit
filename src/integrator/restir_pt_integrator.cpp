@@ -1016,18 +1016,18 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             int32 neighbor_index = resolution.x * neighbor_pixel.y + neighbor_pixel.x;
+                            if (neighbor_index == index)
+                            {
+                                continue;
+                            }
+
                             if (!TestRejection(vp, visible_points[neighbor_index]))
                             {
                                 continue;
                             }
 
-                            ReSTIRPTReservoir& neighbor_reservoir = base_reservoirs[neighbor_index];
-
-                            if (neighbor_reservoir.y.W > 0)
-                            {
-                                neighbors[num_neighbors++] = neighbor_index;
-                            }
-
+                            // Empty reservoirs still define a proposal domain and must contribute to the canonical MIS weight.
+                            neighbors[num_neighbors++] = neighbor_index;
                             ++c_total;
                         }
 
@@ -1035,11 +1035,6 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         for (int32 i = 0; i < num_neighbors; ++i)
                         {
                             int32 neighbor_index = neighbors[i];
-                            if (neighbor_index == index)
-                            {
-                                continue;
-                            }
-
                             ReSTIRPTVisiblePoint& neighbor_vp = visible_points[neighbor_index];
 
                             ReSTIRPTReservoir& neighbor_reservoir = base_reservoirs[neighbor_index];
@@ -1049,7 +1044,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             ReSTIRPTSample shifted_sample;
                             Float jacobian = 0;
-                            if (shift_sample(&shifted_sample, &jacobian, vp, sample))
+                            if (sample.W > 0 && shift_sample(&shifted_sample, &jacobian, vp, sample))
                             {
                                 Float m_i = MIS_NonCanonical(c_1, c_total, c_j, sample.p_hat, shifted_sample.p_hat, jacobian);
                                 if (m_i > 0)
