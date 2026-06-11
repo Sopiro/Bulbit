@@ -209,7 +209,7 @@ Vec3 PhotonMappingIntegrator::Li(const Ray& primary_ray, WavelengthSample& lambd
             {
                 for (Light* light : infinite_lights)
                 {
-                    L += spectral::SpectrumSampleToXYZ(beta * light->Le(ray, lambda), lambda);
+                    L += spectral::ToXYZ(beta * light->Le(ray, lambda), lambda);
                 }
             }
 
@@ -223,7 +223,7 @@ Vec3 PhotonMappingIntegrator::Li(const Ray& primary_ray, WavelengthSample& lambd
             SpectrumSample Le = area_light->Le(isect, wo, lambda);
             if (!Le.IsBlack() && (bounce == 0 || specular_bounce))
             {
-                L += spectral::SpectrumSampleToXYZ(beta * Le, lambda);
+                L += spectral::ToXYZ(beta * Le, lambda);
             }
         }
 
@@ -247,7 +247,7 @@ Vec3 PhotonMappingIntegrator::Li(const Ray& primary_ray, WavelengthSample& lambd
         {
             if (sample_direct_light)
             {
-                L += spectral::SpectrumSampleToXYZ(SampleDirectLight(wo, isect, &bsdf, lambda, sampler, beta), lambda);
+                L += spectral::ToXYZ(SampleDirectLight(wo, isect, &bsdf, lambda, sampler, beta), lambda);
             }
 
             Vec3 Li(0);
@@ -268,7 +268,7 @@ Vec3 PhotonMappingIntegrator::Li(const Ray& primary_ray, WavelengthSample& lambd
                 {
                     photon_lambda.CollapseToPrimary();
                 }
-                Li += spectral::SpectrumSampleToXYZ(contribution, photon_lambda);
+                Li += spectral::ToXYZ(contribution, photon_lambda);
             });
 
             Li *= 1 / (pi * Sqr(gather_radius) * n_photons);

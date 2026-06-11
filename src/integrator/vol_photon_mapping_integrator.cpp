@@ -388,7 +388,7 @@ Vec3 VolPhotonMappingIntegrator::Li(
                         SpectrumSample r_e = r_u * sigma_maj * T_maj / pdf;
                         if (!r_e.IsBlack())
                         {
-                            L += spectral::SpectrumSampleToXYZ(beta_e * sigma_a * Le / r_e.Average(), lambda);
+                            L += spectral::ToXYZ(beta_e * sigma_a * Le / r_e.Average(), lambda);
                         }
                     }
 
@@ -419,7 +419,7 @@ Vec3 VolPhotonMappingIntegrator::Li(
                         if (sample_direct_light)
                         {
                             Intersection medium_isect{ .point = point };
-                            L += spectral::SpectrumSampleToXYZ(
+                            L += spectral::ToXYZ(
                                 SampleDirectLight(wo, medium_isect, medium, nullptr, ms.phase, lambda, sampler, beta, r_u), lambda
                             );
                         }
@@ -432,7 +432,7 @@ Vec3 VolPhotonMappingIntegrator::Li(
                             {
                                 photon_lambda.CollapseToPrimary();
                             }
-                            Li += spectral::SpectrumSampleToXYZ(contribution, photon_lambda);
+                            Li += spectral::ToXYZ(contribution, photon_lambda);
                         });
 
                         Float sphere_volume = 4 / 3.0f * pi * vol_radius * vol_radius * vol_radius;
@@ -487,7 +487,7 @@ Vec3 VolPhotonMappingIntegrator::Li(
             {
                 for (Light* light : infinite_lights)
                 {
-                    L += spectral::SpectrumSampleToXYZ(beta * light->Le(ray, lambda) / r_u.Average(), lambda);
+                    L += spectral::ToXYZ(beta * light->Le(ray, lambda) / r_u.Average(), lambda);
                 }
             }
 
@@ -499,7 +499,7 @@ Vec3 VolPhotonMappingIntegrator::Li(
             SpectrumSample Le = area_light->Le(isect, wo, lambda);
             if (!Le.IsBlack() && (bounce == 0 || specular_bounce))
             {
-                L += spectral::SpectrumSampleToXYZ(beta * Le / r_u.Average(), lambda);
+                L += spectral::ToXYZ(beta * Le / r_u.Average(), lambda);
             }
         }
 
@@ -524,9 +524,7 @@ Vec3 VolPhotonMappingIntegrator::Li(
         {
             if (sample_direct_light)
             {
-                L += spectral::SpectrumSampleToXYZ(
-                    SampleDirectLight(wo, isect, medium, &bsdf, nullptr, lambda, sampler, beta, r_u), lambda
-                );
+                L += spectral::ToXYZ(SampleDirectLight(wo, isect, medium, &bsdf, nullptr, lambda, sampler, beta, r_u), lambda);
             }
 
             Vec3 Li(0);
@@ -547,7 +545,7 @@ Vec3 VolPhotonMappingIntegrator::Li(
                 {
                     photon_lambda.CollapseToPrimary();
                 }
-                Li += spectral::SpectrumSampleToXYZ(contribution, photon_lambda);
+                Li += spectral::ToXYZ(contribution, photon_lambda);
             });
 
             Li *= 1 / (pi * Sqr(radius) * n_photons);

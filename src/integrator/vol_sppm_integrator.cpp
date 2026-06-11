@@ -301,8 +301,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                             SpectrumSample r_e = r_u * sigma_maj * T_maj / pdf;
                                             if (!r_e.IsBlack())
                                             {
-                                                vp.Ld +=
-                                                    spectral::SpectrumSampleToXYZ(beta_e * sigma_a * Le / r_e.Average(), lambda);
+                                                vp.Ld += spectral::ToXYZ(beta_e * sigma_a * Le / r_e.Average(), lambda);
                                             }
                                         }
 
@@ -333,7 +332,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                             if (sample_direct_light)
                                             {
                                                 Intersection medium_isect{ .point = point };
-                                                vp.Ld += spectral::SpectrumSampleToXYZ(
+                                                vp.Ld += spectral::ToXYZ(
                                                     SampleDirectLight(
                                                         wo, medium_isect, medium, nullptr, ms.phase, lambda, *sampler, beta, r_u
                                                     ),
@@ -433,7 +432,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     }
                                 }
 
-                                vp.Ld += spectral::SpectrumSampleToXYZ(L, lambda);
+                                vp.Ld += spectral::ToXYZ(L, lambda);
                                 break;
                             }
 
@@ -454,7 +453,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         L += beta * Le / (r_u + r_l * light_pdf).Average();
                                     }
 
-                                    vp.Ld += spectral::SpectrumSampleToXYZ(L, lambda);
+                                    vp.Ld += spectral::ToXYZ(L, lambda);
                                 }
                             }
 
@@ -475,7 +474,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             if (sample_direct_light)
                             {
-                                vp.Ld += spectral::SpectrumSampleToXYZ(
+                                vp.Ld += spectral::ToXYZ(
                                     SampleDirectLight(wo, isect, medium, &bsdf, nullptr, lambda, *sampler, beta, r_u), lambda
                                 );
                             }
@@ -673,7 +672,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                                     lambda.CollapseToPrimary();
                                                 }
 
-                                                Vec3 phi_xyz = spectral::SpectrumSampleToXYZ(vp.beta * phi, lambda);
+                                                Vec3 phi_xyz = spectral::ToXYZ(vp.beta * phi, lambda);
                                                 for (int32 c = 0; c < 3; ++c)
                                                 {
                                                     vp.phi_i_vol[c].fetch_add(phi_xyz[c], std::memory_order_relaxed);
@@ -773,7 +772,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     lambda.CollapseToPrimary();
                                 }
 
-                                Vec3 phi_xyz = spectral::SpectrumSampleToXYZ(vp.beta * phi, lambda);
+                                Vec3 phi_xyz = spectral::ToXYZ(vp.beta * phi, lambda);
                                 for (int32 c = 0; c < 3; ++c)
                                 {
                                     vp.phi_i[c].fetch_add(phi_xyz[c], std::memory_order_relaxed);

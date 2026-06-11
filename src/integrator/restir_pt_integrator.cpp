@@ -373,7 +373,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         sample.contribution = beta * L;
                                         sample.wavelength_collapsed =
                                             reconnection_vertex > 0 && path_lambda.IsCollapsed() && !rc_lambda.IsCollapsed();
-                                        sample.p_hat = SpectrumSampleToLuminance(sample.contribution, sample.lambda);
+                                        sample.p_hat = Luminance(sample.contribution, sample.lambda);
                                         reservoir.Add(sample, sample.p_hat);
                                     }
                                 }
@@ -503,7 +503,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 sample.contribution = beta * L;
                                 sample.wavelength_collapsed =
                                     reconnection_vertex > 0 && path_lambda.IsCollapsed() && !rc_lambda.IsCollapsed();
-                                sample.p_hat = SpectrumSampleToLuminance(sample.contribution, sample.lambda);
+                                sample.p_hat = Luminance(sample.contribution, sample.lambda);
                                 reservoir.Add(sample, sample.p_hat);
                                 break;
                             }
@@ -620,7 +620,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 sample.contribution = beta * f_cos * L;
                                 sample.wavelength_collapsed =
                                     reconnection_vertex > 0 && path_lambda.IsCollapsed() && !rc_lambda.IsCollapsed();
-                                sample.p_hat = SpectrumSampleToLuminance(sample.contribution, sample.lambda);
+                                sample.p_hat = Luminance(sample.contribution, sample.lambda);
                                 reservoir.Add(sample, sample.p_hat);
                                 break;
                             }
@@ -1003,7 +1003,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                 }
 
                 shifted.lambda = shifted_lambda;
-                Float p_hat = SpectrumSampleToLuminance(shifted.contribution, shifted.lambda);
+                Float p_hat = Luminance(shifted.contribution, shifted.lambda);
                 if (p_hat <= 0)
                 {
                     return false;
@@ -1137,15 +1137,15 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         if (!vp.isect.primitive)
                         {
-                            progress->film.AddSample(pixel, vp.primary_weight * spectral::SpectrumSampleToXYZ(vp.Le, lambda));
+                            progress->film.AddSample(pixel, vp.primary_weight * spectral::ToXYZ(vp.Le, lambda));
                             continue;
                         }
 
-                        Vec3 L = spectral::SpectrumSampleToXYZ(vp.Le, lambda);
+                        Vec3 L = spectral::ToXYZ(vp.Le, lambda);
                         const ReSTIRPTSample& sample = spatial_reservoirs[index].y;
                         if (sample.W > 0)
                         {
-                            L += spectral::SpectrumSampleToXYZ(sample.contribution * sample.W, sample.lambda);
+                            L += spectral::ToXYZ(sample.contribution * sample.W, sample.lambda);
                         }
 
                         if (!L.IsNullish())

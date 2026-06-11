@@ -177,7 +177,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     }
                                 }
 
-                                vp.Ld += spectral::SpectrumSampleToXYZ(L, path_lambda);
+                                vp.Ld += spectral::ToXYZ(L, path_lambda);
                                 break;
                             }
 
@@ -202,7 +202,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         L += beta * mis_weight * Le;
                                     }
 
-                                    vp.Ld += spectral::SpectrumSampleToXYZ(L, path_lambda);
+                                    vp.Ld += spectral::ToXYZ(L, path_lambda);
                                 }
                             }
 
@@ -222,7 +222,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             if (sample_direct_light)
                             {
-                                vp.Ld += spectral::SpectrumSampleToXYZ(
+                                vp.Ld += spectral::ToXYZ(
                                     SampleDirectLight(wo, isect, &bsdf, path_lambda, *sampler, beta), path_lambda
                                 );
                             }
@@ -382,7 +382,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     lambda.CollapseToPrimary();
                                 }
 
-                                Vec3 phi_xyz = spectral::SpectrumSampleToXYZ(vp.beta * phi, lambda);
+                                Vec3 phi_xyz = spectral::ToXYZ(vp.beta * phi, lambda);
                                 for (int32 c = 0; c < 3; ++c)
                                 {
                                     vp.phi_i[c].fetch_add(phi_xyz[c], std::memory_order_relaxed);

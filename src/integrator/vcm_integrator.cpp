@@ -792,7 +792,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                         if (camera_state.path_length == 1)
                                         {
-                                            L_xyz += spectral::SpectrumSampleToXYZ(camera_state.beta * Le, camera_state.lambda);
+                                            L_xyz += spectral::ToXYZ(camera_state.beta * Le, camera_state.lambda);
                                             continue;
                                         }
 
@@ -804,9 +804,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                             Mis(direct_pdf_a) * camera_state.d_vcm + Mis(emission_pdf_w) * camera_state.d_vc;
                                         Float mis_weight = 1 / (1 + w_camera);
 
-                                        L_xyz += spectral::SpectrumSampleToXYZ(
-                                            camera_state.beta * mis_weight * Le, camera_state.lambda
-                                        );
+                                        L_xyz += spectral::ToXYZ(camera_state.beta * mis_weight * Le, camera_state.lambda);
                                     }
                                 }
                                 break;
@@ -843,7 +841,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             {
                                 if (camera_state.path_length <= max_path_length)
                                 {
-                                    L_xyz += spectral::SpectrumSampleToXYZ(
+                                    L_xyz += spectral::ToXYZ(
                                         camera_state.beta *
                                             AreaLightLe(this, area_light, isect, wo, camera_state.origin, camera_state),
                                         camera_state.lambda
@@ -865,7 +863,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             {
                                 if (camera_state.path_length + 1 <= max_path_length)
                                 {
-                                    L_xyz += spectral::SpectrumSampleToXYZ(
+                                    L_xyz += spectral::ToXYZ(
                                         camera_state.beta *
                                             DirectIllumination(
                                                 this, camera_state, isect, wo, bsdf, vertex_cont_prob, mis_vm_weight, *sampler
@@ -898,7 +896,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         lambda.CollapseToPrimary();
                                     }
 
-                                    L_xyz += spectral::SpectrumSampleToXYZ(contribution, lambda);
+                                    L_xyz += spectral::ToXYZ(contribution, lambda);
                                 }
                             }
 
@@ -950,16 +948,14 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                 if (!merged.IsBlack())
                                 {
-                                    L_xyz += spectral::SpectrumSampleToXYZ(
-                                        camera_state.beta * vm_normalization * merged, camera_state.lambda
-                                    );
+                                    L_xyz += spectral::ToXYZ(camera_state.beta * vm_normalization * merged, camera_state.lambda);
                                 }
 
                                 if (!merged_terminated.IsBlack())
                                 {
                                     WavelengthSample effective_lambda = camera_state.lambda;
                                     effective_lambda.CollapseToPrimary();
-                                    L_xyz += spectral::SpectrumSampleToXYZ(
+                                    L_xyz += spectral::ToXYZ(
                                         camera_state.beta * vm_normalization * merged_terminated, effective_lambda
                                     );
                                 }

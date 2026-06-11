@@ -257,7 +257,7 @@ SpectrumSample Sample(const SpectralData& data, const WavelengthSample& waveleng
     return data.Sample(wavelengths);
 }
 
-Vec3 SpectrumSampleToXYZ(const SpectrumSample& sp, const WavelengthSample& lambda)
+Vec3 ToXYZ(const SpectrumSample& sp, const WavelengthSample& lambda)
 {
     Vec3 xyz(0);
     for (int32 i = 0; i < WavelengthSample::num_lanes; ++i)
@@ -277,14 +277,14 @@ Vec3 SpectrumSampleToXYZ(const SpectrumSample& sp, const WavelengthSample& lambd
     return xyz;
 }
 
-Vec3 SpectrumSampleToLinearRGB(const SpectrumSample& sp, const WavelengthSample& lambda)
+Vec3 ToLinearRGB(const SpectrumSample& sp, const WavelengthSample& lambda)
 {
-    return Max(XYZToLinearRGB(SpectrumSampleToXYZ(sp, lambda)), Vec3(0.0f));
+    return Max(XYZToLinearRGB(ToXYZ(sp, lambda)), Vec3(0.0f));
 }
 
-Float SpectrumSampleToLuminance(const SpectrumSample& sp, const WavelengthSample& lambda)
+Float Luminance(const SpectrumSample& sp, const WavelengthSample& lambda)
 {
-    return SpectrumSampleToXYZ(sp, lambda).y;
+    return ToXYZ(sp, lambda).y;
 }
 
 } // namespace spectral

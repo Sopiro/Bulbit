@@ -466,14 +466,14 @@ constexpr inline SpectrumSample Clamp(const SpectrumSample& sp, U left, V right)
     return result;
 }
 
-inline Vec3 SpectrumSampleToLinearRGB(const SpectrumSample& sp, const WavelengthSample& lambda)
+inline Vec3 ToLinearRGB(const SpectrumSample& sp, const WavelengthSample& lambda)
 {
-    return spectral::SpectrumSampleToLinearRGB(sp, lambda);
+    return spectral::ToLinearRGB(sp, lambda);
 }
 
-inline Float SpectrumSampleToLuminance(const SpectrumSample& sp, const WavelengthSample& lambda)
+inline Float Luminance(const SpectrumSample& sp, const WavelengthSample& lambda)
 {
-    return spectral::SpectrumSampleToLuminance(sp, lambda);
+    return spectral::Luminance(sp, lambda);
 }
 
 } // namespace bulbit

@@ -324,7 +324,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             SpectrumSample f_cos = bsdf.f(vp.wo, light_sample.wi) * AbsDot(isect.shading.normal, light_sample.wi);
                             SpectrumSample contribution = light_sample.Li * f_cos;
-                            Float p_hat = SpectrumSampleToLuminance(contribution, vp.lambda);
+                            Float p_hat = Luminance(contribution, vp.lambda);
                             if (p_hat <= 0)
                             {
                                 continue;
@@ -395,7 +395,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     SpectrumSample f_cos = bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi);
                                     SpectrumSample Li = light->Le(shadow_isect, -bsdf_sample.wi, vp.lambda);
                                     SpectrumSample contribution = Li * f_cos;
-                                    Float p_hat = SpectrumSampleToLuminance(contribution, vp.lambda);
+                                    Float p_hat = Luminance(contribution, vp.lambda);
                                     if (p_hat <= 0)
                                     {
                                         continue;
@@ -433,7 +433,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     SpectrumSample f_cos = bsdf_sample.f * AbsDot(isect.shading.normal, bsdf_sample.wi);
                                     SpectrumSample Li = light->Le(shadow_ray, vp.lambda);
                                     SpectrumSample contribution = Li * f_cos;
-                                    Float p_hat = SpectrumSampleToLuminance(contribution, vp.lambda);
+                                    Float p_hat = Luminance(contribution, vp.lambda);
                                     if (p_hat <= 0)
                                     {
                                         continue;
@@ -620,7 +620,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 SpectrumSample f_cos = vp.bsdf.f(vp.wo, wi) * AbsDot(isect.shading.normal, wi);
 
                                 SpectrumSample contribution = Li * f_cos;
-                                Float p_hat_y = SpectrumSampleToLuminance(contribution, vp.lambda);
+                                Float p_hat_y = Luminance(contribution, vp.lambda);
                                 Float m_i = MIS_NonCanonical(c_1, c_total, c_j, sample.p_hat, p_hat_y, jacobian);
 
                                 if (m_i > 0)
@@ -662,7 +662,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             SpectrumSample f_cos =
                                 neighbor_vp.bsdf.f(neighbor_vp.wo, wi) * AbsDot(neighbor_vp.isect.shading.normal, wi);
 
-                            Float p_hat_y = SpectrumSampleToLuminance(Li * f_cos, neighbor_vp.lambda);
+                            Float p_hat_y = Luminance(Li * f_cos, neighbor_vp.lambda);
                             m_1 += MIS_Canonical(c_1, c_total, c_j, canonical_sample.p_hat, p_hat_y, jacobian_rev);
                         }
 
@@ -699,16 +699,16 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         if (!isect.primitive)
                         {
-                            progress->film.AddSample(pixel, vp.primary_weight * spectral::SpectrumSampleToXYZ(vp.Le, lambda));
+                            progress->film.AddSample(pixel, vp.primary_weight * spectral::ToXYZ(vp.Le, lambda));
                             continue;
                         }
 
                         ReSTIRDISample& sample = spatial_reservoirs[index].y;
 
-                        Vec3 L = spectral::SpectrumSampleToXYZ(vp.Le, lambda);
+                        Vec3 L = spectral::ToXYZ(vp.Le, lambda);
                         if (sample.W > 0 && test_visibility(isect, sample))
                         {
-                            L += spectral::SpectrumSampleToXYZ(sample.contribution * sample.W, vp.lambda);
+                            L += spectral::ToXYZ(sample.contribution * sample.W, vp.lambda);
                         }
 
                         if (!L.IsNullish())

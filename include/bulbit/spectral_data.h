@@ -31,9 +31,9 @@ struct InterpolationWeights
 Float Interpolate(const SpectralData& samples, Float wavelength);
 Float Interpolate(const SpectralData& samples, const InterpolationWeights& weights);
 SpectrumSample Sample(const SpectralData& data, const WavelengthSample& wavelengths);
-Vec3 SpectrumSampleToXYZ(const SpectrumSample& sp, const WavelengthSample& lambda);
-Vec3 SpectrumSampleToLinearRGB(const SpectrumSample& sp, const WavelengthSample& lambda);
-Float SpectrumSampleToLuminance(const SpectrumSample& sp, const WavelengthSample& lambda);
+Vec3 ToXYZ(const SpectrumSample& sp, const WavelengthSample& lambda);
+Vec3 ToLinearRGB(const SpectrumSample& sp, const WavelengthSample& lambda);
+Float Luminance(const SpectrumSample& sp, const WavelengthSample& lambda);
 
 extern const SpectralData mallett_basis_r;
 extern const SpectralData mallett_basis_g;

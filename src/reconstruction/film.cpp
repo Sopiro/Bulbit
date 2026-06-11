@@ -25,7 +25,7 @@ Film::Film(const Camera* camera)
 
 void Film::AddSample(const Point2i& pixel, const SpectrumSample& L, const WavelengthSample& lambda)
 {
-    AccumulateSample(pixel, spectral::SpectrumSampleToXYZ(L, lambda));
+    AccumulateSample(pixel, spectral::ToXYZ(L, lambda));
 }
 
 void Film::AddSample(const Point2i& pixel, const Vec3& xyz)
@@ -48,7 +48,7 @@ void Film::AccumulateSample(const Point2i& pixel, const Vec3& xyz)
 
 void Film::AddSplat(const Point2& pixel, const SpectrumSample& L, const WavelengthSample& lambda)
 {
-    AccumulateSplat(pixel, spectral::SpectrumSampleToXYZ(L, lambda));
+    AccumulateSplat(pixel, spectral::ToXYZ(L, lambda));
 }
 
 void Film::AccumulateSplat(const Point2& pixel, const Vec3& xyz)
