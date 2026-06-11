@@ -144,7 +144,7 @@ void VolPhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress, Wave
                                 photon.normal = Vec3::zero;
                                 photon.wi = wo;
                                 photon.beta = beta;
-                                photon.secondary_terminated = lambda.IsCollapsed();
+                                photon.wavelength_collapsed = lambda.IsCollapsed();
                                 volume_photons.push_back(photon);
                             }
 
@@ -228,7 +228,7 @@ void VolPhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress, Wave
                 photon.normal = isect.normal;
                 photon.wi = wo;
                 photon.beta = beta;
-                photon.secondary_terminated = lambda.IsCollapsed();
+                photon.wavelength_collapsed = lambda.IsCollapsed();
                 surface_photons.push_back(photon);
             }
 
@@ -428,7 +428,7 @@ Vec3 VolPhotonMappingIntegrator::Li(
                         vol_photon_map.Query<Photon>(vol_photons, point, vol_radius, [&](const Photon& p) {
                             SpectrumSample contribution = beta * SpectrumSample(ms.phase->p(wo, p.wi)) * p.beta;
                             WavelengthSample photon_lambda = lambda;
-                            if (p.secondary_terminated)
+                            if (p.wavelength_collapsed)
                             {
                                 photon_lambda.CollapseToPrimary();
                             }
@@ -543,7 +543,7 @@ Vec3 VolPhotonMappingIntegrator::Li(
 
                 SpectrumSample contribution = beta * bsdf.f(wo, p.wi) * AbsDot(isect.shading.normal, p.wi) * p.beta;
                 WavelengthSample photon_lambda = lambda;
-                if (p.secondary_terminated)
+                if (p.wavelength_collapsed)
                 {
                     photon_lambda.CollapseToPrimary();
                 }

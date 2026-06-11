@@ -39,6 +39,9 @@ struct ReSTIRPTSample
     int32 reconnection_vertex = -1; // Reject this sample if reconnection vertex not set
     uint64 seed;                    // RNG seed for hybrid shift replay
 
+    WavelengthSample lambda;
+    bool wavelength_collapsed = false;
+
     const Light* light = nullptr;
     bool is_infinite_light = false;
 
@@ -225,6 +228,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
         for (int32 s = 0; s < spp; ++s)
         {
             const WavelengthSample lambda = WavelengthSample::SampleIteration(s, spp);
+
             std::vector<ReSTIRPTVisiblePoint> visible_points(num_pixels);
 
             std::vector<ReSTIRPTReservoir> base_reservoirs(num_pixels);
@@ -260,6 +264,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         bool specular_bounce = false;
                         Float eta_scale = 1;
                         Ray ray = primary_ray.ray;
+                        WavelengthSample path_lambda = lambda;
                         Float prev_bsdf_pdf = 0;
                         bool prev_diffuse = false;
 
@@ -269,6 +274,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                         Vec3 rc_wi;
                         SpectrumSample rc_beta(0);
                         Float rc_jacobian = 0.0f;
+                        WavelengthSample rc_lambda = lambda;
 
                         const uint64 seed = Hash(pixel, s);
                         RNG rng(seed);
@@ -284,7 +290,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     vp.isect.primitive = nullptr;
                                     for (Light* light : infinite_lights)
                                     {
-                                        vp.Le += light->Le(ray, lambda);
+                                        vp.Le += light->Le(ray, path_lambda);
                                     }
                                 }
                                 else
@@ -292,7 +298,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     int32 vertex_index = bounce + 1;
                                     for (Light* light : infinite_lights)
                                     {
-                                        SpectrumSample Le = light->Le(ray, lambda);
+                                        SpectrumSample Le = light->Le(ray, path_lambda);
                                         if (Le.IsBlack())
                                         {
                                             continue;
@@ -312,6 +318,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                                         ReSTIRPTSample sample;
                                         sample.seed = seed;
+                                        sample.lambda = path_lambda;
                                         sample.is_infinite_light = true;
                                         if (reconnection_vertex > 0)
                                         {
@@ -364,7 +371,9 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         }
 
                                         sample.contribution = beta * L;
-                                        sample.p_hat = SpectrumSampleToLuminance(sample.contribution, lambda);
+                                        sample.wavelength_collapsed =
+                                            reconnection_vertex > 0 && path_lambda.IsCollapsed() && !rc_lambda.IsCollapsed();
+                                        sample.p_hat = SpectrumSampleToLuminance(sample.contribution, sample.lambda);
                                         reservoir.Add(sample, sample.p_hat);
                                     }
                                 }
@@ -384,11 +393,15 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                             BufferResource res(mem, sizeof(mem));
                             Allocator alloc(&res);
                             BSDF bsdf;
-                            WavelengthSample path_lambda = lambda;
                             if (!isect.GetBSDF(&bsdf, wo, path_lambda, alloc))
                             {
                                 ray = Ray(isect.point, -wo);
                                 continue;
+                            }
+
+                            if (bounce == 0)
+                            {
+                                vp.lambda = path_lambda;
                             }
 
                             int32 vertex_index = bounce + 1;
@@ -405,12 +418,13 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 rc_isect = isect;
                                 rc_beta = SpectrumSample(1);
                                 rc_jacobian = (Sqr(isect.t) / AbsDot(isect.normal, wo)) / prev_bsdf_pdf;
+                                rc_lambda = path_lambda;
                             }
 
                             const Light* area_light = GetAreaLight(isect);
                             while (area_light)
                             {
-                                SpectrumSample Le = area_light->Le(isect, wo, lambda);
+                                SpectrumSample Le = area_light->Le(isect, wo, path_lambda);
                                 if (Le.IsBlack())
                                 {
                                     break;
@@ -440,6 +454,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 // Add bsdf sampled path sample
                                 ReSTIRPTSample sample;
                                 sample.seed = seed;
+                                sample.lambda = path_lambda;
                                 if (reconnection_vertex > 0)
                                 {
                                     sample.reconnection_vertex = reconnection_vertex;
@@ -486,7 +501,9 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 }
 
                                 sample.contribution = beta * L;
-                                sample.p_hat = SpectrumSampleToLuminance(sample.contribution, path_lambda);
+                                sample.wavelength_collapsed =
+                                    reconnection_vertex > 0 && path_lambda.IsCollapsed() && !rc_lambda.IsCollapsed();
+                                sample.p_hat = SpectrumSampleToLuminance(sample.contribution, sample.lambda);
                                 reservoir.Add(sample, sample.p_hat);
                                 break;
                             }
@@ -512,7 +529,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 }
 
                                 LightSampleLi light_sample;
-                                if (!sampled_light.light->Sample_Li(&light_sample, isect, u12, lambda))
+                                if (!sampled_light.light->Sample_Li(&light_sample, isect, u12, path_lambda))
                                 {
                                     break;
                                 }
@@ -547,6 +564,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 // Add light sampled path sample
                                 ReSTIRPTSample sample;
                                 sample.seed = seed;
+                                sample.lambda = path_lambda;
                                 if (reconnection_vertex > 0)
                                 {
                                     sample.reconnection_vertex = reconnection_vertex;
@@ -600,7 +618,9 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 }
 
                                 sample.contribution = beta * f_cos * L;
-                                sample.p_hat = SpectrumSampleToLuminance(sample.contribution, lambda);
+                                sample.wavelength_collapsed =
+                                    reconnection_vertex > 0 && path_lambda.IsCollapsed() && !rc_lambda.IsCollapsed();
+                                sample.p_hat = SpectrumSampleToLuminance(sample.contribution, sample.lambda);
                                 reservoir.Add(sample, sample.p_hat);
                                 break;
                             }
@@ -711,8 +731,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                     BufferResource res(mem, sizeof(mem));
                     Allocator alloc(&res);
                     BSDF bsdf;
-                    WavelengthSample vp_lambda = vp.lambda;
-                    if (!isect.GetBSDF(&bsdf, wo, vp_lambda, alloc))
+                    if (!isect.GetBSDF(&bsdf, wo, replay->lambda, alloc))
                     {
                         Ray ray(isect.point, -wo);
                         if (!Intersect(&isect, ray, Ray::epsilon, infinity))
@@ -722,7 +741,6 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         replay->isect = isect;
                         replay->wo = Normalize(-ray.d);
-                        replay->lambda = vp_lambda;
                         continue;
                     }
 
@@ -831,8 +849,8 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                 }
 
                 BSDF bsdf;
-                WavelengthSample target_lambda = target_vp.lambda;
-                if (!replay.isect.GetBSDF(&bsdf, replay.wo, target_lambda, bsdf_alloc))
+                WavelengthSample shifted_lambda = replay.lambda;
+                if (!replay.isect.GetBSDF(&bsdf, replay.wo, shifted_lambda, bsdf_alloc))
                 {
                     return false;
                 }
@@ -923,8 +941,7 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                 {
                     // Reconnection vertex is set before the light vertex
                     BSDF bsdf_rc;
-                    WavelengthSample source_lambda = target_vp.lambda;
-                    if (!source_sample.isect.GetBSDF(&bsdf_rc, -wi, source_lambda, bsdf_alloc))
+                    if (!source_sample.isect.GetBSDF(&bsdf_rc, -wi, shifted_lambda, bsdf_alloc))
                     {
                         return false;
                     }
@@ -980,7 +997,13 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
                     }
                 }
 
-                Float p_hat = SpectrumSampleToLuminance(shifted.contribution, target_vp.lambda);
+                if (source_sample.wavelength_collapsed)
+                {
+                    shifted_lambda.CollapseToPrimary();
+                }
+
+                shifted.lambda = shifted_lambda;
+                Float p_hat = SpectrumSampleToLuminance(shifted.contribution, shifted.lambda);
                 if (p_hat <= 0)
                 {
                     return false;
@@ -1114,20 +1137,20 @@ Rendering* ReSTIRPTIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         if (!vp.isect.primitive)
                         {
-                            progress->film.AddSample(pixel, vp.primary_weight * vp.Le, vp.lambda);
+                            progress->film.AddSample(pixel, vp.primary_weight * spectral::SpectrumSampleToXYZ(vp.Le, lambda));
                             continue;
                         }
 
-                        SpectrumSample L = vp.Le;
+                        Vec3 L = spectral::SpectrumSampleToXYZ(vp.Le, lambda);
                         const ReSTIRPTSample& sample = spatial_reservoirs[index].y;
                         if (sample.W > 0)
                         {
-                            L += sample.contribution * sample.W;
+                            L += spectral::SpectrumSampleToXYZ(sample.contribution * sample.W, sample.lambda);
                         }
 
                         if (!L.IsNullish())
                         {
-                            progress->film.AddSample(pixel, vp.primary_weight * L, vp.lambda);
+                            progress->film.AddSample(pixel, vp.primary_weight * L);
                         }
                     }
 

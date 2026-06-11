@@ -122,7 +122,8 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
         for (int32 iteration = 0; iteration < n_iterations; ++iteration)
         {
-            WavelengthSample lambda = WavelengthSample::SampleIteration(iteration, n_iterations);
+            const WavelengthSample iteration_lambda = WavelengthSample::SampleIteration(iteration, n_iterations);
+
             ParallelFor2D(
                 res,
                 [&](AABB2i tile) {
@@ -140,7 +141,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         int32 index = res.x * pixel.y + pixel.x;
                         VisiblePoint& vp = visible_points[index];
-                        vp.secondary_terminated = false;
+                        vp.wavelength_collapsed = false;
 
                         Float eta_scale = 1;
                         Float prev_bsdf_pdf = 0;
@@ -150,6 +151,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         SpectrumSample beta(primary_ray.weight);
                         Ray ray = primary_ray.ray;
+                        WavelengthSample path_lambda = iteration_lambda;
 
                         while (true)
                         {
@@ -162,7 +164,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 {
                                     for (Light* light : infinite_lights)
                                     {
-                                        L += beta * light->Le(ray, lambda);
+                                        L += beta * light->Le(ray, path_lambda);
                                     }
                                 }
                                 else
@@ -171,11 +173,11 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                     {
                                         Float light_pdf = light->EvaluatePDF_Li(ray) * light_sampler->EvaluatePMF(light);
                                         Float mis_weight = PowerHeuristic(1, prev_bsdf_pdf, 1, light_pdf);
-                                        L += beta * mis_weight * light->Le(ray, lambda);
+                                        L += beta * mis_weight * light->Le(ray, path_lambda);
                                     }
                                 }
 
-                                vp.Ld += spectral::SpectrumSampleToXYZ(L, lambda);
+                                vp.Ld += spectral::SpectrumSampleToXYZ(L, path_lambda);
                                 break;
                             }
 
@@ -183,7 +185,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             if (const Light* area_light = GetAreaLight(isect); area_light)
                             {
-                                SpectrumSample Le = area_light->Le(isect, wo, lambda);
+                                SpectrumSample Le = area_light->Le(isect, wo, path_lambda);
                                 if (!Le.IsBlack())
                                 {
                                     SpectrumSample L(0);
@@ -200,7 +202,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                         L += beta * mis_weight * Le;
                                     }
 
-                                    vp.Ld += spectral::SpectrumSampleToXYZ(L, lambda);
+                                    vp.Ld += spectral::SpectrumSampleToXYZ(L, path_lambda);
                                 }
                             }
 
@@ -211,7 +213,6 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             Allocator& alloc = thread_allocators.Get();
                             BSDF bsdf;
-                            WavelengthSample path_lambda = lambda;
                             if (!isect.GetBSDF(&bsdf, wo, path_lambda, alloc))
                             {
                                 ray = Ray(isect.point, -wo);
@@ -234,7 +235,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 vp.p = isect.point;
                                 vp.normal = isect.normal;
                                 vp.wo = wo;
-                                vp.secondary_terminated = path_lambda.IsCollapsed();
+                                vp.wavelength_collapsed = path_lambda.IsCollapsed();
                                 vp.bsdf = bsdf;
                                 vp.beta = beta;
 
@@ -317,12 +318,13 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                     const Light* light = sampled_light.light;
 
                     LightSampleLe light_sample;
-                    if (!light->Sample_Le(&light_sample, sampler->Next2D(), sampler->Next2D(), lambda))
+                    if (!light->Sample_Le(&light_sample, sampler->Next2D(), sampler->Next2D(), iteration_lambda))
                     {
                         continue;
                     }
 
                     Ray ray = light_sample.ray;
+                    WavelengthSample photon_lambda = iteration_lambda;
                     SpectrumSample beta = light_sample.Le / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
                     if (light_sample.normal != Vec3::zero)
                     {
@@ -374,13 +376,13 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 }
 
                                 SpectrumSample phi = beta * vp.bsdf.f(vp.wo, wo);
-                                WavelengthSample photon_lambda = lambda;
-                                if (vp.secondary_terminated)
+                                WavelengthSample lambda = photon_lambda;
+                                if (vp.wavelength_collapsed || lambda.IsCollapsed())
                                 {
-                                    photon_lambda.CollapseToPrimary();
+                                    lambda.CollapseToPrimary();
                                 }
 
-                                Vec3 phi_xyz = spectral::SpectrumSampleToXYZ(vp.beta * phi, photon_lambda);
+                                Vec3 phi_xyz = spectral::SpectrumSampleToXYZ(vp.beta * phi, lambda);
                                 for (int32 c = 0; c < 3; ++c)
                                 {
                                     vp.phi_i[c].fetch_add(phi_xyz[c], std::memory_order_relaxed);
@@ -394,8 +396,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                         BufferResource bsdf_res(bsdf_mem, sizeof(bsdf_mem));
                         Allocator bsdf_alloc(&bsdf_res);
                         BSDF bsdf;
-                        WavelengthSample path_lambda = lambda;
-                        if (!isect.GetBSDF(&bsdf, wo, path_lambda, bsdf_alloc))
+                        if (!isect.GetBSDF(&bsdf, wo, photon_lambda, bsdf_alloc))
                         {
                             ray = Ray(isect.point, -wo);
                             --bounce;

@@ -20,13 +20,13 @@ struct Photon
 
     Vec3 wi;
     SpectrumSample beta;
-    bool secondary_terminated = false;
+    bool wavelength_collapsed = false;
 };
 
 struct VisiblePoint
 {
     Float radius, radius_vol;
-    bool secondary_terminated = false;
+    bool wavelength_collapsed = false;
 
     const Primitive* primitive;
     Point3 p;

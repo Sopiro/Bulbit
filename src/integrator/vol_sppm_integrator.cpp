@@ -228,7 +228,8 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
         for (int32 iteration = 0; iteration < n_iterations; ++iteration)
         {
-            WavelengthSample lambda = WavelengthSample::SampleIteration(iteration, n_iterations);
+            const WavelengthSample iteration_lambda = WavelengthSample::SampleIteration(iteration, n_iterations);
+
             // camera pass
             ParallelFor2D(
                 res,
@@ -247,7 +248,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         int32 index = res.x * pixel.y + pixel.x;
                         VisiblePoint& vp = visible_points[index];
-                        vp.secondary_terminated = false;
+                        vp.wavelength_collapsed = false;
 
                         Float eta_scale = 1;
                         int32 bounce = 0;
@@ -260,6 +261,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                         Ray ray = primary_ray.ray;
                         const Medium* medium = camera->GetMedium();
+                        WavelengthSample lambda = iteration_lambda;
 
                         while (true)
                         {
@@ -343,7 +345,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                             vp.p = point;
                                             vp.normal = Vec3::zero;
                                             vp.wo = wo;
-                                            vp.secondary_terminated = lambda.IsCollapsed();
+                                            vp.wavelength_collapsed = lambda.IsCollapsed();
                                             vp.bsdf = {};
                                             vp.phase = ms.phase;
                                             vp.beta = beta;
@@ -463,8 +465,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
                             Allocator& thread_alloc = thread_allocators.Get();
                             BSDF bsdf;
-                            WavelengthSample path_lambda = lambda;
-                            if (!isect.GetBSDF(&bsdf, wo, path_lambda, thread_alloc))
+                            if (!isect.GetBSDF(&bsdf, wo, lambda, thread_alloc))
                             {
                                 medium = isect.GetMedium(ray.d);
                                 ray = Ray(isect.point, -wo);
@@ -475,8 +476,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             if (sample_direct_light)
                             {
                                 vp.Ld += spectral::SpectrumSampleToXYZ(
-                                    SampleDirectLight(wo, isect, medium, &bsdf, nullptr, path_lambda, *sampler, beta, r_u),
-                                    path_lambda
+                                    SampleDirectLight(wo, isect, medium, &bsdf, nullptr, lambda, *sampler, beta, r_u), lambda
                                 );
                             }
 
@@ -488,7 +488,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 vp.p = isect.point;
                                 vp.normal = isect.normal;
                                 vp.wo = wo;
-                                vp.secondary_terminated = path_lambda.IsCollapsed();
+                                vp.wavelength_collapsed = lambda.IsCollapsed();
                                 vp.bsdf = bsdf;
                                 vp.phase = nullptr;
                                 vp.beta = beta;
@@ -580,13 +580,14 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                     }
 
                     LightSampleLe light_sample;
-                    if (!sampled_light.light->Sample_Le(&light_sample, sampler->Next2D(), sampler->Next2D(), lambda))
+                    if (!sampled_light.light->Sample_Le(&light_sample, sampler->Next2D(), sampler->Next2D(), iteration_lambda))
                     {
                         continue;
                     }
 
                     Ray ray = light_sample.ray;
                     const Medium* medium = light_sample.medium;
+                    WavelengthSample photon_lambda = iteration_lambda;
                     SpectrumSample beta = light_sample.Le / (sampled_light.pmf * light_sample.pdf_p * light_sample.pdf_w);
                     if (light_sample.normal != Vec3::zero)
                     {
@@ -618,7 +619,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             RNG rng(hash0, hash1);
 
                             SpectrumSample T_maj = Sample_MajorantTransmittance(
-                                medium, lambda, ray, t_max, u, rng,
+                                medium, photon_lambda, ray, t_max, u, rng,
                                 [&](Point3 point, MediumSample ms, SpectrumSample sigma_maj, SpectrumSample T_maj) -> bool {
                                     if (beta.IsBlack())
                                     {
@@ -666,13 +667,13 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                                 }
 
                                                 SpectrumSample phi = beta * SpectrumSample(vp.phase->p(vp.wo, wo));
-                                                WavelengthSample photon_lambda = lambda;
-                                                if (vp.secondary_terminated)
+                                                WavelengthSample lambda = photon_lambda;
+                                                if (vp.wavelength_collapsed || photon_lambda.IsCollapsed())
                                                 {
-                                                    photon_lambda.CollapseToPrimary();
+                                                    lambda.CollapseToPrimary();
                                                 }
 
-                                                Vec3 phi_xyz = spectral::SpectrumSampleToXYZ(vp.beta * phi, photon_lambda);
+                                                Vec3 phi_xyz = spectral::SpectrumSampleToXYZ(vp.beta * phi, lambda);
                                                 for (int32 c = 0; c < 3; ++c)
                                                 {
                                                     vp.phi_i_vol[c].fetch_add(phi_xyz[c], std::memory_order_relaxed);
@@ -766,13 +767,13 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 }
 
                                 SpectrumSample phi = beta * vp.bsdf.f(vp.wo, wo);
-                                WavelengthSample photon_lambda = lambda;
-                                if (vp.secondary_terminated)
+                                WavelengthSample lambda = photon_lambda;
+                                if (vp.wavelength_collapsed || lambda.IsCollapsed())
                                 {
-                                    photon_lambda.CollapseToPrimary();
+                                    lambda.CollapseToPrimary();
                                 }
 
-                                Vec3 phi_xyz = spectral::SpectrumSampleToXYZ(vp.beta * phi, photon_lambda);
+                                Vec3 phi_xyz = spectral::SpectrumSampleToXYZ(vp.beta * phi, lambda);
                                 for (int32 c = 0; c < 3; ++c)
                                 {
                                     vp.phi_i[c].fetch_add(phi_xyz[c], std::memory_order_relaxed);
@@ -786,8 +787,7 @@ Rendering* VolSPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                         BufferResource bsdf_res(bsdf_mem, sizeof(bsdf_mem));
                         Allocator bsdf_alloc(&bsdf_res);
                         BSDF bsdf;
-                        WavelengthSample path_lambda = lambda;
-                        if (!isect.GetBSDF(&bsdf, wo, path_lambda, bsdf_alloc))
+                        if (!isect.GetBSDF(&bsdf, wo, photon_lambda, bsdf_alloc))
                         {
                             medium = isect.GetMedium(ray.d);
                             ray = Ray(isect.point, -wo);

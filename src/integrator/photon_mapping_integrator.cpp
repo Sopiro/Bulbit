@@ -109,7 +109,7 @@ void PhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress, Wavelen
                 p.normal = isect.normal;
                 p.wi = wo;
                 p.beta = beta;
-                p.secondary_terminated = lambda.IsCollapsed();
+                p.wavelength_collapsed = lambda.IsCollapsed();
                 ps.push_back(p);
             }
 
@@ -264,7 +264,7 @@ Vec3 PhotonMappingIntegrator::Li(const Ray& primary_ray, WavelengthSample& lambd
 
                 SpectrumSample contribution = beta * bsdf.f(wo, p.wi) * AbsDot(isect.shading.normal, p.wi) * p.beta;
                 WavelengthSample photon_lambda = lambda;
-                if (p.secondary_terminated)
+                if (p.wavelength_collapsed)
                 {
                     photon_lambda.CollapseToPrimary();
                 }
