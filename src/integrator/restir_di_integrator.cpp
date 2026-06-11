@@ -556,6 +556,10 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             }
 
                             int32 neighbor_index = resolution.x * neighbor_pixel.y + neighbor_pixel.x;
+                            if (neighbor_index == index)
+                            {
+                                continue;
+                            }
 
                             ReSTIRDIReservoir& neighbor_reservoir = ris_reservoirs[neighbor_index];
                             if (!TestRejection(vp, visible_points[neighbor_index]))
@@ -563,7 +567,8 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 continue;
                             }
 
-                            if (neighbor_reservoir.y.W > 0)
+                            // Reservoirs invalidated by visibility still define a proposal domain for canonical MIS.
+                            if (neighbor_reservoir.M > 0)
                             {
                                 neighbors[num_neighbors++] = neighbor_index;
                             }
@@ -571,16 +576,11 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             c_total += neighbor_reservoir.M;
                         }
 
-                        Float m_1 = c_1 / c_total;
+                        Float m_1 = c_total > 0 ? c_1 / c_total : 0;
 
                         for (int32 i = 0; i < num_neighbors; ++i)
                         {
                             int32 neighbor_index = neighbors[i];
-                            if (neighbor_index == index)
-                            {
-                                continue;
-                            }
-
                             ReSTIRDIVisiblePoint& neighbor_vp = visible_points[neighbor_index];
                             ReSTIRDIReservoir& neighbor_reservoir = ris_reservoirs[neighbor_index];
                             ReSTIRDISample sample = neighbor_reservoir.y;
@@ -588,40 +588,43 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                             Vec3 wi;
                             Float d2 = 0;
                             Spectrum Li;
-                            Float jacobian = sample.jacobian;
-                            if (sample.is_infinite_light)
-                            {
-                                wi = sample.wi;
-                                Li = sample.light->Le(Ray(isect.point, wi));
-                            }
-                            else
-                            {
-                                wi = sample.x - isect.point;
-                                d2 = Length2(wi);
-                                wi /= std::sqrt(d2);
-
-                                Li =
-                                    sample.light->Le(Intersection{ .point = sample.x, .front_face = Dot(sample.n, wi) < 0 }, -wi);
-                                jacobian = std::max(0.0f, (Dot(sample.n, -wi) / d2) * sample.jacobian);
-                            }
-
-                            // Shift neighbor sample to canonical domain
-                            Spectrum f_cos = vp.bsdf.f(vp.wo, wi) * AbsDot(isect.shading.normal, wi);
-
-                            Spectrum contribution = Li * f_cos;
-                            Float p_hat_y = contribution.Luminance();
                             Float c_j = neighbor_reservoir.M;
-
-                            Float m_i = MIS_NonCanonical(c_1, c_total, c_j, sample.p_hat, p_hat_y, jacobian);
-
-                            if (m_i > 0)
+                            if (sample.W > 0)
                             {
-                                Float w = m_i * p_hat_y * sample.W * jacobian;
-                                sample.p_hat = p_hat_y;
-                                sample.wi = wi;
-                                sample.Li = Li;
-                                sample.contribution = contribution;
-                                reservoir.Add(sample, w);
+                                Float jacobian = sample.jacobian;
+                                if (sample.is_infinite_light)
+                                {
+                                    wi = sample.wi;
+                                    Li = sample.light->Le(Ray(isect.point, wi));
+                                }
+                                else
+                                {
+                                    wi = sample.x - isect.point;
+                                    d2 = Length2(wi);
+                                    wi /= std::sqrt(d2);
+
+                                    Li = sample.light->Le(
+                                        Intersection{ .point = sample.x, .front_face = Dot(sample.n, wi) < 0 }, -wi
+                                    );
+                                    jacobian = std::max(0.0f, (Dot(sample.n, -wi) / d2) * sample.jacobian);
+                                }
+
+                                // Shift neighbor sample to canonical domain
+                                Spectrum f_cos = vp.bsdf.f(vp.wo, wi) * AbsDot(isect.shading.normal, wi);
+
+                                Spectrum contribution = Li * f_cos;
+                                Float p_hat_y = contribution.Luminance();
+                                Float m_i = MIS_NonCanonical(c_1, c_total, c_j, sample.p_hat, p_hat_y, jacobian);
+
+                                if (m_i > 0)
+                                {
+                                    Float w = m_i * p_hat_y * sample.W * jacobian;
+                                    sample.p_hat = p_hat_y;
+                                    sample.wi = wi;
+                                    sample.Li = Li;
+                                    sample.contribution = contribution;
+                                    reservoir.Add(sample, w);
+                                }
                             }
 
                             if (canonical_sample.W == 0)
@@ -649,9 +652,10 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 jacobian_rev = std::max(0.0f, (Dot(canonical_sample.n, -wi) / d2) * canonical_sample.jacobian);
                             }
 
-                            f_cos = neighbor_vp.bsdf.f(neighbor_vp.wo, wi) * AbsDot(neighbor_vp.isect.shading.normal, wi);
+                            Spectrum f_cos =
+                                neighbor_vp.bsdf.f(neighbor_vp.wo, wi) * AbsDot(neighbor_vp.isect.shading.normal, wi);
 
-                            p_hat_y = (Li * f_cos).Luminance();
+                            Float p_hat_y = (Li * f_cos).Luminance();
                             m_1 += MIS_Canonical(c_1, c_total, c_j, canonical_sample.p_hat, p_hat_y, jacobian_rev);
                         }
 
