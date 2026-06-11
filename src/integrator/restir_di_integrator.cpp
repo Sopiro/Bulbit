@@ -13,17 +13,6 @@
 namespace bulbit
 {
 
-namespace
-{
-
-WavelengthSample IterationLambda(int32 iteration, int32 total_iterations)
-{
-    Float u = Float(iteration + 0.5f) / Float(std::max(1, total_iterations));
-    return WavelengthSample::Sample(std::fmod(u, 1.0f));
-}
-
-} // namespace
-
 struct ReSTIRDIVisiblePoint
 {
     Float primary_weight;
@@ -228,7 +217,7 @@ Rendering* ReSTIRDIIntegrator::Render(Allocator& alloc, const Camera* camera)
     progress->job = RunAsync([=, this]() {
         for (int32 s = 0; s < spp; ++s)
         {
-            const WavelengthSample lambda = IterationLambda(s, spp);
+            const WavelengthSample lambda = WavelengthSample::SampleIteration(s, spp);
             std::vector<ReSTIRDIVisiblePoint> visible_points(num_pixels);
 
             std::vector<ReSTIRDIReservoir> ris_reservoirs(num_pixels);     // output sample after RIS sampling + visibility pass

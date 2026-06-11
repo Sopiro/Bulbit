@@ -12,17 +12,6 @@
 namespace bulbit
 {
 
-namespace
-{
-
-WavelengthSample IterationLambda(int32 iteration, int32 total_iterations)
-{
-    Float u = Float(iteration + 0.5f) / Float(std::max(1, total_iterations));
-    return WavelengthSample::Sample(std::fmod(u, 1.0f));
-}
-
-} // namespace
-
 SPPMIntegrator::SPPMIntegrator(
     const Intersectable* accel,
     std::vector<Light*> lights,
@@ -133,7 +122,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
         for (int32 iteration = 0; iteration < n_iterations; ++iteration)
         {
-            WavelengthSample lambda = IterationLambda(iteration, n_iterations);
+            WavelengthSample lambda = WavelengthSample::SampleIteration(iteration, n_iterations);
             ParallelFor2D(
                 res,
                 [&](AABB2i tile) {
@@ -245,7 +234,7 @@ Rendering* SPPMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                 vp.p = isect.point;
                                 vp.normal = isect.normal;
                                 vp.wo = wo;
-                                vp.secondary_terminated = path_lambda.IsCollapse();
+                                vp.secondary_terminated = path_lambda.IsCollapsed();
                                 vp.bsdf = bsdf;
                                 vp.beta = beta;
 

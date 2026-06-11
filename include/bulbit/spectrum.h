@@ -108,9 +108,15 @@ struct WavelengthSample
         return sample;
     }
 
+    static WavelengthSample SampleIteration(int32 iteration, int32 total_iterations)
+    {
+        Float u = Float(iteration + 0.5f) / Float(std::max(1, total_iterations));
+        return WavelengthSample::Sample(std::fmod(u, 1.0f));
+    }
+
     void CollapseToPrimary()
     {
-        if (IsCollapse())
+        if (IsCollapsed())
         {
             return;
         }
@@ -123,7 +129,7 @@ struct WavelengthSample
         pdf[hero_lane] /= Float(num_lanes);
     }
 
-    bool IsCollapse() const
+    bool IsCollapsed() const
     {
         for (int32 i = 1; i < num_lanes; ++i)
         {

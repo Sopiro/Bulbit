@@ -12,27 +12,6 @@
 namespace bulbit
 {
 
-namespace
-{
-
-WavelengthSample IterationLambda(int32 iteration, int32 total_iterations)
-{
-    Float u = Float(iteration + 0.5f) / Float(std::max(1, total_iterations));
-    return WavelengthSample::Sample(std::fmod(u, 1.0f));
-}
-
-WavelengthSample EffectiveLambda(const WavelengthSample& lambda, bool secondary_terminated)
-{
-    WavelengthSample effective = lambda;
-    if (secondary_terminated)
-    {
-        effective.CollapseToPrimary();
-    }
-    return effective;
-}
-
-} // namespace
-
 struct VCMSubPathState
 {
     Point3 origin;
@@ -508,7 +487,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
 
         for (int32 iteration = 0; iteration < n_iterations; ++iteration)
         {
-            const WavelengthSample lambda = IterationLambda(iteration, n_iterations);
+            const WavelengthSample lambda = WavelengthSample::SampleIteration(iteration, n_iterations);
             Float radius = initial_radius;
             radius /= std::pow(Float(iteration + 1), 0.5f * (1 - radius_alpha));
             radius = std::max(radius, 1e-7f);
@@ -660,7 +639,7 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                             v.d_vc = light_state.d_vc;
                             v.d_vm = light_state.d_vm;
                             v.cont_prob = vertex_cont_prob;
-                            v.secondary_terminated = light_state.lambda.IsCollapse();
+                            v.secondary_terminated = light_state.lambda.IsCollapsed();
 
                             chunk.vertices.push_back(v_path);
                             ++chunk.counts[size_t(path_index - begin)];
@@ -913,9 +892,13 @@ Rendering* VCMIntegrator::Render(Allocator& alloc, const Camera* camera)
                                                                       wo, bsdf, vertex_cont_prob, mis_vm_weight
                                                                   );
 
-                                    WavelengthSample effective_lambda =
-                                        EffectiveLambda(camera_state.lambda, light_vertex.secondary_terminated);
-                                    L_xyz += spectral::SpectrumSampleToXYZ(contribution, effective_lambda);
+                                    WavelengthSample lambda = camera_state.lambda;
+                                    if (light_vertex.secondary_terminated)
+                                    {
+                                        lambda.CollapseToPrimary();
+                                    }
+
+                                    L_xyz += spectral::SpectrumSampleToXYZ(contribution, lambda);
                                 }
                             }
 

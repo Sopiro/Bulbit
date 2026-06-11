@@ -13,17 +13,6 @@
 namespace bulbit
 {
 
-namespace
-{
-
-WavelengthSample IterationLambda(int32 iteration, int32 total_iterations)
-{
-    Float u = Float(iteration + 0.5f) / Float(std::max(1, total_iterations));
-    return WavelengthSample::Sample(std::fmod(u, 1.0f));
-}
-
-} // namespace
-
 VolPhotonMappingIntegrator::VolPhotonMappingIntegrator(
     const Intersectable* accel,
     std::vector<Light*> lights,
@@ -155,7 +144,7 @@ void VolPhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress, Wave
                                 photon.normal = Vec3::zero;
                                 photon.wi = wo;
                                 photon.beta = beta;
-                                photon.secondary_terminated = lambda.IsCollapse();
+                                photon.secondary_terminated = lambda.IsCollapsed();
                                 volume_photons.push_back(photon);
                             }
 
@@ -239,7 +228,7 @@ void VolPhotonMappingIntegrator::EmitPhotons(MultiPhaseRendering* progress, Wave
                 photon.normal = isect.normal;
                 photon.wi = wo;
                 photon.beta = beta;
-                photon.secondary_terminated = lambda.IsCollapse();
+                photon.secondary_terminated = lambda.IsCollapsed();
                 surface_photons.push_back(photon);
             }
 
@@ -636,7 +625,7 @@ Rendering* VolPhotonMappingIntegrator::Render(Allocator& alloc, const Camera* ca
     progress->job = RunAsync([=, this]() {
         for (int32 iteration = 0; iteration < n_iterations; ++iteration)
         {
-            WavelengthSample lambda = IterationLambda(iteration, n_iterations);
+            WavelengthSample lambda = WavelengthSample::SampleIteration(iteration, n_iterations);
             EmitPhotons(progress, lambda, 2 * iteration);
             progress->phase_dones[2 * iteration].store(true, std::memory_order_release);
 
