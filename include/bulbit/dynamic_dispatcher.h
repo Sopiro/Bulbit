@@ -114,14 +114,14 @@ public:
     T* Cast()
     {
         BulbitAssert(Is<T>());
-        return reinterpret_cast<T*>(this);
+        return (T*)this;
     }
 
     template <typename T>
     const T* Cast() const
     {
         BulbitAssert(Is<T>());
-        return reinterpret_cast<const T*>(this);
+        return (const T*)this;
     }
 
     template <typename Func>
@@ -130,9 +130,7 @@ public:
         using R = detail::ReturnType<Func, Types...>::type;
         using Handler = R (*)(void*, Func&&);
 
-        static constexpr Handler handlers[] = { [](void* p, Func&& f) -> R {
-            return f(static_cast<std::add_pointer_t<Types>>(p));
-        }... };
+        static constexpr Handler handlers[] = { [](auto* p, Func&& f) -> R { return f((Types*)p); }... };
 
         return handlers[type_index]((void*)this, std::forward<Func>(func));
     }
@@ -141,13 +139,11 @@ public:
     auto Dispatch(Func&& func) const
     {
         using R = detail::ReturnType<Func, Types...>::type;
-        using Handler = R (*)(void*, Func&&);
+        using Handler = R (*)(const void*, Func&&);
 
-        static constexpr Handler handlers[] = { [](void* p, Func&& f) -> R {
-            return f(static_cast<std::add_pointer_t<Types>>(p));
-        }... };
+        static constexpr Handler handlers[] = { [](const auto* p, Func&& f) -> R { return f((const Types*)p); }... };
 
-        return handlers[type_index]((void*)this, std::forward<Func>(func));
+        return handlers[type_index]((const void*)this, std::forward<Func>(func));
     }
 
     template <typename T>
